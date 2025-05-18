@@ -24,19 +24,19 @@ type Claims struct {
 
 var jwtKey = []byte("82jhdksl#")
 
-func JWTMiddleware(c *gin.Context) {
+func JWTMiddleware(gc *gin.Context) {
 	// Try to get token from cookie first
-	tokenStr, err := c.Cookie("auth_token")
+	tokenStr, err := gc.Cookie("auth_token")
 	if err != nil || tokenStr == "" {
 		// Fallback: try to get token from Authorization header
-		authHeader := c.GetHeader("Authorization")
+		authHeader := gc.GetHeader("Authorization")
 		if authHeader == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Missing Authorization token"})
+			gc.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Missing Authorization token"})
 			return
 		}
 		parts := strings.SplitN(authHeader, " ", 2)
 		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid Authorization header format"})
+			gc.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid Authorization header format"})
 			return
 		}
 		tokenStr = parts[1]
@@ -51,30 +51,30 @@ func JWTMiddleware(c *gin.Context) {
 	fmt.Println("token: ", token)
 
 	if err != nil || !token.Valid {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+		gc.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 		return
 	}
 
 	// Token is valid, save user info in context
-	c.Set("claims", claims)
-	c.Set("userId", claims.UserId)
+	gc.Set("claims", claims)
+	gc.Set("userId", claims.UserId)
 
-	c.Next()
+	gc.Next()
 }
 
-func loginHandler(c *gin.Context) {
+func loginHandler(gc *gin.Context) {
 	var creds struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
 
-	if err := c.BindJSON(&creds); err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing credentials"})
+	if err := gc.BindJSON(&creds); err != nil {
+		gc.JSON(http.StatusUnauthorized, gin.H{"error": "missing credentials"})
 		return
 	}
 
 	if creds.Email == "" || creds.Password == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing credentials"})
+		gc.JSON(http.StatusUnauthorized, gin.H{"error": "missing credentials"})
 		return
 	}
 
@@ -83,9 +83,9 @@ func loginHandler(c *gin.Context) {
 	hashedPassword, err := app.EncryptPassword(creds.Password)
 	fmt.Println("hashedPassword:", hashedPassword)
 
-	user, err := model.GetUser(app.Singleton, c, creds.Email)
+	user, err := model.GetUser(app.Singleton, gc, creds.Email)
 	if err != nil {
-		http.Error(c.Writer, "No user", http.StatusBadRequest)
+		http.Error(gc.Writer, "No user", http.StatusBadRequest)
 		return
 	}
 	user.Print()
@@ -107,7 +107,7 @@ func loginHandler(c *gin.Context) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenStr, err := token.SignedString(jwtKey)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not generate token"})
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "could not generate token"})
 		return
 	}
 
@@ -115,12 +115,12 @@ func loginHandler(c *gin.Context) {
 	fmt.Println("host:", app.Singleton.Config.DbHost)
 
 	// Send token as JSON
-	c.JSON(http.StatusOK, gin.H{"token": tokenStr})
+	gc.JSON(http.StatusOK, gin.H{"token": tokenStr})
 
 	// Set cookie for authentication
 	if app.Singleton.Config.DevMode {
 		// Dev mode: no Secure flag, SameSite=None still needed for cross-origin
-		c.SetCookie(
+		gc.SetCookie(
 			"auth_token", // name
 			tokenStr,     // value
 			3600,         // maxAge in seconds
@@ -131,12 +131,12 @@ func loginHandler(c *gin.Context) {
 		)
 
 		// Manually set SameSite=None (since gin's SetCookie doesn't support SameSite explicitly)
-		c.Writer.Header().Add("Set-Cookie",
+		gc.Writer.Header().Add("Set-Cookie",
 			fmt.Sprintf("auth_token=%s; Path=/; Max-Age=3600; HttpOnly; SameSite=None", tokenStr),
 		)
 	} else {
 		// Production: secure cookie
-		c.SetCookie(
+		gc.SetCookie(
 			"auth_token",
 			tokenStr,
 			3600,
@@ -147,24 +147,10 @@ func loginHandler(c *gin.Context) {
 		)
 
 		// SameSite=None needed for cross-origin in modern browsers
-		c.Writer.Header().Add("Set-Cookie",
+		gc.Writer.Header().Add("Set-Cookie",
 			fmt.Sprintf("auth_token=%s; Path=/; Max-Age=3600; HttpOnly; Secure; SameSite=None", tokenStr),
 		)
 	}
-}
-
-func protectedRouteTest(c *gin.Context) {
-	// Optional: get user info from context if JWTMiddleware stored it
-	/*userId, exists := c.Get("userId")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"status": "loginHandler failed"})
-		return
-	}
-	*/
-
-	fmt.Printf("You are logged in :-)")
-
-	c.JSON(http.StatusOK, gin.H{"status": "OK"})
 }
 
 func main() {
@@ -216,7 +202,6 @@ func main() {
 		apiRoute.POST("/login", loginHandler)
 		apiRoute.GET("/query", api.QueryHandler)
 		apiRoute.POST("/query", api.QueryHandler)
-		apiRoute.GET("/protected", JWTMiddleware, protectedRouteTest)
 
 		apiRoute.POST("/event", JWTMiddleware, api.CreateEventHandler)
 

@@ -6,36 +6,35 @@ import (
 	"net/http"
 )
 
-func getParam(c *gin.Context, name string) string {
-	return c.DefaultQuery(name, c.PostForm(name))
+func getParam(gc *gin.Context, name string) string {
+	return gc.DefaultQuery(name, gc.PostForm(name))
 }
 
-func QueryHandler(c *gin.Context) {
+func QueryHandler(gc *gin.Context) {
 
-	modeStr := getParam(c, "mode")
+	modeStr := getParam(gc, "mode")
 	fmt.Println("query mode:", modeStr)
 
 	switch modeStr {
 	case "event":
-		QueryEvent(c)
+		QueryEvent(gc)
 		break
 
 	case "venue":
-		// QueryVenue(c)
+		// QueryVenue(gc)
 		break
 
 	case "space":
-		// QuerySpace(c)
+		// QuerySpace(gc)
 		break
 
 	case "organization":
-		// QueryOrganization(c)
+		// QueryOrganization(gc)
 		break
 
 	default:
-		c.JSON(http.StatusBadRequest, gin.H{
+		gc.JSON(http.StatusBadRequest, gin.H{
 			"message": fmt.Sprintf("unknown mode: %s", modeStr),
 		})
 	}
-
 }

@@ -12,18 +12,18 @@ import (
 	"time"
 )
 
-func QueryEvent(c *gin.Context) {
+func QueryEvent(gc *gin.Context) {
 
-	jsonData, httpStatus, err := queryAsJSON(c, app.Singleton.MainDb)
+	jsonData, httpStatus, err := queryAsJSON(gc, app.Singleton.MainDb)
 	if err != nil {
-		c.JSON(httpStatus, gin.H{"error": err.Error()})
+		gc.JSON(httpStatus, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.Data(httpStatus, "application/json", jsonData)
+	gc.Data(httpStatus, "application/json", jsonData)
 }
 
-func queryAsJSON(c *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
+func queryAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 	// TODO:
 	// Note on security:
 	// This version is still vulnerable to SQL injection if any of the inputs are user-controlled. Safe version using parameterized queries (recommended with database/sql or GORM):
@@ -32,45 +32,45 @@ func queryAsJSON(c *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 	// Check for unknown arguments
 
 	start := time.Now() // Start timer
-	ctx := c.Request.Context()
+	ctx := gc.Request.Context()
 
 	query := app.Singleton.SqlQueryEvent
 
 	// Default condition: WHERE ed.start > NOW()
 	// Default order: ORDER BY ed.start ASC
 
-	languageStr := getParam(c, "lang")
-	startStr := getParam(c, "start")
-	endStr := getParam(c, "end")
-	timeStr := getParam(c, "time")
-	searchStr := getParam(c, "search")
-	eventIdsStr := getParam(c, "events")
-	venueIdsStr := getParam(c, "venues")
-	spaceIdsStr := getParam(c, "spaces")
-	orgIdsStr := getParam(c, "organizers")
-	countryCodesStr := getParam(c, "countries")
-	// stateCode := getParam(c, "state_code")
-	postalCodeStr := getParam(c, "postal_code")
-	// buildingLevelCodeStr := getParam(c, "building_level")
-	// buildingMinLevelCodeStr := getParam(c, "building_min_level")
-	// buildingMaxLevelCodeStr := getParam(c, "building_max_level")
-	// spaceMinCapacityCodeStr := getParam(c, "space_min_capacity")
-	// spaceMaxCapacityCodeStr := getParam(c, "space_max_capacity")
-	// spaceMinSeatsCodeStr := getParam(c, "space_min_seats")
-	// spaceMaxSeatsCodeStr := getParam(c, "space_max_seats")
-	lonStr := getParam(c, "lon")
-	latStr := getParam(c, "lat")
-	radiusStr := getParam(c, "radius")
-	eventTypesStr := getParam(c, "event_types")
-	genreTypesStr := getParam(c, "genre_types")
-	spaceTypesStr := getParam(c, "space_types")
-	titleStr := getParam(c, "title")
-	cityStr := getParam(c, "city")
-	accessibilityInfosStr := getParam(c, "accessibility")
-	visitorInfosStr := getParam(c, "visitor_infos")
-	ageStr := getParam(c, "age")
-	limitStr := getParam(c, "limit")
-	offsetStr := getParam(c, "offset")
+	languageStr := getParam(gc, "lang")
+	startStr := getParam(gc, "start")
+	endStr := getParam(gc, "end")
+	timeStr := getParam(gc, "time")
+	searchStr := getParam(gc, "search")
+	eventIdsStr := getParam(gc, "events")
+	venueIdsStr := getParam(gc, "venues")
+	spaceIdsStr := getParam(gc, "spaces")
+	orgIdsStr := getParam(gc, "organizers")
+	countryCodesStr := getParam(gc, "countries")
+	// stateCode := getParam(gc, "state_code")
+	postalCodeStr := getParam(gc, "postal_code")
+	// buildingLevelCodeStr := getParam(gc, "building_level")
+	// buildingMinLevelCodeStr := getParam(gc, "building_min_level")
+	// buildingMaxLevelCodeStr := getParam(gc, "building_max_level")
+	// spaceMinCapacityCodeStr := getParam(gc, "space_min_capacity")
+	// spaceMaxCapacityCodeStr := getParam(gc, "space_max_capacity")
+	// spaceMinSeatsCodeStr := getParam(gc, "space_min_seats")
+	// spaceMaxSeatsCodeStr := getParam(gc, "space_max_seats")
+	lonStr := getParam(gc, "lon")
+	latStr := getParam(gc, "lat")
+	radiusStr := getParam(gc, "radius")
+	eventTypesStr := getParam(gc, "event_types")
+	genreTypesStr := getParam(gc, "genre_types")
+	spaceTypesStr := getParam(gc, "space_types")
+	titleStr := getParam(gc, "title")
+	cityStr := getParam(gc, "city")
+	accessibilityInfosStr := getParam(gc, "accessibility")
+	visitorInfosStr := getParam(gc, "visitor_infos")
+	ageStr := getParam(gc, "age")
+	limitStr := getParam(gc, "limit")
+	offsetStr := getParam(gc, "offset")
 
 	// TODO: offset, limit
 
@@ -171,7 +171,7 @@ func queryAsJSON(c *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 	}
 
 	if eventTypesStr != "" {
-		format := "EXISTS (SELECT 1 FROM app.event_type_links sub_etl WHERE sub_etl.event_id = e.id AND sub_etl.type_id IN (%s))"
+		format := "EXISTS (SELECT 1 FROM " + app.Singleton.Config.DbSchema + ".event_type_links sub_etl WHERE sub_etl.event_id = e.id AND sub_etl.type_id IN (%s))"
 		var err error
 		argIndex, err = sql.BuildInCondition(eventTypesStr, format, "event_types", argIndex, &conditions, &args)
 		if err != nil {
@@ -180,7 +180,7 @@ func queryAsJSON(c *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 	}
 
 	if genreTypesStr != "" {
-		format := "EXISTS (SELECT 1 FROM app.event_genre_links sub_egl WHERE sub_egl.event_id = e.id AND sub_egl.type_id IN (%s))"
+		format := "EXISTS (SELECT 1 FROM " + app.Singleton.Config.DbSchema + ".event_genre_links sub_egl WHERE sub_egl.event_id = e.id AND sub_egl.type_id IN (%s))"
 		var err error
 		argIndex, err = sql.BuildInCondition(genreTypesStr, format, "genre_types", argIndex, &conditions, &args)
 		if err != nil {

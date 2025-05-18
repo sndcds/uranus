@@ -33,10 +33,10 @@ type EventData struct {
 	EventDates  []EventDateData `json:"event_dates"`
 }
 
-func CreateEventHandler(c *gin.Context) {
+func CreateEventHandler(gc *gin.Context) {
 	var eventData EventData
-	if err := c.ShouldBindJSON(&eventData); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := gc.ShouldBindJSON(&eventData); err != nil {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -53,7 +53,7 @@ func CreateEventHandler(c *gin.Context) {
 	ctx := context.Background()
 	tx, err := db.Begin(ctx)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not start transaction"})
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Could not start transaction"})
 		return
 	}
 	defer tx.Rollback(ctx)
@@ -84,7 +84,7 @@ func CreateEventHandler(c *gin.Context) {
 		eventData.Description,
 		eventData.Teaser).Scan(&eventId)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert event"})
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert event"})
 		return
 	}
 
@@ -131,7 +131,7 @@ func CreateEventHandler(c *gin.Context) {
 
 		_, err := tx.Exec(ctx, sqlQuery, args...)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert event date"})
+			gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert event date"})
 			return
 		}
 	}
@@ -145,7 +145,7 @@ func CreateEventHandler(c *gin.Context) {
 				*eventData.ImageURL,
 			).Scan(&imageId)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert image"})
+				gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert image"})
 				return
 			}
 
@@ -154,7 +154,7 @@ func CreateEventHandler(c *gin.Context) {
 				eventId, imageId,
 			)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to link image"})
+				gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to link image"})
 				return
 			}
 		}
@@ -169,7 +169,7 @@ func CreateEventHandler(c *gin.Context) {
 			fmt.Println("eventId", eventId, "typeId:", typeId)
 			_, err := tx.Exec(ctx, query, eventId, typeId)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert event types"})
+				gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert event types"})
 				return
 			}
 		}
@@ -184,16 +184,16 @@ func CreateEventHandler(c *gin.Context) {
 			fmt.Println("eventId", eventId, "genreId:", genreId)
 			_, err := tx.Exec(ctx, query, eventId, genreId)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert genres"})
+				gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert genres"})
 				return
 			}
 		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction commit failed"})
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction commit failed"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"event_id": eventId})
+	gc.JSON(http.StatusCreated, gin.H{"event_id": eventId})
 }

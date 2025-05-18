@@ -163,7 +163,7 @@ func scanEventEntries(rows pgx.Rows) ([]EventEntry, int) {
 	return entries, http.StatusOK
 }
 
-func GetEventEntriesByVenueIdAndUserId(app app.Uranus, c *gin.Context, venueId int, userId int) ([]EventEntry, int) {
+func GetEventEntriesByVenueIdAndUserId(app app.Uranus, gc *gin.Context, venueId int, userId int) ([]EventEntry, int) {
 	_eventEntryInit()
 	var entries []EventEntry
 	rows, err := app.MainDb.Query(context.Background(), _gEventEntryQueries.EventEntriesByVenueQuery, venueId, userId)
@@ -177,7 +177,7 @@ func GetEventEntriesByVenueIdAndUserId(app app.Uranus, c *gin.Context, venueId i
 	return scanEventEntries(rows)
 }
 
-func GetEventEntriesByOrganizerAndUser(app app.Uranus, c *gin.Context, organizerId int, userId int) ([]EventEntry, int) {
+func GetEventEntriesByOrganizerAndUser(app app.Uranus, gc *gin.Context, organizerId int, userId int) ([]EventEntry, int) {
 	_eventEntryInit()
 	var entries []EventEntry
 	rows, err := app.MainDb.Query(context.Background(), _gEventEntryQueries.EventEntriesByOrganizerQuery, organizerId, userId)

@@ -7,6 +7,7 @@ import (
 	"github.com/sndcds/uranus/app"
 	"log"
 	"net/http"
+	"strings"
 )
 
 type User struct {
@@ -20,11 +21,14 @@ func (user User) Print() {
 	fmt.Println("DbUser:", user.Name, "EMailAddress:", user.EMailAddress, "PasswordHash:", user.PasswordHash)
 }
 
-func GetUserById(app app.Uranus, ctx *gin.Context, userId int) (User, error) {
+func GetUserById(app app.Uranus, gc *gin.Context, userId int) (User, error) {
 
-	rows, err := app.MainDb.Query(context.Background(), "SELECT id, display_name, email_address FROM app.user WHERE id = $1", userId)
+	sqlTemplate := `SELECT id, display_name, email_address FROM {{schema}}.user WHERE id = $1`
+	sqlQuery := strings.Replace(sqlTemplate, "{{schema}}", app.Config.DbSchema, -1)
+
+	rows, err := app.MainDb.Query(context.Background(), sqlQuery, userId)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Query failed"})
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Query failed"})
 		log.Printf("Query failed: %v\n", err)
 		return User{}, fmt.Errorf("user not found")
 	}
@@ -35,7 +39,7 @@ func GetUserById(app app.Uranus, ctx *gin.Context, userId int) (User, error) {
 		err := rows.Scan(&user.Id, &user.Name, &user.EMailAddress)
 		if err != nil {
 			log.Printf("Failed to scan row: %v\n", err)
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read user data"})
+			gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read user data"})
 			return User{}, fmt.Errorf("failed to read user data")
 		}
 	}
@@ -43,12 +47,11 @@ func GetUserById(app app.Uranus, ctx *gin.Context, userId int) (User, error) {
 	return user, nil
 }
 
-func GetUser(app *app.Uranus, ctx *gin.Context, eMail string) (User, error) {
-
-	// Example for a sanitized/safe use of parameters.
-	rows, err := app.MainDb.Query(context.Background(), "SELECT id, display_name, email_address, password_hash FROM app.user WHERE email_address = $1", eMail)
+func GetUser(app *app.Uranus, gc *gin.Context, eMail string) (User, error) {
+	sqlQuery := "SELECT id, display_name, email_address, password_hash FROM " + app.Config.DbSchema + ".user WHERE email_address = $1"
+	rows, err := app.MainDb.Query(context.Background(), sqlQuery, eMail)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Query failed"})
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Query failed"})
 		log.Printf("Query failed: %v\n", err)
 		return User{}, fmt.Errorf("user not found")
 	}
@@ -60,7 +63,7 @@ func GetUser(app *app.Uranus, ctx *gin.Context, eMail string) (User, error) {
 		err := rows.Scan(&user.Id, &user.Name, &user.EMailAddress, &user.PasswordHash)
 		if err != nil {
 			log.Printf("Failed to scan row: %v\n", err)
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read user data"})
+			gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read user data"})
 			return User{}, fmt.Errorf("failed to read user data")
 		}
 		log.Printf("id: %v\n", user.Id)

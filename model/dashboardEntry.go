@@ -203,7 +203,7 @@ func (entry DashboardEntry) Print() {
 	fmt.Println("  upcoming_event_count:", entry.UpcomingEventCount)
 }
 
-func GetDashboardEntriesByUserId(app app.Uranus, c *gin.Context, userId int) ([]DashboardEntry, int) {
+func GetDashboardEntriesByUserId(app app.Uranus, gc *gin.Context, userId int) ([]DashboardEntry, int) {
 	_dashboardEntryInit()
 	var entries []DashboardEntry
 	rows, err := app.MainDb.Query(context.Background(), _gDashboardEntryQueries.DashboardEntryQuery, userId)
