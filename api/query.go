@@ -11,7 +11,6 @@ func getParam(gc *gin.Context, name string) string {
 }
 
 func QueryHandler(gc *gin.Context) {
-
 	modeStr := getParam(gc, "mode")
 	fmt.Println("query mode:", modeStr)
 
@@ -22,6 +21,10 @@ func QueryHandler(gc *gin.Context) {
 
 	case "venue":
 		// QueryVenue(gc)
+		break
+
+	case "venue-map":
+		QueryVenueForMap(gc)
 		break
 
 	case "space":

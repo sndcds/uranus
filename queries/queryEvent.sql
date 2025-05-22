@@ -33,6 +33,8 @@ SELECT
     v.country_code AS venue_country,
     v.state_code AS venue_state,
     ST_AsText(v.wkb_geometry) AS venue_geometry,
+    ST_X(v.wkb_geometry) AS venue_lon,
+    ST_Y(v.wkb_geometry) AS venue_lat,
 
     COALESCE(s.id, es.id) AS space_id,
     COALESCE(s.name, es.name) AS space_name,

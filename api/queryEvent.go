@@ -14,7 +14,7 @@ import (
 
 func QueryEvent(gc *gin.Context) {
 
-	jsonData, httpStatus, err := queryAsJSON(gc, app.Singleton.MainDb)
+	jsonData, httpStatus, err := queryEventAsJSON(gc, app.Singleton.MainDb)
 	if err != nil {
 		gc.JSON(httpStatus, gin.H{"error": err.Error()})
 		return
@@ -23,7 +23,7 @@ func QueryEvent(gc *gin.Context) {
 	gc.Data(httpStatus, "application/json", jsonData)
 }
 
-func queryAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
+func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 	// TODO:
 	// Note on security:
 	// This version is still vulnerable to SQL injection if any of the inputs are user-controlled. Safe version using parameterized queries (recommended with database/sql or GORM):
@@ -241,10 +241,12 @@ func queryAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 	query = strings.Replace(query, "{{limit}}", limitClause, 1)
 	query = strings.Replace(query, "{{order}}", order, 1)
 
-	fmt.Println(query)
-	fmt.Printf("eventDateConditions: %#v\n", eventDateConditions)
-	fmt.Printf("conditions: %#v\n", conditions)
-	fmt.Printf("args: %d: %#v\n", len(args), args)
+	/*
+		fmt.Println(query)
+		fmt.Printf("eventDateConditions: %#v\n", eventDateConditions)
+		fmt.Printf("conditions: %#v\n", conditions)
+		fmt.Printf("args: %d: %#v\n", len(args), args)
+	*/
 
 	rows, err := db.Query(ctx, query, args...)
 	if err != nil {

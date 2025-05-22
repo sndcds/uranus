@@ -1,5 +1,11 @@
 package app
 
+import (
+	"fmt"
+	"os"
+	"strings"
+)
+
 // CombineFlags takes a slice of integers representing flag positions
 // and combines them into a single uint64 bitmask.
 //
@@ -25,4 +31,22 @@ func CombineFlags(flags []int) uint64 {
 		}
 	}
 	return result
+}
+
+func loadFileReplaceAllSchema(filePath string, replacement string, outString *string) error {
+	return loadFileReplaceAllShortcuts(filePath, "{{schema}}", replacement, outString)
+}
+
+func loadFileReplaceAllShortcuts(filePath string, shortcut string, replacement string, outString *string) error {
+	// Read the SQL file
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to read file: %w", err)
+	}
+
+	// Convert to string and replace {{schema}} with actual schema name
+	s := string(content)
+	s = strings.ReplaceAll(s, shortcut, replacement)
+	*outString = s
+	return nil
 }

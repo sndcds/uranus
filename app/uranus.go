@@ -20,9 +20,10 @@ import (
 )
 
 type Uranus struct {
-	MainDb        *pgxpool.Pool
-	Config        Config
-	SqlQueryEvent string
+	MainDb              *pgxpool.Pool
+	Config              Config
+	SqlQueryEvent       string
+	SqlQueryVenueForMap string
 }
 
 var Singleton *Uranus
@@ -86,17 +87,17 @@ func (app *Uranus) LoadConfig(fileName string) error {
 }
 
 func (app *Uranus) PrepareSql() error {
+	var err error = nil
 
-	// Read the SQL file
-	content, err := os.ReadFile("queries/queryEvent.sql")
+	err = loadFileReplaceAllSchema("queries/queryEvent.sql", app.Config.DbSchema, &app.SqlQueryEvent)
 	if err != nil {
-		panic(fmt.Errorf("failed to read file: %w", err))
+		return err
 	}
 
-	// Convert to string and replace {{schema}} with actual schema name
-	query := string(content)
-	query = strings.ReplaceAll(query, "{{schema}}", app.Config.DbSchema)
-	app.SqlQueryEvent = query
+	err = loadFileReplaceAllSchema("queries/queryVenueForMap.sql", app.Config.DbSchema, &app.SqlQueryVenueForMap)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
