@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sndcds/uranus/app"
 	"github.com/sndcds/uranus/sql"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -36,21 +37,19 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 
 	query := app.Singleton.SqlQueryEvent
 
-	// Default condition: WHERE ed.start > NOW()
-	// Default order: ORDER BY ed.start ASC
-
-	languageStr := getParam(gc, "lang")
-	startStr := getParam(gc, "start")
-	endStr := getParam(gc, "end")
-	timeStr := getParam(gc, "time")
-	searchStr := getParam(gc, "search")
-	eventIdsStr := getParam(gc, "events")
-	venueIdsStr := getParam(gc, "venues")
-	spaceIdsStr := getParam(gc, "spaces")
-	orgIdsStr := getParam(gc, "organizers")
-	countryCodesStr := getParam(gc, "countries")
+	languageStr, _ := getParam(gc, "lang")
+	_, hasPast := getParam(gc, "past")
+	startStr, _ := getParam(gc, "start")
+	endStr, _ := getParam(gc, "end")
+	timeStr, _ := getParam(gc, "time")
+	searchStr, _ := getParam(gc, "search")
+	eventIdsStr, _ := getParam(gc, "events")
+	venueIdsStr, _ := getParam(gc, "venues")
+	spaceIdsStr, _ := getParam(gc, "spaces")
+	orgIdsStr, _ := getParam(gc, "organizers")
+	countryCodesStr, _ := getParam(gc, "countries")
 	// stateCode := getParam(gc, "state_code")
-	postalCodeStr := getParam(gc, "postal_code")
+	postalCodeStr, _ := getParam(gc, "postal_code")
 	// buildingLevelCodeStr := getParam(gc, "building_level")
 	// buildingMinLevelCodeStr := getParam(gc, "building_min_level")
 	// buildingMaxLevelCodeStr := getParam(gc, "building_max_level")
@@ -58,19 +57,19 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 	// spaceMaxCapacityCodeStr := getParam(gc, "space_max_capacity")
 	// spaceMinSeatsCodeStr := getParam(gc, "space_min_seats")
 	// spaceMaxSeatsCodeStr := getParam(gc, "space_max_seats")
-	lonStr := getParam(gc, "lon")
-	latStr := getParam(gc, "lat")
-	radiusStr := getParam(gc, "radius")
-	eventTypesStr := getParam(gc, "event_types")
-	genreTypesStr := getParam(gc, "genre_types")
-	spaceTypesStr := getParam(gc, "space_types")
-	titleStr := getParam(gc, "title")
-	cityStr := getParam(gc, "city")
-	accessibilityInfosStr := getParam(gc, "accessibility")
-	visitorInfosStr := getParam(gc, "visitor_infos")
-	ageStr := getParam(gc, "age")
-	limitStr := getParam(gc, "limit")
-	offsetStr := getParam(gc, "offset")
+	lonStr, _ := getParam(gc, "lon")
+	latStr, _ := getParam(gc, "lat")
+	radiusStr, _ := getParam(gc, "radius")
+	eventTypesStr, _ := getParam(gc, "event_types")
+	genreTypesStr, _ := getParam(gc, "genre_types")
+	spaceTypesStr, _ := getParam(gc, "space_types")
+	titleStr, _ := getParam(gc, "title")
+	cityStr, _ := getParam(gc, "city")
+	accessibilityInfosStr, _ := getParam(gc, "accessibility")
+	visitorInfosStr, _ := getParam(gc, "visitor_infos")
+	ageStr, _ := getParam(gc, "age")
+	limitStr, _ := getParam(gc, "limit")
+	offsetStr, _ := getParam(gc, "offset")
 
 	// TODO: offset, limit
 
@@ -82,7 +81,7 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 
 	if languageStr != "" {
 		if !app.IsValidIso639_1(languageStr) {
-			return nil, 500, fmt.Errorf("lang format error, %s", languageStr)
+			return nil, http.StatusInternalServerError, fmt.Errorf("lang format error, %s", languageStr)
 		}
 	} else {
 		languageStr = "de"
@@ -96,9 +95,11 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 		args = append(args, startStr)
 		argIndex++
 	} else if startStr != "" {
-		return nil, 500, fmt.Errorf("start %s has invalid format", startStr)
+		return nil, http.StatusInternalServerError, fmt.Errorf("start %s has invalid format", startStr)
 	} else {
-		eventDateConditions += "WHERE ed.start >= CURRENT_DATE"
+		if !hasPast {
+			eventDateConditions += "WHERE ed.start >= CURRENT_DATE"
+		}
 	}
 
 	if app.IsValidDateStr(endStr) {
@@ -106,59 +107,59 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 		args = append(args, endStr)
 		argIndex++
 	} else if endStr != "" {
-		return nil, 500, fmt.Errorf("end %s has invalid format", endStr)
+		return nil, http.StatusInternalServerError, fmt.Errorf("end %s has invalid format", endStr)
 	}
 
 	argIndex, err = sql.BuildTimeCondition(timeStr, "start", "time", argIndex, &conditions, &args)
 	if err != nil {
-		return nil, 500, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	argIndex, err = sql.BuildSanitizedIlikeCondition(searchStr, "e.description", "search", argIndex, &conditions, &args)
 	if err != nil {
-		return nil, 500, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	if countryCodesStr != "" {
 		format := "v.country_code IN (%s)"
 		argIndex, err = sql.BuildInConditionForStringSlice(countryCodesStr, format, "country_codes", argIndex, &conditions, &args)
 		if err != nil {
-			return nil, 500, err
+			return nil, http.StatusInternalServerError, err
 		}
 	}
 
 	if postalCodeStr != "" {
 		argIndex, err = sql.BuildLikeConditions(postalCodeStr, "v.postal_code", argIndex, &conditions, &args)
 		if err != nil {
-			return nil, 500, err
+			return nil, http.StatusInternalServerError, err
 		}
 	}
 
 	if eventIdsStr != "" {
 		argIndex, err = sql.BuildColumnInIntCondition(eventIdsStr, "e.id", "events", argIndex, &conditions, &args)
 		if err != nil {
-			return nil, 500, err
+			return nil, http.StatusInternalServerError, err
 		}
 	}
 
 	if venueIdsStr != "" {
 		argIndex, err = sql.BuildColumnInIntCondition(venueIdsStr, "v.id", "venues", argIndex, &conditions, &args)
 		if err != nil {
-			return nil, 500, err
+			return nil, http.StatusInternalServerError, err
 		}
 	}
 
 	if orgIdsStr != "" {
 		argIndex, err = sql.BuildColumnInIntCondition(orgIdsStr, "o.id", "organizers", argIndex, &conditions, &args)
 		if err != nil {
-			return nil, 500, err
+			return nil, http.StatusInternalServerError, err
 		}
 	}
 
 	if spaceIdsStr != "" {
 		argIndex, err = sql.BuildColumnInIntCondition(spaceIdsStr, "COALESCE(s.id, es.id)", "spaces", argIndex, &conditions, &args)
 		if err != nil {
-			return nil, 500, err
+			return nil, http.StatusInternalServerError, err
 		}
 	}
 
@@ -167,7 +168,7 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 		argIndex, &conditions, &args,
 	)
 	if err != nil {
-		return nil, 500, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	if eventTypesStr != "" {
@@ -175,7 +176,7 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 		var err error
 		argIndex, err = sql.BuildInCondition(eventTypesStr, format, "event_types", argIndex, &conditions, &args)
 		if err != nil {
-			return nil, 500, err
+			return nil, http.StatusInternalServerError, err
 		}
 	}
 
@@ -184,7 +185,7 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 		var err error
 		argIndex, err = sql.BuildInCondition(genreTypesStr, format, "genre_types", argIndex, &conditions, &args)
 		if err != nil {
-			return nil, 500, err
+			return nil, http.StatusInternalServerError, err
 		}
 	}
 
@@ -192,34 +193,34 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 		format := "COALESCE(s.space_type_id, es.space_type_id) IN (%s)"
 		argIndex, err = sql.BuildInCondition(spaceTypesStr, format, "space_types", argIndex, &conditions, &args)
 		if err != nil {
-			return nil, 500, err
+			return nil, http.StatusInternalServerError, err
 		}
 	}
 
 	argIndex, err = sql.BuildSanitizedIlikeCondition(titleStr, "e.title", "title", argIndex, &conditions, &args)
 	if err != nil {
-		return nil, 500, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	argIndex, err = sql.BuildSanitizedIlikeCondition(cityStr, "v.city", "city", argIndex, &conditions, &args)
 	if err != nil {
-		return nil, 500, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	argIndex, err = sql.BuildContainedInColumnRangeCondition(ageStr, "min_age", "max_age", argIndex, &conditions, &args)
 	if err != nil {
-		return nil, 500, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	argIndex, err = sql.BuildBitmaskCondition(accessibilityInfosStr, "ed.accessibility_flags", "accessibility_flags", argIndex, &conditions, &args)
 	if err != nil {
 		fmt.Println(".... err", err)
-		return nil, 500, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	argIndex, err = sql.BuildBitmaskCondition(visitorInfosStr, "ed.visitor_info_flags", "visitor_info_flags", argIndex, &conditions, &args)
 	if err != nil {
-		return nil, 500, err
+		return nil, http.StatusInternalServerError, err
 	}
 
 	conditionsStr := ""
@@ -250,7 +251,7 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 
 	rows, err := db.Query(ctx, query, args...)
 	if err != nil {
-		return nil, 500, err
+		return nil, http.StatusInternalServerError, err
 	}
 	defer rows.Close()
 
@@ -265,7 +266,7 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 	for rows.Next() {
 		values, err := rows.Values()
 		if err != nil {
-			return nil, 500, err
+			return nil, http.StatusInternalServerError, err
 		}
 
 		rowMap := make(map[string]interface{}, len(values))
@@ -277,7 +278,7 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 	}
 
 	if rows.Err() != nil {
-		return nil, 500, rows.Err()
+		return nil, http.StatusInternalServerError, rows.Err()
 	}
 
 	type QueryResponse struct {
