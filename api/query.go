@@ -64,6 +64,10 @@ func QueryHandler(gc *gin.Context) {
 		// QueryOrganization(gc)
 		break
 
+	case "user-venues":
+		QueryVenueForUser(gc)
+		break
+
 	default:
 		gc.JSON(http.StatusBadRequest, gin.H{
 			"message": fmt.Sprintf("unknown mode: %s", modeStr),

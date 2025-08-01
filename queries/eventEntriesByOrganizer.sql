@@ -35,4 +35,4 @@ FROM {{schema}}.event_date ed
          LEFT JOIN {{schema}}.image img ON eli.image_id = img.id
 WHERE ed.start > NOW()
   AND o.id = $1
-ORDER BY ed.start ASC;
+ORDER BY ed.start ASC

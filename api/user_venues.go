@@ -6,12 +6,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sndcds/uranus/app"
+	"net/http"
 	"time"
 )
 
-func QueryVenueForMap(gc *gin.Context) {
+func QueryVenueForUser(gc *gin.Context) {
 
-	jsonData, httpStatus, err := queryVenueForMapAsJSON(gc, app.Singleton.MainDb)
+	jsonData, httpStatus, err := queryVenueForUserAsJSON(gc, app.Singleton.MainDb)
 	if err != nil {
 		gc.JSON(httpStatus, gin.H{"error": err.Error()})
 		return
@@ -20,7 +21,7 @@ func QueryVenueForMap(gc *gin.Context) {
 	gc.Data(httpStatus, "application/json", jsonData)
 }
 
-func queryVenueForMapAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
+func queryVenueForUserAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 
 	// TODO:
 	// Check for unknown arguments
@@ -28,13 +29,20 @@ func queryVenueForMapAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, err
 	start := time.Now() // Start timer
 	ctx := gc.Request.Context()
 
-	query := app.Singleton.SqlQueryVenueForMap
+	userId, ok := getParam(gc, "id")
+	fmt.Println("userId", userId)
+	if !ok {
+		fmt.Println("No user ID provided")
+		return nil, http.StatusBadRequest, fmt.Errorf("missing user ID provided")
+	}
 
-	fmt.Println(query)
+	query := app.Singleton.SqlQueryVenueByUser
 
-	rows, err := db.Query(ctx, query, "de")
+	// fmt.Println(query)
+
+	rows, err := db.Query(ctx, query, userId)
 	if err != nil {
-		return nil, 500, err
+		return nil, http.StatusInternalServerError, err
 	}
 	defer rows.Close()
 
@@ -49,7 +57,7 @@ func queryVenueForMapAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, err
 	for rows.Next() {
 		values, err := rows.Values()
 		if err != nil {
-			return nil, 500, err
+			return nil, http.StatusInternalServerError, err
 		}
 
 		rowMap := make(map[string]interface{}, len(values))
@@ -61,7 +69,7 @@ func queryVenueForMapAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, err
 	}
 
 	if rows.Err() != nil {
-		return nil, 500, rows.Err()
+		return nil, http.StatusInternalServerError, rows.Err()
 	}
 
 	type QueryResponse struct {
@@ -82,9 +90,9 @@ func queryVenueForMapAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, err
 	}
 
 	if response.Total < 1 {
-		return nil, 200, fmt.Errorf("query returned 0 results")
+		return nil, http.StatusNoContent, fmt.Errorf("query returned 0 results")
 	} else {
 		jsonData, err := json.MarshalIndent(response, "", "  ")
-		return jsonData, 200, err
+		return jsonData, http.StatusOK, err
 	}
 }

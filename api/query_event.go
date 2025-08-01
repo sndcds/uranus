@@ -214,7 +214,7 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 
 	argIndex, err = sql.BuildBitmaskCondition(accessibilityInfosStr, "ed.accessibility_flags", "accessibility_flags", argIndex, &conditions, &args)
 	if err != nil {
-		fmt.Println(".... err", err)
+		// fmt.Println(".... err", err)
 		return nil, http.StatusInternalServerError, err
 	}
 
@@ -226,7 +226,7 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 	conditionsStr := ""
 	if len(conditions) > 0 {
 		conditionsStr = "WHERE " + strings.Join(conditions, " AND ")
-		fmt.Println(conditionsStr)
+		// fmt.Println(conditionsStr)
 	}
 
 	order := "ORDER BY ed.start ASC, e.id ASC"
@@ -234,7 +234,7 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 	// Add LIMIT and OFFSET
 	limitClause, argIndex, err := sql.BuildLimitOffsetClause(limitStr, offsetStr, argIndex, &args)
 	if err != nil {
-		return nil, 400, err
+		return nil, http.StatusBadRequest, err
 	}
 
 	query = strings.Replace(query, "{{event-date-conditions}}", eventDateConditions, 1)
@@ -299,9 +299,9 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 	}
 
 	if response.Total < 1 {
-		return nil, 200, fmt.Errorf("query returned 0 results")
+		return nil, http.StatusNoContent, fmt.Errorf("query returned 0 results")
 	} else {
 		jsonData, err := json.MarshalIndent(response, "", "  ")
-		return jsonData, 200, err
+		return jsonData, http.StatusOK, err
 	}
 }

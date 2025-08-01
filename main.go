@@ -22,11 +22,11 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-var jwtKey = []byte("82jhdksl#")
+// var jwtKey = []byte("82jhdksl#") TODO: Remove!
 
 func JWTMiddleware(gc *gin.Context) {
 	// Try to get token from cookie first
-	tokenStr, err := gc.Cookie("auth_token")
+	tokenStr, err := gc.Cookie("uranus_auth_token")
 	if err != nil || tokenStr == "" {
 		// Fallback: try to get token from Authorization header
 		authHeader := gc.GetHeader("Authorization")
@@ -45,7 +45,7 @@ func JWTMiddleware(gc *gin.Context) {
 	claims := &Claims{}
 
 	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
-		return jwtKey, nil
+		return app.Singleton.JwtKey, nil
 	})
 
 	fmt.Println("token: ", token)
@@ -105,7 +105,7 @@ func loginHandler(gc *gin.Context) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenStr, err := token.SignedString(jwtKey)
+	tokenStr, err := token.SignedString(app.Singleton.JwtKey)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "could not generate token"})
 		return
@@ -121,40 +121,40 @@ func loginHandler(gc *gin.Context) {
 	if app.Singleton.Config.DevMode {
 		// Dev mode: no Secure flag, SameSite=None still needed for cross-origin
 		gc.SetCookie(
-			"auth_token", // name
-			tokenStr,     // value
-			3600,         // maxAge in seconds
-			"/",          // path
-			"localhost",  // domain
-			true,         // secure (false in dev)
-			false,        // httpOnly
+			"uranus_auth_token", // name
+			tokenStr,            // value
+			3600,                // maxAge in seconds
+			"/",                 // path
+			"localhost",         // domain
+			true,                // secure (false in dev)
+			false,               // httpOnly
 		)
 
-		// Manually set SameSite=None (since gin's SetCookie doesn't support SameSite explicitly)
+		// Required for cross-origin: Manually set SameSite=None (since gin's SetCookie doesn't support SameSite explicitly)
 		gc.Writer.Header().Add("Set-Cookie",
-			fmt.Sprintf("auth_token=%s; Path=/; Max-Age=3600; HttpOnly; SameSite=None", tokenStr),
+			fmt.Sprintf("uranus_auth_token=%s; Path=/; Max-Age=3600; HttpOnly; SameSite=None", tokenStr),
 		)
 	} else {
 		// Production: secure cookie
 		gc.SetCookie(
-			"auth_token",
+			"uranus_auth_token",
 			tokenStr,
-			3600,
+			app.Singleton.Config.AuthTokenExpirationTime,
 			"/",
 			app.Singleton.Config.DbHost,
-			true, // Secure
-			true, // HttpOnly
+			true, // secure
+			true, // httpOnly
 		)
 
 		// SameSite=None needed for cross-origin in modern browsers
 		gc.Writer.Header().Add("Set-Cookie",
-			fmt.Sprintf("auth_token=%s; Path=/; Max-Age=3600; HttpOnly; Secure; SameSite=None", tokenStr),
+			fmt.Sprintf("uranus_auth_token=%s; Path=/; Max-Age=3600; HttpOnly; Secure; SameSite=None", tokenStr),
 		)
 	}
 }
 
 func main() {
-	// Flags
+	// Configuration
 	configFileName := flag.String("config", "config.json", "Path to config file")
 	verbose := flag.Bool("verbose", false, "Enable verbose logging")
 	flag.Parse()
@@ -184,8 +184,16 @@ func main() {
 	// router.Use(gin.Recovery())
 
 	if app.Singleton.Config.UseRouterMiddleware {
+
+		origins := map[string]bool{}
+		for _, origin := range app.Singleton.Config.AllowOrigins {
+			origins[origin] = true
+		}
+
 		router.Use(cors.New(cors.Config{
-			AllowOrigins:     app.Singleton.Config.AllowOrigins,
+			AllowOriginFunc: func(origin string) bool {
+				return origins[origin]
+			},
 			AllowMethods:     []string{"GET", "POST", "OPTIONS"},
 			AllowHeaders:     []string{"Origin", "Authorization", "Content-Type", "Accept"},
 			ExposeHeaders:    []string{"Set-Cookie", "Origin", "Content-Length"},
@@ -203,6 +211,10 @@ func main() {
 		apiRoute.GET("/query", api.QueryHandler)
 		apiRoute.POST("/query", api.QueryHandler)
 
+		apiRoute.GET("/user", JWTMiddleware, api.UserHandler)
+
+		apiRoute.GET("/space", api.SpaceHandler)
+
 		apiRoute.POST("/event", JWTMiddleware, api.CreateEventHandler)
 
 		// Inject app middleware into Pluto's image routes
@@ -215,8 +227,8 @@ func main() {
 	}
 
 	// Start the server (Gin handles everything)
-	fmt.Println("app server is starting ...")
 	port := ":" + strconv.Itoa(app.Singleton.Config.Port)
+	fmt.Printf("Uranus server is running on port %s\n", port)
 	err = router.Run(port)
 	if err != nil {
 		fmt.Println("app server error:", err)

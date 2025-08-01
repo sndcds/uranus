@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/sndcds/uranus/app"
@@ -33,18 +32,53 @@ type EventData struct {
 	EventDates  []EventDateData `json:"event_dates"`
 }
 
+// CreateEventHandler handles the creation of a new event.
+// It expects a JSON body with event data and responds with the created event or an error.
+// This handler requires the user to be authenticated and authorized to create events.
 func CreateEventHandler(gc *gin.Context) {
+	/* Debug output
+	// Read the raw body
+	rawBody, err := gc.GetRawData()
+	if err != nil {
+		fmt.Println("Error reading request body:", err)
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+
+	// Print raw JSON
+	fmt.Println("Incoming JSON:", string(rawBody))
+
+	// Reassign body so it can be parsed again
+	gc.Request.Body = io.NopCloser(bytes.NewBuffer(rawBody))
+	*/
+
 	var eventData EventData
+
 	if err := gc.ShouldBindJSON(&eventData); err != nil {
+		fmt.Println("Error marshaling JSON:", err)
 		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	/* Debug output
 	jsonBytes, err := json.MarshalIndent(eventData, "", "  ")
 	if err != nil {
 		fmt.Println("Error marshaling JSON:", err)
 	} else {
 		fmt.Println(string(jsonBytes))
+	}
+	*/
+
+	if eventData.EventDates == nil {
+		fmt.Println("eventData.EventDates is nil")
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "event_dates must be a non-null array"})
+		return
+	}
+
+	if eventData.Title == nil || *eventData.Title == "" {
+		fmt.Println("eventData.Title is nil or empty!")
+		gc.JSON(400, gin.H{"error": "title is required"})
+		return
 	}
 
 	db := app.Singleton.MainDb
@@ -124,10 +158,10 @@ func CreateEventHandler(gc *gin.Context) {
 		sqlQuery := strings.Replace(sqlTemplate, "{{schema}}", dbSchema, 1)
 		sqlQuery = strings.Replace(sqlQuery, "{{columns}}", strings.Join(columns, ", "), 1)
 		sqlQuery = strings.Replace(sqlQuery, "{{values}}", strings.Join(placeholders, ", "), 1)
-		fmt.Println("sqlQuery:", sqlQuery)
-		fmt.Println("placeholders:", placeholders)
-		fmt.Println("columns:", columns)
-		fmt.Println("args:", args)
+		// fmt.Println("sqlQuery:", sqlQuery)
+		// fmt.Println("placeholders:", placeholders)
+		// fmt.Println("columns:", columns)
+		// fmt.Println("args:", args)
 
 		_, err := tx.Exec(ctx, sqlQuery, args...)
 		if err != nil {
@@ -164,9 +198,9 @@ func CreateEventHandler(gc *gin.Context) {
 	{
 		queryTemplate := `INSERT INTO {{schema}}.event_type_links (event_id, type_id) VALUES ($1, $2)`
 		query := strings.Replace(queryTemplate, "{{schema}}", dbSchema, 1)
-		fmt.Println("query:", query)
+		// fmt.Println("query:", query)
 		for _, typeId := range eventData.EventTypes {
-			fmt.Println("eventId", eventId, "typeId:", typeId)
+			// fmt.Println("eventId", eventId, "typeId:", typeId)
 			_, err := tx.Exec(ctx, query, eventId, typeId)
 			if err != nil {
 				gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert event types"})
@@ -179,9 +213,9 @@ func CreateEventHandler(gc *gin.Context) {
 	{
 		queryTemplate := `INSERT INTO {{schema}}.event_genre_links (event_id, type_id) VALUES ($1, $2)`
 		query := strings.Replace(queryTemplate, "{{schema}}", dbSchema, 1)
-		fmt.Println("query:", query)
+		// fmt.Println("query:", query)
 		for _, genreId := range eventData.GenreTypes {
-			fmt.Println("eventId", eventId, "genreId:", genreId)
+			// fmt.Println("eventId", eventId, "genreId:", genreId)
 			_, err := tx.Exec(ctx, query, eventId, genreId)
 			if err != nil {
 				gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert genres"})

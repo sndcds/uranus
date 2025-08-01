@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -20,10 +20,13 @@ import (
 )
 
 type Uranus struct {
-	MainDb              *pgxpool.Pool
-	Config              Config
-	SqlQueryEvent       string
-	SqlQueryVenueForMap string
+	MainDb                  *pgxpool.Pool
+	Config                  Config
+	SqlQueryEvent           string
+	SqlQueryVenueForMap     string
+	SqlQueryVenueByUser     string
+	SqlQuerySpacesByVenueId string
+	JwtKey                  []byte `json:"jwt_secret"`
 }
 
 var Singleton *Uranus
@@ -72,7 +75,7 @@ func (app *Uranus) LoadConfig(fileName string) error {
 	}
 	defer file.Close()
 
-	bytes, err := ioutil.ReadAll(file)
+	bytes, err := io.ReadAll(file)
 	if err != nil {
 		return err
 	}
@@ -80,6 +83,11 @@ func (app *Uranus) LoadConfig(fileName string) error {
 	err = json.Unmarshal(bytes, &app.Config)
 	if err != nil {
 		return err
+	}
+
+	// Set default if not specified in the JSON config
+	if app.Config.AuthTokenExpirationTime == 0 {
+		app.Config.AuthTokenExpirationTime = 3600 / 6 // default: 10 minutes
 	}
 
 	app.Config.Print()
@@ -99,6 +107,15 @@ func (app *Uranus) PrepareSql() error {
 		return err
 	}
 
+	err = loadFileReplaceAllSchema("queries/userVenues.sql", app.Config.DbSchema, &app.SqlQueryVenueByUser)
+	if err != nil {
+		return err
+	}
+
+	err = loadFileReplaceAllSchema("queries/spacesByVenueId.sql", app.Config.DbSchema, &app.SqlQuerySpacesByVenueId)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

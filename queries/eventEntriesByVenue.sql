@@ -25,4 +25,4 @@ FROM {{schema}}.event_date ed
 WHERE ed.start > NOW()
   AND COALESCE(ed.venue_id, e.venue_id) = $1
   AND uol.user_id = $2
-ORDER BY ed.start ASC;
+ORDER BY ed.start ASC

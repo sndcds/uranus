@@ -6,22 +6,24 @@ import (
 
 // Config holds database configuration details
 type Config struct {
-	Verbose             bool     `json:"verbose"`
-	DevMode             bool     `json:"dev_mode"`
-	Port                int      `json:"port"`
-	BaseApiUrl          string   `json:"base_api_url"`
-	UseRouterMiddleware bool     `json:"use_router_middleware"`
-	DbHost              string   `json:"db_host"`
-	DbPort              int      `json:"db_port"`
-	DbUser              string   `json:"db_user"`
-	DbPassword          string   `json:"db_password"`
-	DbName              string   `json:"db_name"`
-	DbSchema            string   `json:"db_schema"`
-	SSLMode             string   `json:"ssl_mode"`
-	AllowOrigins        []string `json:"allow_origins"`
-	PlutoVerbose        bool     `json:"pluto_verbose"`
-	PlutoImageDir       string   `json:"pluto_image_dir"`
-	PlutoCacheDir       string   `json:"pluto_cache_dir"`
+	Verbose                 bool     `json:"verbose"`
+	DevMode                 bool     `json:"dev_mode"`
+	Port                    int      `json:"port"`
+	BaseApiUrl              string   `json:"base_api_url"`
+	UseRouterMiddleware     bool     `json:"use_router_middleware"`
+	DbHost                  string   `json:"db_host"`
+	DbPort                  int      `json:"db_port"`
+	DbUser                  string   `json:"db_user"`
+	DbPassword              string   `json:"db_password"`
+	DbName                  string   `json:"db_name"`
+	DbSchema                string   `json:"db_schema"`
+	SSLMode                 string   `json:"ssl_mode"`
+	AllowOrigins            []string `json:"allow_origins"`
+	PlutoVerbose            bool     `json:"pluto_verbose"`
+	PlutoImageDir           string   `json:"pluto_image_dir"`
+	PlutoCacheDir           string   `json:"pluto_cache_dir"`
+	JwtSecret               string   `json:"jwt_secret"`
+	AuthTokenExpirationTime int      `json:"auth_token_expiration_time"`
 }
 
 func (config Config) Print() {
@@ -41,4 +43,10 @@ func (config Config) Print() {
 	fmt.Printf("  pluto_verbose: %t\n", config.PlutoVerbose)
 	fmt.Printf("  pluto_image_dir: %s\n", config.PlutoImageDir)
 	fmt.Printf("  pluto_cache_dir: %s\n", config.PlutoCacheDir)
+	if config.JwtSecret != "" {
+		fmt.Printf("  jwt_secret: [REDACTED] (%d bytes)\n", len(config.JwtSecret))
+	} else {
+		fmt.Printf("  jwt_secret: Doesn't exist\n")
+	}
+	fmt.Printf("  auth_token_expiration_time: %d seconds\n", config.AuthTokenExpirationTime)
 }

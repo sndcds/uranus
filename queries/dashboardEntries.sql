@@ -68,4 +68,4 @@ FROM {{schema}}.organizer o
     LEFT JOIN venue_counts vc ON o.id = vc.organizer_id
     LEFT JOIN space_counts sc ON o.id = sc.organizer_id
     LEFT JOIN event_counts ec ON o.id = ec.organizer_id
-ORDER BY LOWER(o.name);
+ORDER BY LOWER(o.name)

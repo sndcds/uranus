@@ -76,6 +76,35 @@ Feel free to:
 
 2. **Environment Variables**
 
+
+---
+
+## Configuration
+
+```json
+{
+  "verbose": true,
+  "dev_mode": true,
+  "port": 9090,
+  "base_api_url": "http://localhost:9090",
+  "use_router_middleware": true,
+  "db_host": "localhost",
+  "db_port": 5432,
+  "db_user": "roaldchristesen",
+  "db_password": "",
+  "db_name": "oklab",
+  "db_schema": "uranus",
+  "ssl_mode": "disabled",
+  "allow_origins": ["http://localhost:8009", "https://uranus.grain.one"],
+  "pluto_verbose": true,
+  "pluto_image_dir": "/Users/roaldchristesen/Documents/Developer/Projects/pluto/image",
+  "pluto_cache_dir": "/Users/roaldchristesen/Documents/Developer/Projects/pluto/cache",
+  "jwt_secret": "82jhdksl#",
+  "auth_token_expiration_time": 3600
+}
+```
+
+
 ---
 
 ## Export Database

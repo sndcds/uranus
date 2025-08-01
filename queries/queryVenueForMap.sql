@@ -14,4 +14,4 @@ LEFT JOIN {{schema}}.venue_type AS venue_type
 LEFT JOIN {{schema}}.venue_url AS venue_url
     ON venue_url.venue_id = venue.id
     AND venue_url.link_type = 'website'
-GROUP BY venue.id, venue.name, venue.city, venue.wkb_geometry;
+GROUP BY venue.id, venue.name, venue.city, venue.wkb_geometry
