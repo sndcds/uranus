@@ -2,9 +2,16 @@ package app
 
 import (
 	"fmt"
+	"github.com/golang-jwt/jwt/v5"
 	"os"
 	"strings"
 )
+
+// Claims struct for JWT
+type Claims struct {
+	UserId int `json:"user_id"`
+	jwt.RegisteredClaims
+}
 
 // CombineFlags takes a slice of integers representing flag positions
 // and combines them into a single uint64 bitmask.

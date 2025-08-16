@@ -11,7 +11,7 @@ import (
 )
 
 func QuerySpacesByVenue(gc *gin.Context) {
-	jsonData, httpStatus, err := querySpacesByVenueAsJSON(gc, app.Singleton.MainDb)
+	jsonData, httpStatus, err := querySpacesByVenueAsJSON(gc, app.Singleton.MainDbPool)
 	if err != nil {
 		gc.JSON(httpStatus, gin.H{"error": err.Error()})
 		return
@@ -27,11 +27,11 @@ func querySpacesByVenueAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, e
 	start := time.Now() // Start timer
 	ctx := gc.Request.Context()
 
-	venueId, ok := getParam(gc, "id")
+	venueId, ok := GetContextParam(gc, "id")
 	if !ok {
 		// id was not present in the request
 		fmt.Println("No venue ID provided")
-		return nil, http.StatusBadRequest, fmt.Errorf("missing venue ID provided")
+		return nil, http.StatusBadRequest, fmt.Errorf("valiable id is required")
 	}
 
 	query := app.Singleton.SqlQuerySpacesByVenueId
@@ -67,8 +67,7 @@ func querySpacesByVenueAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, e
 
 	rowCount := len(results)
 	if rowCount < 1 {
-		fmt.Println("No results found")
-		return nil, http.StatusNoContent, fmt.Errorf("missing venue ID provided")
+		return nil, http.StatusNoContent, fmt.Errorf("nothing found")
 	}
 
 	if rows.Err() != nil {

@@ -26,7 +26,7 @@ func GetUserById(app app.Uranus, gc *gin.Context, userId int) (User, error) {
 	sqlTemplate := `SELECT id, display_name, email_address FROM {{schema}}.user WHERE id = $1`
 	sqlQuery := strings.Replace(sqlTemplate, "{{schema}}", app.Config.DbSchema, -1)
 
-	rows, err := app.MainDb.Query(context.Background(), sqlQuery, userId)
+	rows, err := app.MainDbPool.Query(context.Background(), sqlQuery, userId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Query failed"})
 		log.Printf("Query failed: %v\n", err)
@@ -49,7 +49,7 @@ func GetUserById(app app.Uranus, gc *gin.Context, userId int) (User, error) {
 
 func GetUser(app *app.Uranus, gc *gin.Context, eMail string) (User, error) {
 	sqlQuery := "SELECT id, display_name, email_address, password_hash FROM " + app.Config.DbSchema + ".user WHERE email_address = $1"
-	rows, err := app.MainDb.Query(context.Background(), sqlQuery, eMail)
+	rows, err := app.MainDbPool.Query(context.Background(), sqlQuery, eMail)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Query failed"})
 		log.Printf("Query failed: %v\n", err)

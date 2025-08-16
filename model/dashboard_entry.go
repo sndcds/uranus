@@ -206,7 +206,7 @@ func (entry DashboardEntry) Print() {
 func GetDashboardEntriesByUserId(app app.Uranus, gc *gin.Context, userId int) ([]DashboardEntry, int) {
 	_dashboardEntryInit()
 	var entries []DashboardEntry
-	rows, err := app.MainDb.Query(context.Background(), _gDashboardEntryQueries.DashboardEntryQuery, userId)
+	rows, err := app.MainDbPool.Query(context.Background(), _gDashboardEntryQueries.DashboardEntryQuery, userId)
 	if err != nil {
 		fmt.Println(err)
 		httpErr := app.DbErrorToHTTP(err)

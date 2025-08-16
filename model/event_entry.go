@@ -166,7 +166,7 @@ func scanEventEntries(rows pgx.Rows) ([]EventEntry, int) {
 func GetEventEntriesByVenueIdAndUserId(app app.Uranus, gc *gin.Context, venueId int, userId int) ([]EventEntry, int) {
 	_eventEntryInit()
 	var entries []EventEntry
-	rows, err := app.MainDb.Query(context.Background(), _gEventEntryQueries.EventEntriesByVenueQuery, venueId, userId)
+	rows, err := app.MainDbPool.Query(context.Background(), _gEventEntryQueries.EventEntriesByVenueQuery, venueId, userId)
 	if err != nil {
 		fmt.Println(err)
 		httpErr := app.DbErrorToHTTP(err)
@@ -180,7 +180,7 @@ func GetEventEntriesByVenueIdAndUserId(app app.Uranus, gc *gin.Context, venueId 
 func GetEventEntriesByOrganizerAndUser(app app.Uranus, gc *gin.Context, organizerId int, userId int) ([]EventEntry, int) {
 	_eventEntryInit()
 	var entries []EventEntry
-	rows, err := app.MainDb.Query(context.Background(), _gEventEntryQueries.EventEntriesByOrganizerQuery, organizerId, userId)
+	rows, err := app.MainDbPool.Query(context.Background(), _gEventEntryQueries.EventEntriesByOrganizerQuery, organizerId, userId)
 	if err != nil {
 		fmt.Println(err)
 		httpErr := app.DbErrorToHTTP(err)

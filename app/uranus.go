@@ -20,19 +20,44 @@ import (
 )
 
 type Uranus struct {
-	MainDb                  *pgxpool.Pool
-	Config                  Config
-	SqlQueryEvent           string
-	SqlQueryVenueForMap     string
-	SqlQueryVenueByUser     string
-	SqlQuerySpacesByVenueId string
-	JwtKey                  []byte `json:"jwt_secret"`
+	Version                        string
+	APIName                        string
+	APIVersion                     string
+	MainDbPool                     *pgxpool.Pool
+	Config                         Config
+	SqlQueryOrganizerRoles         string
+	SqlQueryVenueRoles             string
+	SqlQuerySpaceRoles             string
+	SqlQueryEventRoles             string
+	SqlGetMetaTypes                string
+	SqlGetMetaGenres               string
+	SqlGetMetaGenresByEventType    string
+	SqlQueryEvent                  string
+	SqlQueryVenueForMap            string
+	SqlQueryVenueByUser            string
+	SqlQuerySpacesByVenueId        string
+	SqlQueryUserVenuesById         string
+	SqlQueryUserOrgOverview        string
+	SqlQueryUserOrgEventsOverview  string
+	SqlAdminUserPermissions        string
+	SqlAdminUserEventOrganizer     string
+	SqlAdminUserEventOrganizerEdit string
+	SqlAdminEvent                  string
+	SqlAdminSpacesCanAddEvent      string
+	SqlAdminSpacesForEvent         string
+	SqlEventImages                 string
+	JwtKey                         []byte `json:"jwt_secret"`
 }
 
 var Singleton *Uranus
 
 func New(configFilePath string) (*Uranus, error) {
 	var uranus Uranus
+
+	uranus.Version = "1.0.0"
+	uranus.APIName = "Uranus"
+	uranus.APIVersion = "1.0.0"
+
 	uranus.Log("load configuration")
 	file, err := os.Open(configFilePath)
 	if err != nil {
@@ -95,27 +120,41 @@ func (app *Uranus) LoadConfig(fileName string) error {
 }
 
 func (app *Uranus) PrepareSql() error {
-	var err error = nil
-
-	err = loadFileReplaceAllSchema("queries/queryEvent.sql", app.Config.DbSchema, &app.SqlQueryEvent)
-	if err != nil {
-		return err
+	type queryItem struct {
+		filePath string
+		target   *string
 	}
 
-	err = loadFileReplaceAllSchema("queries/queryVenueForMap.sql", app.Config.DbSchema, &app.SqlQueryVenueForMap)
-	if err != nil {
-		return err
+	queries := []queryItem{
+		{"queries/organizer_roles.sql", &app.SqlQueryOrganizerRoles},
+		{"queries/venue_roles.sql", &app.SqlQueryVenueRoles},
+		{"queries/space_roles.sql", &app.SqlQuerySpaceRoles},
+		{"queries/event-roles.sql", &app.SqlQueryEventRoles},
+		{"queries/get-meta-types.sql", &app.SqlGetMetaTypes},
+		{"queries/get-meta-genres.sql", &app.SqlGetMetaGenres},
+		{"queries/get-meta-genres-by-event-type.sql", &app.SqlGetMetaGenresByEventType},
+		{"queries/queryEvent.sql", &app.SqlQueryEvent},
+		{"queries/queryVenueForMap.sql", &app.SqlQueryVenueForMap},
+		{"queries/userVenues.sql", &app.SqlQueryVenueByUser},
+		{"queries/spacesByVenueId.sql", &app.SqlQuerySpacesByVenueId},
+		{"queries/userVenuesById.sql", &app.SqlQueryUserVenuesById},
+		{"queries/user-org-overview.sql", &app.SqlQueryUserOrgOverview},
+		{"queries/user-org-events-overview.sql", &app.SqlQueryUserOrgEventsOverview},
+		{"queries/admin/admin-user-permissions.sql", &app.SqlAdminUserPermissions},
+		{"queries/admin/admin-user-event-organizers.sql", &app.SqlAdminUserEventOrganizer},
+		{"queries/admin/admin-user-event-organizers-edit.sql", &app.SqlAdminUserEventOrganizerEdit},
+		{"queries/admin/admin-event.sql", &app.SqlAdminEvent},
+		{"queries/admin/admin-user-spaces-can-add-event.sql", &app.SqlAdminSpacesCanAddEvent},
+		{"queries/admin/admin-user-spaces-for-event.sql", &app.SqlAdminSpacesForEvent},
+		{"queries/event-images.sql", &app.SqlEventImages},
 	}
 
-	err = loadFileReplaceAllSchema("queries/userVenues.sql", app.Config.DbSchema, &app.SqlQueryVenueByUser)
-	if err != nil {
-		return err
+	for _, q := range queries {
+		if err := loadFileReplaceAllSchema(q.filePath, app.Config.DbSchema, q.target); err != nil {
+			return err
+		}
 	}
 
-	err = loadFileReplaceAllSchema("queries/spacesByVenueId.sql", app.Config.DbSchema, &app.SqlQuerySpacesByVenueId)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -123,7 +162,7 @@ func (app *Uranus) InitMainDB() error {
 	connStr := fmt.Sprintf("postgres://%s:%s@%s:%d/%s", app.Config.DbUser, app.Config.DbPassword, app.Config.DbHost, app.Config.DbPort, app.Config.DbName)
 
 	var err error
-	app.MainDb, err = pgxpool.New(context.Background(), connStr)
+	app.MainDbPool, err = pgxpool.New(context.Background(), connStr)
 	if err != nil {
 		log.Fatalf("Unable to create connection pool: %v\n", err)
 		return err
@@ -135,8 +174,8 @@ func (app *Uranus) InitMainDB() error {
 }
 
 func (app *Uranus) CloseAllDBs() {
-	if app.MainDb != nil {
-		app.MainDb.Close()
+	if app.MainDbPool != nil {
+		app.MainDbPool.Close()
 	}
 }
 

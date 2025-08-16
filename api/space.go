@@ -7,7 +7,7 @@ import (
 )
 
 func SpaceHandler(gc *gin.Context) {
-	modeStr, _ := getParam(gc, "mode")
+	modeStr, _ := GetContextParam(gc, "mode")
 
 	switch modeStr {
 	case "spaces-for-venue":

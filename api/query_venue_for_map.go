@@ -12,7 +12,7 @@ import (
 
 func QueryVenueForMap(gc *gin.Context) {
 
-	jsonData, httpStatus, err := queryVenueForMapAsJSON(gc, app.Singleton.MainDb)
+	jsonData, httpStatus, err := queryVenueForMapAsJSON(gc, app.Singleton.MainDbPool)
 	if err != nil {
 		gc.JSON(httpStatus, gin.H{"error": err.Error()})
 		return

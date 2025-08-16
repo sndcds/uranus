@@ -124,7 +124,7 @@ func GetOrganizerById(app app.Uranus, organizerId int) (Organizer, int) {
 	_organizerInit()
 
 	// Execute the query to get the organizer
-	rows, err := app.MainDb.Query(context.Background(), _gOrganizerQueries.OrganizerQuery, organizerId)
+	rows, err := app.MainDbPool.Query(context.Background(), _gOrganizerQueries.OrganizerQuery, organizerId)
 	if err != nil {
 		fmt.Println(err)
 		// If an error occurs, convert it to an HTTP error code
@@ -190,7 +190,7 @@ func GetOrganizersByUserId(app app.Uranus, ctx *gin.Context, userId int) ([]Orga
 		ORDER BY
 		organizer_name
 	`
-	rows, err := app.MainDb.Query(context.Background(), query, userId)
+	rows, err := app.MainDbPool.Query(context.Background(), query, userId)
 	if err != nil {
 		log.Printf("Query failed: %v\n", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Query failed"})
@@ -238,7 +238,7 @@ func (organizer *Organizer) GetStats(app app.Uranus, ctx *gin.Context) error {
 	WHERE o.id = $1
 	AND (ed.start >= NOW() OR ed.start IS NULL)`
 
-	rows, err := app.MainDb.Query(context.Background(), query, organizer.Id)
+	rows, err := app.MainDbPool.Query(context.Background(), query, organizer.Id)
 	if err != nil {
 		log.Printf("Query failed: %v\n", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Query failed"})

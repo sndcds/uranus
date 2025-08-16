@@ -12,55 +12,8 @@ import (
 	"github.com/sndcds/uranus/model"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 )
-
-// Claims struct for JWT
-type Claims struct {
-	UserId int `json:"user_id"`
-	jwt.RegisteredClaims
-}
-
-// var jwtKey = []byte("82jhdksl#") TODO: Remove!
-
-func JWTMiddleware(gc *gin.Context) {
-	// Try to get token from cookie first
-	tokenStr, err := gc.Cookie("uranus_auth_token")
-	if err != nil || tokenStr == "" {
-		// Fallback: try to get token from Authorization header
-		authHeader := gc.GetHeader("Authorization")
-		if authHeader == "" {
-			gc.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Missing Authorization token"})
-			return
-		}
-		parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-			gc.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid Authorization header format"})
-			return
-		}
-		tokenStr = parts[1]
-	}
-
-	claims := &Claims{}
-
-	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
-		return app.Singleton.JwtKey, nil
-	})
-
-	fmt.Println("token: ", token)
-
-	if err != nil || !token.Valid {
-		gc.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
-		return
-	}
-
-	// Token is valid, save user info in context
-	gc.Set("claims", claims)
-	gc.Set("userId", claims.UserId)
-
-	gc.Next()
-}
 
 func loginHandler(gc *gin.Context) {
 	var creds struct {
@@ -69,12 +22,12 @@ func loginHandler(gc *gin.Context) {
 	}
 
 	if err := gc.BindJSON(&creds); err != nil {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "missing credentials"})
+		gc.JSON(http.StatusUnauthorized, gin.H{"error": "credentials required"})
 		return
 	}
 
 	if creds.Email == "" || creds.Password == "" {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "missing credentials"})
+		gc.JSON(http.StatusUnauthorized, gin.H{"error": "credentials required"})
 		return
 	}
 
@@ -97,7 +50,7 @@ func loginHandler(gc *gin.Context) {
 	}
 
 	expirationTime := time.Now().Add(24 * time.Hour)
-	claims := &Claims{
+	claims := &app.Claims{
 		UserId: user.Id,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
@@ -123,11 +76,11 @@ func loginHandler(gc *gin.Context) {
 		gc.SetCookie(
 			"uranus_auth_token", // name
 			tokenStr,            // value
-			3600,                // maxAge in seconds
+			3600*4,              // maxAge in seconds
 			"/",                 // path
 			"localhost",         // domain
 			true,                // secure (false in dev)
-			false,               // httpOnly
+			true,                // httpOnly
 		)
 
 		// Required for cross-origin: Manually set SameSite=None (since gin's SetCookie doesn't support SameSite explicitly)
@@ -171,30 +124,27 @@ func main() {
 
 	app.Singleton.Config.Print()
 
-	_, err = pluto.New(*configFileName, app.Singleton.MainDb, true)
+	_, err = pluto.New(*configFileName, app.Singleton.MainDbPool, true)
 	if err != nil {
 		panic(err)
+	}
+
+	// Before defining any routes
+	origins := map[string]bool{}
+	for _, origin := range app.Singleton.Config.AllowOrigins {
+		origins[origin] = true
 	}
 
 	// Create a Gin router
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New() // Use `Default()` for built-in logging and recovery
-	// Add middleware explicitly
-	// router.Use(gin.Logger())
-	// router.Use(gin.Recovery())
 
 	if app.Singleton.Config.UseRouterMiddleware {
-
-		origins := map[string]bool{}
-		for _, origin := range app.Singleton.Config.AllowOrigins {
-			origins[origin] = true
-		}
-
 		router.Use(cors.New(cors.Config{
 			AllowOriginFunc: func(origin string) bool {
 				return origins[origin]
 			},
-			AllowMethods:     []string{"GET", "POST", "OPTIONS"},
+			AllowMethods:     []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"},
 			AllowHeaders:     []string{"Origin", "Authorization", "Content-Type", "Accept"},
 			ExposeHeaders:    []string{"Set-Cookie", "Origin", "Content-Length"},
 			AllowCredentials: true,
@@ -202,28 +152,52 @@ func main() {
 		}))
 	}
 
+	router.Use(gin.Logger())
+	router.Use(gin.Recovery())
+
 	fmt.Println("AllowOrigins:", app.Singleton.Config.AllowOrigins)
 
-	// Register routes
-	apiRoute := router.Group("/api")
-	{
-		apiRoute.POST("/login", loginHandler)
-		apiRoute.GET("/query", api.QueryHandler)
-		apiRoute.POST("/query", api.QueryHandler)
+	/*
+		GET    /spaces/{id}         → get one space
+		POST   /spaces              → create a space
+		PUT    /spaces/{id}         → replace a space
+		PATCH  /spaces/{id}         → update certain fields
+		DELETE /spaces/{id}         → delete a space
+	*/
 
-		apiRoute.GET("/user", JWTMiddleware, api.UserHandler)
+	// Public endpoints
+	publicRoute := router.Group("/api")
 
-		apiRoute.GET("/space", api.SpaceHandler)
+	publicRoute.GET("/query", api.QueryHandler)
+	publicRoute.GET("/user", app.JWTMiddleware, api.UserHandler)
+	publicRoute.GET("/user/events", app.JWTMiddleware, api.AdminHandlerUserEvents)
+	publicRoute.GET("/space", api.SpaceHandler)
+	publicRoute.POST("/query", api.QueryHandler)
+	publicRoute.GET("/test", app.JWTMiddleware, testHandler)
+	publicRoute.GET("/meta/:mode", api.GetMetaHandler)
+	publicRoute.GET("/event/images/:event-id", api.EventImagesHandler)
 
-		apiRoute.POST("/event", JWTMiddleware, api.CreateEventHandler)
+	// Inject app middleware into Pluto's image routes
+	pluto.Singleton.RegisterRoutes(publicRoute, app.JWTMiddleware)
 
-		// Inject app middleware into Pluto's image routes
-		pluto.Singleton.RegisterRoutes(apiRoute, JWTMiddleware)
+	// Authorized endpoints, user must be logged in
+	adminRoute := router.Group("/api/admin")
 
-		// Print all registered routes
-		for _, route := range router.Routes() {
-			fmt.Printf("%-6s -> %s (%s)\n", route.Method, route.Path, route.Handler)
-		}
+	adminRoute.POST("/login", loginHandler)
+	adminRoute.GET("/user/permissions/:mode", app.JWTMiddleware, api.AdminUserPermissionsHandler)
+	adminRoute.GET("/user/event-organizers", app.JWTMiddleware, api.AdminUserEventOrganizersHandler)
+	adminRoute.GET("/event/:id", app.JWTMiddleware, api.AdminEventHandler)
+
+	adminRoute.GET("/user/stats", app.JWTMiddleware, testHandler)
+	adminRoute.GET("/user/spaces/:mode", app.JWTMiddleware, api.AdminUserSpacesHandler)
+	adminRoute.GET("/events", app.JWTMiddleware, api.AdminEventsHandler)
+	adminRoute.POST("/event/update", app.JWTMiddleware, api.AdminPostEventHandler)
+
+	adminRoute.POST("image/upload", app.JWTMiddleware, api.AdminAddImageHandler)
+
+	// Print all registered routes
+	for _, route := range router.Routes() {
+		fmt.Printf("%-6s -> %s (%s)\n", route.Method, route.Path, route.Handler)
 	}
 
 	// Start the server (Gin handles everything)
@@ -232,5 +206,17 @@ func main() {
 	err = router.Run(port)
 	if err != nil {
 		fmt.Println("app server error:", err)
+	}
+}
+
+func testHandler(gc *gin.Context) {
+	modeStr, _ := api.GetContextParam(gc, "mode")
+	fmt.Println(modeStr)
+	switch modeStr {
+	case "dashboard":
+		model.TestQuery(gc)
+		break
+	default:
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "unknown mode"})
 	}
 }

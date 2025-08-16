@@ -150,7 +150,7 @@ func GetEventDateInfosByUserId(app app.Uranus, ctx *gin.Context, i18n_locale str
 			ed.id, e.id, v.id, e.title, e.description, o.name, o.id, v.name, v.postal_code, v.city, ed.start, e.created_at, s.id, s.name, st.space_name, i.source_name, up.user_id, up.can_edit
 		ORDER BY ed.start`
 
-	rows, err := app.MainDb.Query(context.Background(), query, i18n_locale, userId)
+	rows, err := app.MainDbPool.Query(context.Background(), query, i18n_locale, userId)
 	if err != nil {
 		log.Printf("Query failed: %v\n", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Query failed"})
@@ -261,7 +261,7 @@ func GetEventDateInfosByUserId2(app app.Uranus, ctx *gin.Context, userId int) ([
 		ORDER BY
 			ed.start`
 
-	rows, err := app.MainDb.Query(context.Background(), query, userId)
+	rows, err := app.MainDbPool.Query(context.Background(), query, userId)
 	if err != nil {
 		log.Printf("Query failed: %v\n", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Query failed"})

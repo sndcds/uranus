@@ -113,7 +113,7 @@ func (venue Venue) CompactString() string {
 func GetVenueById(app app.Uranus, venueId int) (Venue, int) {
 	_venueInit()
 	// Execute the query to get the venue
-	rows, err := app.MainDb.Query(context.Background(), _gVenueQueries.VenueQuery, venueId)
+	rows, err := app.MainDbPool.Query(context.Background(), _gVenueQueries.VenueQuery, venueId)
 	if err != nil {
 		fmt.Println(err)
 		// If an error occurs, convert it to an HTTP error code
@@ -184,7 +184,7 @@ func GetVenuesByUserId(app app.Uranus, ctx *gin.Context, userId int) ([]Venue, e
 		ORDER BY
     		v.name`
 
-	rows, err := app.MainDb.Query(context.Background(), query, userId)
+	rows, err := app.MainDbPool.Query(context.Background(), query, userId)
 	if err != nil {
 		log.Printf("Query failed: %v\n", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Query failed"})
@@ -235,7 +235,7 @@ func (venue *Venue) GetStats(app app.Uranus, ctx *gin.Context) error {
 			v.id = $1
 		AND (ed.start >= NOW() OR ed.start IS NULL)`
 
-	rows, err := app.MainDb.Query(context.Background(), query, venue.Id)
+	rows, err := app.MainDbPool.Query(context.Background(), query, venue.Id)
 	if err != nil {
 		log.Printf("Query failed: %v\n", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Query failed"})

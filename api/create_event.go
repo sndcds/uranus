@@ -81,7 +81,7 @@ func CreateEventHandler(gc *gin.Context) {
 		return
 	}
 
-	db := app.Singleton.MainDb
+	db := app.Singleton.MainDbPool
 	dbSchema := app.Singleton.Config.DbSchema
 
 	ctx := context.Background()
@@ -118,6 +118,7 @@ func CreateEventHandler(gc *gin.Context) {
 		eventData.Description,
 		eventData.Teaser).Scan(&eventId)
 	if err != nil {
+		fmt.Println("Failed to insert event 1")
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert event"})
 		return
 	}
@@ -165,6 +166,7 @@ func CreateEventHandler(gc *gin.Context) {
 
 		_, err := tx.Exec(ctx, sqlQuery, args...)
 		if err != nil {
+			fmt.Println("Failed to insert event 2")
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert event date"})
 			return
 		}
@@ -203,6 +205,7 @@ func CreateEventHandler(gc *gin.Context) {
 			// fmt.Println("eventId", eventId, "typeId:", typeId)
 			_, err := tx.Exec(ctx, query, eventId, typeId)
 			if err != nil {
+				fmt.Println("Failed to insert event 3")
 				gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert event types"})
 				return
 			}
@@ -218,6 +221,7 @@ func CreateEventHandler(gc *gin.Context) {
 			// fmt.Println("eventId", eventId, "genreId:", genreId)
 			_, err := tx.Exec(ctx, query, eventId, genreId)
 			if err != nil {
+				fmt.Println("Failed to insert event 4")
 				gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert genres"})
 				return
 			}
@@ -225,6 +229,7 @@ func CreateEventHandler(gc *gin.Context) {
 	}
 
 	if err := tx.Commit(ctx); err != nil {
+		fmt.Println("Failed to insert event 5")
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction commit failed"})
 		return
 	}

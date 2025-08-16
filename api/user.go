@@ -7,12 +7,20 @@ import (
 )
 
 func UserHandler(gc *gin.Context) {
-	modeStr, _ := getParam(gc, "mode")
+	modeStr, _ := GetContextParam(gc, "mode")
 	fmt.Println("query mode:", modeStr)
 
 	switch modeStr {
 	case "venues":
 		QueryVenueForUser(gc)
+		break
+
+	case "venue-rights":
+		QueryVenueRightsForUser(gc)
+		break
+
+	case "organizer-dashboard":
+		QueryOrganizerDashboardForUser(gc)
 		break
 
 	default:

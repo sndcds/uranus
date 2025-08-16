@@ -57,7 +57,7 @@ func GetEventsByUserId(app app.Uranus, ctx *gin.Context, userId int) ([]Event, e
 		ORDER BY
 			ed.start`
 
-	rows, err := app.MainDb.Query(context.Background(), query, userId)
+	rows, err := app.MainDbPool.Query(context.Background(), query, userId)
 	if err != nil {
 		log.Printf("Query failed: %v\n", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Query failed"})
