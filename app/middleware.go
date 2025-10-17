@@ -8,9 +8,9 @@ import (
 	"strings"
 )
 
-func JWTMiddleware(gc *gin.Context) {
+func JWTMiddlewareX(gc *gin.Context) {
 	// Try to get token from cookie first
-	tokenStr, err := gc.Cookie("uranus_auth_token")
+	tokenStr, err := gc.Cookie("access_token")
 	if err != nil || tokenStr == "" {
 		// Fallback: try to get token from Authorization header
 		authHeader := gc.GetHeader("Authorization")
@@ -41,6 +41,45 @@ func JWTMiddleware(gc *gin.Context) {
 	gc.Set("claims", claims)
 	gc.Set("userId", claims.UserId)
 	gc.Next()
+}
+
+// JWTMiddleware ...
+func JWTMiddleware(c *gin.Context) {
+	var tokenStr string
+
+	// 1. First try Authorization header
+	authHeader := c.GetHeader("Authorization")
+	if strings.HasPrefix(authHeader, "Bearer ") {
+		tokenStr = strings.TrimPrefix(authHeader, "Bearer ")
+	}
+
+	// 2. If not in header, try cookie
+	if tokenStr == "" {
+		cookie, err := c.Cookie("access_token")
+		if err == nil {
+			tokenStr = cookie
+		}
+	}
+
+	if tokenStr == "" {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing token"})
+		return
+	}
+
+	// 3. Parse and validate
+	claims := &Claims{}
+	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
+		return Singleton.JwtKey, nil
+	})
+	if err != nil || !token.Valid {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
+		return
+	}
+
+	// 4. Store claims for downstream handlers
+	c.Set("userId", claims.UserId)
+
+	c.Next()
 }
 
 // Get the id of the authorized user or -1

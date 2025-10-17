@@ -4,17 +4,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sndcds/uranus/app"
-	"log"
-	"net/http"
-	"time"
 )
 
 func QueryVenueForUser(gc *gin.Context) {
-
 	jsonData, httpStatus, err := queryVenueForUserAsJSON(gc, app.Singleton.MainDbPool)
 	if err != nil {
 		gc.JSON(httpStatus, gin.H{"error": err.Error()})
@@ -25,16 +25,15 @@ func QueryVenueForUser(gc *gin.Context) {
 }
 
 func queryVenueForUserAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
-
 	// TODO:
 	// Check for unknown arguments
 
 	start := time.Now() // Start timer
 	ctx := gc.Request.Context()
 
-	userId, ok := GetContextParam(gc, "id")
+	userId := UserIdFromAccessToken(gc)
 	fmt.Println("userId", userId)
-	if !ok {
+	if userId < 0 {
 		fmt.Println("No user ID provided")
 		return nil, http.StatusBadRequest, fmt.Errorf("variable id is required")
 	}
@@ -101,7 +100,6 @@ func queryVenueForUserAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, er
 }
 
 func QueryVenueRightsForUser(gc *gin.Context) {
-
 	jsonData, httpStatus, err := queryVenueRightsForUserAsJSON(gc, app.Singleton.MainDbPool)
 	if err != nil {
 		gc.JSON(httpStatus, gin.H{"error": err.Error()})
@@ -112,7 +110,6 @@ func QueryVenueRightsForUser(gc *gin.Context) {
 }
 
 func queryVenueRightsForUserAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
-
 	start := time.Now() // Start timer
 	ctx := gc.Request.Context()
 

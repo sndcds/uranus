@@ -8,7 +8,6 @@ import (
 
 func QueryHandler(gc *gin.Context) {
 	modeStr, _ := GetContextParam(gc, "mode")
-	fmt.Println("query mode:", modeStr)
 
 	switch modeStr {
 	case "event":

@@ -2,9 +2,12 @@ package api
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/sndcds/uranus/app"
 )
 
 // GetContextParam attempts to retrieve a parameter value from the Gin context.
@@ -98,4 +101,23 @@ func InternalServerErrorAnswer(gc *gin.Context, err error) bool {
 		return true
 	}
 	return false
+}
+
+func UserIdFromAccessToken(gc *gin.Context) int {
+	accessToken, err := gc.Cookie("access_token")
+	if err != nil {
+		return -1
+	}
+
+	claims := &app.Claims{}
+	token, err := jwt.ParseWithClaims(accessToken, claims, func(token *jwt.Token) (interface{}, error) {
+		return app.Singleton.JwtKey, nil
+	})
+
+	if err != nil || !token.Valid {
+		return -1
+	}
+
+	// 3️⃣ Use the user ID from the token
+	return claims.UserId
 }

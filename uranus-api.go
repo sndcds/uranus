@@ -3,6 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net/http"
+	"strconv"
+	"time"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -10,9 +14,6 @@ import (
 	"github.com/sndcds/uranus/api"
 	"github.com/sndcds/uranus/app"
 	"github.com/sndcds/uranus/model"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 func loginHandler(gc *gin.Context) {
@@ -21,89 +22,124 @@ func loginHandler(gc *gin.Context) {
 		Password string `json:"password"`
 	}
 
-	if err := gc.BindJSON(&creds); err != nil {
+	if err := gc.BindJSON(&creds); err != nil || creds.Email == "" || creds.Password == "" {
 		gc.JSON(http.StatusUnauthorized, gin.H{"error": "credentials required"})
 		return
 	}
-
-	if creds.Email == "" || creds.Password == "" {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "credentials required"})
-		return
-	}
-
-	fmt.Println("email address:", creds.Email)
-	fmt.Println("password:", creds.Password)
-	hashedPassword, err := app.EncryptPassword(creds.Password)
-	fmt.Println("hashedPassword:", hashedPassword)
 
 	user, err := model.GetUser(app.Singleton, gc, creds.Email)
-	if err != nil {
-		http.Error(gc.Writer, "No user", http.StatusBadRequest)
-		return
-	}
-	user.Print()
-
-	err = app.ComparePasswords(user.PasswordHash, creds.Password)
-	if err != nil {
-		fmt.Println("Passwords do NOT match!")
+	if err != nil || app.ComparePasswords(user.PasswordHash, creds.Password) != nil {
+		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 		return
 	}
 
-	expirationTime := time.Now().Add(24 * time.Hour)
-	claims := &app.Claims{
+	// -----------------------
+	// Create tokens
+	// -----------------------
+	accessExp := time.Now().Add(30 * time.Minute)
+	refreshExp := time.Now().Add(7 * 24 * time.Hour)
+
+	accessClaims := &app.Claims{
 		UserId: user.Id,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(expirationTime),
+			ExpiresAt: jwt.NewNumericDate(accessExp),
 		},
 	}
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
+	accessTokenStr, _ := accessToken.SignedString(app.Singleton.JwtKey)
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenStr, err := token.SignedString(app.Singleton.JwtKey)
+	refreshClaims := &app.Claims{
+		UserId: user.Id,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(refreshExp),
+		},
+	}
+	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
+	refreshTokenStr, _ := refreshToken.SignedString(app.Singleton.JwtKey)
+
+	// -----------------------
+	// Send cookies
+	// -----------------------
+	secure := false // local dev, no HTTPS
+	domain := ""    // empty string = current host (localhost:9090)
+
+	// Access token
+	gc.SetSameSite(http.SameSiteLaxMode) // applies to next cookie only
+	gc.SetCookie(
+		"access_token",
+		accessTokenStr,
+		int(time.Until(accessExp).Seconds()),
+		"/",
+		domain, // domain = empty = current host
+		secure, // Secure=false for local dev
+		true,   // HttpOnly
+	)
+
+	// Refresh token
+	gc.SetSameSite(http.SameSiteLaxMode)
+	gc.SetCookie(
+		"refresh_token",
+		refreshTokenStr,
+		int(time.Until(refreshExp).Seconds()),
+		"/",
+		domain,
+		secure,
+		true,
+	)
+
+	gc.JSON(http.StatusOK, gin.H{
+		"message": "login successful",
+	})
+}
+
+func refreshHandler(gc *gin.Context) {
+	fmt.Println("refreshHandler() ......................")
+	// Get refresh token from cookie
+	refreshToken, err := gc.Cookie("refresh_token")
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "could not generate token"})
+		gc.JSON(http.StatusUnauthorized, gin.H{"error": "refresh token missing"})
 		return
 	}
 
-	fmt.Println("token:", tokenStr)
-	fmt.Println("host:", app.Singleton.Config.DbHost)
-
-	// Send token as JSON
-	gc.JSON(http.StatusOK, gin.H{"token": tokenStr})
-
-	// Set cookie for authentication
-	if app.Singleton.Config.DevMode {
-		// Dev mode: no Secure flag, SameSite=None still needed for cross-origin
-		gc.SetCookie(
-			"uranus_auth_token", // name
-			tokenStr,            // value
-			3600*4,              // maxAge in seconds
-			"/",                 // path
-			"localhost",         // domain
-			true,                // secure (false in dev)
-			true,                // httpOnly
-		)
-
-		// Required for cross-origin: Manually set SameSite=None (since gin's SetCookie doesn't support SameSite explicitly)
-		gc.Writer.Header().Add("Set-Cookie",
-			fmt.Sprintf("uranus_auth_token=%s; Path=/; Max-Age=3600; HttpOnly; SameSite=None", tokenStr),
-		)
-	} else {
-		// Production: secure cookie
-		gc.SetCookie(
-			"uranus_auth_token",
-			tokenStr,
-			app.Singleton.Config.AuthTokenExpirationTime,
-			"/",
-			app.Singleton.Config.DbHost,
-			true, // secure
-			true, // httpOnly
-		)
-
-		// SameSite=None needed for cross-origin in modern browsers
-		gc.Writer.Header().Add("Set-Cookie",
-			fmt.Sprintf("uranus_auth_token=%s; Path=/; Max-Age=3600; HttpOnly; Secure; SameSite=None", tokenStr),
-		)
+	// Parse and validate token
+	claims := &app.Claims{}
+	tkn, err := jwt.ParseWithClaims(refreshToken, claims, func(token *jwt.Token) (interface{}, error) {
+		return app.Singleton.JwtKey, nil
+	})
+	if err != nil || !tkn.Valid {
+		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid refresh token"})
+		return
 	}
+
+	// Issue new access token
+	accessExp := time.Now().Add(30 * time.Minute)
+	newClaims := &app.Claims{
+		UserId: claims.UserId,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(accessExp),
+		},
+	}
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, newClaims)
+	accessTokenStr, _ := accessToken.SignedString(app.Singleton.JwtKey)
+
+	domain := app.Singleton.Config.DbHost
+	if app.Singleton.Config.DevMode {
+		domain = "localhost"
+	}
+	secure := !app.Singleton.Config.DevMode
+
+	// Set new cookie
+	gc.SetCookie(
+		"access_token",
+		accessTokenStr,
+		int(time.Until(accessExp).Seconds()),
+		"/",
+		domain,
+		secure,
+		true, // HttpOnly
+	)
+
+	gc.JSON(http.StatusOK, gin.H{"message": "token refreshed"})
 }
 
 func main() {
@@ -129,21 +165,13 @@ func main() {
 		panic(err)
 	}
 
-	// Before defining any routes
-	origins := map[string]bool{}
-	for _, origin := range app.Singleton.Config.AllowOrigins {
-		origins[origin] = true
-	}
-
 	// Create a Gin router
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New() // Use `Default()` for built-in logging and recovery
 
 	if app.Singleton.Config.UseRouterMiddleware {
 		router.Use(cors.New(cors.Config{
-			AllowOriginFunc: func(origin string) bool {
-				return origins[origin]
-			},
+			AllowOrigins:     app.Singleton.Config.AllowOrigins,
 			AllowMethods:     []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"},
 			AllowHeaders:     []string{"Origin", "Authorization", "Content-Type", "Accept"},
 			ExposeHeaders:    []string{"Set-Cookie", "Origin", "Content-Length"},
@@ -172,7 +200,7 @@ func main() {
 	publicRoute.GET("/user", app.JWTMiddleware, api.UserHandler)
 	publicRoute.GET("/user/events", app.JWTMiddleware, api.AdminHandlerUserEvents)
 	publicRoute.GET("/space", api.SpaceHandler)
-	publicRoute.POST("/query", api.QueryHandler)
+	// publicRoute.POST("/query", api.QueryHandler)
 	publicRoute.GET("/test", app.JWTMiddleware, testHandler)
 	publicRoute.GET("/meta/:mode", api.GetMetaHandler)
 	publicRoute.GET("/event/images/:event-id", api.EventImagesHandler)
@@ -184,6 +212,8 @@ func main() {
 	adminRoute := router.Group("/api/admin")
 
 	adminRoute.POST("/login", loginHandler)
+	adminRoute.POST("/refresh", refreshHandler)
+
 	adminRoute.GET("/user/permissions/:mode", app.JWTMiddleware, api.AdminUserPermissionsHandler)
 	adminRoute.GET("/user/event-organizers", app.JWTMiddleware, api.AdminUserEventOrganizersHandler)
 	adminRoute.GET("/event/:id", app.JWTMiddleware, api.AdminEventHandler)
