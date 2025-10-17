@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -104,11 +105,20 @@ func InternalServerErrorAnswer(gc *gin.Context, err error) bool {
 }
 
 func UserIdFromAccessToken(gc *gin.Context) int {
-	accessToken, err := gc.Cookie("access_token")
-	if err != nil {
+	// Get the Authorization header
+	authHeader := gc.GetHeader("Authorization")
+	if authHeader == "" {
 		return -1
 	}
 
+	// Expect header format: "Bearer <token>"
+	parts := strings.SplitN(authHeader, " ", 2)
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		return -1
+	}
+	accessToken := parts[1]
+
+	// Parse the token
 	claims := &app.Claims{}
 	token, err := jwt.ParseWithClaims(accessToken, claims, func(token *jwt.Token) (interface{}, error) {
 		return app.Singleton.JwtKey, nil
@@ -118,6 +128,5 @@ func UserIdFromAccessToken(gc *gin.Context) int {
 		return -1
 	}
 
-	// 3️⃣ Use the user ID from the token
 	return claims.UserId
 }

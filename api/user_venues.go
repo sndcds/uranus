@@ -35,7 +35,7 @@ func queryVenueForUserAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, er
 	fmt.Println("userId", userId)
 	if userId < 0 {
 		fmt.Println("No user ID provided")
-		return nil, http.StatusBadRequest, fmt.Errorf("variable id is required")
+		return nil, http.StatusBadRequest, fmt.Errorf("error: variable id is required")
 	}
 
 	query := app.Singleton.SqlQueryVenueByUser

@@ -63,18 +63,6 @@ func loginHandler(gc *gin.Context) {
 	secure := false // local dev, no HTTPS
 	domain := ""    // empty string = current host (localhost:9090)
 
-	// Access token
-	gc.SetSameSite(http.SameSiteLaxMode) // applies to next cookie only
-	gc.SetCookie(
-		"access_token",
-		accessTokenStr,
-		int(time.Until(accessExp).Seconds()),
-		"/",
-		domain, // domain = empty = current host
-		secure, // Secure=false for local dev
-		true,   // HttpOnly
-	)
-
 	// Refresh token
 	gc.SetSameSite(http.SameSiteLaxMode)
 	gc.SetCookie(
@@ -88,7 +76,8 @@ func loginHandler(gc *gin.Context) {
 	)
 
 	gc.JSON(http.StatusOK, gin.H{
-		"message": "login successful",
+		"message":      "login successful",
+		"access_token": accessTokenStr,
 	})
 }
 
@@ -175,7 +164,7 @@ func main() {
 			AllowMethods:     []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"},
 			AllowHeaders:     []string{"Origin", "Authorization", "Content-Type", "Accept"},
 			ExposeHeaders:    []string{"Set-Cookie", "Origin", "Content-Length"},
-			AllowCredentials: true,
+			AllowCredentials: false,
 			MaxAge:           12 * time.Hour,
 		}))
 	}
