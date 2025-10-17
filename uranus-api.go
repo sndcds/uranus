@@ -160,7 +160,7 @@ func main() {
 
 	if app.Singleton.Config.UseRouterMiddleware {
 		router.Use(cors.New(cors.Config{
-			AllowOrigins:     app.Singleton.Config.AllowOrigins,
+			AllowOrigins:     []string{"*"}, // app.Singleton.Config.AllowOrigins,
 			AllowMethods:     []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"},
 			AllowHeaders:     []string{"Origin", "Authorization", "Content-Type", "Accept"},
 			ExposeHeaders:    []string{"Set-Cookie", "Origin", "Content-Length"},
@@ -171,16 +171,6 @@ func main() {
 
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
-
-	fmt.Println("AllowOrigins:", app.Singleton.Config.AllowOrigins)
-
-	/*
-		GET    /spaces/{id}         → get one space
-		POST   /spaces              → create a space
-		PUT    /spaces/{id}         → replace a space
-		PATCH  /spaces/{id}         → update certain fields
-		DELETE /spaces/{id}         → delete a space
-	*/
 
 	// Public endpoints
 	publicRoute := router.Group("/api")
