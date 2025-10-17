@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/sndcds/pluto"
@@ -142,14 +141,33 @@ func main() {
 	router := gin.New() // Use `Default()` for built-in logging and recovery
 
 	if app.Singleton.Config.UseRouterMiddleware {
-		router.Use(cors.New(cors.Config{
-			AllowOrigins:     []string{"*"}, // app.Singleton.Config.AllowOrigins,
-			AllowMethods:     []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"},
-			AllowHeaders:     []string{"Origin", "Authorization", "Content-Type", "Accept"},
-			ExposeHeaders:    []string{"Set-Cookie", "Origin", "Content-Length"},
-			AllowCredentials: false,
-			MaxAge:           12 * time.Hour,
-		}))
+		router.Use(func(gc *gin.Context) {
+			origin := gc.GetHeader("Origin")
+			if origin != "" {
+				gc.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+				gc.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+				gc.Writer.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+				gc.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+			}
+
+			if gc.Request.Method == "OPTIONS" {
+				gc.AbortWithStatus(204)
+				return
+			}
+
+			gc.Next()
+		})
+
+		/*
+			router.Use(cors.New(cors.Config{
+				AllowOrigins:     []string{"*"}, // app.Singleton.Config.AllowOrigins,
+				AllowMethods:     []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"},
+				AllowHeaders:     []string{"Origin", "Authorization", "Content-Type", "Accept"},
+				ExposeHeaders:    []string{"Set-Cookie", "Origin", "Content-Length"},
+				AllowCredentials: false,
+				MaxAge:           12 * time.Hour,
+			}))
+		*/
 	}
 
 	router.Use(gin.Logger())
