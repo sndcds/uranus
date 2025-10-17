@@ -57,27 +57,10 @@ func loginHandler(gc *gin.Context) {
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
 	refreshTokenStr, _ := refreshToken.SignedString(app.Singleton.JwtKey)
 
-	// -----------------------
-	// Send cookies
-	// -----------------------
-	secure := false // local dev, no HTTPS
-	domain := ""    // empty string = current host (localhost:9090)
-
-	// Refresh token
-	gc.SetSameSite(http.SameSiteLaxMode)
-	gc.SetCookie(
-		"refresh_token",
-		refreshTokenStr,
-		int(time.Until(refreshExp).Seconds()),
-		"/",
-		domain,
-		secure,
-		true,
-	)
-
 	gc.JSON(http.StatusOK, gin.H{
-		"message":      "login successful",
-		"access_token": accessTokenStr,
+		"message":       "login successful",
+		"access_token":  accessTokenStr,
+		"refresh_token": refreshTokenStr,
 	})
 }
 
