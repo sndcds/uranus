@@ -55,7 +55,8 @@ func AdminOrganizerCreateHandler(gc *gin.Context) {
 
 	if err != nil {
 		gc.JSON(http.StatusOK, gin.H{"message": "Error"})
+		return
 	}
 
-	gc.JSON(http.StatusOK, gin.H{"message": "OK"})
+	gc.JSON(http.StatusOK, gin.H{"message": query})
 }
