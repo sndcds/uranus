@@ -3,6 +3,7 @@ package api_admin
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sndcds/uranus/app"
@@ -35,12 +36,13 @@ func AdminOrganizerCreateHandler(gc *gin.Context) {
 	// Build sql query
 	var newID int
 	query := `
-		INSERT INTO venues
+		INSERT INTO {{schema}}.organizer
 			(name, street, house_number, postal_code, city, contact_email, website_url, contact_phone)
 		VALUES
 			($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id
 	`
+	query = strings.Replace(query, "{{schema}}", app.Singleton.Config.DbSchema, 1)
 
 	err := pool.QueryRow(gc, query,
 		req.Name,
