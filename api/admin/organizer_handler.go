@@ -55,10 +55,14 @@ func AdminOrganizerCreateHandler(gc *gin.Context) {
 		req.ContactPhone,
 	).Scan(&newID)
 
+	fmt.Println("query:", query)
+	fmt.Println("newID:", newID)
+
 	if err != nil {
-		gc.JSON(http.StatusOK, gin.H{"message": "Error"})
+		fmt.Println("err:", err.Error())
+		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	gc.JSON(http.StatusOK, gin.H{"message": query})
+	gc.JSON(http.StatusOK, gin.H{"id": newID, "message": "Organizer created"})
 }

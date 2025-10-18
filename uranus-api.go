@@ -210,7 +210,7 @@ func main() {
 	adminRoute.POST("/login", loginHandler)
 	adminRoute.POST("/refresh", refreshHandler)
 
-	adminRoute.POST("/organizer/create", api_admin.AdminOrganizerCreateHandler)
+	adminRoute.POST("/organizer/create", app.JWTMiddleware, api_admin.AdminOrganizerCreateHandler)
 
 	adminRoute.GET("/user/permissions/:mode", app.JWTMiddleware, api.AdminUserPermissionsHandler)
 	adminRoute.GET("/user/event-organizers", app.JWTMiddleware, api.AdminUserEventOrganizersHandler)
