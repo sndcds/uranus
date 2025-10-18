@@ -2,9 +2,10 @@ package app
 
 import (
 	"fmt"
-	"github.com/golang-jwt/jwt/v5"
 	"os"
 	"strings"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // Claims struct for JWT
@@ -56,4 +57,10 @@ func loadFileReplaceAllShortcuts(filePath string, shortcut string, replacement s
 	s = strings.ReplaceAll(s, shortcut, replacement)
 	*outString = s
 	return nil
+}
+
+// GenerateWKT takes lat/lon strings and returns a WKT POINT string
+func GenerateWKT(lat, lon float64) (string, error) {
+	wkt := fmt.Sprintf("POINT(%f %f)", lon, lat)
+	return wkt, nil
 }

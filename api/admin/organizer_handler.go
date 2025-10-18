@@ -23,10 +23,18 @@ func AdminOrganizerCreateHandler(gc *gin.Context) {
 		ContactEmail *string `json:"contact_email"`
 		WebsiteUrl   *string `json:"website_url"`
 		ContactPhone *string `json:"contact_phone"`
+		Latitude     float64 `json:"latitude"`
+		Longitude    float64 `json:"longitude"`
 	}
 
 	var req UpdateRequest
 	if err := gc.ShouldBindJSON(&req); err != nil {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	wktPoint, err := app.GenerateWKT(req.Latitude, req.Longitude)
+	if err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -37,14 +45,14 @@ func AdminOrganizerCreateHandler(gc *gin.Context) {
 	var newID int
 	query := `
 		INSERT INTO {{schema}}.organizer
-			(name, street, house_number, postal_code, city, contact_email, website_url, contact_phone)
+			(name, street, house_number, postal_code, city, contact_email, website_url, contact_phone, wkb_geometry)
 		VALUES
-			($1, $2, $3, $4, $5, $6, $7, $8)
+			($1, $2, $3, $4, $5, $6, $7, $8, ST_GeomFromText($9, 4326))
 		RETURNING id
 	`
 	query = strings.Replace(query, "{{schema}}", app.Singleton.Config.DbSchema, 1)
 
-	err := pool.QueryRow(gc, query,
+	err = pool.QueryRow(gc, query,
 		req.Name,
 		req.Street,
 		req.HouseNumber,
@@ -53,6 +61,7 @@ func AdminOrganizerCreateHandler(gc *gin.Context) {
 		req.ContactEmail,
 		req.WebsiteUrl,
 		req.ContactPhone,
+		wktPoint,
 	).Scan(&newID)
 
 	fmt.Println("query:", query)
