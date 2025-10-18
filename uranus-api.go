@@ -165,22 +165,22 @@ func main() {
 	*/
 
 	if app.Singleton.Config.UseRouterMiddleware {
-		router.Use(func(c *gin.Context) {
-			origin := c.GetHeader("Origin")
+		router.Use(func(gc *gin.Context) {
+			origin := gc.GetHeader("Origin")
 			if origin != "" {
-				c.Header("Access-Control-Allow-Origin", origin)
-				c.Header("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS")
-				c.Header("Access-Control-Allow-Headers", "Origin, Authorization, Content-Type, Accept")
-				c.Header("Access-Control-Expose-Headers", "Authorization")
-				c.Header("Access-Control-Allow-Credentials", "true")
+				gc.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+				gc.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS")
+				gc.Writer.Header().Set("Access-Control-Allow-Headers", "Origin, Authorization, Content-Type, Accept")
+				gc.Writer.Header().Set("Access-Control-Expose-Headers", "Authorization")
+				gc.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 			}
 
-			if c.Request.Method == "OPTIONS" {
-				c.AbortWithStatus(204)
+			if gc.Request.Method == "OPTIONS" {
+				gc.AbortWithStatus(204)
 				return
 			}
 
-			c.Next()
+			gc.Next()
 		})
 	}
 
