@@ -36,7 +36,7 @@ func loginHandler(gc *gin.Context) {
 	// -----------------------
 	// Create tokens
 	// -----------------------
-	accessExp := time.Now().Add(30 * time.Minute)
+	accessExp := time.Now().Add(1 * time.Minute) // Todo: Should be configurable
 	refreshExp := time.Now().Add(7 * 24 * time.Hour)
 
 	accessClaims := &app.Claims{
@@ -151,6 +151,7 @@ func main() {
 	// Create a Gin router
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New() // Use `Default()` for built-in logging and recovery
+
 	/*
 		if app.Singleton.Config.UseRouterMiddleware {
 			router.Use(cors.New(cors.Config{
