@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/sndcds/pluto"
@@ -152,16 +151,37 @@ func main() {
 	// Create a Gin router
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New() // Use `Default()` for built-in logging and recovery
+	/*
+		if app.Singleton.Config.UseRouterMiddleware {
+			router.Use(cors.New(cors.Config{
+				AllowOrigins:     []string{"*"}, // any origin
+				AllowMethods:     []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"},
+				AllowHeaders:     []string{"Origin", "Authorization", "Content-Type", "Accept"},
+				ExposeHeaders:    []string{"Authorization"},
+				AllowCredentials: false, // no cookies needed
+				MaxAge:           12 * time.Hour,
+			}))
+		}
+	*/
 
 	if app.Singleton.Config.UseRouterMiddleware {
-		router.Use(cors.New(cors.Config{
-			AllowOrigins:     []string{"*"}, // any origin
-			AllowMethods:     []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"},
-			AllowHeaders:     []string{"Origin", "Authorization", "Content-Type", "Accept"},
-			ExposeHeaders:    []string{"Authorization"},
-			AllowCredentials: false, // no cookies needed
-			MaxAge:           12 * time.Hour,
-		}))
+		router.Use(func(c *gin.Context) {
+			origin := c.GetHeader("Origin")
+			if origin != "" {
+				c.Header("Access-Control-Allow-Origin", origin)
+				c.Header("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS")
+				c.Header("Access-Control-Allow-Headers", "Origin, Authorization, Content-Type, Accept")
+				c.Header("Access-Control-Expose-Headers", "Authorization")
+				c.Header("Access-Control-Allow-Credentials", "true")
+			}
+
+			if c.Request.Method == "OPTIONS" {
+				c.AbortWithStatus(204)
+				return
+			}
+
+			c.Next()
+		})
 	}
 
 	router.Use(gin.Logger())
