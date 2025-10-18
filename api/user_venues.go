@@ -177,7 +177,6 @@ func queryVenueRightsForUserAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, i
 }
 
 func QueryOrganizerDashboardForUser(gc *gin.Context) {
-
 	jsonData, httpStatus, err := queryOrganizerDashboardForUserAsJSON(gc, app.Singleton.MainDbPool)
 	if err != nil {
 		gc.JSON(httpStatus, gin.H{"error": err.Error()})

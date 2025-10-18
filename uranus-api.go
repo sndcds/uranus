@@ -12,6 +12,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/sndcds/pluto"
 	"github.com/sndcds/uranus/api"
+	"github.com/sndcds/uranus/api/admin"
 	"github.com/sndcds/uranus/app"
 	"github.com/sndcds/uranus/model"
 )
@@ -36,7 +37,7 @@ func loginHandler(gc *gin.Context) {
 	// -----------------------
 	// Create tokens
 	// -----------------------
-	accessExp := time.Now().Add(1 * time.Minute) // Todo: Should be configurable
+	accessExp := time.Now().Add(time.Duration(app.Singleton.Config.AuthTokenExpirationTime) * time.Second)
 	refreshExp := time.Now().Add(7 * 24 * time.Hour)
 
 	accessClaims := &app.Claims{
@@ -101,7 +102,7 @@ func refreshHandler(gc *gin.Context) {
 	}
 
 	// Issue new access token
-	accessExp := time.Now().Add(30 * time.Minute)
+	accessExp := time.Now().Add(time.Duration(app.Singleton.Config.AuthTokenExpirationTime) * time.Second)
 	newClaims := &app.Claims{
 		UserId: claims.UserId,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -208,6 +209,8 @@ func main() {
 
 	adminRoute.POST("/login", loginHandler)
 	adminRoute.POST("/refresh", refreshHandler)
+
+	adminRoute.POST("/organizer/create", api_admin.AdminOrganizerCreateHandler)
 
 	adminRoute.GET("/user/permissions/:mode", app.JWTMiddleware, api.AdminUserPermissionsHandler)
 	adminRoute.GET("/user/event-organizers", app.JWTMiddleware, api.AdminUserEventOrganizersHandler)

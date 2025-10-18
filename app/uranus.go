@@ -6,10 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/jackc/pgx/v5" // PostgreSQL driver
-	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"golang.org/x/crypto/bcrypt"
 	"io"
 	"log"
 	"net/http"
@@ -17,6 +13,11 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/jackc/pgx/v5" // PostgreSQL driver
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Uranus struct {
@@ -112,7 +113,7 @@ func (app *Uranus) LoadConfig(fileName string) error {
 
 	// Set default if not specified in the JSON config
 	if app.Config.AuthTokenExpirationTime == 0 {
-		app.Config.AuthTokenExpirationTime = 3600 / 6 // default: 10 minutes
+		app.Config.AuthTokenExpirationTime = 600 // default: 10 minutes
 	}
 
 	app.Config.Print()
