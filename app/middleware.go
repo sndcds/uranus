@@ -40,7 +40,7 @@ func JWTMiddlewareX(gc *gin.Context) {
 
 	// Token is valid, save user info in context
 	gc.Set("claims", claims)
-	gc.Set("userId", claims.UserId)
+	gc.Set("user-id", claims.UserId)
 	gc.Next()
 }
 
@@ -78,7 +78,7 @@ func JWTMiddleware(gc *gin.Context) {
 	}
 
 	// 4. Store claims for downstream handlers
-	gc.Set("userId", claims.UserId)
+	gc.Set("user-id", claims.UserId)
 
 	gc.Next()
 }
@@ -86,8 +86,8 @@ func JWTMiddleware(gc *gin.Context) {
 // Get the id of the authorized user or -1
 // userId will only be present if middleware sets it after verifying the JWT.
 // If the user is not logged in or the middleware is not run, this will return -1.
-func CurrentUserID(gc *gin.Context) (int, error) {
-	userIdVal, exists := gc.Get("userId")
+func CurrentUserId(gc *gin.Context) (int, error) {
+	userIdVal, exists := gc.Get("user-id")
 	if exists {
 		userId, ok := userIdVal.(int)
 		if ok {

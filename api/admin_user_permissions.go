@@ -25,7 +25,7 @@ func fetchUserPermissions(gc *gin.Context) {
 	db := app.Singleton.MainDbPool
 	ctx := gc.Request.Context()
 
-	userID, err := app.CurrentUserID(gc)
+	userID, err := app.CurrentUserId(gc)
 	if userID < 0 {
 		gc.JSON(http.StatusUnauthorized, err)
 		return

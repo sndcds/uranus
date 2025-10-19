@@ -19,7 +19,7 @@ type ImageMetadata struct {
 }
 
 func AdminAddImageHandler(gc *gin.Context) {
-	userID, err := app.CurrentUserID(gc)
+	userID, err := app.CurrentUserId(gc)
 	if err != nil {
 		gc.String(http.StatusBadRequest, "Invalid used-id")
 		return

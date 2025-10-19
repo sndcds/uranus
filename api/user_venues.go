@@ -113,7 +113,7 @@ func queryVenueRightsForUserAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, i
 	start := time.Now() // Start timer
 	ctx := gc.Request.Context()
 
-	userId, err := app.CurrentUserID(gc)
+	userId, err := app.CurrentUserId(gc)
 	if userId < 0 {
 		return nil, http.StatusUnauthorized, err
 	}
@@ -190,7 +190,7 @@ func queryOrganizerDashboardForUserAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]
 	start := time.Now()
 	ctx := gc.Request.Context()
 
-	userId, err := app.CurrentUserID(gc)
+	userId, err := app.CurrentUserId(gc)
 	if userId < 0 {
 		return nil, http.StatusUnauthorized, err
 	}

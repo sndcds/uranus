@@ -4,11 +4,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sndcds/uranus/app"
-	"net/http"
-	"time"
 )
 
 func AdminHandlerUserEvents(gc *gin.Context) {
@@ -42,21 +43,21 @@ func authFetchEventsByOrganizer(gc *gin.Context) {
 func authFetchEventsByOrganizerJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 	ctx := gc.Request.Context()
 
-	userID, err := app.CurrentUserID(gc)
+	userId, err := app.CurrentUserId(gc)
 	if err != nil {
 		return nil, http.StatusInternalServerError, err
 	}
 
-	orgID, ok := GetContextParameterAsInt(gc, "id")
+	orgId, ok := GetContextParameterAsInt(gc, "id")
 	if !ok {
 		return nil, http.StatusBadRequest, fmt.Errorf("error: variable id is required")
 	}
 
 	fmt.Println(app.Singleton.SqlQueryUserOrgEventsOverview)
-	fmt.Println("userID", userID)
-	fmt.Println("orgID", orgID)
+	fmt.Println("userId", userId)
+	fmt.Println("orgId", orgId)
 
-	rows, err := db.Query(ctx, app.Singleton.SqlQueryUserOrgEventsOverview, userID, orgID, "2020-01-01", "2026-01-01")
+	rows, err := db.Query(ctx, app.Singleton.SqlQueryUserOrgEventsOverview, userId, orgId, "2020-01-01", "2026-01-01")
 	if err != nil {
 		return nil, http.StatusInternalServerError, fmt.Errorf("query failed: %w", err)
 	}

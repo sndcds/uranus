@@ -36,7 +36,7 @@ func allIDsExist(gc *gin.Context, tx pgx.Tx, table string, ids []int) (bool, err
 }
 
 func UserCanEditEvent(gc *gin.Context, tx pgx.Tx, eventId int) (bool, error) {
-	userId, err := app.CurrentUserID(gc)
+	userId, err := app.CurrentUserId(gc)
 	if userId < 0 {
 		return false, err
 	}

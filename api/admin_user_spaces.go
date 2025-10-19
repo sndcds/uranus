@@ -2,10 +2,11 @@ package api
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/uranus/app"
-	"net/http"
 )
 
 func AdminUserSpacesHandler(gc *gin.Context) {
@@ -24,9 +25,9 @@ func AdminUserSpacesHandler(gc *gin.Context) {
 		SpaceName     string `json:"space_name"`
 	}
 
-	userID, err := app.CurrentUserID(gc)
-	fmt.Println("userID:", userID)
-	if userID < 0 {
+	userId, err := app.CurrentUserId(gc)
+	fmt.Println("userId:", userId)
+	if userId < 0 {
 		gc.JSON(http.StatusUnauthorized, err)
 		return
 	}
@@ -36,7 +37,7 @@ func AdminUserSpacesHandler(gc *gin.Context) {
 	switch modeStr {
 	case "can-add-event":
 		sql := app.Singleton.SqlAdminSpacesCanAddEvent
-		rows, err = db.Query(ctx, sql, userID)
+		rows, err = db.Query(ctx, sql, userId)
 		break
 	case "for-event":
 		spaceID, hasSpaceID := GetContextParameterAsInt(gc, "space-id")
@@ -46,7 +47,7 @@ func AdminUserSpacesHandler(gc *gin.Context) {
 			return
 		}
 		sql := app.Singleton.SqlAdminSpacesForEvent
-		rows, err = db.Query(ctx, sql, userID, spaceID)
+		rows, err = db.Query(ctx, sql, userId, spaceID)
 		break
 	default:
 		gc.JSON(http.StatusBadRequest, gin.H{

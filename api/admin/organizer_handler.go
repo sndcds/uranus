@@ -9,10 +9,8 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-func AdminOrganizerCreateHandler(gc *gin.Context) {
+func OrganizerCreateHandler(gc *gin.Context) {
 	pool := app.Singleton.MainDbPool
-
-	fmt.Printf("AdminOrganizerCreateHandler ...")
 
 	type UpdateRequest struct {
 		Name         *string `json:"name"`
@@ -33,26 +31,44 @@ func AdminOrganizerCreateHandler(gc *gin.Context) {
 		return
 	}
 
+	// Generate WKT point
 	wktPoint, err := app.GenerateWKT(req.Latitude, req.Longitude)
 	if err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Validate
+	// Extract user ID from context (depends on your auth middleware)
+	userId, err := app.CurrentUserId(gc)
+	if err != nil {
+		gc.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		return
+	}
 
-	// Build sql query
-	var newID int
-	query := `
+	// Begin transaction
+	tx, err := pool.Begin(gc)
+	if err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to start transaction"})
+		return
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback(gc)
+		}
+	}()
+
+	// Insert organizer
+	var newId int
+	insertOrganizerQuery := `
 		INSERT INTO {{schema}}.organizer
 			(name, street, house_number, postal_code, city, contact_email, website_url, contact_phone, wkb_geometry)
 		VALUES
 			($1, $2, $3, $4, $5, $6, $7, $8, ST_GeomFromText($9, 4326))
 		RETURNING id
 	`
-	query = strings.Replace(query, "{{schema}}", app.Singleton.Config.DbSchema, 1)
+	insertOrganizerQuery = strings.Replace(insertOrganizerQuery, "{{schema}}", app.Singleton.Config.DbSchema, 1)
 
-	err = pool.QueryRow(gc, query,
+	err = tx.QueryRow(gc, insertOrganizerQuery,
 		req.Name,
 		req.Street,
 		req.HouseNumber,
@@ -62,16 +78,36 @@ func AdminOrganizerCreateHandler(gc *gin.Context) {
 		req.WebsiteUrl,
 		req.ContactPhone,
 		wktPoint,
-	).Scan(&newID)
-
-	fmt.Println("query:", query)
-	fmt.Println("newID:", newID)
+	).Scan(&newId)
 
 	if err != nil {
-		fmt.Println("err:", err.Error())
-		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		_ = tx.Rollback(gc)
+		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("insert organizer failed: %v", err)})
 		return
 	}
 
-	gc.JSON(http.StatusOK, gin.H{"id": newID, "message": "Organizer created"})
+	// Insert user_organizer_link
+	insertLinkQuery := `
+		INSERT INTO {{schema}}.user_organizer_links (user_id, organizer_id, user_role_id)
+		VALUES ($1, $2, $3)
+	`
+	insertLinkQuery = strings.Replace(insertLinkQuery, "{{schema}}", app.Singleton.Config.DbSchema, 1)
+
+	_, err = tx.Exec(gc, insertLinkQuery, userId, newId, 1)
+	if err != nil {
+		_ = tx.Rollback(gc)
+		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("insert user_organizer_link failed: %v", err)})
+		return
+	}
+
+	// Commit transaction
+	if err = tx.Commit(gc); err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to commit transaction"})
+		return
+	}
+
+	gc.JSON(http.StatusOK, gin.H{
+		"id":      newId,
+		"message": "Organizer created successfully",
+	})
 }

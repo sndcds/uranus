@@ -308,7 +308,7 @@ func FetchEventRoles(gc *gin.Context, dbPool *pgxpool.Pool, userID int) (map[int
 
 func TestQuery(gc *gin.Context) {
 	dbPool := app.Singleton.MainDbPool
-	userID, err := app.CurrentUserID(gc)
+	userID, err := app.CurrentUserId(gc)
 	if err != nil {
 		gc.JSON(http.StatusUnauthorized, gin.H{"error": "user not logged in"})
 		return
