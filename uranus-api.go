@@ -252,7 +252,8 @@ func main() {
 	publicRoute.GET("/user", app.JWTMiddleware, api.UserHandler) // Todo: To be removed
 	publicRoute.GET("/user/events", app.JWTMiddleware, api.AdminHandlerUserEvents)
 	publicRoute.GET("/space", api.SpaceHandler)
-	// publicRoute.POST("/query", api.QueryHandler)
+	publicRoute.GET("/space/types", api.SpaceTypesHandler)
+
 	publicRoute.GET("/test", app.JWTMiddleware, testHandler)
 	publicRoute.GET("/meta/:mode", api.GetMetaHandler)
 	publicRoute.GET("/event/images/:event-id", api.EventImagesHandler)
