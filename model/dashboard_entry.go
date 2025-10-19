@@ -142,7 +142,7 @@ func (entry DashboardEntry) GetValueForKey(key string) string {
 	switch key {
 	case ".OrganizerId":
 		return strconv.Itoa(entry.OrganizerId)
-	case ".Name":
+	case ".DisplayName":
 		return entry.OrganizerName
 	case ".Address":
 		return entry.GetFullAddress()

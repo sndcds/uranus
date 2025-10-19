@@ -84,7 +84,7 @@ func loginHandler(gc *gin.Context) {
 		return
 	}
 
-	user, err := model.GetUser(app.Singleton, gc, credentials.Email)
+	user, err := model.GetUser(app.Singleton, credentials.Email)
 	if err != nil || app.ComparePasswords(user.PasswordHash, credentials.Password) != nil {
 		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 		return
