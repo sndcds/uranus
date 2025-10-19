@@ -270,7 +270,6 @@ func main() {
 	adminRoute.GET("/organizer/dashboard", app.JWTMiddleware, api_admin.OrganizerDashboardHandler)
 	adminRoute.GET("/organizer/venues/:id", app.JWTMiddleware, api_admin.OrganizerVenuesHandler)
 	adminRoute.POST("/organizer/create", app.JWTMiddleware, api_admin.OrganizerCreateHandler)
-
 	adminRoute.POST("/venue/create", app.JWTMiddleware, api_admin.VenueCreateHandler)
 	adminRoute.POST("/space/create", app.JWTMiddleware, api_admin.SpaceCreateHandler)
 

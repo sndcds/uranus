@@ -44,7 +44,7 @@ func SpaceCreateHandler(gc *gin.Context) {
 
 	var newId int
 	insertSpaceQuery := `
-		INSERT INTO {{schema}}.venue
+		INSERT INTO {{schema}}.space
 			(venue_id, name, space_type_id, building_level, total_capacity, seating_capacity, website_url)
 		VALUES
 			($1, $2, $3, $4, $5, $6, $7)
