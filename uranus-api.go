@@ -271,6 +271,8 @@ func main() {
 	adminRoute.GET("/organizer/venues/:id", app.JWTMiddleware, api_admin.OrganizerVenuesHandler)
 	adminRoute.POST("/organizer/create", app.JWTMiddleware, api_admin.OrganizerCreateHandler)
 
+	adminRoute.POST("/venue/create", app.JWTMiddleware, api_admin.VenueCreateHandler)
+
 	adminRoute.GET("/user/permissions/:mode", app.JWTMiddleware, api.AdminUserPermissionsHandler)
 	adminRoute.GET("/user/event-organizers", app.JWTMiddleware, api.AdminUserEventOrganizersHandler)
 	adminRoute.GET("/event/:id", app.JWTMiddleware, api.AdminEventHandler)
