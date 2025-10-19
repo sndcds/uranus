@@ -2,8 +2,9 @@ package api
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 func UserHandler(gc *gin.Context) {
@@ -17,10 +18,6 @@ func UserHandler(gc *gin.Context) {
 
 	case "venue-rights":
 		QueryVenueRightsForUser(gc)
-		break
-
-	case "organizer-dashboard":
-		QueryOrganizerDashboardForUser(gc)
 		break
 
 	default:

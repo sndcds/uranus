@@ -2,14 +2,11 @@ package api
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sndcds/uranus/app"
 )
@@ -174,55 +171,4 @@ func queryVenueRightsForUserAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, i
 	}
 
 	return jsonData, http.StatusOK, nil
-}
-
-func QueryOrganizerDashboardForUser(gc *gin.Context) {
-	jsonData, httpStatus, err := queryOrganizerDashboardForUserAsJSON(gc, app.Singleton.MainDbPool)
-	if err != nil {
-		gc.JSON(httpStatus, gin.H{"error": err.Error()})
-		return
-	}
-
-	gc.Data(httpStatus, "application/json", jsonData)
-}
-
-func queryOrganizerDashboardForUserAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
-	start := time.Now()
-	ctx := gc.Request.Context()
-
-	userId, err := app.CurrentUserId(gc)
-	if userId < 0 {
-		return nil, http.StatusUnauthorized, err
-	}
-
-	//
-
-	startStr, ok := GetContextParam(gc, "start")
-	var startDate time.Time
-
-	if ok {
-		startDate, err = time.Parse("2006-01-02", startStr)
-		if err != nil {
-			startDate = time.Now() // fallback on parsing error
-		}
-	} else {
-		startDate = time.Now() // fallback if param missing
-	}
-
-	row := db.QueryRow(ctx, app.Singleton.SqlQueryUserOrgOverview, userId, startDate)
-
-	var jsonResult []byte
-	if err := row.Scan(&jsonResult); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, http.StatusNoContent, fmt.Errorf("no data found")
-		}
-		return nil, http.StatusInternalServerError, err
-	}
-
-	fmt.Println("jsonResult", string(jsonResult))
-
-	elapsed := time.Since(start)
-	log.Printf("Query took %s", elapsed)
-
-	return jsonResult, http.StatusOK, nil
 }

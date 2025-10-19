@@ -38,7 +38,8 @@ type Uranus struct {
 	SqlQueryVenueByUser            string
 	SqlQuerySpacesByVenueId        string
 	SqlQueryUserVenuesById         string
-	SqlQueryUserOrgOverview        string
+	SqlAdminOrganizerDashboard     string
+	SqlAdminOrganizerVenues        string
 	SqlQueryUserOrgEventsOverview  string
 	SqlAdminUserPermissions        string
 	SqlAdminUserEventOrganizer     string
@@ -139,7 +140,9 @@ func (app *Uranus) PrepareSql() error {
 		{"queries/userVenues.sql", &app.SqlQueryVenueByUser},
 		{"queries/spacesByVenueId.sql", &app.SqlQuerySpacesByVenueId},
 		{"queries/userVenuesById.sql", &app.SqlQueryUserVenuesById},
-		{"queries/user-org-overview.sql", &app.SqlQueryUserOrgOverview},
+		{"queries/admin/organizer-dashboard.sql", &app.SqlAdminOrganizerDashboard},
+		{"queries/admin/organizer-venues.sql", &app.SqlAdminOrganizerVenues},
+
 		{"queries/user-org-events-overview.sql", &app.SqlQueryUserOrgEventsOverview},
 		{"queries/admin/admin-user-permissions.sql", &app.SqlAdminUserPermissions},
 		{"queries/admin/admin-user-event-organizers.sql", &app.SqlAdminUserEventOrganizer},
