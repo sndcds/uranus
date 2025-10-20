@@ -15,21 +15,23 @@ func OrganizerEventsHandler(gc *gin.Context) {
 	pool := app.Singleton.MainDbPool
 	ctx := gc.Request.Context()
 
+	// Todo: Event Type
 	type EventWithVenue struct {
-		EventID       int     `json:"event_id"`
-		EventTitle    string  `json:"event_title"`
-		EventSubtitle string  `json:"event_subtitle"`
-		OrganizerID   int     `json:"event_organizer_id"`
-		StartDate     *string `json:"start_date"`
-		StartTime     *string `json:"start_time"`
-		EndDate       *string `json:"end_date"`
-		EndTime       *string `json:"end_time"`
-		VenueID       int     `json:"venue_id"`
-		VenueName     string  `json:"venue_name"`
-		SpaceID       *int    `json:"space_id,omitempty"`
-		SpaceName     *string `json:"space_name,omitempty"`
-		VenueLon      float64 `json:"venue_lon"`
-		VenueLat      float64 `json:"venue_lat"`
+		EventId            int     `json:"event_id"`
+		EventTitle         string  `json:"event_title"`
+		EventSubtitle      string  `json:"event_subtitle"`
+		EventOrganizerId   int     `json:"event_organizer_id"`
+		EventOrganizerName *string `json:"event_organizer_name"`
+		StartDate          *string `json:"start_date"`
+		StartTime          *string `json:"start_time"`
+		EndDate            *string `json:"end_date"`
+		EndTime            *string `json:"end_time"`
+		VenueId            int     `json:"venue_id"`
+		VenueName          string  `json:"venue_name"`
+		SpaceId            *int    `json:"space_id,omitempty"`
+		SpaceName          *string `json:"space_name,omitempty"`
+		VenueLon           float64 `json:"venue_lon"`
+		VenueLat           float64 `json:"venue_lat"`
 	}
 
 	idStr := gc.Param("id")
@@ -66,17 +68,18 @@ func OrganizerEventsHandler(gc *gin.Context) {
 	for rows.Next() {
 		var e EventWithVenue
 		err := rows.Scan(
-			&e.EventID,
+			&e.EventId,
 			&e.EventTitle,
 			&e.EventSubtitle,
-			&e.OrganizerID,
+			&e.EventOrganizerId,
+			&e.EventOrganizerName,
 			&e.StartDate,
 			&e.StartTime,
 			&e.EndDate,
 			&e.EndTime,
-			&e.VenueID,
+			&e.VenueId,
 			&e.VenueName,
-			&e.SpaceID,
+			&e.SpaceId,
 			&e.SpaceName,
 			&e.VenueLon,
 			&e.VenueLat,

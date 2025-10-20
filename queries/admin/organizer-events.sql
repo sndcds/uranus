@@ -16,6 +16,7 @@ SELECT
     e.title AS event_title,
     e.subtitle AS event_subtitle,
     e.organizer_id AS event_organizer_id,
+    eo.name AS event_organizer_name,
     TO_CHAR(ed.start, 'YYYY-MM-DD') AS start_date,
     TO_CHAR(ed.start, 'HH24:MI') AS start_time,
     TO_CHAR(ed.end, 'YYYY-MM-DD') AS end_date,
@@ -28,11 +29,12 @@ SELECT
     ST_Y(v.wkb_geometry) AS venue_lat
 
 FROM event_data ed
-         JOIN {{schema}}.event e ON ed.event_id = e.id
-         LEFT JOIN {{schema}}.space s ON ed.space_id = s.id
-         LEFT JOIN {{schema}}.space es ON e.space_id = es.id
-         JOIN {{schema}}.venue v ON COALESCE(s.venue_id, es.venue_id) = v.id
-         JOIN {{schema}}.organizer o ON v.organizer_id = o.id
+JOIN {{schema}}.event e ON ed.event_id = e.id
+LEFT JOIN {{schema}}.space s ON ed.space_id = s.id
+LEFT JOIN {{schema}}.space es ON e.space_id = es.id
+JOIN {{schema}}.venue v ON COALESCE(s.venue_id, es.venue_id) = v.id
+JOIN {{schema}}.organizer o ON v.organizer_id = o.id
+JOIN {{schema}}.organizer eo ON e.organizer_id = eo.id
 
 WHERE o.id = $1
 AND ed.start::date >= $2
