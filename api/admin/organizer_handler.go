@@ -11,7 +11,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
-	"github.com/sndcds/uranus/api"
 	"github.com/sndcds/uranus/app"
 )
 
@@ -116,39 +115,6 @@ func OrganizerCreateHandler(gc *gin.Context) {
 		"id":      newId,
 		"message": "Organizer created successfully",
 	})
-}
-
-func OrganizerDashboardHandler(gc *gin.Context) {
-	pool := app.Singleton.MainDbPool
-	ctx := gc.Request.Context()
-
-	userId, err := app.CurrentUserId(gc)
-	if userId < 0 {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-	}
-
-	startStr, ok := api.GetContextParam(gc, "start")
-	var startDate time.Time
-	if ok {
-		startDate, err = time.Parse("2006-01-02", startStr)
-		if err != nil {
-			startDate = time.Now() // fallback on parsing error
-		}
-	} else {
-		startDate = time.Now() // fallback if param missing
-	}
-
-	row := pool.QueryRow(ctx, app.Singleton.SqlAdminOrganizerDashboard, userId, startDate)
-
-	var jsonResult []byte
-	if err := row.Scan(&jsonResult); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			gc.JSON(http.StatusNoContent, gin.H{"error": err.Error()})
-		}
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-	}
-
-	gc.Data(http.StatusOK, "application/json", jsonResult)
 }
 
 func OrganizerVenuesHandler(gc *gin.Context) {
