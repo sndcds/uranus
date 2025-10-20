@@ -3,18 +3,16 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/sndcds/uranus/app"
-	"net/http"
 )
 
 func GetMetaHandler(gc *gin.Context) {
 	modeStr := gc.Param("mode")
 
 	switch modeStr {
-	case "event-types":
-		fetchEventTypes(gc)
-		break
 	case "genres":
 		fetchEventGenres(gc)
 		break
@@ -23,65 +21,6 @@ func GetMetaHandler(gc *gin.Context) {
 			"message": fmt.Sprintf("API route does not exist: %s", gc.FullPath()),
 		})
 	}
-}
-
-func fetchEventTypes(gc *gin.Context) {
-	ctx := gc.Request.Context()
-	db := app.Singleton.MainDbPool
-	sql := app.Singleton.SqlGetMetaTypes
-
-	languageVal, exists := GetContextParam(gc, "language")
-	if !exists {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "variable language is required"})
-		return
-	}
-
-	rows, err := db.Query(ctx, sql, languageVal)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	defer rows.Close()
-
-	fmt.Println("1")
-	// Define a struct matching your query result columns
-	type MetaType struct {
-		ID   int    `json:"type_id"`
-		Name string `json:"type_name"`
-	}
-
-	var results []MetaType
-
-	for rows.Next() {
-		var t MetaType
-		err := rows.Scan(&t.ID, &t.Name) // adjust Scan args to your columns
-		if err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		results = append(results, t)
-	}
-	if err := rows.Err(); err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Build the full response object with "genres" and "language"
-	responseObj := map[string]interface{}{
-		"api":         app.Singleton.APIName,
-		"version":     app.Singleton.APIVersion,
-		"event-types": results,
-		"language":    languageVal,
-	}
-
-	// Encode and send result
-	jsonBytes, err := json.Marshal(responseObj)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	gc.Data(http.StatusOK, "application/json", jsonBytes)
 }
 
 func fetchEventGenres(gc *gin.Context) {

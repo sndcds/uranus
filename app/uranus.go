@@ -32,7 +32,7 @@ type Uranus struct {
 	SqlQueryEventRoles                   string
 	SqlChoosableOrganizerVenues          string
 	SqlChoosableVenueSpaces              string
-	SqlGetMetaTypes                      string
+	SqlChoosableEventTypes               string
 	SqlGetMetaGenres                     string
 	SqlGetMetaGenresByEventType          string
 	SqlQueryEvent                        string
@@ -133,7 +133,7 @@ func (app *Uranus) PrepareSql() error {
 		{"queries/venue_roles.sql", &app.SqlQueryVenueRoles},
 		{"queries/space_roles.sql", &app.SqlQuerySpaceRoles},
 		{"queries/event-roles.sql", &app.SqlQueryEventRoles},
-		{"queries/get-meta-types.sql", &app.SqlGetMetaTypes},
+		{"queries/choosable-event-types.sql", &app.SqlChoosableEventTypes},
 		{"queries/get-meta-genres.sql", &app.SqlGetMetaGenres},
 		{"queries/get-meta-genres-by-event-type.sql", &app.SqlGetMetaGenresByEventType},
 		{"queries/queryEvent.sql", &app.SqlQueryEvent},
