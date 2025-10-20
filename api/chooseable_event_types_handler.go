@@ -12,11 +12,7 @@ func ChoosableEventTypesHandler(gc *gin.Context) {
 	db := app.Singleton.MainDbPool
 	sql := app.Singleton.SqlChoosableEventTypes
 
-	langStr := gc.Param("lang")
-	if langStr == "" {
-		langStr = "en"
-	}
-
+	langStr := gc.DefaultQuery("lang", "en")
 	rows, err := db.Query(ctx, sql, langStr)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
