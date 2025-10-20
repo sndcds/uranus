@@ -5,9 +5,10 @@ FROM (
         o.name AS name,
         o.city AS city,
         o.country_code AS country_code
-    FROM {{schema}}.user_event_organizer_links ueol
-    JOIN {{schema}}.organizer o ON o.id = ueol.organizer_id
+    FROM uranus.user_event_organizer_links ueol
+    JOIN uranus.organizer o ON o.id = ueol.event_organizer_id
     WHERE ueol.user_id = $1
+    AND ueol.organizer_id = $2
 
     UNION
 
@@ -16,7 +17,7 @@ FROM (
         o.name AS name,
         o.city AS city,
         o.country_code AS country_code
-    FROM {{schema}}.organizer o
+    FROM uranus.organizer o
     WHERE o.id = $2
 ) combined
-ORDER BY name
+ORDER BY LOWER(name)

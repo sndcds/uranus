@@ -248,6 +248,8 @@ func main() {
 	// Public endpoints
 	publicRoute := router.Group("/api")
 
+	publicRoute.GET("/choosable-venues/organizer/:id", api.ChoosableOrganizerVenuesHandler)
+
 	publicRoute.GET("/query", api.QueryHandler)
 	publicRoute.GET("/user", app.JWTMiddleware, api.UserHandler) // Todo: To be removed
 	publicRoute.GET("/user/events", app.JWTMiddleware, api.AdminHandlerUserEvents)

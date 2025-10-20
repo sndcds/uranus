@@ -1,6 +1,7 @@
 package api_admin
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -26,12 +27,11 @@ func ChoosableUserEventOrganizersHandler(gc *gin.Context) {
 	idStr := gc.Param("id")
 	organizerId, err := strconv.Atoi(idStr)
 	if err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid organizer id"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	sql := app.Singleton.SqlAdminChoosableUserEventOrganizers
-
 	rows, err := db.Query(ctx, sql, userId, organizerId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -39,23 +39,25 @@ func ChoosableUserEventOrganizersHandler(gc *gin.Context) {
 	}
 	defer rows.Close()
 
-	type UserEventOrganizer struct {
-		Id          int64  `json:"id"`
-		Name        string `json:"name"`
-		City        string `json:"city"`
-		CountryCode string `json:"country_code"`
+	type Organizer struct {
+		Id          int64   `json:"id"`
+		Name        *string `json:"name"`
+		City        *string `json:"city"`
+		CountryCode *string `json:"country_code"`
 	}
 
-	var organizers []UserEventOrganizer
+	var organizers []Organizer
 
+	fmt.Println("organizerId:", organizerId)
 	for rows.Next() {
-		var ueo UserEventOrganizer
+		var ueo Organizer
 		if err := rows.Scan(
 			&ueo.Id,
 			&ueo.Name,
 			&ueo.City,
 			&ueo.CountryCode,
 		); err != nil {
+			fmt.Println(err.Error())
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
@@ -69,9 +71,12 @@ func ChoosableUserEventOrganizersHandler(gc *gin.Context) {
 
 	if len(organizers) == 0 {
 		// It's better to return an empty array instead of 204 so clients can safely parse it.
-		gc.JSON(http.StatusOK, []UserEventOrganizer{})
+		gc.JSON(http.StatusOK, []Organizer{})
 		return
 	}
+
+	fmt.Println("organizerId:", organizerId)
+	fmt.Println("organizers:", organizers)
 
 	gc.JSON(http.StatusOK, organizers)
 }
