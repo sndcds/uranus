@@ -249,6 +249,7 @@ func main() {
 	publicRoute := router.Group("/api")
 
 	publicRoute.GET("/choosable-venues/organizer/:id", api.ChoosableOrganizerVenuesHandler)
+	publicRoute.GET("/choosable-spaces/venue/:id", api.ChoosableVenueSpacesHandler)
 
 	publicRoute.GET("/query", api.QueryHandler)
 	publicRoute.GET("/user", app.JWTMiddleware, api.UserHandler) // Todo: To be removed
@@ -271,7 +272,6 @@ func main() {
 	adminRoute.POST("/refresh", refreshHandler)
 
 	adminRoute.GET("/organizer/dashboard", app.JWTMiddleware, api_admin.OrganizerDashboardHandler)
-	adminRoute.GET("/organizer/:id/venues", app.JWTMiddleware, api_admin.OrganizerVenuesHandler)
 	adminRoute.GET("/organizer/:id/events", app.JWTMiddleware, api_admin.OrganizerEventsHandler)
 
 	adminRoute.POST("/organizer/create", app.JWTMiddleware, api_admin.OrganizerCreateHandler)
