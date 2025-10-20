@@ -2,41 +2,48 @@ package api_admin
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5"
-	"github.com/sndcds/uranus/api"
 	"github.com/sndcds/uranus/app"
 )
 
 func ChoosableUserEventOrganizersHandler(gc *gin.Context) {
-	organizerID, _ := api.GetContextParameterAsInt(gc, "organizer-id")
-
 	db := app.Singleton.MainDbPool
 	ctx := gc.Request.Context()
 
-	userID, err := app.CurrentUserId(gc)
-	if userID < 0 {
-		gc.JSON(http.StatusUnauthorized, err)
+	userId, err := app.CurrentUserId(gc)
+	if err != nil {
+		gc.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+	if userId < 0 {
+		gc.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
 
-	var rows pgx.Rows
-	sql := app.Singleton.SqlAdminChoosableUserEventOrganizers
-	rows, err = db.Query(ctx, sql, userID, organizerID)
-
+	// Parse organizer ID from path param
+	idStr := gc.Param("id")
+	organizerId, err := strconv.Atoi(idStr)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, err)
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid organizer id"})
+		return
+	}
+
+	sql := app.Singleton.SqlAdminChoosableUserEventOrganizers
+
+	rows, err := db.Query(ctx, sql, userId, organizerId)
+	if err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	defer rows.Close()
 
 	type UserEventOrganizer struct {
-		OrganizerID      int64  `json:"organizer_id"`
-		OrganizerName    string `json:"organizer_name"`
-		OrganizerCity    string `json:"organizer_city"`
-		OrganizerCountry string `json:"organizer_country"`
-		OrganizerWebURL  string `json:"organizer_web_url"`
+		Id          int64  `json:"id"`
+		Name        string `json:"name"`
+		City        string `json:"city"`
+		CountryCode string `json:"country_code"`
 	}
 
 	var organizers []UserEventOrganizer
@@ -44,11 +51,10 @@ func ChoosableUserEventOrganizersHandler(gc *gin.Context) {
 	for rows.Next() {
 		var ueo UserEventOrganizer
 		if err := rows.Scan(
-			&ueo.OrganizerID,
-			&ueo.OrganizerName,
-			&ueo.OrganizerCity,
-			&ueo.OrganizerCountry,
-			&ueo.OrganizerWebURL,
+			&ueo.Id,
+			&ueo.Name,
+			&ueo.City,
+			&ueo.CountryCode,
 		); err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -61,12 +67,11 @@ func ChoosableUserEventOrganizersHandler(gc *gin.Context) {
 		return
 	}
 
-	// Wrap in outer object with metadata
-	response := gin.H{
-		"api":              "Uranus",
-		"version":          "1.0.0",
-		"event-organizers": organizers,
+	if len(organizers) == 0 {
+		// It's better to return an empty array instead of 204 so clients can safely parse it.
+		gc.JSON(http.StatusOK, []UserEventOrganizer{})
+		return
 	}
 
-	gc.JSON(http.StatusOK, response)
+	gc.JSON(http.StatusOK, organizers)
 }

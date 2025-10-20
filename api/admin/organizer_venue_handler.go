@@ -23,7 +23,6 @@ func OrganizerVenuesHandler(gc *gin.Context) {
 		return
 	}
 
-	// Get the "id" path parameter
 	idStr := gc.Param("id")
 	organizerId, err := strconv.Atoi(idStr)
 	if err != nil {
