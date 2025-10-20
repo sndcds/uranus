@@ -38,3 +38,4 @@ JOIN {{schema}}.organizer eo ON e.organizer_id = eo.id
 
 WHERE o.id = $1
 AND ed.start::date >= $2
+ORDER BY ed.start

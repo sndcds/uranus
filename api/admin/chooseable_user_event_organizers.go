@@ -1,14 +1,16 @@
-package api
+package api_admin
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/sndcds/uranus/api"
 	"github.com/sndcds/uranus/app"
-	"net/http"
 )
 
-func AdminUserEventOrganizersHandler(gc *gin.Context) {
-	organizerID, hasOrganizerID := GetContextParameterAsInt(gc, "organizer-id")
+func ChoosableUserEventOrganizersHandler(gc *gin.Context) {
+	organizerID, _ := api.GetContextParameterAsInt(gc, "organizer-id")
 
 	db := app.Singleton.MainDbPool
 	ctx := gc.Request.Context()
@@ -20,13 +22,8 @@ func AdminUserEventOrganizersHandler(gc *gin.Context) {
 	}
 
 	var rows pgx.Rows
-	if hasOrganizerID {
-		sql := app.Singleton.SqlAdminUserEventOrganizerEdit
-		rows, err = db.Query(ctx, sql, userID, organizerID)
-	} else {
-		sql := app.Singleton.SqlAdminUserEventOrganizer
-		rows, err = db.Query(ctx, sql, userID)
-	}
+	sql := app.Singleton.SqlAdminChoosableUserEventOrganizers
+	rows, err = db.Query(ctx, sql, userID, organizerID)
 
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, err)

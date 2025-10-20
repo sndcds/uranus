@@ -21,35 +21,34 @@ import (
 )
 
 type Uranus struct {
-	Version                        string
-	APIName                        string
-	APIVersion                     string
-	MainDbPool                     *pgxpool.Pool
-	Config                         Config
-	SqlQueryOrganizerRoles         string
-	SqlQueryVenueRoles             string
-	SqlQuerySpaceRoles             string
-	SqlQueryEventRoles             string
-	SqlGetMetaTypes                string
-	SqlGetMetaGenres               string
-	SqlGetMetaGenresByEventType    string
-	SqlQueryEvent                  string
-	SqlQueryVenueForMap            string
-	SqlQueryVenueByUser            string
-	SqlQuerySpacesByVenueId        string
-	SqlQueryUserVenuesById         string
-	SqlAdminOrganizerDashboard     string
-	SqlAdminOrganizerVenues        string
-	SqlAdminOrganizerEvents        string
-	SqlQueryUserOrgEventsOverview  string
-	SqlAdminUserPermissions        string
-	SqlAdminUserEventOrganizer     string
-	SqlAdminUserEventOrganizerEdit string
-	SqlAdminEvent                  string
-	SqlAdminSpacesCanAddEvent      string
-	SqlAdminSpacesForEvent         string
-	SqlEventImages                 string
-	JwtKey                         []byte `json:"jwt_secret"`
+	Version                              string
+	APIName                              string
+	APIVersion                           string
+	MainDbPool                           *pgxpool.Pool
+	Config                               Config
+	SqlQueryOrganizerRoles               string
+	SqlQueryVenueRoles                   string
+	SqlQuerySpaceRoles                   string
+	SqlQueryEventRoles                   string
+	SqlGetMetaTypes                      string
+	SqlGetMetaGenres                     string
+	SqlGetMetaGenresByEventType          string
+	SqlQueryEvent                        string
+	SqlQueryVenueForMap                  string
+	SqlQueryVenueByUser                  string
+	SqlQuerySpacesByVenueId              string
+	SqlQueryUserVenuesById               string
+	SqlAdminOrganizerDashboard           string
+	SqlAdminOrganizerVenues              string
+	SqlAdminOrganizerEvents              string
+	SqlQueryUserOrgEventsOverview        string
+	SqlAdminUserPermissions              string
+	SqlAdminChoosableUserEventOrganizers string
+	SqlAdminEvent                        string
+	SqlAdminSpacesCanAddEvent            string
+	SqlAdminSpacesForEvent               string
+	SqlEventImages                       string
+	JwtKey                               []byte `json:"jwt_secret"`
 }
 
 var Singleton *Uranus
@@ -141,14 +140,14 @@ func (app *Uranus) PrepareSql() error {
 		{"queries/userVenues.sql", &app.SqlQueryVenueByUser},
 		{"queries/spacesByVenueId.sql", &app.SqlQuerySpacesByVenueId},
 		{"queries/userVenuesById.sql", &app.SqlQueryUserVenuesById},
+
 		{"queries/admin/organizer-dashboard.sql", &app.SqlAdminOrganizerDashboard},
 		{"queries/admin/organizer-venues.sql", &app.SqlAdminOrganizerVenues},
 		{"queries/admin/organizer-events.sql", &app.SqlAdminOrganizerEvents},
+		{"queries/admin/choosable-user-event-organizers.sql", &app.SqlAdminChoosableUserEventOrganizers},
 
 		{"queries/user-org-events-overview.sql", &app.SqlQueryUserOrgEventsOverview},
 		{"queries/admin/admin-user-permissions.sql", &app.SqlAdminUserPermissions},
-		{"queries/admin/admin-user-event-organizers.sql", &app.SqlAdminUserEventOrganizer},
-		{"queries/admin/admin-user-event-organizers-edit.sql", &app.SqlAdminUserEventOrganizerEdit},
 		{"queries/admin/admin-event.sql", &app.SqlAdminEvent},
 		{"queries/admin/admin-user-spaces-can-add-event.sql", &app.SqlAdminSpacesCanAddEvent},
 		{"queries/admin/admin-user-spaces-for-event.sql", &app.SqlAdminSpacesForEvent},
