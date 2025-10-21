@@ -41,7 +41,7 @@ SELECT
     COALESCE(s.total_capacity, es.total_capacity) AS space_total_capacity,
     COALESCE(s.seating_capacity, es.seating_capacity) AS space_seating_capacity,
     COALESCE(s.building_level, es.building_level) AS space_building_level,
-    COALESCE(s.url, es.url) AS space_url,
+    COALESCE(s.website_url, es.website_url) AS space_url,
 
     TO_CHAR(ed.start, 'YYYY-MM-DD') AS start_date,
     TO_CHAR(ed.start, 'HH24:MI') AS start_time,

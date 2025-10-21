@@ -33,7 +33,7 @@ type Uranus struct {
 	SqlChoosableOrganizerVenues          string
 	SqlChoosableVenueSpaces              string
 	SqlChoosableEventTypes               string
-	SqlGetMetaGenres                     string
+	SqlChoosableEventGenres              string
 	SqlGetMetaGenresByEventType          string
 	SqlQueryEvent                        string
 	SqlQueryVenueForMap                  string
@@ -41,6 +41,7 @@ type Uranus struct {
 	SqlQuerySpacesByVenueId              string
 	SqlQueryUserVenuesById               string
 	SqlAdminOrganizerDashboard           string
+	SqlAdminOrganizerVenues              string
 	SqlAdminOrganizerEvents              string
 	SqlQueryUserOrgEventsOverview        string
 	SqlAdminUserPermissions              string
@@ -134,7 +135,7 @@ func (app *Uranus) PrepareSql() error {
 		{"queries/space_roles.sql", &app.SqlQuerySpaceRoles},
 		{"queries/event-roles.sql", &app.SqlQueryEventRoles},
 		{"queries/choosable-event-types.sql", &app.SqlChoosableEventTypes},
-		{"queries/get-meta-genres.sql", &app.SqlGetMetaGenres},
+		{"queries/choosable-event-genres.sql", &app.SqlChoosableEventGenres},
 		{"queries/get-meta-genres-by-event-type.sql", &app.SqlGetMetaGenresByEventType},
 		{"queries/queryEvent.sql", &app.SqlQueryEvent},
 		{"queries/queryVenueForMap.sql", &app.SqlQueryVenueForMap},
@@ -146,6 +147,7 @@ func (app *Uranus) PrepareSql() error {
 		{"queries/choosable-venue-spaces.sql", &app.SqlChoosableVenueSpaces},
 
 		{"queries/admin/organizer-dashboard.sql", &app.SqlAdminOrganizerDashboard},
+		{"queries/admin/organizer-venues.sql", &app.SqlAdminOrganizerVenues},
 		{"queries/admin/organizer-events.sql", &app.SqlAdminOrganizerEvents},
 		{"queries/admin/choosable-user-event-organizers.sql", &app.SqlAdminChoosableUserEventOrganizers},
 

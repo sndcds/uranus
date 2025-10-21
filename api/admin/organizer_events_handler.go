@@ -35,13 +35,11 @@ func OrganizerEventsHandler(gc *gin.Context) {
 	}
 
 	idStr := gc.Param("id")
-	fmt.Println("idStr:", idStr)
 	organizerId, err := strconv.Atoi(idStr)
 	if err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid organizer id"})
 		return
 	}
-	fmt.Println("organizerId:", organizerId)
 
 	startStr := gc.Query("start")
 	var startDate time.Time

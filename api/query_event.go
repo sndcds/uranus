@@ -3,14 +3,15 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/sndcds/uranus/app"
-	"github.com/sndcds/uranus/sql"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/sndcds/uranus/app"
+	"github.com/sndcds/uranus/sql"
 )
 
 func QueryEvent(gc *gin.Context) {
@@ -36,6 +37,7 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 	ctx := gc.Request.Context()
 
 	query := app.Singleton.SqlQueryEvent
+	fmt.Println("query:", query)
 
 	languageStr, _ := GetContextParam(gc, "lang")
 	_, hasPast := GetContextParam(gc, "past")
@@ -79,6 +81,7 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 	argIndex := 1 // Postgres uses $1, $2, etc.
 	var err error
 
+	fmt.Println("languageStr:", languageStr)
 	if languageStr != "" {
 		if !app.IsValidIso639_1(languageStr) {
 			return nil, http.StatusInternalServerError, fmt.Errorf("lang format error, %s", languageStr)
