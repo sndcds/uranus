@@ -133,9 +133,9 @@ func ensureOrganizerExists(
 	}
 }
 
-func FetchOrganizerRoles(gc *gin.Context, dbPool *pgxpool.Pool, userID int) (map[int]OrganizerRole, error) {
+func FetchOrganizerRoles(gc *gin.Context, dbPool *pgxpool.Pool, userId int) (map[int]OrganizerRole, error) {
 	ctx := gc.Request.Context()
-	rows, err := dbPool.Query(ctx, app.Singleton.SqlQueryOrganizerRoles, userID)
+	rows, err := dbPool.Query(ctx, app.Singleton.SqlQueryOrganizerRoles, userId)
 	if err != nil {
 		return nil, fmt.Errorf("query failed: %w", err)
 	}
@@ -173,10 +173,10 @@ func FetchOrganizerRoles(gc *gin.Context, dbPool *pgxpool.Pool, userID int) (map
 	return organizerMap, nil
 }
 
-func FetchVenueRoles(gc *gin.Context, dbPool *pgxpool.Pool, userID int) (map[int]VenueRole, error) {
+func FetchVenueRoles(gc *gin.Context, dbPool *pgxpool.Pool, userId int) (map[int]VenueRole, error) {
 	ctx := gc.Request.Context()
 
-	rows, err := dbPool.Query(ctx, app.Singleton.SqlQueryVenueRoles, userID)
+	rows, err := dbPool.Query(ctx, app.Singleton.SqlQueryVenueRoles, userId)
 	if err != nil {
 		return nil, fmt.Errorf("query failed: %w", err)
 	}
@@ -215,9 +215,9 @@ func FetchVenueRoles(gc *gin.Context, dbPool *pgxpool.Pool, userID int) (map[int
 	return venueMap, nil
 }
 
-func FetchSpaceRoles(gc *gin.Context, dbPool *pgxpool.Pool, userID int) (map[int]SpaceRole, error) {
+func FetchSpaceRoles(gc *gin.Context, dbPool *pgxpool.Pool, userId int) (map[int]SpaceRole, error) {
 	ctx := gc.Request.Context()
-	rows, err := dbPool.Query(ctx, app.Singleton.SqlQuerySpaceRoles, userID)
+	rows, err := dbPool.Query(ctx, app.Singleton.SqlQuerySpaceRoles, userId)
 	if err != nil {
 		return nil, fmt.Errorf("query failed: %w", err)
 	}
@@ -258,10 +258,10 @@ func FetchSpaceRoles(gc *gin.Context, dbPool *pgxpool.Pool, userID int) (map[int
 	return spaceMap, nil
 }
 
-func FetchEventRoles(gc *gin.Context, dbPool *pgxpool.Pool, userID int) (map[int]EventRole, error) {
+func FetchEventRoles(gc *gin.Context, dbPool *pgxpool.Pool, userId int) (map[int]EventRole, error) {
 	ctx := gc.Request.Context()
 
-	rows, err := dbPool.Query(ctx, app.Singleton.SqlQueryEventRoles, userID)
+	rows, err := dbPool.Query(ctx, app.Singleton.SqlQueryEventRoles, userId)
 	if err != nil {
 		return nil, fmt.Errorf("query failed: %w", err)
 	}
@@ -308,31 +308,31 @@ func FetchEventRoles(gc *gin.Context, dbPool *pgxpool.Pool, userID int) (map[int
 
 func TestQuery(gc *gin.Context) {
 	dbPool := app.Singleton.MainDbPool
-	userID, err := app.CurrentUserId(gc)
-	if err != nil {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "user not logged in"})
+
+	userId, ok := app.GetCurrentUserOrAbort(gc)
+	if !ok {
 		return
 	}
 
-	organizerRoles, err := FetchOrganizerRoles(gc, dbPool, userID)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
-		return
-	}
-
-	venueRoles, err := FetchVenueRoles(gc, dbPool, userID)
+	organizerRoles, err := FetchOrganizerRoles(gc, dbPool, userId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
 
-	spaceRoles, err := FetchSpaceRoles(gc, dbPool, userID)
+	venueRoles, err := FetchVenueRoles(gc, dbPool, userId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
 
-	eventRoles, err := FetchEventRoles(gc, dbPool, userID)
+	spaceRoles, err := FetchSpaceRoles(gc, dbPool, userId)
+	if err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	eventRoles, err := FetchEventRoles(gc, dbPool, userId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return

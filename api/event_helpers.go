@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/uranus/app"
@@ -36,9 +37,9 @@ func allIDsExist(gc *gin.Context, tx pgx.Tx, table string, ids []int) (bool, err
 }
 
 func UserCanEditEvent(gc *gin.Context, tx pgx.Tx, eventId int) (bool, error) {
-	userId, err := app.CurrentUserId(gc)
-	if userId < 0 {
-		return false, err
+	userId, ok := app.GetCurrentUserOrAbort(gc)
+	if !ok {
+		return false, nil
 	}
 
 	schema := app.Singleton.Config.DbSchema
@@ -63,9 +64,9 @@ func UserCanEditEvent(gc *gin.Context, tx pgx.Tx, eventId int) (bool, error) {
 	`, schema)
 
 	var canEdit bool
-	err = tx.QueryRow(gc, query, eventId, userId).Scan(&canEdit)
-	if err != nil {
-		return false, fmt.Errorf("failed to check event edit permission: %w", err)
+	row := tx.QueryRow(gc, query, eventId, userId).Scan(&canEdit)
+	if row != nil {
+		return false, fmt.Errorf("failed to check event edit permission: %w", row)
 	}
 
 	return canEdit, nil

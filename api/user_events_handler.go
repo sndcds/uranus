@@ -43,9 +43,9 @@ func authFetchEventsByOrganizer(gc *gin.Context) {
 func authFetchEventsByOrganizerJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 	ctx := gc.Request.Context()
 
-	userId, err := app.CurrentUserId(gc)
-	if err != nil {
-		return nil, http.StatusInternalServerError, err
+	userId, ok := app.GetCurrentUserOrAbort(gc)
+	if !ok {
+		return nil, http.StatusInternalServerError, nil
 	}
 
 	orgId, ok := GetContextParameterAsInt(gc, "id")

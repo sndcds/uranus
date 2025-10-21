@@ -3,7 +3,6 @@ package api_admin
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -17,10 +16,9 @@ func OrganizerVenuesHandler(gc *gin.Context) {
 	pool := app.Singleton.MainDbPool
 	ctx := gc.Request.Context()
 
-	userId, err := app.CurrentUserId(gc)
-	if userId < 0 {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+	userId, ok := app.GetCurrentUserOrAbort(gc)
+	if !ok {
+		return // already sent error response
 	}
 
 	idStr := gc.Param("id")
@@ -40,7 +38,6 @@ func OrganizerVenuesHandler(gc *gin.Context) {
 	} else {
 		startDate = time.Now() // fallback if param missing
 	}
-	fmt.Println("startDate:", startDate)
 
 	// Run query
 	row := pool.QueryRow(ctx, app.Singleton.SqlAdminOrganizerVenues, userId, organizerId, startDate)

@@ -30,9 +30,8 @@ func fetchTableView(gc *gin.Context) {
 	db := app.Singleton.MainDbPool
 	ctx := gc.Request.Context()
 
-	userId, err := app.CurrentUserId(gc)
-	if userId < 0 {
-		gc.JSON(http.StatusUnauthorized, err)
+	userId, ok := app.GetCurrentUserOrAbort(gc)
+	if !ok {
 		return
 	}
 

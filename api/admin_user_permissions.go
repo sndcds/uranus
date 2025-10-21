@@ -25,14 +25,13 @@ func fetchUserPermissions(gc *gin.Context) {
 	db := app.Singleton.MainDbPool
 	ctx := gc.Request.Context()
 
-	userID, err := app.CurrentUserId(gc)
-	if userID < 0 {
-		gc.JSON(http.StatusUnauthorized, err)
-		return
+	userId, ok := app.GetCurrentUserOrAbort(gc)
+	if !ok {
+		return // already sent error response
 	}
 
 	sql := app.Singleton.SqlAdminUserPermissions
-	rows, err := db.Query(ctx, sql, userID)
+	rows, err := db.Query(ctx, sql, userId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, err)
 		return

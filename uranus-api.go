@@ -272,6 +272,8 @@ func main() {
 	adminRoute.POST("/signup", signupHandler)
 	adminRoute.POST("/refresh", refreshHandler)
 
+	adminRoute.GET("/choosable-organizers", app.JWTMiddleware, api_admin.ChoosableOrganizersHandler)
+
 	adminRoute.GET("/organizer/dashboard", app.JWTMiddleware, api_admin.OrganizerDashboardHandler)
 	adminRoute.GET("/organizer/:id/venues", app.JWTMiddleware, api_admin.OrganizerVenuesHandler)
 	adminRoute.GET("/organizer/:id/events", app.JWTMiddleware, api_admin.OrganizerEventsHandler)

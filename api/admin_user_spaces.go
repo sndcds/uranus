@@ -25,15 +25,13 @@ func AdminUserSpacesHandler(gc *gin.Context) {
 		SpaceName     string `json:"space_name"`
 	}
 
-	userId, err := app.CurrentUserId(gc)
-	fmt.Println("userId:", userId)
-	if userId < 0 {
-		gc.JSON(http.StatusUnauthorized, err)
+	userId, ok := app.GetCurrentUserOrAbort(gc)
+	if !ok {
 		return
 	}
 
 	var rows pgx.Rows
-
+	var err error
 	switch modeStr {
 	case "can-add-event":
 		sql := app.Singleton.SqlAdminSpacesCanAddEvent

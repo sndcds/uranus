@@ -2,10 +2,11 @@ package api
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/sndcds/uranus/app"
 	"net/http"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
+	"github.com/sndcds/uranus/app"
 )
 
 type ImageMetadata struct {
@@ -19,15 +20,15 @@ type ImageMetadata struct {
 }
 
 func AdminAddImageHandler(gc *gin.Context) {
-	userID, err := app.CurrentUserId(gc)
-	if err != nil {
-		gc.String(http.StatusBadRequest, "Invalid used-id")
-		return
+
+	userId, ok := app.GetCurrentUserOrAbort(gc)
+	if !ok {
+		return // already sent error response
 	}
 
 	// Parse form values from the POST request
 	meta := ImageMetadata{
-		UserID:    userID,
+		UserID:    userId,
 		License:   gc.PostForm("license"),
 		CreatedBy: gc.PostForm("creator"),
 		Copyright: gc.PostForm("copyright"),
@@ -36,6 +37,7 @@ func AdminAddImageHandler(gc *gin.Context) {
 
 	// Parse focus_x and focus_y as float64
 	if focusXStr := gc.PostForm("focus_x"); focusXStr != "" {
+		var err error
 		meta.FocusX, err = strconv.ParseFloat(focusXStr, 64)
 		if err != nil {
 			gc.String(http.StatusBadRequest, "Invalid focus_x")
@@ -44,6 +46,7 @@ func AdminAddImageHandler(gc *gin.Context) {
 	}
 
 	if focusYStr := gc.PostForm("focus_y"); focusYStr != "" {
+		var err error
 		meta.FocusY, err = strconv.ParseFloat(focusYStr, 64)
 		if err != nil {
 			gc.String(http.StatusBadRequest, "Invalid focus_y")

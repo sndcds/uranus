@@ -38,11 +38,9 @@ func OrganizerCreateHandler(gc *gin.Context) {
 		return
 	}
 
-	// Extract user ID from context (depends on your auth middleware)
-	userId, err := app.CurrentUserId(gc)
-	if err != nil {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
-		return
+	userId, ok := app.GetCurrentUserOrAbort(gc)
+	if !ok {
+		return // already sent error response
 	}
 
 	// Begin transaction

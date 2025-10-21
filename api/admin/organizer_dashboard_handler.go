@@ -15,14 +15,15 @@ func OrganizerDashboardHandler(gc *gin.Context) {
 	pool := app.Singleton.MainDbPool
 	ctx := gc.Request.Context()
 
-	userId, err := app.CurrentUserId(gc)
-	if userId < 0 {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	userId, ok := app.GetCurrentUserOrAbort(gc)
+	if !ok {
+		return // already sent error response
 	}
 
 	startStr, ok := api.GetContextParam(gc, "start")
 	var startDate time.Time
 	if ok {
+		var err error
 		startDate, err = time.Parse("2006-01-02", startStr)
 		if err != nil {
 			startDate = time.Now() // fallback on parsing error

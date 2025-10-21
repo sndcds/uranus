@@ -96,3 +96,13 @@ func CurrentUserId(gc *gin.Context) (int, error) {
 	}
 	return -1, fmt.Errorf("unauthorized user")
 }
+
+// GetCurrentUserOrAbort returns the user ID if valid, otherwise writes the error response and returns false
+func GetCurrentUserOrAbort(gc *gin.Context) (int, bool) {
+	userId, err := CurrentUserId(gc)
+	if userId < 0 || err != nil {
+		gc.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return 0, false
+	}
+	return userId, true
+}
