@@ -293,6 +293,7 @@ func main() {
 	adminRoute.POST("/event/update", app.JWTMiddleware, api.AdminPostEventHandler)
 
 	adminRoute.POST("/event/create", app.JWTMiddleware, api_admin.CreateEventHandler)
+	adminRoute.PUT("/event/:id/descrition", app.JWTMiddleware, api_admin.UpdateEventDescriptionHandler)
 
 	adminRoute.POST("image/upload", app.JWTMiddleware, api.AdminAddImageHandler)
 
