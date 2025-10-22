@@ -293,8 +293,10 @@ func main() {
 	adminRoute.POST("/event/update", app.JWTMiddleware, api.AdminPostEventHandler)
 
 	adminRoute.POST("/event/create", app.JWTMiddleware, api_admin.CreateEventHandler)
-	adminRoute.PUT("/event/:id/description", app.JWTMiddleware, api_admin.UpdateEventDescriptionHandler)
 	adminRoute.PUT("/event/:id/header", app.JWTMiddleware, api_admin.UpdateEventHeaderHandler)
+	adminRoute.PUT("/event/:id/description", app.JWTMiddleware, api_admin.UpdateEventDescriptionHandler)
+	adminRoute.PUT("/event/:id/teaser", app.JWTMiddleware, api_admin.UpdateEventTeaserHandler)
+	adminRoute.PUT("/event/:id/types", app.JWTMiddleware, api_admin.UpdateEventTypesHandler)
 
 	adminRoute.POST("image/upload", app.JWTMiddleware, api.AdminAddImageHandler)
 

@@ -241,11 +241,9 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 	query = strings.Replace(query, "{{limit}}", limitClause, 1)
 	query = strings.Replace(query, "{{order}}", order, 1)
 
-	fmt.Println(query)
-	fmt.Println(args...)
-
 	/*
 		fmt.Println(query)
+		fmt.Println(args...)
 		fmt.Printf("eventDateConditions: %#v\n", eventDateConditions)
 		fmt.Printf("conditions: %#v\n", conditions)
 		fmt.Printf("args: %d: %#v\n", len(args), args)
