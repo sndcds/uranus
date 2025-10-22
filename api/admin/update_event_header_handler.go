@@ -11,9 +11,8 @@ import (
 
 // Payload for updating title, subtitle, and description
 type UpdateEventRequest struct {
-	Title       string  `json:"title" binding:"required"`
-	Subtitle    *string `json:"subtitle,omitempty"`
-	Description string  `json:"description" binding:"required"`
+	Title    string  `json:"title" binding:"required"`
+	Subtitle *string `json:"subtitle,omitempty"`
 }
 
 func UpdateEventHeaderHandler(gc *gin.Context) {
@@ -39,22 +38,13 @@ func UpdateEventHeaderHandler(gc *gin.Context) {
 	var args []interface{}
 
 	if req.Subtitle != nil {
-		sqlTemplate := `
-			UPDATE {{schema}}.event
-			SET title = $1,
-			    subtitle = $2,
-			    description = $3
-			WHERE id = $4`
+		sqlTemplate := `UPDATE {{schema}}.event SET title = $2, subtitle = $3, WHERE id = $1`
 		sqlQuery = strings.Replace(sqlTemplate, "{{schema}}", dbSchema, 1)
-		args = []interface{}{req.Title, req.Subtitle, req.Description, eventID}
+		args = []interface{}{eventID, req.Title, req.Subtitle}
 	} else {
-		sqlTemplate := `
-			UPDATE {{schema}}.event
-			SET title = $1,
-			    description = $2
-			WHERE id = $3`
+		sqlTemplate := `UPDATE {{schema}}.event SET title = $2 WHERE id = $1`
 		sqlQuery = strings.Replace(sqlTemplate, "{{schema}}", dbSchema, 1)
-		args = []interface{}{req.Title, req.Description, eventID}
+		args = []interface{}{eventID, req.Title}
 	}
 
 	// Execute update
