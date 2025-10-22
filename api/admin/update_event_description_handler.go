@@ -34,12 +34,12 @@ func UpdateEventDescriptionHandler(gc *gin.Context) {
 	// Build query
 	sqlTemplate := `
 		UPDATE {{schema}}.event
-		SET description = $1
-		WHERE id = $3`
+		SET description = $2
+		WHERE id = $1`
 	sqlQuery := strings.Replace(sqlTemplate, "{{schema}}", dbSchema, 1)
 
 	// Execute update
-	res, err := pool.Exec(ctx, sqlQuery, req.Description, eventID)
+	res, err := pool.Exec(ctx, sqlQuery, eventID, req.Description)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to update event: %v", err)})
 		return
