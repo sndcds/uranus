@@ -38,7 +38,7 @@ func UpdateEventHeaderHandler(gc *gin.Context) {
 	var args []interface{}
 
 	if req.Subtitle != nil {
-		sqlTemplate := `UPDATE {{schema}}.event SET title = $2, subtitle = $3, WHERE id = $1`
+		sqlTemplate := `UPDATE {{schema}}.event SET title = $2, subtitle = $3 WHERE id = $1`
 		sqlQuery = strings.Replace(sqlTemplate, "{{schema}}", dbSchema, 1)
 		args = []interface{}{eventID, req.Title, req.Subtitle}
 	} else {
