@@ -292,6 +292,8 @@ func main() {
 	adminRoute.GET("/events", app.JWTMiddleware, api.AdminEventsHandler)
 	adminRoute.POST("/event/update", app.JWTMiddleware, api.AdminPostEventHandler)
 
+	adminRoute.POST("/event/create", app.JWTMiddleware, api_admin.CreateEventHandler)
+
 	adminRoute.POST("image/upload", app.JWTMiddleware, api.AdminAddImageHandler)
 
 	// Print all registered routes

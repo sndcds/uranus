@@ -37,7 +37,6 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 	ctx := gc.Request.Context()
 
 	query := app.Singleton.SqlQueryEvent
-	fmt.Println("query:", query)
 
 	languageStr, _ := GetContextParam(gc, "lang")
 	_, hasPast := GetContextParam(gc, "past")
@@ -81,7 +80,6 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 	argIndex := 1 // Postgres uses $1, $2, etc.
 	var err error
 
-	fmt.Println("languageStr:", languageStr)
 	if languageStr != "" {
 		if !app.IsValidIso639_1(languageStr) {
 			return nil, http.StatusInternalServerError, fmt.Errorf("lang format error, %s", languageStr)
@@ -217,7 +215,6 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 
 	argIndex, err = sql.BuildBitmaskCondition(accessibilityInfosStr, "ed.accessibility_flags", "accessibility_flags", argIndex, &conditions, &args)
 	if err != nil {
-		// fmt.Println(".... err", err)
 		return nil, http.StatusInternalServerError, err
 	}
 
@@ -229,7 +226,6 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 	conditionsStr := ""
 	if len(conditions) > 0 {
 		conditionsStr = "WHERE " + strings.Join(conditions, " AND ")
-		// fmt.Println(conditionsStr)
 	}
 
 	order := "ORDER BY ed.start ASC, e.id ASC"
@@ -244,6 +240,9 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 	query = strings.Replace(query, "{{conditions}}", conditionsStr, 1)
 	query = strings.Replace(query, "{{limit}}", limitClause, 1)
 	query = strings.Replace(query, "{{order}}", order, 1)
+
+	fmt.Println(query)
+	fmt.Println(args...)
 
 	/*
 		fmt.Println(query)
