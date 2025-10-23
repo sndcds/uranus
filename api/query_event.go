@@ -16,7 +16,6 @@ import (
 
 func QueryEvent(gc *gin.Context) {
 	jsonData, httpStatus, err := queryEventAsJSON(gc, app.Singleton.MainDbPool)
-	fmt.Println(jsonData, httpStatus, err)
 	if err != nil {
 		gc.JSON(httpStatus, gin.H{"error": err.Error()})
 		return

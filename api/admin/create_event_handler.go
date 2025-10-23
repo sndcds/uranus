@@ -1,7 +1,9 @@
 package api_admin
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -22,7 +24,7 @@ type EventDataIncoming struct {
 	TypeGenrePairs []struct {
 		TypeId  int `json:"type_id"`
 		GenreId int `json:"genre_id"`
-	} `json:"type_genre_pairs"`
+	} `json:"types"`
 
 	Dates []struct {
 		StartDate string  `json:"start_date"`
@@ -40,6 +42,21 @@ func CreateEventHandler(gc *gin.Context) {
 	pool := app.Singleton.MainDbPool
 	dbSchema := app.Singleton.Config.DbSchema
 
+	{
+		// Read the raw body
+		bodyBytes, err := io.ReadAll(gc.Request.Body)
+		if err != nil {
+			gc.JSON(http.StatusBadRequest, gin.H{"error": "failed to read request body"})
+			return
+		}
+
+		// Print raw JSON to console (or log)
+		fmt.Println("Raw JSON:", string(bodyBytes))
+
+		// Reassign body so Gin can still bind it
+		gc.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+	}
+
 	var incoming EventDataIncoming
 	if err := gc.ShouldBindJSON(&incoming); err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -51,6 +68,8 @@ func CreateEventHandler(gc *gin.Context) {
 		gc.JSON(http.StatusUnprocessableEntity, gin.H{"error": "The request is semantically invalid."})
 		return
 	}
+
+	printDebug(incoming)
 
 	tx, err := pool.Begin(ctx)
 	if err != nil {
@@ -161,7 +180,7 @@ func validate(incoming EventDataIncoming) bool {
 	return true
 }
 
-func printDebug(incoming EventDataIncoming) bool {
+func printDebug(incoming EventDataIncoming) {
 	fmt.Println("OrganizerId:", incoming.OrganizerId)
 	fmt.Println("VenueId:", incoming.VenueId)
 	if incoming.SpaceId != nil {
@@ -177,7 +196,12 @@ func printDebug(incoming EventDataIncoming) bool {
 	if incoming.TeaserText != nil {
 		fmt.Println("Teaser:", *incoming.TeaserText)
 	}
-	fmt.Println("EventTypeIds length:", len(incoming.TypeGenrePairs))
+
+	fmt.Println("Types length:", len(incoming.TypeGenrePairs))
+	for i, pair := range incoming.TypeGenrePairs {
+		fmt.Printf("Type %d: type_id=%d, genre_id=%d\n", i+1, pair.TypeId, pair.GenreId)
+	}
+
 	fmt.Println("Dates length:", len(incoming.Dates))
 
 	for i, d := range incoming.Dates {
@@ -196,8 +220,6 @@ func printDebug(incoming EventDataIncoming) bool {
 		}
 		fmt.Println("  AllDay:", d.AllDay)
 	}
-
-	return true
 }
 
 /*
