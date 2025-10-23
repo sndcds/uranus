@@ -19,7 +19,7 @@ func OrganizerEventsHandler(gc *gin.Context) {
 	type EventWithVenue struct {
 		EventId            int     `json:"event_id"`
 		EventTitle         string  `json:"event_title"`
-		EventSubtitle      string  `json:"event_subtitle"`
+		EventSubtitle      *string `json:"event_subtitle"`
 		EventOrganizerId   int     `json:"event_organizer_id"`
 		EventOrganizerName *string `json:"event_organizer_name"`
 		StartDate          *string `json:"start_date"`

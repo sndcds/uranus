@@ -11,16 +11,20 @@ import (
 )
 
 type EventDataIncoming struct {
-	OrganizerId  int     `json:"organizer_id"`
-	VenueId      int     `json:"venue_id"`
-	SpaceId      *int    `json:"space_id"`
-	Title        *string `json:"title"`
-	Subtitle     *string `json:"subtitle"`
-	Description  string  `json:"description"`
-	TeaserText   *string `json:"teaser_text"`
-	EventTypeIds []int   `json:"event_type_ids"`
-	GenreTypeIds []int   `json:"genre_type_ids"`
-	Dates        []struct {
+	OrganizerId int     `json:"organizer_id"`
+	VenueId     int     `json:"venue_id"`
+	SpaceId     *int    `json:"space_id"`
+	Title       *string `json:"title"`
+	Subtitle    *string `json:"subtitle"`
+	Description string  `json:"description"`
+	TeaserText  *string `json:"teaser_text"`
+
+	TypeGenrePairs []struct {
+		TypeId  int `json:"type_id"`
+		GenreId int `json:"genre_id"`
+	} `json:"type_genre_pairs"`
+
+	Dates []struct {
 		StartDate string  `json:"start_date"`
 		EndDate   *string `json:"end_date"`
 		StartTime string  `json:"start_time"`
@@ -29,48 +33,6 @@ type EventDataIncoming struct {
 		SpaceId   *int    `json:"space_id"`
 		AllDay    bool    `json:"all_day"`
 	} `json:"dates"`
-}
-
-func validate(incoming EventDataIncoming) bool {
-
-	// Debug information
-	fmt.Println("OrganizerId:", incoming.OrganizerId)
-	fmt.Println("VenueId:", incoming.VenueId)
-	if incoming.SpaceId != nil {
-		fmt.Println("SpaceId:", *incoming.SpaceId)
-	}
-	if incoming.Title != nil {
-		fmt.Println("Title:", *incoming.Title)
-	}
-	if incoming.Subtitle != nil {
-		fmt.Println("Subtitle:", *incoming.Subtitle)
-	}
-	fmt.Println("Description:", incoming.Description)
-	if incoming.TeaserText != nil {
-		fmt.Println("Teaser:", *incoming.TeaserText)
-	}
-	fmt.Println("EventTypeIds length:", len(incoming.EventTypeIds))
-	fmt.Println("GenreTypeIds length:", len(incoming.GenreTypeIds))
-	fmt.Println("Dates length:", len(incoming.Dates))
-
-	for i, d := range incoming.Dates {
-		fmt.Printf("Date %d:\n", i+1)
-		fmt.Println("  StartDate:", d.StartDate)
-		if d.EndDate != nil {
-			fmt.Println("  EndDate:", *d.EndDate)
-		}
-		fmt.Println("  StartTime:", d.StartTime)
-		fmt.Println("  EndTime:", d.EndTime)
-		if d.EntryTime != nil {
-			fmt.Println("  EntryTime:", *d.EntryTime)
-		}
-		if d.SpaceId != nil {
-			fmt.Println("  SpaceId:", *d.SpaceId)
-		}
-		fmt.Println("  AllDay:", d.AllDay)
-	}
-
-	return true
 }
 
 func CreateEventHandler(gc *gin.Context) {
@@ -84,28 +46,24 @@ func CreateEventHandler(gc *gin.Context) {
 		return
 	}
 
-	// Validate incoming data
 	ok := validate(incoming)
 	if !ok {
 		gc.JSON(http.StatusUnprocessableEntity, gin.H{"error": "The request is semantically invalid."})
 		return
 	}
 
-	// Begin transaction
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to start transaction"})
 		return
 	}
-
-	// Ensure rollback if any error occurs
 	defer func() {
 		if err != nil {
 			_ = tx.Rollback(ctx)
 		}
 	}()
 
-	// Insert basic event information
+	// Basic Event Information
 	sqlEvent := `
 		INSERT INTO {{schema}}.event (
 			organizer_id,
@@ -134,7 +92,7 @@ func CreateEventHandler(gc *gin.Context) {
 		return
 	}
 
-	// Insert event dates
+	// Event Dates
 	sqlDate := `
 		INSERT INTO {{schema}}.event_date (
 			event_id,
@@ -174,192 +132,95 @@ func CreateEventHandler(gc *gin.Context) {
 		}
 	}
 
-	// Commit transaction
+	// Insert Type + Genre pairs
+	queryTemplate := `
+		INSERT INTO {{schema}}.event_type_links (event_id, type_id, genre_id)
+		VALUES ($1, $2, $3)`
+	query := strings.Replace(queryTemplate, "{{schema}}", dbSchema, 1)
+
+	for _, pair := range incoming.TypeGenrePairs {
+		_, err := tx.Exec(ctx, query, eventId, pair.TypeId, pair.GenreId)
+		if err != nil {
+			_ = tx.Rollback(ctx)
+			gc.JSON(http.StatusInternalServerError, gin.H{
+				"error": fmt.Sprintf("failed to insert type-genre pair: %v", err),
+			})
+			return
+		}
+	}
+
 	if err = tx.Commit(ctx); err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to commit transaction: %v", err)})
 		return
 	}
 
-	fmt.Println("Inserted event ID:", eventId)
 	gc.JSON(http.StatusCreated, gin.H{"event_id": eventId})
 }
 
-func CreateEventHandler2(gc *gin.Context) {
-	ctx := gc.Request.Context()
-	pool := app.Singleton.MainDbPool
-	dbSchema := app.Singleton.Config.DbSchema
+func validate(incoming EventDataIncoming) bool {
+	return true
+}
 
-	var incoming EventDataIncoming
-	if err := gc.ShouldBindJSON(&incoming); err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+func printDebug(incoming EventDataIncoming) bool {
+	fmt.Println("OrganizerId:", incoming.OrganizerId)
+	fmt.Println("VenueId:", incoming.VenueId)
+	if incoming.SpaceId != nil {
+		fmt.Println("SpaceId:", *incoming.SpaceId)
+	}
+	if incoming.Title != nil {
+		fmt.Println("Title:", *incoming.Title)
+	}
+	if incoming.Subtitle != nil {
+		fmt.Println("Subtitle:", *incoming.Subtitle)
+	}
+	fmt.Println("Description:", incoming.Description)
+	if incoming.TeaserText != nil {
+		fmt.Println("Teaser:", *incoming.TeaserText)
+	}
+	fmt.Println("EventTypeIds length:", len(incoming.TypeGenrePairs))
+	fmt.Println("Dates length:", len(incoming.Dates))
+
+	for i, d := range incoming.Dates {
+		fmt.Printf("Date %d:\n", i+1)
+		fmt.Println("  StartDate:", d.StartDate)
+		if d.EndDate != nil {
+			fmt.Println("  EndDate:", *d.EndDate)
+		}
+		fmt.Println("  StartTime:", d.StartTime)
+		fmt.Println("  EndTime:", d.EndTime)
+		if d.EntryTime != nil {
+			fmt.Println("  EntryTime:", *d.EntryTime)
+		}
+		if d.SpaceId != nil {
+			fmt.Println("  SpaceId:", *d.SpaceId)
+		}
+		fmt.Println("  AllDay:", d.AllDay)
 	}
 
-	ok := validate(incoming)
-	if !ok {
-		gc.JSON(http.StatusUnprocessableEntity, gin.H{"error": "The request is syntactically correct (valid JSON) but semantically invalid."})
-		return
-	}
+	return true
+}
 
-	// Begin transaction
-	tx, err := pool.Begin(gc)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to start transaction"})
-		return
-	}
-	defer func() {
+/*
+func CreateEventHandler(gc *gin.Context) {
+	if eventData.ImageURL != nil {
+		var imageId int
+		err = tx.QueryRow(ctx,
+			`INSERT INTO image (url) VALUES ($1) RETURNING id`,
+			*eventData.ImageURL,
+		).Scan(&imageId)
 		if err != nil {
-			_ = tx.Rollback(gc)
-		}
-	}()
-
-	// Insert basic event information
-
-	sqlTemplate := `
-			INSERT INTO {{schema}}.event (
-				organizer_id,
-				space_id,
-				title,
-				subtitle,
-				description,
-				teaser_text
-			) VALUES (
-				$1, $2, $3, $4, $5, $6
-			) RETURNING id`
-
-	sqlQuery := strings.Replace(sqlTemplate, "{{schema}}", dbSchema, 1)
-
-	var eventId int
-	err = tx.QueryRow(ctx, sqlQuery,
-		incoming.OrganizerId,
-		incoming.SpaceId,
-		incoming.Title,
-		incoming.Subtitle,
-		incoming.Description,
-		incoming.TeaserText).Scan(&eventId)
-	if err != nil {
-		_ = tx.Rollback(gc)
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to insert event: %v", err)})
-		return
-	}
-	/*
-		// Insert event dates
-
-		for _, eventDate := range eventData.EventDates {
-			accessibilityFlags := app.CombineFlags(eventDate.AccessibilityFlags)
-			visitorFlags := app.CombineFlags(eventDate.VisitorInfoFlags)
-
-			columns := []string{"event_id", "start"}
-			args := []interface{}{eventId, eventDate.Start}
-
-			if eventDate.End != nil {
-				columns = append(columns, "end")
-				args = append(args, eventDate.End)
-			}
-			columns = append(columns, "accessibility_flags", "visitor_info_flags")
-			args = append(args, accessibilityFlags, visitorFlags)
-
-			if eventDate.SpaceId != nil {
-				columns = append(columns, "space_id")
-				args = append(args, *eventDate.SpaceId)
-			}
-			if eventDate.EntryTime != nil {
-				columns = append(columns, "entry_time")
-				args = append(args, *eventDate.EntryTime)
-			}
-
-			// Construct placeholder string
-			placeholders := make([]string, len(args))
-			for i := range args {
-				placeholders[i] = fmt.Sprintf("$%d", i+1)
-			}
-
-			sqlTemplate := `
-					INSERT INTO {{schema}}.event_date ({{columns}}) VALUES ({{values}}) RETURNING id`
-			sqlQuery := strings.Replace(sqlTemplate, "{{schema}}", dbSchema, 1)
-			sqlQuery = strings.Replace(sqlQuery, "{{columns}}", strings.Join(columns, ", "), 1)
-			sqlQuery = strings.Replace(sqlQuery, "{{values}}", strings.Join(placeholders, ", "), 1)
-			// fmt.Println("sqlQuery:", sqlQuery)
-			// fmt.Println("placeholders:", placeholders)
-			// fmt.Println("columns:", columns)
-			// fmt.Println("args:", args)
-
-			_, err := tx.Exec(ctx, sqlQuery, args...)
-			if err != nil {
-				fmt.Println("Failed to insert event 2")
-				gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert event date"})
-				return
-			}
+			gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert image"})
+			return
 		}
 
-		/*
-				// TODO: !!!
-				if eventData.ImageURL != nil {
-					var imageId int
-					err = tx.QueryRow(ctx,
-						`INSERT INTO image (url) VALUES ($1) RETURNING id`,
-						*eventData.ImageURL,
-					).Scan(&imageId)
-					if err != nil {
-						gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert image"})
-						return
-					}
-
-					_, err = tx.Exec(ctx,
-						`INSERT INTO event_image_links (event_id, image_id) VALUES ($1, $2)`,
-						eventId, imageId,
-					)
-					if err != nil {
-						gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to link image"})
-						return
-					}
-				}
-
-			// Event types
-			{
-				queryTemplate := `INSERT INTO {{schema}}.event_type_links (event_id, type_id) VALUES ($1, $2)`
-				query := strings.Replace(queryTemplate, "{{schema}}", dbSchema, 1)
-				// fmt.Println("query:", query)
-				for _, typeId := range eventData.EventTypes {
-					// fmt.Println("eventId", eventId, "typeId:", typeId)
-					_, err := tx.Exec(ctx, query, eventId, typeId)
-					if err != nil {
-						fmt.Println("Failed to insert event 3")
-						gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert event types"})
-						return
-					}
-				}
-			}
-
-			// Genre types
-			{
-				queryTemplate := `INSERT INTO {{schema}}.event_genre_links (event_id, type_id) VALUES ($1, $2)`
-				query := strings.Replace(queryTemplate, "{{schema}}", dbSchema, 1)
-				// fmt.Println("query:", query)
-				for _, genreId := range eventData.GenreTypes {
-					// fmt.Println("eventId", eventId, "genreId:", genreId)
-					_, err := tx.Exec(ctx, query, eventId, genreId)
-					if err != nil {
-						fmt.Println("Failed to insert event 4")
-						gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert genres"})
-						return
-					}
-				}
-			}
-
-			if err := tx.Commit(ctx); err != nil {
-				fmt.Println("Failed to insert event 5")
-				gc.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction commit failed"})
-				return
-			}
-	*/
-
-	if err = tx.Commit(gc); err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to commit transaction: %v", err)})
-		return
+		_, err = tx.Exec(ctx,
+			`INSERT INTO event_image_links (event_id, image_id) VALUES ($1, $2)`,
+			eventId, imageId,
+		)
+		if err != nil {
+			gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to link image"})
+			return
+		}
 	}
-
-	fmt.Println("eventId:", eventId)
-
-	gc.JSON(http.StatusCreated, gin.H{"event_id": eventId})
 }
+*/

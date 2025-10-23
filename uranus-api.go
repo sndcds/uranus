@@ -124,6 +124,7 @@ func loginHandler(gc *gin.Context) {
 
 	gc.JSON(http.StatusOK, gin.H{
 		"message":       "login successful",
+		"display_name":  user.DisplayName,
 		"access_token":  accessTokenStr,
 		"refresh_token": refreshTokenStr,
 	})
@@ -272,6 +273,8 @@ func main() {
 	adminRoute.POST("/signup", signupHandler)
 	adminRoute.POST("/refresh", refreshHandler)
 
+	adminRoute.GET("/user/me", api_admin.UserProfileHandler)
+
 	adminRoute.GET("/choosable-organizers", app.JWTMiddleware, api_admin.ChoosableOrganizersHandler)
 
 	adminRoute.GET("/organizer/dashboard", app.JWTMiddleware, api_admin.OrganizerDashboardHandler)
@@ -297,6 +300,7 @@ func main() {
 	adminRoute.PUT("/event/:id/description", app.JWTMiddleware, api_admin.UpdateEventDescriptionHandler)
 	adminRoute.PUT("/event/:id/teaser", app.JWTMiddleware, api_admin.UpdateEventTeaserHandler)
 	adminRoute.PUT("/event/:id/types", app.JWTMiddleware, api_admin.UpdateEventTypesHandler)
+	adminRoute.PUT("/event/:id/space", app.JWTMiddleware, api_admin.UpdateEventSpaceHandler)
 
 	adminRoute.POST("image/upload", app.JWTMiddleware, api.AdminAddImageHandler)
 
