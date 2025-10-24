@@ -1,0 +1,179 @@
+package api_admin
+
+import (
+	"bytes"
+	"fmt"
+	"image"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/rwcarlsen/goexif/exif"
+	"github.com/rwcarlsen/goexif/tiff"
+	"github.com/sndcds/pluto"
+	"github.com/sndcds/uranus/api"
+	"github.com/sndcds/uranus/app"
+)
+
+type exifWalker struct {
+	m map[string]string
+}
+
+func (w *exifWalker) Walk(name exif.FieldName, tag *tiff.Tag) error {
+	w.m[string(name)] = tag.String()
+	return nil
+}
+
+func UpdateEventImageHandler(gc *gin.Context) {
+	ctx := gc.Request.Context()
+	pool := app.Singleton.MainDbPool
+	dbSchema := app.Singleton.Config.DbSchema
+
+	eventId := gc.Param("id")
+	if eventId == "" {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "event ID is required"})
+		return
+	}
+
+	userId := api.UserIdFromAccessToken(gc)
+
+	altText := gc.PostForm("alt_text")
+	copyright := gc.PostForm("copyright")
+	createdBy := gc.PostForm("created_by")
+	licenseId := gc.PostForm("license_id")
+
+	// Handle file upload
+	file, err := gc.FormFile("image")
+	if err != nil {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("image file is required: %v", err)})
+		return
+	}
+
+	// Read file into buffer for multiple uses
+	buf := new(bytes.Buffer)
+	src, err := file.Open()
+	if err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to open uploaded file: %v", err)})
+		return
+	}
+	defer src.Close()
+
+	if _, err := io.Copy(buf, src); err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to read uploaded file: %v", err)})
+		return
+	}
+
+	// Detect MIME type (use only first 512 bytes for detection)
+	mimeType := http.DetectContentType(buf.Bytes()[:512])
+	fmt.Println("MIME type:", mimeType)
+
+	// Decode image config for dimensions
+	cfg, format, err := image.DecodeConfig(bytes.NewReader(buf.Bytes()))
+	if err != nil {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid image: %v", err)})
+		return
+	}
+
+	// Decode EXIF metadata if present
+	exifData := make(map[string]string)
+	if x, err := exif.Decode(bytes.NewReader(buf.Bytes())); err == nil {
+		x.Walk(&exifWalker{m: exifData})
+	}
+
+	// Sanitize and generate filename
+	originalFileName := filepath.Base(file.Filename)
+	generatedFileName, err := pluto.GenerateImageFilename(originalFileName)
+	if err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to generate filename: %v", err)})
+		return
+	}
+
+	// Ensure upload directory exists
+	saveDir := app.Singleton.Config.PlutoImageDir
+	if err := os.MkdirAll(saveDir, os.ModePerm); err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to create directory: %v", err)})
+		return
+	}
+
+	savePath := filepath.Join(saveDir, fmt.Sprintf("/event_%s_%s", eventId, generatedFileName))
+	fmt.Println(savePath)
+	if err := os.WriteFile(savePath, buf.Bytes(), 0644); err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to save file: %v", err)})
+		return
+	}
+
+	// Begin DB transaction
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer func() {
+		if p := recover(); p != nil {
+			_ = tx.Rollback(ctx)
+			panic(p)
+		} else if err != nil {
+			_ = tx.Rollback(ctx)
+		} else {
+			err = tx.Commit(ctx)
+		}
+	}()
+
+	sql := strings.Replace(`
+        INSERT INTO {{schema}}.pluto_image (file_name, gen_file_name, width, height, mime_type, exif, alt_text, created_by, copyright, user_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`, "{{schema}}", dbSchema, 1)
+	var plutoImageId int64
+	err = tx.QueryRow(
+		ctx,
+		sql,
+		originalFileName,
+		generatedFileName,
+		cfg.Width, cfg.Height,
+		mimeType,
+		exifData,
+		altText,
+		createdBy,
+		copyright,
+		userId).Scan(&plutoImageId)
+	if err != nil {
+		_ = tx.Rollback(gc)
+		fmt.Println(err)
+		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("insert pluto image failed: %v", err)})
+		return
+	}
+
+	sql = strings.Replace(`INSERT INTO {{schema}}.event_image_links (event_id, pluto_image_id, main_image, sort_index)
+	VALUES ($1, $2, $3, $4)`, "{{schema}}", dbSchema, 1)
+
+	_, err = tx.Exec(ctx, sql, eventId, plutoImageId, true, 0)
+	if err != nil {
+		_ = tx.Rollback(gc)
+		fmt.Println(err)
+		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("insert event image failed: %v", err)})
+		return
+	}
+
+	// Commit transaction
+	if err = tx.Commit(gc); err != nil {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("failed to commit transaction: %v", err)})
+		return
+	}
+
+	// Return success
+	gc.JSON(http.StatusOK, gin.H{
+		"message":           "image updated successfully",
+		"filename":          generatedFileName,
+		"original_filename": originalFileName,
+		"width":             cfg.Width,
+		"height":            cfg.Height,
+		"format":            format,
+		"exif":              exifData,
+		"alt_text":          altText,
+		"copyright":         copyright,
+		"created_by":        createdBy,
+		"license_id":        licenseId,
+	})
+}

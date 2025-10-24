@@ -73,12 +73,11 @@ FROM event_data ed
 
     LEFT JOIN LATERAL (
         SELECT
-        TRUE AS has_main_image,
-        img.pluto_image_id AS id,
-        img.focus_x AS focus_x,
-        img.focus_y AS focus_y
+            TRUE AS has_main_image,
+            eil.pluto_image_id AS id,
+            500 AS focus_x,
+            500 AS focus_y
         FROM {{schema}}.event_image_links eil
-        JOIN {{schema}}.image img ON eil.image_id = img.id
         WHERE eil.event_id = e.id AND eil.main_image = TRUE
         LIMIT 1
     ) img_data ON true

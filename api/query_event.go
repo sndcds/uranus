@@ -60,8 +60,8 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 	lonStr, _ := GetContextParam(gc, "lon")
 	latStr, _ := GetContextParam(gc, "lat")
 	radiusStr, _ := GetContextParam(gc, "radius")
-	eventTypesStr, _ := GetContextParam(gc, "event_types")
-	genreTypesStr, _ := GetContextParam(gc, "genre_types")
+	eventTypesStr, _ := GetContextParam(gc, "event_types") // Todo: EventTypeTuple
+	genreTypesStr, _ := GetContextParam(gc, "genre_types") // Todo: EventTypeTuple
 	spaceTypesStr, _ := GetContextParam(gc, "space_types")
 	titleStr, _ := GetContextParam(gc, "title")
 	cityStr, _ := GetContextParam(gc, "city")

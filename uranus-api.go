@@ -249,10 +249,12 @@ func main() {
 	// Public endpoints
 	publicRoute := router.Group("/api")
 
+	// OK
 	publicRoute.GET("/choosable-venues/organizer/:id", api.ChoosableOrganizerVenuesHandler)
 	publicRoute.GET("/choosable-spaces/venue/:id", api.ChoosableVenueSpacesHandler)
 	publicRoute.GET("/choosable-event-types", api.ChoosableEventTypesHandler)
 	publicRoute.GET("/choosable-event-genres/event-type/:id", api.ChoosableEventGenresHandler)
+	publicRoute.GET("/choosable-licenses", api.ChoosableLicensesHandler)
 
 	publicRoute.GET("/query", api.QueryHandler)
 	publicRoute.GET("/user", app.JWTMiddleware, api.UserHandler) // Todo: To be removed
@@ -260,8 +262,9 @@ func main() {
 	publicRoute.GET("/space", api.SpaceHandler)
 	publicRoute.GET("/space/types", api.SpaceTypesHandler)
 
+	// Check ...
 	publicRoute.GET("/test", app.JWTMiddleware, testHandler)
-	publicRoute.GET("/event/images/:event-id", api.EventImagesHandler)
+	// publicRoute.GET("/event/images/:event-id", api.EventImagesHandler)
 
 	// Inject app middleware into Pluto's image routes
 	pluto.Singleton.RegisterRoutes(publicRoute, app.JWTMiddleware)
@@ -269,14 +272,13 @@ func main() {
 	// Authorized endpoints, user must be logged in
 	adminRoute := router.Group("/api/admin")
 
+	// OK
 	adminRoute.POST("/login", loginHandler)
 	adminRoute.POST("/signup", signupHandler)
 	adminRoute.POST("/refresh", refreshHandler)
-
 	adminRoute.GET("/user/me", api_admin.UserProfileHandler)
 
 	adminRoute.GET("/choosable-organizers", app.JWTMiddleware, api_admin.ChoosableOrganizersHandler)
-
 	adminRoute.GET("/organizer/dashboard", app.JWTMiddleware, api_admin.OrganizerDashboardHandler)
 	adminRoute.GET("/organizer/:id/venues", app.JWTMiddleware, api_admin.OrganizerVenuesHandler)
 	adminRoute.GET("/organizer/:id/events", app.JWTMiddleware, api_admin.OrganizerEventsHandler)
@@ -284,25 +286,21 @@ func main() {
 	adminRoute.POST("/organizer/create", app.JWTMiddleware, api_admin.OrganizerCreateHandler)
 	adminRoute.POST("/venue/create", app.JWTMiddleware, api_admin.VenueCreateHandler)
 	adminRoute.POST("/space/create", app.JWTMiddleware, api_admin.SpaceCreateHandler)
-
 	adminRoute.GET("/user/choosable-event-organizers/organizer/:id", app.JWTMiddleware, api_admin.ChoosableUserEventOrganizersHandler)
-
-	adminRoute.GET("/user/permissions/:mode", app.JWTMiddleware, api.AdminUserPermissionsHandler)
-	adminRoute.GET("/event/:id", app.JWTMiddleware, api.AdminEventHandler)
-
-	adminRoute.GET("/user/stats", app.JWTMiddleware, testHandler)
-	adminRoute.GET("/user/spaces/:mode", app.JWTMiddleware, api.AdminUserSpacesHandler)
-	adminRoute.GET("/events", app.JWTMiddleware, api.AdminEventsHandler)
-	adminRoute.POST("/event/update", app.JWTMiddleware, api.AdminPostEventHandler)
-
 	adminRoute.POST("/event/create", app.JWTMiddleware, api_admin.CreateEventHandler)
 	adminRoute.PUT("/event/:id/header", app.JWTMiddleware, api_admin.UpdateEventHeaderHandler)
 	adminRoute.PUT("/event/:id/description", app.JWTMiddleware, api_admin.UpdateEventDescriptionHandler)
 	adminRoute.PUT("/event/:id/teaser", app.JWTMiddleware, api_admin.UpdateEventTeaserHandler)
 	adminRoute.PUT("/event/:id/types", app.JWTMiddleware, api_admin.UpdateEventTypesHandler)
 	adminRoute.PUT("/event/:id/space", app.JWTMiddleware, api_admin.UpdateEventSpaceHandler)
+	adminRoute.POST("/event/:id/image", app.JWTMiddleware, api_admin.UpdateEventImageHandler)
 
+	// Check ...
 	adminRoute.POST("image/upload", app.JWTMiddleware, api.AdminAddImageHandler)
+	adminRoute.GET("/user/permissions/:mode", app.JWTMiddleware, api.AdminUserPermissionsHandler)
+	adminRoute.GET("/user/stats", app.JWTMiddleware, testHandler)
+	adminRoute.GET("/user/spaces/:mode", app.JWTMiddleware, api.AdminUserSpacesHandler)
+	adminRoute.GET("/events", app.JWTMiddleware, api.AdminEventsHandler)
 
 	// Print all registered routes
 	for _, route := range router.Routes() {

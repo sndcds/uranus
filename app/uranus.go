@@ -131,6 +131,7 @@ func (app *Uranus) PrepareSql() error {
 	}
 
 	queries := []queryItem{
+		// Public
 		{"queries/organizer_roles.sql", &app.SqlQueryOrganizerRoles},
 		{"queries/venue_roles.sql", &app.SqlQueryVenueRoles},
 		{"queries/space_roles.sql", &app.SqlQuerySpaceRoles},
@@ -138,7 +139,7 @@ func (app *Uranus) PrepareSql() error {
 		{"queries/choosable-event-types.sql", &app.SqlChoosableEventTypes},
 		{"queries/choosable-event-genres.sql", &app.SqlChoosableEventGenres},
 		{"queries/get-meta-genres-by-event-type.sql", &app.SqlGetMetaGenresByEventType},
-		{"queries/queryEvent.sql", &app.SqlQueryEvent},
+		{"queries/query_event.sql", &app.SqlQueryEvent},
 		{"queries/queryVenueForMap.sql", &app.SqlQueryVenueForMap},
 		{"queries/userVenues.sql", &app.SqlQueryVenueByUser},
 		{"queries/spacesByVenueId.sql", &app.SqlQuerySpacesByVenueId},
@@ -147,17 +148,20 @@ func (app *Uranus) PrepareSql() error {
 		{"queries/choosable-organizer-venues.sql", &app.SqlChoosableOrganizerVenues},
 		{"queries/choosable-venue-spaces.sql", &app.SqlChoosableVenueSpaces},
 
-		{"queries/admin/organizer-dashboard.sql", &app.SqlAdminOrganizerDashboard},
-		{"queries/admin/organizer-venues.sql", &app.SqlAdminOrganizerVenues},
-		{"queries/admin/organizer-events.sql", &app.SqlAdminOrganizerEvents},
+		// Admin
+		{"queries/admin/admin-user-permissions.sql", &app.SqlAdminUserPermissions},
+		{"queries/admin/admin-user-spaces-can-add-event.sql", &app.SqlAdminSpacesCanAddEvent},
+		{"queries/admin/admin-user-spaces-for-event.sql", &app.SqlAdminSpacesForEvent},
+
 		{"queries/admin/choosable-organizers.sql", &app.SqlAdminChoosableOrganizers},
 		{"queries/admin/choosable-user-event-organizers.sql", &app.SqlAdminChoosableUserEventOrganizers},
 
+		{"queries/admin/organizer-dashboard.sql", &app.SqlAdminOrganizerDashboard},
+		{"queries/admin/organizer-events.sql", &app.SqlAdminOrganizerEvents},
+		{"queries/admin/organizer-venues.sql", &app.SqlAdminOrganizerVenues},
+
+		// TODO
 		{"queries/user-org-events-overview.sql", &app.SqlQueryUserOrgEventsOverview},
-		{"queries/admin/admin-user-permissions.sql", &app.SqlAdminUserPermissions},
-		{"queries/admin/admin-event.sql", &app.SqlAdminEvent},
-		{"queries/admin/admin-user-spaces-can-add-event.sql", &app.SqlAdminSpacesCanAddEvent},
-		{"queries/admin/admin-user-spaces-for-event.sql", &app.SqlAdminSpacesForEvent},
 		{"queries/event-images.sql", &app.SqlEventImages},
 	}
 
