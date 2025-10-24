@@ -302,6 +302,9 @@ func main() {
 	adminRoute.GET("/user/spaces/:mode", app.JWTMiddleware, api.AdminUserSpacesHandler)
 	adminRoute.GET("/events", app.JWTMiddleware, api.AdminEventsHandler)
 
+	fmt.Println("Gin mode:", gin.Mode())
+	fmt.Println("Total routes:", len(router.Routes()))
+
 	// Print all registered routes
 	for _, route := range router.Routes() {
 		fmt.Printf("%-6s -> %s (%s)\n", route.Method, route.Path, route.Handler)
