@@ -122,7 +122,7 @@ FROM event_data ed
     LEFT JOIN LATERAL (
     SELECT jsonb_agg(jsonb_build_object(
     'id', eu.id,
-    'link_type', eu.link_type,
+    'url_type', eu.url_type,
     'url', eu.url,
     'title', eu.title
     )) AS event_urls
