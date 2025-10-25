@@ -70,8 +70,5 @@ func ChoosableUserEventOrganizersHandler(gc *gin.Context) {
 		return
 	}
 
-	fmt.Println("organizerId:", organizerId)
-	fmt.Println("organizers:", organizers)
-
 	gc.JSON(http.StatusOK, organizers)
 }
