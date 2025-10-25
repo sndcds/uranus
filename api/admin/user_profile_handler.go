@@ -77,8 +77,7 @@ func UserProfileUpdateHandler(gc *gin.Context) {
 		lastName,
 		emailAddr,
 		localeStr,
-		themeName,
-		userId)
+		themeName)
 	if err != nil {
 		_ = tx.Rollback(gc)
 		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("insert user profile failed: %v", err)})
