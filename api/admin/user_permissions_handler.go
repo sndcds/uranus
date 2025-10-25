@@ -11,7 +11,11 @@ func AdminUserPermissionsHandler(gc *gin.Context) {
 	db := app.Singleton.MainDbPool
 	ctx := gc.Request.Context()
 
-	userId := 12
+	userId, ok := app.GetCurrentUserOrAbort(gc)
+	if !ok {
+		return // already sent error response
+	}
+
 	sql := app.Singleton.SqlAdminUserPermissions
 
 	rows, err := db.Query(ctx, sql, userId)
