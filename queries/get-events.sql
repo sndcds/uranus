@@ -74,8 +74,8 @@ FROM event_data ed
         SELECT
             TRUE AS has_main_image,
             eil.pluto_image_id AS id,
-            500 AS focus_x,
-            500 AS focus_y
+            0 AS focus_x,
+            0 AS focus_y
         FROM {{schema}}.event_image_links eil
         WHERE eil.event_id = e.id AND eil.main_image = TRUE
         LIMIT 1
