@@ -54,7 +54,7 @@ func UpdateEventLinksHandler(gc *gin.Context) {
 	}
 
 	sqlInsert := strings.Replace(
-		`INSERT INTO {{schema}}.event_links (event_id, url, title, url_type) VALUES ($1, $2, $3, $4)`,
+		`INSERT INTO {{schema}}.event_url (event_id, url, title, url_type) VALUES ($1, $2, $3, $4)`,
 		"{{schema}}", dbSchema, 1,
 	)
 
