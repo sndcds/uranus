@@ -26,6 +26,7 @@ type Uranus struct {
 	APIVersion                           string
 	MainDbPool                           *pgxpool.Pool
 	Config                               Config
+	SqlGetEvents                         string
 	SqlQueryOrganizerRoles               string
 	SqlQueryVenueRoles                   string
 	SqlQuerySpaceRoles                   string
@@ -35,7 +36,6 @@ type Uranus struct {
 	SqlChoosableEventTypes               string
 	SqlChoosableEventGenres              string
 	SqlGetMetaGenresByEventType          string
-	SqlQueryEvent                        string
 	SqlQueryVenueForMap                  string
 	SqlQueryVenueByUser                  string
 	SqlQuerySpacesByVenueId              string
@@ -132,6 +132,8 @@ func (app *Uranus) PrepareSql() error {
 
 	queries := []queryItem{
 		// Public
+		{"queries/get-events.sql", &app.SqlGetEvents},
+
 		{"queries/organizer_roles.sql", &app.SqlQueryOrganizerRoles},
 		{"queries/venue_roles.sql", &app.SqlQueryVenueRoles},
 		{"queries/space_roles.sql", &app.SqlQuerySpaceRoles},
@@ -139,7 +141,6 @@ func (app *Uranus) PrepareSql() error {
 		{"queries/choosable-event-types.sql", &app.SqlChoosableEventTypes},
 		{"queries/choosable-event-genres.sql", &app.SqlChoosableEventGenres},
 		{"queries/get-meta-genres-by-event-type.sql", &app.SqlGetMetaGenresByEventType},
-		{"queries/query_event.sql", &app.SqlQueryEvent},
 		{"queries/queryVenueForMap.sql", &app.SqlQueryVenueForMap},
 		{"queries/userVenues.sql", &app.SqlQueryVenueByUser},
 		{"queries/spacesByVenueId.sql", &app.SqlQuerySpacesByVenueId},

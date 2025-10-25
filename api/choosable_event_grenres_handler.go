@@ -29,7 +29,7 @@ func ChoosableEventGenresHandler(gc *gin.Context) {
 	defer rows.Close()
 
 	type Genre struct {
-		TypeId int    `json:"type_id"`
+		TypeId int    `json:"id"`
 		Name   string `json:"name"`
 	}
 

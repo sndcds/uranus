@@ -61,8 +61,7 @@ SELECT
     img_data.focus_x AS image_focus_x,
     img_data.focus_y AS image_focus_y,
 
-    et_data.event_types,
-    gt_data.genre_types
+    et_data.event_types
 
 FROM event_data ed
     JOIN {{schema}}.event e ON ed.event_id = e.id
@@ -83,20 +82,21 @@ FROM event_data ed
     ) img_data ON true
 
     LEFT JOIN LATERAL (
-        SELECT jsonb_agg(DISTINCT jsonb_build_object('id', etl.type_id, 'name', et.name)) AS event_types
+        SELECT jsonb_agg(DISTINCT jsonb_build_object(
+            'type_id', etl.type_id,
+            'type_name', et.name,
+            'genre_id', COALESCE(gt.type_id, 0),
+            'genre_name', gt.name
+        )) AS event_types
         FROM {{schema}}.event_type_links etl
         JOIN {{schema}}.event_type et
-        ON et.type_id = etl.type_id AND et.iso_639_1 = $1
+            ON et.type_id = etl.type_id
+            AND et.iso_639_1 = $1
+        LEFT JOIN {{schema}}.genre_type gt
+            ON gt.type_id = etl.genre_id
+            AND gt.iso_639_1 = $1
         WHERE etl.event_id = e.id
     ) et_data ON true
-
-    LEFT JOIN LATERAL (
-        SELECT jsonb_agg(DISTINCT jsonb_build_object('id', egl.type_id, 'name', gt.name)) AS genre_types
-        FROM {{schema}}.event_genre_links egl
-        JOIN {{schema}}.genre_type gt
-        ON gt.type_id = egl.type_id AND gt.iso_639_1 = $1
-        WHERE egl.event_id = e.id
-    ) gt_data ON true
 
     LEFT JOIN LATERAL (
         SELECT jsonb_agg(name) AS accessibility_flag_names

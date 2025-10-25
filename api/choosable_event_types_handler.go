@@ -21,7 +21,7 @@ func ChoosableEventTypesHandler(gc *gin.Context) {
 	defer rows.Close()
 
 	type EventType struct {
-		TypeId int    `json:"type_id"`
+		TypeId int    `json:"id"`
 		Name   string `json:"name"`
 	}
 

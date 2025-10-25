@@ -2,24 +2,21 @@ package api
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 func QueryHandler(gc *gin.Context) {
 	modeStr, _ := GetContextParam(gc, "mode")
 
 	switch modeStr {
-	case "event":
-		QueryEvent(gc)
-		break
-
 	case "venue":
 		// QueryVenue(gc)
 		break
 
 	case "venue-map":
-		QueryVenueForMap(gc)
+		QueryVenueForMap(gc) // TODO: Auslagern!!!!!!
 		break
 
 	case "space":
@@ -30,7 +27,7 @@ func QueryHandler(gc *gin.Context) {
 		break
 
 	case "user-venues":
-		QueryVenueForUser(gc)
+		QueryVenueForUser(gc) // TODO: Auslagern!!!!!!
 		break
 
 	default:

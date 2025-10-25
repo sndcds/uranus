@@ -250,13 +250,15 @@ func main() {
 	publicRoute := router.Group("/api")
 
 	// OK
+	publicRoute.GET("/events", api.GetEventsHandler)
+
 	publicRoute.GET("/choosable-venues/organizer/:id", api.ChoosableOrganizerVenuesHandler)
 	publicRoute.GET("/choosable-spaces/venue/:id", api.ChoosableVenueSpacesHandler)
 	publicRoute.GET("/choosable-event-types", api.ChoosableEventTypesHandler)
 	publicRoute.GET("/choosable-event-genres/event-type/:id", api.ChoosableEventGenresHandler)
 	publicRoute.GET("/choosable-licenses", api.ChoosableLicensesHandler)
 
-	publicRoute.GET("/query", api.QueryHandler)
+	publicRoute.GET("/query", api.QueryHandler)                  // TODO: Refactor QueryVenueForMap
 	publicRoute.GET("/user", app.JWTMiddleware, api.UserHandler) // Todo: To be removed
 	publicRoute.GET("/user/events", app.JWTMiddleware, api.AdminHandlerUserEvents)
 	publicRoute.GET("/space", api.SpaceHandler)
@@ -277,6 +279,7 @@ func main() {
 	adminRoute.POST("/signup", signupHandler)
 	adminRoute.POST("/refresh", refreshHandler)
 	adminRoute.GET("/user/me", api_admin.UserProfileHandler)
+	adminRoute.GET("/user/me/permissions", app.JWTMiddleware, api_admin.AdminUserPermissionsHandler)
 
 	adminRoute.GET("/choosable-organizers", app.JWTMiddleware, api_admin.ChoosableOrganizersHandler)
 	adminRoute.GET("/organizer/dashboard", app.JWTMiddleware, api_admin.OrganizerDashboardHandler)
@@ -293,11 +296,12 @@ func main() {
 	adminRoute.PUT("/event/:id/teaser", app.JWTMiddleware, api_admin.UpdateEventTeaserHandler)
 	adminRoute.PUT("/event/:id/types", app.JWTMiddleware, api_admin.UpdateEventTypesHandler)
 	adminRoute.PUT("/event/:id/space", app.JWTMiddleware, api_admin.UpdateEventSpaceHandler)
+	// adminRoute.PUT("/event/:id/dates", app.JWTMiddleware, api_admin.UpdateEventDatesHandler) !!!!!!!
+
 	adminRoute.POST("/event/:id/image", app.JWTMiddleware, api_admin.UpdateEventImageHandler)
 
 	// Check ...
 	adminRoute.POST("image/upload", app.JWTMiddleware, api.AdminAddImageHandler)
-	adminRoute.GET("/user/permissions/:mode", app.JWTMiddleware, api.AdminUserPermissionsHandler)
 	adminRoute.GET("/user/stats", app.JWTMiddleware, testHandler)
 	adminRoute.GET("/user/spaces/:mode", app.JWTMiddleware, api.AdminUserSpacesHandler)
 	adminRoute.GET("/events", app.JWTMiddleware, api.AdminEventsHandler)
