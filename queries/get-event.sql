@@ -61,10 +61,12 @@ SELECT
     img_data.focus_x AS image_focus_x,
     img_data.focus_y AS image_focus_y,
 
-    et_data.event_types AS event_types
+    et_data.event_types AS event_types,
+
+    url_data.event_urls AS event_urls
 
 FROM event_data ed
-         JOIN {{schema}}.event e ON ed.event_id = e.id
+    JOIN {{schema}}.event e ON ed.event_id = e.id
     JOIN {{schema}}.organizer o ON e.organizer_id = o.id
     LEFT JOIN {{schema}}.space s ON ed.space_id = s.id
     LEFT JOIN {{schema}}.space es ON e.space_id = es.id
@@ -75,8 +77,8 @@ FROM event_data ed
     SELECT
     TRUE AS has_main_image,
     eil.pluto_image_id AS id,
-    500 AS focus_x,
-    500 AS focus_y
+    0 AS focus_x,
+    0 AS focus_y
     FROM {{schema}}.event_image_links eil
     WHERE eil.event_id = e.id AND eil.main_image = TRUE
     LIMIT 1
@@ -115,5 +117,17 @@ FROM event_data ed
     WHERE (ed.visitor_info_flags & (1::BIGINT << f.flag)) = (1::BIGINT << f.flag)
     AND f.iso_639_1 = $2
     ) vis_flags ON true
+
+-- Event URLs
+    LEFT JOIN LATERAL (
+    SELECT jsonb_agg(jsonb_build_object(
+    'id', eu.id,
+    'link_type', eu.link_type,
+    'url', eu.url,
+    'title', eu.title
+    )) AS event_urls
+    FROM {{schema}}.event_url eu
+    WHERE eu.event_id = $1
+    ) url_data ON true
 
     LIMIT 1;
