@@ -19,6 +19,7 @@ type Config struct {
 	DbSchema                string   `json:"db_schema"`
 	SSLMode                 string   `json:"ssl_mode"`
 	AllowOrigins            []string `json:"allow_origins"`
+	ProfileImageDir         string   `json:"profile_image_dir"`
 	PlutoVerbose            bool     `json:"pluto_verbose"`
 	PlutoImageDir           string   `json:"pluto_image_dir"`
 	PlutoCacheDir           string   `json:"pluto_cache_dir"`

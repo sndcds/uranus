@@ -39,6 +39,10 @@ func UpdateEventImageHandler(gc *gin.Context) {
 	}
 
 	userId := api.UserIdFromAccessToken(gc)
+	if userId < 0 {
+		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user"})
+		return
+	}
 
 	altText := gc.PostForm("alt_text")
 	copyright := gc.PostForm("copyright")
