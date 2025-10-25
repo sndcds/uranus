@@ -66,6 +66,11 @@ func UpdateEventLinksHandler(gc *gin.Context) {
 		}
 	}
 
+	if err = tx.Commit(ctx); err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to commit transaction: %v", err)})
+		return
+	}
+
 	gc.JSON(http.StatusOK, gin.H{
 		"event_id": eventID,
 		"message":  "event links updated successfully",
