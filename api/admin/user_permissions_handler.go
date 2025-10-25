@@ -73,5 +73,10 @@ func AdminUserPermissionsHandler(gc *gin.Context) {
 		return
 	}
 
+	if len(permissions) == 0 {
+		gc.JSON(http.StatusOK, gin.H{"message": "user has no permission"})
+		return
+	}
+
 	gc.JSON(http.StatusOK, permissions)
 }
