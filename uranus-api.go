@@ -266,7 +266,6 @@ func main() {
 	publicRoute.GET("/space/types", api.SpaceTypesHandler)
 
 	// Check ...
-	publicRoute.GET("/test", app.JWTMiddleware, testHandler)
 	// publicRoute.GET("/event/images/:event-id", api.EventImagesHandler)
 
 	// Inject app middleware into Pluto's image routes
@@ -297,13 +296,14 @@ func main() {
 	adminRoute.PUT("/event/:id/teaser", app.JWTMiddleware, api_admin.UpdateEventTeaserHandler)
 	adminRoute.PUT("/event/:id/types", app.JWTMiddleware, api_admin.UpdateEventTypesHandler)
 	adminRoute.PUT("/event/:id/space", app.JWTMiddleware, api_admin.UpdateEventSpaceHandler)
+	adminRoute.PUT("/event/:id/links", app.JWTMiddleware, api_admin.UpdateEventLinksHandler)
+
 	// adminRoute.PUT("/event/:id/dates", app.JWTMiddleware, api_admin.UpdateEventDatesHandler) !!!!!!!
 
 	adminRoute.POST("/event/:id/image", app.JWTMiddleware, api_admin.UpdateEventImageHandler)
 
 	// Check ...
 	adminRoute.POST("image/upload", app.JWTMiddleware, api.AdminAddImageHandler)
-	adminRoute.GET("/user/stats", app.JWTMiddleware, testHandler)
 	adminRoute.GET("/user/spaces/:mode", app.JWTMiddleware, api.AdminUserSpacesHandler)
 	adminRoute.GET("/events", app.JWTMiddleware, api.AdminEventsHandler)
 
@@ -321,17 +321,5 @@ func main() {
 	err = router.Run(port)
 	if err != nil {
 		fmt.Println("app server error:", err)
-	}
-}
-
-func testHandler(gc *gin.Context) {
-	modeStr, _ := api.GetContextParam(gc, "mode")
-	fmt.Println(modeStr)
-	switch modeStr {
-	case "dashboard":
-		model.TestQuery(gc)
-		break
-	default:
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "unknown mode"})
 	}
 }
