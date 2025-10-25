@@ -3,6 +3,7 @@ package api_admin
 import (
 	"fmt"
 	"image"
+	"image/draw"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -44,7 +45,7 @@ func UserProfileUpdateHandler(gc *gin.Context) {
 	firstName := gc.PostForm("first_name")
 	lastName := gc.PostForm("last_name")
 	emailAddr := gc.PostForm("email")
-	langStr := gc.PostForm("lang")
+	localeStr := gc.PostForm("locale")
 	themeName := gc.PostForm("theme")
 
 	// Begin DB transaction
@@ -75,7 +76,7 @@ func UserProfileUpdateHandler(gc *gin.Context) {
 		firstName,
 		lastName,
 		emailAddr,
-		langStr,
+		localeStr,
 		themeName,
 		userId)
 	if err != nil {
@@ -116,29 +117,46 @@ func UserProfileUpdateHandler(gc *gin.Context) {
 		return
 	}
 
-	// Downscale if larger than 512x512
-	maxSize := uint(512)
-	w := uint(img.Bounds().Dx())
-	h := uint(img.Bounds().Dy())
-	if w > maxSize || h > maxSize {
-		img = resize.Thumbnail(maxSize, maxSize, img, resize.Lanczos3)
-	}
-
-	// Save as WebP
-	savePath := filepath.Join(saveDir, fmt.Sprintf("profile_img_%d.webp", userId))
-	outFile, err := os.Create(savePath)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save image"})
-		return
-	}
-	defer outFile.Close()
-
-	if err := webp.Encode(outFile, img, &webp.Options{Lossless: false, Quality: 80}); err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to encode webp"})
+	if err := processImageAndSave(img, saveDir, userId); err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to process and save image"})
 		return
 	}
 
 	gc.JSON(http.StatusOK, gin.H{
 		"message": "profile image saved successfully",
 	})
+}
+
+func processImageAndSave(img image.Image, saveDir string, userId int) error {
+	// Get width and height
+	bounds := img.Bounds()
+	w := bounds.Dx()
+	h := bounds.Dy()
+
+	// Determine max side and compute cropping rectangle (center crop)
+	var cropRect image.Rectangle
+	if w > h {
+		offset := (w - h) / 2
+		cropRect = image.Rect(offset, 0, offset+h, h)
+	} else {
+		offset := (h - w) / 2
+		cropRect = image.Rect(0, offset, w, offset+w)
+	}
+
+	// Crop the image
+	squareImg := image.NewRGBA(image.Rect(0, 0, cropRect.Dx(), cropRect.Dy()))
+	draw.Draw(squareImg, squareImg.Bounds(), img, cropRect.Min, draw.Src)
+
+	// Resize to 512x512
+	resized := resize.Resize(512, 512, squareImg, resize.Lanczos3)
+
+	// Save as WebP
+	savePath := filepath.Join(saveDir, fmt.Sprintf("profile_img_%d.webp", userId))
+	outFile, err := os.Create(savePath)
+	if err != nil {
+		return err
+	}
+	defer outFile.Close()
+
+	return webp.Encode(outFile, resized, &webp.Options{Lossless: true})
 }
