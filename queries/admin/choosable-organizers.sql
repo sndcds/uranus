@@ -1,7 +1,7 @@
 WITH user_org_access AS (
     SELECT DISTINCT
-        o.id AS organizer_id,
-        o.name AS organizer_name
+        o.id AS id,
+        o.name AS name
     FROM {{schema}}.organizer o
     JOIN {{schema}}.user_organizer_links uol
     ON uol.organizer_id = o.id
@@ -9,8 +9,8 @@ WITH user_org_access AS (
 ),
 user_venue_access AS (
     SELECT DISTINCT
-        o.id AS organizer_id,
-        o.name AS organizer_name
+        o.id AS id,
+        o.name AS name
     FROM {{schema}}.venue v
     JOIN {{schema}}.organizer o ON o.id = v.organizer_id
     JOIN {{schema}}.user_venue_links uvl ON uvl.venue_id = v.id
@@ -22,7 +22,7 @@ accessible_organizers AS (
     SELECT * FROM user_venue_access
 )
 SELECT
-    organizer_id,
-    organizer_name
+    id,
+    name
 FROM accessible_organizers
-ORDER BY LOWER(organizer_name)
+ORDER BY LOWER(name)
