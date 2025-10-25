@@ -26,6 +26,7 @@ type Uranus struct {
 	APIVersion                           string
 	MainDbPool                           *pgxpool.Pool
 	Config                               Config
+	SqlGetEvent                          string
 	SqlGetEvents                         string
 	SqlQueryOrganizerRoles               string
 	SqlQueryVenueRoles                   string
@@ -132,6 +133,7 @@ func (app *Uranus) PrepareSql() error {
 
 	queries := []queryItem{
 		// Public
+		{"queries/get-event.sql", &app.SqlGetEvent},
 		{"queries/get-events.sql", &app.SqlGetEvents},
 
 		{"queries/organizer_roles.sql", &app.SqlQueryOrganizerRoles},
