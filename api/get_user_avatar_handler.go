@@ -25,10 +25,11 @@ func GetUserAvatarHandler(gc *gin.Context) {
 
 	// Default to 256px if no size provided
 	size := 256
+	fmt.Println("sizeStr", sizeStr)
 	if sizeStr != "" {
 		s, err := strconv.Atoi(sizeStr)
 		if err != nil || (s != 64 && s != 128 && s != 256 && s != 512) {
-			gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid image size (must be 128, 256, or 512)"})
+			gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid image size (must be 64, 128, 256, or 512)"})
 			return
 		}
 		size = s

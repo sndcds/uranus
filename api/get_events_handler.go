@@ -284,6 +284,18 @@ func GetEventsHandler(gc *gin.Context) {
 			rowMap[col] = values[i]
 		}
 
+		// Add the extra property
+		imageID := rowMap["image_id"]
+		if imageID == nil {
+			rowMap["image_path"] = nil // or "" if you prefer
+		} else {
+			rowMap["image_path"] = fmt.Sprintf(
+				"%s/api/image/%v",
+				app.Singleton.Config.BaseApiUrl,
+				imageID,
+			)
+		}
+
 		results = append(results, rowMap)
 	}
 

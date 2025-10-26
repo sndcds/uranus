@@ -23,18 +23,21 @@ func UploadUserAvatarHandler(gc *gin.Context) {
 	}
 
 	profileImageDir := app.Singleton.Config.ProfileImageDir
+	fmt.Println("profileImageDir", profileImageDir)
 	info, err := os.Stat(profileImageDir)
 	if err != nil || !info.IsDir() {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "image directory does not exist"})
 		return
 	}
 
+	fmt.Println("1")
 	file, err := gc.FormFile("avatar")
 	if err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "image file is required"})
 		return
 	}
 
+	fmt.Println("2")
 	src, err := file.Open()
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to open uploaded file"})
@@ -42,18 +45,21 @@ func UploadUserAvatarHandler(gc *gin.Context) {
 	}
 	defer src.Close()
 
+	fmt.Println("3")
 	img, _, err := image.Decode(src)
 	if err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid image"})
 		return
 	}
 
+	fmt.Println("4")
 	err = processImageAndSave(img, profileImageDir, userId, app.Singleton.Config.ProfileImageQuality)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to process and save image"})
 		return
 	}
 
+	fmt.Println("5")
 	gc.JSON(http.StatusOK, gin.H{
 		"message": "profile image saved successfully",
 	})

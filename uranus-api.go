@@ -294,7 +294,8 @@ func main() {
 	adminRoute.POST("/refresh", refreshHandler)
 	adminRoute.GET("/user/me", api_admin.GetUserProfileHandler)
 	adminRoute.PUT("/user/me", api_admin.UpdateUserProfileHandler)
-	adminRoute.PUT("/user/me/avatar", api_admin.UploadUserAvatarHandler)
+	adminRoute.POST("/user/me/avatar", api_admin.UploadUserAvatarHandler)
+	adminRoute.DELETE("/user/me/avatar", api_admin.DeleteUserAvatarHandler)
 	adminRoute.GET("/user/me/permissions", app.JWTMiddleware, api_admin.AdminUserPermissionsHandler)
 
 	adminRoute.GET("/choosable-organizers", app.JWTMiddleware, api_admin.ChoosableOrganizersHandler)
