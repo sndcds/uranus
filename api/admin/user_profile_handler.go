@@ -33,7 +33,6 @@ func UserProfileHandler(gc *gin.Context) {
 func UserProfileUpdateHandler(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	pool := app.Singleton.MainDbPool
-	dbSchema := app.Singleton.Config.DbSchema
 
 	userId := api.UserIdFromAccessToken(gc)
 	if userId == 0 {
@@ -47,6 +46,8 @@ func UserProfileUpdateHandler(gc *gin.Context) {
 	emailAddr := gc.PostForm("email")
 	localeStr := gc.PostForm("locale")
 	themeName := gc.PostForm("theme")
+
+	// TODO: Validate email address
 
 	// Begin DB transaction
 	tx, err := pool.Begin(ctx)
@@ -65,22 +66,32 @@ func UserProfileUpdateHandler(gc *gin.Context) {
 		}
 	}()
 
+	// Update existing user record
 	sql := strings.Replace(`
-        INSERT INTO {{schema}}.user_profile (user_id, display_name, first_name, last_name, email, iso_639_1, theme)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)`, "{{schema}}", dbSchema, 1)
+        UPDATE {{schema}}.user
+        SET display_name = $1,
+            first_name = $2,
+            last_name = $3,
+            email_address = $4,
+            locale = $5,
+            theme = $6
+        WHERE id = $7
+    `, "{{schema}}", app.Singleton.Config.DbSchema, 1)
+
 	_, err = tx.Exec(
 		ctx,
 		sql,
-		userId,
 		displayName,
 		firstName,
 		lastName,
 		emailAddr,
 		localeStr,
-		themeName)
+		themeName,
+		userId,
+	)
 	if err != nil {
-		_ = tx.Rollback(gc)
-		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("insert user profile failed: %v", err)})
+		_ = tx.Rollback(ctx)
+		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("update user failed: %v", err)})
 		return
 	}
 

@@ -10,11 +10,11 @@ import (
 
 type User struct {
 	Id           int
-	DisplayName  string
 	EMailAddress string
-	Locale       string
-	Theme        string
 	PasswordHash string
+	DisplayName  *string
+	Locale       *string
+	Theme        *string
 }
 
 func (user User) Print() {
@@ -47,9 +47,9 @@ func GetUserById(app *app.Uranus, userId int) (User, error) {
 
 	// Convert *string to string
 	if displayName != nil {
-		user.DisplayName = *displayName
+		user.DisplayName = displayName
 	} else {
-		user.DisplayName = ""
+		user.DisplayName = nil
 	}
 
 	return user, nil
@@ -82,9 +82,9 @@ func GetUser(app *app.Uranus, eMail string) (User, error) {
 
 	// Convert *string to string
 	if displayName != nil {
-		user.DisplayName = *displayName
+		user.DisplayName = displayName
 	} else {
-		user.DisplayName = ""
+		user.DisplayName = nil
 	}
 
 	return user, nil

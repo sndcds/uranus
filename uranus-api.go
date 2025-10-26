@@ -86,10 +86,12 @@ func loginHandler(gc *gin.Context) {
 
 	user, err := model.GetUser(app.Singleton, credentials.Email)
 	if err != nil || app.ComparePasswords(user.PasswordHash, credentials.Password) != nil {
+		fmt.Println(err.Error())
 		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 		return
 	}
 
+	fmt.Println("... 3")
 	// -----------------------
 	// Create tokens
 	// -----------------------
@@ -108,6 +110,7 @@ func loginHandler(gc *gin.Context) {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create access token"})
 		return
 	}
+	fmt.Println("... 4")
 
 	refreshClaims := &app.Claims{
 		UserId: user.Id,
@@ -122,6 +125,7 @@ func loginHandler(gc *gin.Context) {
 		return
 	}
 
+	fmt.Println("... 5")
 	gc.JSON(http.StatusOK, gin.H{
 		"message":       "login successful",
 		"user_id":       user.Id,
