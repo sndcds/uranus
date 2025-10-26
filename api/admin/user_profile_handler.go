@@ -1,14 +1,12 @@
 package api_admin
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/sndcds/uranus/api"
 	"github.com/sndcds/uranus/app"
 )
@@ -91,6 +89,23 @@ func UpdateUserProfileHandler(gc *gin.Context) {
 		}
 	}()
 
+	// Check if another user already has this email address
+	var existingUserID int
+	checkSQL := fmt.Sprintf(`SELECT id FROM %s.user WHERE email_address = $1`, app.Singleton.Config.DbSchema)
+	err = tx.QueryRow(ctx, checkSQL, emailAddr).Scan(&existingUserID)
+	if err != nil && err != pgx.ErrNoRows {
+		_ = tx.Rollback(ctx)
+		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("failed to check existing email: %v", err)})
+		return
+	}
+
+	// If an existing record is found and it's not the same user, reject it
+	if err == nil && existingUserID != userId {
+		_ = tx.Rollback(ctx)
+		gc.JSON(http.StatusConflict, gin.H{"error": "email address already exists"})
+		return
+	}
+
 	// Update existing user record
 	sql := strings.Replace(`
         UPDATE {{schema}}.user
@@ -116,15 +131,6 @@ func UpdateUserProfileHandler(gc *gin.Context) {
 	)
 	if err != nil {
 		_ = tx.Rollback(ctx)
-
-		// Check if it's a unique constraint violation
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" && strings.Contains(pgErr.Message, "email") {
-			// 23505 = unique_violation
-			gc.JSON(http.StatusConflict, gin.H{"error": "email address already exists"})
-			return
-		}
-
 		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("update user failed: %v", err)})
 		return
 	}

@@ -74,24 +74,30 @@ func signupHandler(gc *gin.Context) {
 }
 
 func loginHandler(gc *gin.Context) {
+
+	fmt.Println("....1")
 	var credentials struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
 
+	fmt.Println("....2")
 	if err := gc.BindJSON(&credentials); err != nil || credentials.Email == "" || credentials.Password == "" {
 		gc.JSON(http.StatusUnauthorized, gin.H{"error": "credentials required"})
 		return
 	}
 
+	fmt.Println("....3")
 	user, err := model.GetUser(app.Singleton, credentials.Email)
+	fmt.Println("....3 err: ", err)
+	fmt.Println("....3 compare: ", app.ComparePasswords(user.PasswordHash, credentials.Password))
+
 	if err != nil || app.ComparePasswords(user.PasswordHash, credentials.Password) != nil {
-		fmt.Println(err.Error())
 		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 		return
 	}
 
-	fmt.Println("... 3")
+	fmt.Println("....4")
 	// -----------------------
 	// Create tokens
 	// -----------------------
@@ -110,8 +116,8 @@ func loginHandler(gc *gin.Context) {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create access token"})
 		return
 	}
-	fmt.Println("... 4")
 
+	fmt.Println("....5")
 	refreshClaims := &app.Claims{
 		UserId: user.Id,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -125,7 +131,7 @@ func loginHandler(gc *gin.Context) {
 		return
 	}
 
-	fmt.Println("... 5")
+	fmt.Println("....6")
 	gc.JSON(http.StatusOK, gin.H{
 		"message":       "login successful",
 		"user_id":       user.Id,
@@ -138,8 +144,6 @@ func loginHandler(gc *gin.Context) {
 }
 
 func refreshHandler(gc *gin.Context) {
-	fmt.Println("refreshHandler()")
-
 	// Get refresh token from Authorization header
 	authHeader := gc.GetHeader("Authorization")
 	if authHeader == "" {

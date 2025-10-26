@@ -56,35 +56,25 @@ func GetUserById(app *app.Uranus, userId int) (User, error) {
 }
 
 func GetUser(app *app.Uranus, eMail string) (User, error) {
-	sqlQuery := fmt.Sprintf(
-		"SELECT id, display_name, email_address, locale, theme, password_hash FROM %s.user WHERE email_address = $1",
+	sql := fmt.Sprintf(
+		"SELECT id, email_address, password_hash, display_name, locale, theme FROM %s.user WHERE email_address = $1",
 		app.Config.DbSchema,
 	)
 
-	var displayName *string
 	var user User
-
-	err := app.MainDbPool.QueryRow(context.Background(), sqlQuery, eMail).Scan(
+	err := app.MainDbPool.QueryRow(context.Background(), sql, eMail).Scan(
 		&user.Id,
-		&displayName,
 		&user.EMailAddress,
+		&user.PasswordHash,
+		&user.DisplayName,
 		&user.Locale,
 		&user.Theme,
-		&user.PasswordHash,
 	)
-
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return User{}, fmt.Errorf("user not found")
 		}
 		return User{}, fmt.Errorf("query failed: %w", err)
-	}
-
-	// Convert *string to string
-	if displayName != nil {
-		user.DisplayName = displayName
-	} else {
-		user.DisplayName = nil
 	}
 
 	return user, nil
