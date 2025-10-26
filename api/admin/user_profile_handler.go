@@ -116,7 +116,8 @@ func UserProfileUpdateHandler(gc *gin.Context) {
 		return
 	}
 
-	if err := processImageAndSave(img, saveDir, userId); err != nil {
+	err = processImageAndSave(img, saveDir, userId, app.Singleton.Config.ProfileImageQuality)
+	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to process and save image"})
 		return
 	}
@@ -126,7 +127,7 @@ func UserProfileUpdateHandler(gc *gin.Context) {
 	})
 }
 
-func processImageAndSave(img image.Image, saveDir string, userId int) error {
+func processImageAndSave(img image.Image, saveDir string, userId int, quality float32) error {
 	// Get width and height
 	bounds := img.Bounds()
 	w := bounds.Dx()
@@ -142,20 +143,33 @@ func processImageAndSave(img image.Image, saveDir string, userId int) error {
 		cropRect = image.Rect(0, offset, w, offset+w)
 	}
 
-	// Crop the image
+	// Crop to square
 	squareImg := image.NewRGBA(image.Rect(0, 0, cropRect.Dx(), cropRect.Dy()))
 	draw.Draw(squareImg, squareImg.Bounds(), img, cropRect.Min, draw.Src)
 
-	// Resize to 512x512
-	resized := resize.Resize(512, 512, squareImg, resize.Lanczos3)
+	// Sizes you want to save (in pixels)
+	sizes := []int{512, 256, 128, 64}
 
-	// Save as WebP
-	savePath := filepath.Join(saveDir, fmt.Sprintf("profile_img_%d.webp", userId))
-	outFile, err := os.Create(savePath)
-	if err != nil {
-		return err
+	// Loop through and save each version
+	for _, size := range sizes {
+		resized := resize.Resize(uint(size), uint(size), squareImg, resize.Lanczos3)
+
+		// Example filename: profile_img_123_256.webp
+		savePath := filepath.Join(saveDir, fmt.Sprintf("profile_img_%d_%d.webp", userId, size))
+
+		outFile, err := os.Create(savePath)
+		if err != nil {
+			return fmt.Errorf("failed to create file %s: %v", savePath, err)
+		}
+
+		// Use lossy compression, quality
+		err = webp.Encode(outFile, resized, &webp.Options{Lossless: false, Quality: quality})
+		outFile.Close()
+
+		if err != nil {
+			return fmt.Errorf("failed to encode %s: %v", savePath, err)
+		}
 	}
-	defer outFile.Close()
 
-	return webp.Encode(outFile, resized, &webp.Options{Lossless: true})
+	return nil
 }

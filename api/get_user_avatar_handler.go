@@ -13,15 +13,29 @@ import (
 )
 
 func GetUserAvatarHandler(gc *gin.Context) {
-	userIdStr := gc.Param("id")
+	userIdStr := gc.Param("userId")
+	sizeStr := gc.Param("size")
+
+	fmt.Println(userIdStr)
 	userId, err := strconv.Atoi(userIdStr)
 	if err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
 		return
 	}
 
-	profileImageDir := app.Singleton.Config.ProfileImageDir
-	imagePath := filepath.Join(profileImageDir, fmt.Sprintf("profile_img_%d.webp", userId))
+	// Default to 256px if no size provided
+	size := 256
+	if sizeStr != "" {
+		s, err := strconv.Atoi(sizeStr)
+		if err != nil || (s != 64 && s != 128 && s != 256 && s != 512) {
+			gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid image size (must be 128, 256, or 512)"})
+			return
+		}
+		size = s
+	}
+
+	imageDir := app.Singleton.Config.ProfileImageDir
+	imagePath := filepath.Join(imageDir, fmt.Sprintf("profile_img_%d_%d.webp", userId, size))
 
 	file, err := os.Open(imagePath)
 	if err != nil {
@@ -35,6 +49,7 @@ func GetUserAvatarHandler(gc *gin.Context) {
 	defer file.Close()
 
 	gc.Header("Content-Type", "image/webp")
+	gc.Header("Cache-Control", "public, max-age=86400") // cache for 1 day
 
 	if _, err := io.Copy(gc.Writer, file); err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to serve image"})

@@ -9,7 +9,7 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-func VenueCreateHandler(gc *gin.Context) {
+func CreateVenueHandler(gc *gin.Context) {
 	pool := app.Singleton.MainDbPool
 
 	type UpdateRequest struct {

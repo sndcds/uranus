@@ -9,7 +9,7 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-func SpaceCreateHandler(gc *gin.Context) {
+func CreateSpaceHandler(gc *gin.Context) {
 	pool := app.Singleton.MainDbPool
 
 	type UpdateRequest struct {

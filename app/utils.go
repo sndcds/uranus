@@ -64,3 +64,23 @@ func GenerateWKT(lat, lon float64) (string, error) {
 	wkt := fmt.Sprintf("POINT(%f %f)", lon, lat)
 	return wkt, nil
 }
+
+func ClampInt(v, min, max int) int {
+	if v < min {
+		return min
+	}
+	if v > max {
+		return max
+	}
+	return v
+}
+
+func ClampFloat32(v, min, max float32) float32 {
+	if v < min {
+		return min
+	}
+	if v > max {
+		return max
+	}
+	return v
+}

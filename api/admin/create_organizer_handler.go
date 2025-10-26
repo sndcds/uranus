@@ -9,7 +9,7 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-func OrganizerCreateHandler(gc *gin.Context) {
+func CreateOrganizerHandler(gc *gin.Context) {
 	pool := app.Singleton.MainDbPool
 
 	type UpdateRequest struct {

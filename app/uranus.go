@@ -75,6 +75,9 @@ func New(configFilePath string) (*Uranus, error) {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
 
+	// Check configuration
+	uranus.Config.ProfileImageQuality = ClampFloat32(uranus.Config.ProfileImageQuality, 30, 100)
+
 	uranus.Log("initialize database")
 	if err := uranus.InitMainDB(); err != nil {
 		return nil, fmt.Errorf("failed to initialize main DB: %w", err)

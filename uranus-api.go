@@ -253,7 +253,8 @@ func main() {
 	publicRoute.GET("/events", api.GetEventsHandler)
 	publicRoute.GET("/event/:id", api.GetEventHandler)
 
-	publicRoute.GET("/user/:id/avatar", api.GetUserAvatarHandler)
+	publicRoute.GET("/user/:userId/avatar/:size", api.GetUserAvatarHandler)
+	publicRoute.GET("/user/:userId/avatar", api.GetUserAvatarHandler)
 
 	publicRoute.GET("/choosable-venues/organizer/:id", api.ChoosableOrganizerVenuesHandler)
 	publicRoute.GET("/choosable-spaces/venue/:id", api.ChoosableVenueSpacesHandler)
@@ -289,9 +290,9 @@ func main() {
 	adminRoute.GET("/organizer/:id/venues", app.JWTMiddleware, api_admin.OrganizerVenuesHandler)
 	adminRoute.GET("/organizer/:id/events", app.JWTMiddleware, api_admin.OrganizerEventsHandler)
 
-	adminRoute.POST("/organizer/create", app.JWTMiddleware, api_admin.OrganizerCreateHandler)
-	adminRoute.POST("/venue/create", app.JWTMiddleware, api_admin.VenueCreateHandler)
-	adminRoute.POST("/space/create", app.JWTMiddleware, api_admin.SpaceCreateHandler)
+	adminRoute.POST("/organizer/create", app.JWTMiddleware, api_admin.CreateOrganizerHandler)
+	adminRoute.POST("/venue/create", app.JWTMiddleware, api_admin.CreateVenueHandler)
+	adminRoute.POST("/space/create", app.JWTMiddleware, api_admin.CreateSpaceHandler)
 	adminRoute.GET("/user/choosable-event-organizers/organizer/:id", app.JWTMiddleware, api_admin.ChoosableUserEventOrganizersHandler)
 	adminRoute.POST("/event/create", app.JWTMiddleware, api_admin.CreateEventHandler)
 	adminRoute.PUT("/event/:id/header", app.JWTMiddleware, api_admin.UpdateEventHeaderHandler)
