@@ -102,7 +102,8 @@ func UpdateEventImageHandler(gc *gin.Context) {
 		return
 	}
 
-	savePath := filepath.Join(saveDir, fmt.Sprintf("/event_%s_%s", eventId, generatedFileName))
+	generatedFileName = fmt.Sprintf("event_%s_%s", eventId, generatedFileName)
+	savePath := filepath.Join(saveDir, generatedFileName)
 	fmt.Println(savePath)
 	if err := os.WriteFile(savePath, buf.Bytes(), 0644); err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to save file: %v", err)})

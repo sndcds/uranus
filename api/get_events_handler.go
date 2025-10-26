@@ -284,7 +284,7 @@ func GetEventsHandler(gc *gin.Context) {
 			rowMap[col] = values[i]
 		}
 
-		// Add the extra property
+		// Add extra property image_path
 		imageID := rowMap["image_id"]
 		if imageID == nil {
 			rowMap["image_path"] = nil // or "" if you prefer
