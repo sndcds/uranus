@@ -11,23 +11,52 @@ import (
 
 	"github.com/chai2010/webp"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/nfnt/resize"
 	"github.com/sndcds/uranus/api"
 	"github.com/sndcds/uranus/app"
 )
 
-func UserProfileHandler(gc *gin.Context) {
-	// Todo: Return User Profile
-	/*
-		db := app.Singleton.MainDbPool
-		ctx := gc.Request.Context()
+func GetUserProfileHandler(gc *gin.Context) {
+	ctx := gc.Request.Context()
+	pool := app.Singleton.MainDbPool
 
-		userId, ok := app.GetCurrentUserOrAbort(gc)
-		if !ok {
-			return // already sent error response
+	userId := api.UserIdFromAccessToken(gc)
+	if userId == 0 {
+		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user"})
+		return
+	}
+
+	// Query the user table
+	sql := strings.Replace(`
+        SELECT id, email_address, display_name, first_name, last_name, locale, theme
+        FROM {{schema}}.user
+        WHERE id = $1
+    `, "{{schema}}", app.Singleton.Config.DbSchema, 1)
+
+	var user struct {
+		UserID      int    `json:"user_id"`
+		Email       string `json:"email_address"`
+		DisplayName string `json:"display_name"`
+		FirstName   string `json:"first_name"`
+		LastName    string `json:"last_name"`
+		Locale      string `json:"locale"`
+		Theme       string `json:"theme"`
+	}
+
+	row := pool.QueryRow(ctx, sql, userId)
+	err := row.Scan(&user.UserID, &user.Email, &user.DisplayName, &user.FirstName, &user.LastName, &user.Locale, &user.Theme)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			gc.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		} else {
+			gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to query user"})
 		}
+		return
+	}
 
-	*/
+	// Return JSON
+	gc.JSON(http.StatusOK, user)
 }
 
 func UserProfileUpdateHandler(gc *gin.Context) {

@@ -288,7 +288,7 @@ func main() {
 	adminRoute.POST("/login", loginHandler)
 	adminRoute.POST("/signup", signupHandler)
 	adminRoute.POST("/refresh", refreshHandler)
-	adminRoute.GET("/user/me", api_admin.UserProfileHandler)
+	adminRoute.GET("/user/me", api_admin.GetUserProfileHandler)
 	adminRoute.PUT("/user/me", api_admin.UserProfileUpdateHandler)
 	adminRoute.GET("/user/me/permissions", app.JWTMiddleware, api_admin.AdminUserPermissionsHandler)
 
