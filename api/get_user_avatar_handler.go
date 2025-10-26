@@ -49,8 +49,6 @@ func GetUserAvatarHandler(gc *gin.Context) {
 	defer file.Close()
 
 	gc.Header("Content-Type", "image/webp")
-	gc.Header("Cache-Control", "public, max-age=86400") // cache for 1 day
-
 	if _, err := io.Copy(gc.Writer, file); err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to serve image"})
 		return
