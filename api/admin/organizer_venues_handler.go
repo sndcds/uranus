@@ -21,8 +21,8 @@ func OrganizerVenuesHandler(gc *gin.Context) {
 		return // already sent error response
 	}
 
-	idStr := gc.Param("id")
-	organizerId, err := strconv.Atoi(idStr)
+	organizerIdStr := gc.Param("organizerId")
+	organizerId, err := strconv.Atoi(organizerIdStr)
 	if err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid organizer id"})
 		return

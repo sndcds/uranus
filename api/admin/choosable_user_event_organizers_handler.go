@@ -19,8 +19,8 @@ func ChoosableUserEventOrganizersHandler(gc *gin.Context) {
 	}
 
 	// Parse organizer ID from path param
-	idStr := gc.Param("id")
-	organizerId, err := strconv.Atoi(idStr)
+	organizerIdStr := gc.Param("id")
+	organizerId, err := strconv.Atoi(organizerIdStr)
 	if err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

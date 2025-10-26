@@ -34,8 +34,8 @@ func OrganizerEventsHandler(gc *gin.Context) {
 		VenueLat           float64 `json:"venue_lat"`
 	}
 
-	idStr := gc.Param("id")
-	organizerId, err := strconv.Atoi(idStr)
+	organizerIdStr := gc.Param("id")
+	organizerId, err := strconv.Atoi(organizerIdStr)
 	if err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid organizer id"})
 		return

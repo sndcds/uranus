@@ -124,7 +124,10 @@ func loginHandler(gc *gin.Context) {
 
 	gc.JSON(http.StatusOK, gin.H{
 		"message":       "login successful",
+		"user_id":       user.Id,
 		"display_name":  user.DisplayName,
+		"locale":        user.Locale,
+		"theme":         user.Theme,
 		"access_token":  accessTokenStr,
 		"refresh_token": refreshTokenStr,
 	})
@@ -287,13 +290,13 @@ func main() {
 
 	adminRoute.GET("/choosable-organizers", app.JWTMiddleware, api_admin.ChoosableOrganizersHandler)
 	adminRoute.GET("/organizer/dashboard", app.JWTMiddleware, api_admin.OrganizerDashboardHandler)
-	adminRoute.GET("/organizer/:id/venues", app.JWTMiddleware, api_admin.OrganizerVenuesHandler)
-	adminRoute.GET("/organizer/:id/events", app.JWTMiddleware, api_admin.OrganizerEventsHandler)
+	adminRoute.GET("/organizer/:organizerId/venues", app.JWTMiddleware, api_admin.OrganizerVenuesHandler)
+	adminRoute.GET("/organizer/:organizerId/events", app.JWTMiddleware, api_admin.OrganizerEventsHandler)
 
 	adminRoute.POST("/organizer/create", app.JWTMiddleware, api_admin.CreateOrganizerHandler)
 	adminRoute.POST("/venue/create", app.JWTMiddleware, api_admin.CreateVenueHandler)
 	adminRoute.POST("/space/create", app.JWTMiddleware, api_admin.CreateSpaceHandler)
-	adminRoute.GET("/user/choosable-event-organizers/organizer/:id", app.JWTMiddleware, api_admin.ChoosableUserEventOrganizersHandler)
+	adminRoute.GET("/user/choosable-event-organizers/organizer/:organizerId", app.JWTMiddleware, api_admin.ChoosableUserEventOrganizersHandler)
 	adminRoute.POST("/event/create", app.JWTMiddleware, api_admin.CreateEventHandler)
 	adminRoute.PUT("/event/:id/header", app.JWTMiddleware, api_admin.UpdateEventHeaderHandler)
 	adminRoute.PUT("/event/:id/description", app.JWTMiddleware, api_admin.UpdateEventDescriptionHandler)

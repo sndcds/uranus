@@ -12,6 +12,8 @@ type User struct {
 	Id           int
 	DisplayName  string
 	EMailAddress string
+	Locale       string
+	Theme        string
 	PasswordHash string
 }
 
@@ -21,7 +23,7 @@ func (user User) Print() {
 
 func GetUserById(app *app.Uranus, userId int) (User, error) {
 	sqlQuery := fmt.Sprintf(
-		`SELECT id, display_name, email_address FROM %s.user WHERE id = $1`,
+		`SELECT id, display_name, email_address, locale, theme FROM %s.user WHERE id = $1`,
 		app.Config.DbSchema,
 	)
 
@@ -32,6 +34,8 @@ func GetUserById(app *app.Uranus, userId int) (User, error) {
 		&user.Id,
 		&displayName,
 		&user.EMailAddress,
+		&user.Locale,
+		&user.Theme,
 	)
 
 	if err != nil {
@@ -53,7 +57,7 @@ func GetUserById(app *app.Uranus, userId int) (User, error) {
 
 func GetUser(app *app.Uranus, eMail string) (User, error) {
 	sqlQuery := fmt.Sprintf(
-		"SELECT id, display_name, email_address, password_hash FROM %s.user WHERE email_address = $1",
+		"SELECT id, display_name, email_address, locale, theme, password_hash FROM %s.user WHERE email_address = $1",
 		app.Config.DbSchema,
 	)
 
@@ -64,6 +68,8 @@ func GetUser(app *app.Uranus, eMail string) (User, error) {
 		&user.Id,
 		&displayName,
 		&user.EMailAddress,
+		&user.Locale,
+		&user.Theme,
 		&user.PasswordHash,
 	)
 
@@ -81,6 +87,5 @@ func GetUser(app *app.Uranus, eMail string) (User, error) {
 		user.DisplayName = ""
 	}
 
-	fmt.Println("user:", user)
 	return user, nil
 }
