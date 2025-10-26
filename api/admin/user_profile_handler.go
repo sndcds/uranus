@@ -72,7 +72,7 @@ func UserProfileUpdateHandler(gc *gin.Context) {
 	displayName := gc.PostForm("display_name")
 	firstName := gc.PostForm("first_name")
 	lastName := gc.PostForm("last_name")
-	emailAddr := gc.PostForm("email")
+	emailAddr := gc.PostForm("email_address")
 	localeStr := gc.PostForm("locale")
 	themeName := gc.PostForm("theme")
 
