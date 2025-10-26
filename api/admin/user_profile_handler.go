@@ -1,6 +1,7 @@
 package api_admin
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"image/draw"
@@ -12,6 +13,7 @@ import (
 	"github.com/chai2010/webp"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/nfnt/resize"
 	"github.com/sndcds/uranus/api"
 	"github.com/sndcds/uranus/app"
@@ -120,6 +122,15 @@ func UserProfileUpdateHandler(gc *gin.Context) {
 	)
 	if err != nil {
 		_ = tx.Rollback(ctx)
+
+		// Check if it's a unique constraint violation
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" && strings.Contains(pgErr.Message, "email") {
+			// 23505 = unique_violation
+			gc.JSON(http.StatusConflict, gin.H{"error": "email address already exists"})
+			return
+		}
+
 		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("update user failed: %v", err)})
 		return
 	}
