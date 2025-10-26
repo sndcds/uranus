@@ -63,52 +63,53 @@ func UpdateUserProfileHandler(gc *gin.Context) {
 		return
 	}
 
-	displayName := gc.PostForm("display_name")
-	firstName := gc.PostForm("first_name")
-	lastName := gc.PostForm("last_name")
-	emailAddr := gc.PostForm("email_address")
-	localeStr := gc.PostForm("locale")
-	themeName := gc.PostForm("theme")
+	// --- Parse JSON body ---
+	var req struct {
+		DisplayName  string `json:"display_name"`
+		FirstName    string `json:"first_name"`
+		LastName     string `json:"last_name"`
+		EmailAddress string `json:"email_address"`
+		Locale       string `json:"locale"`
+		Theme        string `json:"theme"`
+	}
 
-	// TODO: Validate email address
+	if err := gc.ShouldBindJSON(&req); err != nil {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid JSON: %v", err)})
+		return
+	}
 
-	// Begin DB transaction
+	// --- Basic validation ---
+	if !strings.Contains(req.EmailAddress, "@") {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid email address"})
+		return
+	}
+
+	// --- Begin transaction ---
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer func() {
-		if p := recover(); p != nil {
-			_ = tx.Rollback(ctx)
-			panic(p)
-		} else if err != nil {
-			_ = tx.Rollback(ctx)
-		} else {
-			err = tx.Commit(ctx)
-		}
-	}()
+	defer tx.Rollback(ctx) // safe rollback if not committed
 
-	// Check if another user already has this email address
-	var existingUserID int
+	// --- Check for existing email ---
 	checkSQL := fmt.Sprintf(`SELECT id FROM %s.user WHERE email_address = $1`, app.Singleton.Config.DbSchema)
-	err = tx.QueryRow(ctx, checkSQL, emailAddr).Scan(&existingUserID)
+	var existingUserID int
+	err = tx.QueryRow(ctx, checkSQL, req.EmailAddress).Scan(&existingUserID)
+
 	if err != nil && err != pgx.ErrNoRows {
-		_ = tx.Rollback(ctx)
 		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("failed to check existing email: %v", err)})
 		return
 	}
 
-	// If an existing record is found and it's not the same user, reject it
 	if err == nil && existingUserID != userId {
-		_ = tx.Rollback(ctx)
 		gc.JSON(http.StatusConflict, gin.H{"error": "email address already exists"})
 		return
 	}
 
-	// Update existing user record
-	sql := strings.Replace(`
-        UPDATE {{schema}}.user
+	// --- Update record ---
+	updateSQL := fmt.Sprintf(`
+        UPDATE %s.user
         SET display_name = $1,
             first_name = $2,
             last_name = $3,
@@ -116,28 +117,27 @@ func UpdateUserProfileHandler(gc *gin.Context) {
             locale = $5,
             theme = $6
         WHERE id = $7
-    `, "{{schema}}", app.Singleton.Config.DbSchema, 1)
+    `, app.Singleton.Config.DbSchema)
 
 	_, err = tx.Exec(
 		ctx,
-		sql,
-		displayName,
-		firstName,
-		lastName,
-		emailAddr,
-		localeStr,
-		themeName,
+		updateSQL,
+		req.DisplayName,
+		req.FirstName,
+		req.LastName,
+		req.EmailAddress,
+		req.Locale,
+		req.Theme,
 		userId,
 	)
 	if err != nil {
-		_ = tx.Rollback(ctx)
 		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("update user failed: %v", err)})
 		return
 	}
 
-	// Commit transaction
-	if err = tx.Commit(gc); err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("failed to commit transaction: %v", err)})
+	// --- Commit transaction ---
+	if err = tx.Commit(ctx); err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to commit transaction: %v", err)})
 		return
 	}
 
