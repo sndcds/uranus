@@ -112,7 +112,7 @@ FROM {{schema}}.event e
     WHERE eil.event_id = e.id AND eil.main_image = TRUE
     LIMIT 1
     ) img_data ON true
-
+WHERE e.id = $1  -- 🔥 THIS is the missing filter
 GROUP BY
     e.id, e.title, e.subtitle, e.description, e.teaser_text,
     e.participation_info, e.meeting_point,

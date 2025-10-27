@@ -17,9 +17,6 @@ func GetAdminEventHandler(gc *gin.Context) {
 		return
 	}
 
-	gc.JSON(http.StatusInternalServerError, gin.H{"error": eventId})
-	return
-
 	langStr := gc.DefaultQuery("lang", "en")
 
 	query := app.Singleton.SqlAdminGetEvent

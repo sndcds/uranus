@@ -20,7 +20,7 @@ func GetEventHandler(gc *gin.Context) {
 
 	langStr := gc.DefaultQuery("lang", "en")
 
-	query := app.Singleton.SqlAdminGetEvent
+	query := app.Singleton.SqlGetEvent
 
 	rows, err := pool.Query(ctx, query, eventId, langStr)
 	if err != nil {
