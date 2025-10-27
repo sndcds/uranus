@@ -7,6 +7,7 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
+// Todo: Adopt SQL Query from GetAdminEventHandler
 func GetEventHandler(gc *gin.Context) {
 	pool := app.Singleton.MainDbPool
 	ctx := gc.Request.Context()
