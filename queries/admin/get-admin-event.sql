@@ -13,7 +13,6 @@ WITH event_data AS (
         ed.visitor_info_flags
     FROM {{schema}}.event_date ed
     WHERE ed.event_id = $1
-    ORDER BY ed.start ASC
     )
 SELECT
     e.id AS id,
@@ -61,6 +60,7 @@ SELECT
                     'accessibility_flags', ed.accessibility_flags,
                     'visitor_info_flags', ed.visitor_info_flags
             )
+            ORDER BY ed.start_date, ed.start_time
     ) AS event_dates,
 
     -- Event types
