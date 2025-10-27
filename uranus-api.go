@@ -3,196 +3,14 @@ package main
 import (
 	"flag"
 	"fmt"
-	"net/http"
 	"strconv"
-	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/sndcds/pluto"
 	"github.com/sndcds/uranus/api"
 	"github.com/sndcds/uranus/api/admin"
 	"github.com/sndcds/uranus/app"
-	"github.com/sndcds/uranus/model"
 )
-
-func signupHandler(gc *gin.Context) {
-	pool := app.Singleton.MainDbPool
-
-	// Parse incoming JSON
-	var req struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-
-	if err := gc.BindJSON(&req); err != nil || req.Email == "" || req.Password == "" {
-		// Todo: Validate
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "email and password required"})
-		return
-	}
-
-	// Encrypt password
-	passwordHash, err := app.EncryptPassword(req.Password)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to encrypt password"})
-		return
-	}
-
-	// Check if user already exists
-	var exists bool
-	checkQuery := fmt.Sprintf("SELECT EXISTS(SELECT 1 FROM %s.user WHERE email_address = $1)", app.Singleton.Config.DbSchema)
-	err = pool.QueryRow(gc, checkQuery, req.Email).Scan(&exists)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
-		return
-	}
-	if exists {
-		gc.JSON(http.StatusConflict, gin.H{"error": "user already exists"})
-		return
-	}
-
-	// Insert new user
-	var newUserId int
-	insertQuery := fmt.Sprintf(`
-		INSERT INTO %s.user (email_address, password_hash)
-		VALUES ($1, $2)
-		RETURNING id
-	`, app.Singleton.Config.DbSchema)
-
-	err = pool.QueryRow(gc, insertQuery, req.Email, passwordHash).Scan(&newUserId)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create user"})
-		return
-	}
-
-	// Respond success
-	gc.JSON(http.StatusCreated, gin.H{
-		"message": "user created successfully",
-		"user_id": newUserId,
-	})
-}
-
-func loginHandler(gc *gin.Context) {
-
-	fmt.Println("....1")
-	var credentials struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-
-	fmt.Println("....2")
-	if err := gc.BindJSON(&credentials); err != nil || credentials.Email == "" || credentials.Password == "" {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "credentials required"})
-		return
-	}
-
-	fmt.Println("....3")
-	user, err := model.GetUser(app.Singleton, credentials.Email)
-	fmt.Println("....3 err: ", err)
-	fmt.Println("....3 compare: ", app.ComparePasswords(user.PasswordHash, credentials.Password))
-
-	if err != nil || app.ComparePasswords(user.PasswordHash, credentials.Password) != nil {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
-		return
-	}
-
-	fmt.Println("....4")
-	// -----------------------
-	// Create tokens
-	// -----------------------
-	accessExp := time.Now().Add(time.Duration(app.Singleton.Config.AuthTokenExpirationTime) * time.Second)
-	refreshExp := time.Now().Add(7 * 24 * time.Hour)
-
-	accessClaims := &app.Claims{
-		UserId: user.Id,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(accessExp),
-		},
-	}
-	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
-	accessTokenStr, err := accessToken.SignedString(app.Singleton.JwtKey)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create access token"})
-		return
-	}
-
-	fmt.Println("....5")
-	refreshClaims := &app.Claims{
-		UserId: user.Id,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(refreshExp),
-		},
-	}
-	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
-	refreshTokenStr, err := refreshToken.SignedString(app.Singleton.JwtKey)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create refresh token"})
-		return
-	}
-
-	fmt.Println("....6")
-	gc.JSON(http.StatusOK, gin.H{
-		"message":       "login successful",
-		"user_id":       user.Id,
-		"display_name":  user.DisplayName,
-		"locale":        user.Locale,
-		"theme":         user.Theme,
-		"access_token":  accessTokenStr,
-		"refresh_token": refreshTokenStr,
-	})
-}
-
-func refreshHandler(gc *gin.Context) {
-	// Get refresh token from Authorization header
-	authHeader := gc.GetHeader("Authorization")
-	if authHeader == "" {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "authorization header missing"})
-		return
-	}
-
-	// Expected format: "Bearer <token>"
-	parts := strings.SplitN(authHeader, " ", 2)
-	if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authorization header format"})
-		return
-	}
-	refreshToken := parts[1]
-
-	// Parse and validate token
-	claims := &app.Claims{}
-	tkn, err := jwt.ParseWithClaims(refreshToken, claims, func(token *jwt.Token) (interface{}, error) {
-		return app.Singleton.JwtKey, nil
-	})
-	if err != nil || !tkn.Valid {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid refresh token"})
-		return
-	}
-
-	// Issue new access token
-	accessExp := time.Now().Add(time.Duration(app.Singleton.Config.AuthTokenExpirationTime) * time.Second)
-	newClaims := &app.Claims{
-		UserId: claims.UserId,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(accessExp),
-		},
-	}
-
-	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, newClaims)
-	accessTokenStr, err := accessToken.SignedString(app.Singleton.JwtKey)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to sign access token"})
-		return
-	}
-
-	// Send new access token back in header (and optionally JSON body)
-	gc.Header("Authorization", "Bearer "+accessTokenStr)
-	gc.JSON(http.StatusOK, gin.H{
-		"message":      "token refreshed",
-		"access_token": accessTokenStr,
-		"expires_in":   int(time.Until(accessExp).Seconds()),
-	})
-}
 
 func main() {
 	// Configuration
@@ -289,9 +107,10 @@ func main() {
 	adminRoute := router.Group("/api/admin")
 
 	// OK
-	adminRoute.POST("/login", loginHandler)
-	adminRoute.POST("/signup", signupHandler)
-	adminRoute.POST("/refresh", refreshHandler)
+	adminRoute.POST("/signup", api_admin.SignupHandler)
+	adminRoute.POST("/login", api_admin.LoginHandler)
+	adminRoute.POST("/refresh", api_admin.RefreshHandler)
+
 	adminRoute.GET("/user/me", api_admin.GetUserProfileHandler)
 	adminRoute.PUT("/user/me", api_admin.UpdateUserProfileHandler)
 	adminRoute.POST("/user/me/avatar", api_admin.UploadUserAvatarHandler)
@@ -314,10 +133,9 @@ func main() {
 	adminRoute.PUT("/event/:id/types", app.JWTMiddleware, api_admin.UpdateEventTypesHandler)
 	adminRoute.PUT("/event/:id/space", app.JWTMiddleware, api_admin.UpdateEventSpaceHandler)
 	adminRoute.PUT("/event/:id/links", app.JWTMiddleware, api_admin.UpdateEventLinksHandler)
+	adminRoute.POST("/event/:id/image", app.JWTMiddleware, api_admin.UpdateEventImageHandler)
 
 	// adminRoute.PUT("/event/:id/dates", app.JWTMiddleware, api_admin.UpdateEventDatesHandler) !!!!!!!
-
-	adminRoute.POST("/event/:id/image", app.JWTMiddleware, api_admin.UpdateEventImageHandler)
 
 	// Check ...
 	adminRoute.POST("image/upload", app.JWTMiddleware, api.AdminAddImageHandler)

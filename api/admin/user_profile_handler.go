@@ -29,13 +29,13 @@ func GetUserProfileHandler(gc *gin.Context) {
     `, "{{schema}}", app.Singleton.Config.DbSchema, 1)
 
 	var user struct {
-		UserID      int    `json:"user_id"`
-		Email       string `json:"email_address"`
-		DisplayName string `json:"display_name"`
-		FirstName   string `json:"first_name"`
-		LastName    string `json:"last_name"`
-		Locale      string `json:"locale"`
-		Theme       string `json:"theme"`
+		UserID      int     `json:"user_id"`
+		Email       string  `json:"email_address"`
+		DisplayName *string `json:"display_name"`
+		FirstName   *string `json:"first_name"`
+		LastName    *string `json:"last_name"`
+		Locale      *string `json:"locale"`
+		Theme       *string `json:"theme"`
 	}
 
 	row := pool.QueryRow(ctx, sql, userId)
