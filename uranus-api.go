@@ -117,6 +117,8 @@ func main() {
 	adminRoute.DELETE("/user/me/avatar", api_admin.DeleteUserAvatarHandler)
 	adminRoute.GET("/user/me/permissions", app.JWTMiddleware, api_admin.AdminUserPermissionsHandler)
 
+	adminRoute.GET("/event/:id", api_admin.GetAdminEventHandler)
+
 	adminRoute.GET("/choosable-organizers", app.JWTMiddleware, api_admin.ChoosableOrganizersHandler)
 	adminRoute.GET("/organizer/dashboard", app.JWTMiddleware, api_admin.OrganizerDashboardHandler)
 	adminRoute.GET("/organizer/:organizerId/venues", app.JWTMiddleware, api_admin.OrganizerVenuesHandler)
