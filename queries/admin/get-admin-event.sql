@@ -12,7 +12,8 @@ WITH event_data AS (
         ed.accessibility_flags,
         ed.visitor_info_flags
     FROM {{schema}}.event_date ed
-WHERE ed.event_id = $1
+    WHERE ed.event_id = $1
+    ORDER BY ed.start ASC
     )
 SELECT
     e.id AS id,
