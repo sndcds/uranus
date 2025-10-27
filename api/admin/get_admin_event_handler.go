@@ -21,7 +21,7 @@ func GetAdminEventHandler(gc *gin.Context) {
 
 	langStr := gc.DefaultQuery("lang", "en")
 
-	query := app.Singleton.SqlGetEvent
+	query := app.Singleton.SqlAdminGetEvent
 
 	rows, err := pool.Query(ctx, query, eventID, langStr)
 	if err != nil {
