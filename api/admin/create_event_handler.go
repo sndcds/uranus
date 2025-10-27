@@ -86,12 +86,13 @@ func CreateEventHandler(gc *gin.Context) {
 	sqlEvent := `
 		INSERT INTO {{schema}}.event (
 			organizer_id,
+			venue_id,
 			space_id,
 			title,
 			subtitle,
 			description,
 			teaser_text
-		) VALUES ($1, $2, $3, $4, $5, $6)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id`
 
 	sql := strings.Replace(sqlEvent, "{{schema}}", dbSchema, 1)
@@ -99,6 +100,7 @@ func CreateEventHandler(gc *gin.Context) {
 	var eventId int
 	err = tx.QueryRow(ctx, sql,
 		incoming.OrganizerId,
+		incoming.VenueId,
 		incoming.SpaceId,
 		incoming.Title,
 		incoming.Subtitle,

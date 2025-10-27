@@ -10,7 +10,7 @@ WITH event_data AS (
         ed.accessibility_flags,
         ed.visitor_info_flags
     FROM {{schema}}.event_date ed
-)
+    )
 SELECT
     e.id AS event_id,
     e.title AS event_title,
@@ -29,13 +29,13 @@ SELECT
     ST_Y(v.wkb_geometry) AS venue_lat
 
 FROM event_data ed
-JOIN {{schema}}.event e ON ed.event_id = e.id
-LEFT JOIN {{schema}}.space s ON ed.space_id = s.id
-LEFT JOIN {{schema}}.space es ON e.space_id = es.id
-JOIN {{schema}}.venue v ON COALESCE(s.venue_id, es.venue_id) = v.id
-JOIN {{schema}}.organizer o ON v.organizer_id = o.id
-JOIN {{schema}}.organizer eo ON e.organizer_id = eo.id
+    LEFT JOIN {{schema}}.event e ON ed.event_id = e.id       -- LEFT JOIN now
+    LEFT JOIN {{schema}}.space s ON ed.space_id = s.id
+    LEFT JOIN {{schema}}.space es ON e.space_id = es.id
+    JOIN {{schema}}.venue v ON e.venue_id = v.id
+    LEFT JOIN {{schema}}.organizer o ON v.organizer_id = o.id
+    LEFT JOIN {{schema}}.organizer eo ON e.organizer_id = eo.id
 
-WHERE o.id = $1
-AND ed.start::date >= $2
+WHERE (o.id = $1 OR o.id IS NULL)   -- keep event_dates even if venue.organizer is missing
+  AND ed.start::date >= $2
 ORDER BY ed.start
