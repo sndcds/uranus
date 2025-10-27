@@ -136,8 +136,7 @@ func main() {
 	adminRoute.PUT("/event/:id/space", app.JWTMiddleware, api_admin.UpdateEventSpaceHandler)
 	adminRoute.PUT("/event/:id/links", app.JWTMiddleware, api_admin.UpdateEventLinksHandler)
 	adminRoute.POST("/event/:id/image", app.JWTMiddleware, api_admin.UpdateEventImageHandler)
-
-	// adminRoute.PUT("/event/:id/dates", app.JWTMiddleware, api_admin.UpdateEventDatesHandler) !!!!!!!
+	adminRoute.PUT("/event/:id/dates", app.JWTMiddleware, api_admin.UpdateEventDatesHandler)
 
 	// Check ...
 	adminRoute.POST("image/upload", app.JWTMiddleware, api.AdminAddImageHandler)

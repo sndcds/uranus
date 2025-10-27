@@ -70,7 +70,7 @@ FROM event_data ed
     LEFT JOIN {{schema}}.organizer o ON e.organizer_id = o.id
     LEFT JOIN {{schema}}.space s ON ed.space_id = s.id
     LEFT JOIN {{schema}}.space es ON e.space_id = es.id
-    LEFT JOIN {{schema}}.venue v ON COALESCE(s.venue_id, es.venue_id) = v.id                
+    LEFT JOIN {{schema}}.venue v ON v.id = e.venue_id
 
 -- Main image
     LEFT JOIN LATERAL (

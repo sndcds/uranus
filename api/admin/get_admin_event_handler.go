@@ -1,8 +1,6 @@
 package api_admin
 
 import (
-	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -36,21 +34,22 @@ func GetAdminEventHandler(gc *gin.Context) {
 		columnNames[i] = string(fd.Name)
 	}
 
-	var results []map[string]interface{}
+	var result map[string]interface{}
 
-	for rows.Next() {
+	if rows.Next() {
 		values, err := rows.Values()
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
-		rowMap := make(map[string]interface{}, len(values))
+		result = make(map[string]interface{}, len(values))
 		for i, col := range columnNames {
-			rowMap[col] = values[i]
+			result[col] = values[i]
 		}
-
-		results = append(results, rowMap)
+	} else {
+		gc.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
+		return
 	}
 
 	if err := rows.Err(); err != nil {
@@ -58,13 +57,5 @@ func GetAdminEventHandler(gc *gin.Context) {
 		return
 	}
 
-	jsonData, err := json.MarshalIndent(results, "", "  ")
-	if err != nil {
-		fmt.Println("Error marshalling JSON:", err)
-		return
-	}
-
-	fmt.Println("JSON:", string(jsonData))
-
-	gc.JSON(http.StatusOK, results)
+	gc.JSON(http.StatusOK, result)
 }

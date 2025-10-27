@@ -11,8 +11,8 @@ import (
 
 type UpdateEventTypesRequest struct {
 	Types []struct {
-		TypeId  int `json:"type_id" binding:"required"`
-		GenreId int `json:"genre_id" binding:"required"`
+		TypeId  int  `json:"type_id" binding:"required"`
+		GenreId *int `json:"genre_id"`
 	} `json:"types" binding:"required"`
 }
 
