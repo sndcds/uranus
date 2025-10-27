@@ -12,8 +12,8 @@ func GetEventHandler(gc *gin.Context) {
 	pool := app.Singleton.MainDbPool
 	ctx := gc.Request.Context()
 
-	eventID := gc.Param("id")
-	if eventID == "" {
+	eventId := gc.Param("id")
+	if eventId == "" {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "event ID is required"})
 		return
 	}
@@ -22,7 +22,7 @@ func GetEventHandler(gc *gin.Context) {
 
 	query := app.Singleton.SqlAdminGetEvent
 
-	rows, err := pool.Query(ctx, query, eventID, langStr)
+	rows, err := pool.Query(ctx, query, eventId, langStr)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
