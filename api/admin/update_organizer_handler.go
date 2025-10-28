@@ -27,7 +27,7 @@ type OrganizerUpdateRequest struct {
 	Latitude           *float64 `json:"latitude"`
 }
 
-func UpdateAdminOrganizerHandler(gc *gin.Context) {
+func UpdateOrganizerHandler(gc *gin.Context) {
 	pool := app.Singleton.MainDbPool
 	ctx := gc.Request.Context()
 
@@ -45,7 +45,7 @@ func UpdateAdminOrganizerHandler(gc *gin.Context) {
 
 	_, err := pool.Exec(
 		ctx,
-		app.Singleton.SqlUpdateAdminOrganizer,
+		app.Singleton.SqlUpdateOrganizer,
 		organizerID,
 		req.Name,
 		req.Description,

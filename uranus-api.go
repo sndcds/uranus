@@ -124,7 +124,7 @@ func main() {
 
 	adminRoute.GET("/choosable-organizers", app.JWTMiddleware, api_admin.ChoosableOrganizersHandler)
 	adminRoute.GET("/organizer/:organizerId", app.JWTMiddleware, api_admin.GetAdminOrganizerHandler)
-	adminRoute.PUT("/organizer/:organizerId", app.JWTMiddleware, api_admin.UpdateAdminOrganizerHandler)
+	adminRoute.PUT("/organizer/:organizerId", app.JWTMiddleware, api_admin.UpdateOrganizerHandler)
 	adminRoute.GET("/organizer/dashboard", app.JWTMiddleware, api_admin.OrganizerDashboardHandler)
 	adminRoute.GET("/organizer/:organizerId/venues", app.JWTMiddleware, api_admin.OrganizerVenuesHandler)
 	adminRoute.GET("/organizer/:organizerId/events", app.JWTMiddleware, api_admin.OrganizerEventsHandler)
@@ -133,6 +133,7 @@ func main() {
 
 	adminRoute.POST("/venue/create", app.JWTMiddleware, api_admin.CreateVenueHandler)
 	adminRoute.GET("/venue/:venueId", app.JWTMiddleware, api_admin.GetAdminVenueHandler)
+	adminRoute.PUT("/venue/:venueId", app.JWTMiddleware, api_admin.UpdateVenueHandler)
 
 	adminRoute.POST("/space/create", app.JWTMiddleware, api_admin.CreateSpaceHandler)
 	adminRoute.GET("/user/choosable-event-organizers/organizer/:organizerId", app.JWTMiddleware, api_admin.ChoosableUserEventOrganizersHandler)
