@@ -90,6 +90,7 @@ func main() {
 	publicRoute.GET("/choosable-event-types", api.ChoosableEventTypesHandler)
 	publicRoute.GET("/choosable-event-genres/event-type/:id", api.ChoosableEventGenresHandler)
 	publicRoute.GET("/choosable-licenses", api.ChoosableLicensesHandler)
+	publicRoute.GET("/choosable-legal-forms", api.ChoosableLegalFormsHandler)
 
 	publicRoute.GET("/query", api.QueryHandler)                  // TODO: Refactor QueryVenueForMap
 	publicRoute.GET("/user", app.JWTMiddleware, api.UserHandler) // Todo: To be removed
