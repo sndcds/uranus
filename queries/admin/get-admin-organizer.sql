@@ -14,8 +14,8 @@ SELECT
     state_code,
     country_code,
     address_addition,
-    ST_X(venue.wkb_geometry) AS lon,
-    ST_Y(venue.wkb_geometry) AS lat
+    ST_X(organizer.wkb_geometry) AS lon,
+    ST_Y(organizer.wkb_geometry) AS lat
 FROM {{schema}}.organizer
 WHERE id = $1
 
