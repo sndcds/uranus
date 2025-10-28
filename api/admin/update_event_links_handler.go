@@ -23,8 +23,8 @@ func UpdateEventLinksHandler(gc *gin.Context) {
 	dbSchema := app.Singleton.Config.DbSchema
 
 	// Get event ID from URL
-	eventID := gc.Param("id")
-	if eventID == "" {
+	eventId := gc.Param("eventId")
+	if eventId == "" {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "event ID is required"})
 		return
 	}
@@ -47,7 +47,7 @@ func UpdateEventLinksHandler(gc *gin.Context) {
 	}()
 
 	sqlDelete := strings.Replace(`DELETE FROM {{schema}}.event_url WHERE event_id = $1`, "{{schema}}", dbSchema, 1)
-	if _, err = tx.Exec(ctx, sqlDelete, eventID); err != nil {
+	if _, err = tx.Exec(ctx, sqlDelete, eventId); err != nil {
 		_ = tx.Rollback(ctx)
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to delete existing event links: %v", err)})
 		return
@@ -59,7 +59,7 @@ func UpdateEventLinksHandler(gc *gin.Context) {
 	)
 
 	for _, link := range req.Links {
-		_, err := tx.Exec(ctx, sqlInsert, eventID, link.Url, link.Title, link.UrlType)
+		_, err := tx.Exec(ctx, sqlInsert, eventId, link.Url, link.Title, link.UrlType)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to insertevent link: %v", err)})
 			return
@@ -72,7 +72,7 @@ func UpdateEventLinksHandler(gc *gin.Context) {
 	}
 
 	gc.JSON(http.StatusOK, gin.H{
-		"event_id": eventID,
+		"event_id": eventId,
 		"message":  "event links updated successfully",
 	})
 }

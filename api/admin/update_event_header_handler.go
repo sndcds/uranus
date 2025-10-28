@@ -21,8 +21,8 @@ func UpdateEventHeaderHandler(gc *gin.Context) {
 	dbSchema := app.Singleton.Config.DbSchema
 
 	// Get event ID from URL
-	eventID := gc.Param("id")
-	if eventID == "" {
+	eventId := gc.Param("eventId")
+	if eventId == "" {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "event ID is required"})
 		return
 	}
@@ -40,11 +40,11 @@ func UpdateEventHeaderHandler(gc *gin.Context) {
 	if req.Subtitle != nil {
 		sqlTemplate := `UPDATE {{schema}}.event SET title = $2, subtitle = $3 WHERE id = $1`
 		sqlQuery = strings.Replace(sqlTemplate, "{{schema}}", dbSchema, 1)
-		args = []interface{}{eventID, req.Title, req.Subtitle}
+		args = []interface{}{eventId, req.Title, req.Subtitle}
 	} else {
 		sqlTemplate := `UPDATE {{schema}}.event SET title = $2 WHERE id = $1`
 		sqlQuery = strings.Replace(sqlTemplate, "{{schema}}", dbSchema, 1)
-		args = []interface{}{eventID, req.Title}
+		args = []interface{}{eventId, req.Title}
 	}
 
 	// Execute update
@@ -60,7 +60,7 @@ func UpdateEventHeaderHandler(gc *gin.Context) {
 	}
 
 	gc.JSON(http.StatusOK, gin.H{
-		"event_id": eventID,
+		"event_id": eventId,
 		"message":  "event updated successfully",
 	})
 }

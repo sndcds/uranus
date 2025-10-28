@@ -19,8 +19,8 @@ func UpdateEventSpaceHandler(gc *gin.Context) {
 	dbSchema := app.Singleton.Config.DbSchema
 
 	// Get event ID from URL
-	eventID := gc.Param("id")
-	if eventID == "" {
+	eventId := gc.Param("eventId")
+	if eventId == "" {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "event ID is required"})
 		return
 	}
@@ -34,7 +34,7 @@ func UpdateEventSpaceHandler(gc *gin.Context) {
 	sqlTemplate := `UPDATE {{schema}}.event SET space_id = $2 WHERE id = $1`
 	sqlQuery := strings.Replace(sqlTemplate, "{{schema}}", dbSchema, 1)
 
-	res, err := pool.Exec(ctx, sqlQuery, eventID, req.SpaceId)
+	res, err := pool.Exec(ctx, sqlQuery, eventId, req.SpaceId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to update event: %v", err)})
 		return
@@ -47,7 +47,7 @@ func UpdateEventSpaceHandler(gc *gin.Context) {
 	}
 
 	gc.JSON(http.StatusOK, gin.H{
-		"event_id": eventID,
+		"event_id": eventId,
 		"message":  "event space updated successfully",
 	})
 }

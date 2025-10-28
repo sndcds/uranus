@@ -21,8 +21,8 @@ func UpdateEventTypesHandler(gc *gin.Context) {
 	pool := app.Singleton.MainDbPool
 	dbSchema := app.Singleton.Config.DbSchema
 
-	eventID := gc.Param("id")
-	if eventID == "" {
+	eventId := gc.Param("eventId")
+	if eventId == "" {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "event ID is required"})
 		return
 	}
@@ -46,7 +46,7 @@ func UpdateEventTypesHandler(gc *gin.Context) {
 
 	// Delete existing type-genre links
 	sqlDelete := strings.Replace(`DELETE FROM {{schema}}.event_type_links WHERE event_id = $1`, "{{schema}}", dbSchema, 1)
-	if _, err = tx.Exec(ctx, sqlDelete, eventID); err != nil {
+	if _, err = tx.Exec(ctx, sqlDelete, eventId); err != nil {
 		_ = tx.Rollback(ctx)
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to delete existing type-genre links: %v", err)})
 		return
@@ -59,7 +59,7 @@ func UpdateEventTypesHandler(gc *gin.Context) {
 	)
 
 	for _, pair := range req.Types {
-		if _, err = tx.Exec(ctx, sqlInsert, eventID, pair.TypeId, pair.GenreId); err != nil {
+		if _, err = tx.Exec(ctx, sqlInsert, eventId, pair.TypeId, pair.GenreId); err != nil {
 			_ = tx.Rollback(ctx)
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to insert type_id=%d, genre_id=%d: %v", pair.TypeId, pair.GenreId, err)})
 			return
@@ -72,7 +72,7 @@ func UpdateEventTypesHandler(gc *gin.Context) {
 	}
 
 	gc.JSON(http.StatusOK, gin.H{
-		"event_id": eventID,
+		"event_id": eventId,
 		"message":  "event types and genres updated successfully",
 	})
 }

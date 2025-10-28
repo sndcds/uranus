@@ -25,7 +25,7 @@ func UpdateEventDatesHandler(gc *gin.Context) {
 	pool := app.Singleton.MainDbPool
 	dbSchema := app.Singleton.Config.DbSchema
 
-	eventId := gc.Param("id")
+	eventId := gc.Param("eventId")
 	if eventId == "" {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "event ID is required"})
 		return

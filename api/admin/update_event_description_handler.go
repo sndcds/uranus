@@ -19,8 +19,8 @@ func UpdateEventDescriptionHandler(gc *gin.Context) {
 	dbSchema := app.Singleton.Config.DbSchema
 
 	// Get event ID from URL
-	eventID := gc.Param("id")
-	if eventID == "" {
+	eventId := gc.Param("eventId")
+	if eventId == "" {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "event ID is required"})
 		return
 	}
@@ -39,7 +39,7 @@ func UpdateEventDescriptionHandler(gc *gin.Context) {
 	sqlQuery := strings.Replace(sqlTemplate, "{{schema}}", dbSchema, 1)
 
 	// Execute update
-	res, err := pool.Exec(ctx, sqlQuery, eventID, req.Description)
+	res, err := pool.Exec(ctx, sqlQuery, eventId, req.Description)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to update event: %v", err)})
 		return
@@ -52,7 +52,7 @@ func UpdateEventDescriptionHandler(gc *gin.Context) {
 	}
 
 	gc.JSON(http.StatusOK, gin.H{
-		"event_id": eventID,
+		"event_id": eventId,
 		"message":  "event description updated successfully",
 	})
 }

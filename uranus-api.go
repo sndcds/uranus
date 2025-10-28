@@ -136,16 +136,18 @@ func main() {
 	adminRoute.PUT("/venue/:venueId", app.JWTMiddleware, api_admin.UpdateVenueHandler)
 
 	adminRoute.POST("/space/create", app.JWTMiddleware, api_admin.CreateSpaceHandler)
+	adminRoute.GET("/space/:spaceId", app.JWTMiddleware, api_admin.GetAdminSpaceHandler)
+
 	adminRoute.GET("/user/choosable-event-organizers/organizer/:organizerId", app.JWTMiddleware, api_admin.ChoosableUserEventOrganizersHandler)
 	adminRoute.POST("/event/create", app.JWTMiddleware, api_admin.CreateEventHandler)
-	adminRoute.PUT("/event/:id/header", app.JWTMiddleware, api_admin.UpdateEventHeaderHandler)
-	adminRoute.PUT("/event/:id/description", app.JWTMiddleware, api_admin.UpdateEventDescriptionHandler)
-	adminRoute.PUT("/event/:id/teaser", app.JWTMiddleware, api_admin.UpdateEventTeaserHandler)
-	adminRoute.PUT("/event/:id/types", app.JWTMiddleware, api_admin.UpdateEventTypesHandler)
-	adminRoute.PUT("/event/:id/space", app.JWTMiddleware, api_admin.UpdateEventSpaceHandler)
-	adminRoute.PUT("/event/:id/links", app.JWTMiddleware, api_admin.UpdateEventLinksHandler)
-	adminRoute.POST("/event/:id/image", app.JWTMiddleware, api_admin.UpdateEventImageHandler)
-	adminRoute.PUT("/event/:id/dates", app.JWTMiddleware, api_admin.UpdateEventDatesHandler)
+	adminRoute.PUT("/event/:eventId/header", app.JWTMiddleware, api_admin.UpdateEventHeaderHandler)
+	adminRoute.PUT("/event/:eventId/description", app.JWTMiddleware, api_admin.UpdateEventDescriptionHandler)
+	adminRoute.PUT("/event/:eventId/teaser", app.JWTMiddleware, api_admin.UpdateEventTeaserHandler)
+	adminRoute.PUT("/event/:eventId/types", app.JWTMiddleware, api_admin.UpdateEventTypesHandler)
+	adminRoute.PUT("/event/:eventId/space", app.JWTMiddleware, api_admin.UpdateEventSpaceHandler)
+	adminRoute.PUT("/event/:eventId/links", app.JWTMiddleware, api_admin.UpdateEventLinksHandler)
+	adminRoute.POST("/event/:eventId/image", app.JWTMiddleware, api_admin.UpdateEventImageHandler)
+	adminRoute.PUT("/event/:eventId/dates", app.JWTMiddleware, api_admin.UpdateEventDatesHandler)
 
 	// Check ...
 	adminRoute.POST("image/upload", app.JWTMiddleware, api.AdminAddImageHandler)
