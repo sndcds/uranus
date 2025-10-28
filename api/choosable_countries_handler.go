@@ -8,14 +8,14 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-func ChoosableLegalFormsHandler(gc *gin.Context) {
+func ChoosableCountriesHandler(gc *gin.Context) {
 	db := app.Singleton.MainDbPool
 	ctx := gc.Request.Context()
 
 	langStr := gc.DefaultQuery("lang", "en")
 
 	sql := fmt.Sprintf(
-		`SELECT legal_form_id, name FROM %s.legal_form WHERE iso_639_1 = $1 ORDER BY name`,
+		`SELECT code, name FROM %s.country WHERE iso_639_1 = $1 ORDER BY name`,
 		app.Singleton.Config.DbSchema,
 	)
 
@@ -26,23 +26,23 @@ func ChoosableLegalFormsHandler(gc *gin.Context) {
 	}
 	defer rows.Close()
 
-	type LegalForm struct {
-		LegalFormId   int64   `json:"legal_form_id"`
-		LegalFormName *string `json:"legal_form_name"`
+	type Country struct {
+		CountryCode *string `json:"country_code"`
+		CountryName *string `json:"country_name"`
 	}
 
-	var legalForms []LegalForm
+	var countries []Country
 
 	for rows.Next() {
-		var legalForm LegalForm
+		var country Country
 		if err := rows.Scan(
-			&legalForm.LegalFormId,
-			&legalForm.LegalFormName,
+			&country.CountryCode,
+			&country.CountryName,
 		); err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		legalForms = append(legalForms, legalForm)
+		countries = append(countries, country)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -50,10 +50,10 @@ func ChoosableLegalFormsHandler(gc *gin.Context) {
 		return
 	}
 
-	if len(legalForms) == 0 {
-		gc.JSON(http.StatusOK, []LegalForm{})
+	if len(countries) == 0 {
+		gc.JSON(http.StatusOK, []Country{})
 		return
 	}
 
-	gc.JSON(http.StatusOK, legalForms)
+	gc.JSON(http.StatusOK, countries)
 }
