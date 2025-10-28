@@ -23,8 +23,8 @@ type OrganizerUpdateRequest struct {
 	StateCode          *string  `json:"state_code"`
 	CountryCode        *string  `json:"country_code"`
 	AddressAddition    *string  `json:"address_addition"`
-	Lon                *float64 `json:"lon"`
-	Lat                *float64 `json:"lat"`
+	Longitude          *float64 `json:"longitude"`
+	Latitude           *float64 `json:"latitude"`
 }
 
 func UpdateAdminOrganizerHandler(gc *gin.Context) {
@@ -62,8 +62,8 @@ func UpdateAdminOrganizerHandler(gc *gin.Context) {
 		req.StateCode,
 		req.CountryCode,
 		req.AddressAddition,
-		req.Lon,
-		req.Lat,
+		req.Longitude,
+		req.Latitude,
 	)
 
 	if err != nil {
