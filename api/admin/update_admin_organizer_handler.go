@@ -45,7 +45,7 @@ func UpdateAdminOrganizerHandler(gc *gin.Context) {
 
 	_, err := pool.Exec(
 		ctx,
-		app.Singleton.SqlGetAdminOrganizer,
+		app.Singleton.SqlUpdateAdminOrganizer,
 		organizerID,
 		req.Name,
 		req.Description,
