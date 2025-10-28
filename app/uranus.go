@@ -30,6 +30,7 @@ type Uranus struct {
 	SqlGetEvents                         string
 	SqlGetAdminOrganizer                 string
 	SqlUpdateAdminOrganizer              string
+	SqlGetAdminVenue                     string
 	SqlGetAdminEvent                     string
 	SqlQueryOrganizerRoles               string
 	SqlQueryVenueRoles                   string
@@ -160,6 +161,9 @@ func (app *Uranus) PrepareSql() error {
 		// Admin
 		{"queries/admin/get-admin-organizer.sql", &app.SqlGetAdminOrganizer},
 		{"queries/admin/update-admin-organizer.sql", &app.SqlUpdateAdminOrganizer},
+
+		{"queries/admin/get-admin-venue.sql", &app.SqlGetAdminVenue},
+
 		{"queries/admin/get-admin-event.sql", &app.SqlGetAdminEvent},
 
 		{"queries/admin/admin-user-permissions.sql", &app.SqlAdminUserPermissions},
