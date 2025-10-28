@@ -13,6 +13,5 @@ SET
     city = $12,
     state_code = $13,
     country_code = $14,
-    address_addition = $15,
-    wkb_geometry = ST_SetSRID(ST_MakePoint($16, $17), 4326)
+    wkb_geometry = ST_SetSRID(ST_MakePoint($15, $16), 4326)
 WHERE id = $1;
