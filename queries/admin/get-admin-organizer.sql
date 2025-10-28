@@ -18,4 +18,3 @@ SELECT
     ST_Y(organizer.wkb_geometry) AS lat
 FROM {{schema}}.organizer
 WHERE id = $1
-
