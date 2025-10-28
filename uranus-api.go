@@ -137,6 +137,7 @@ func main() {
 
 	adminRoute.POST("/space/create", app.JWTMiddleware, api_admin.CreateSpaceHandler)
 	adminRoute.GET("/space/:spaceId", app.JWTMiddleware, api_admin.GetAdminSpaceHandler)
+	adminRoute.PUT("/space/:spaceId", app.JWTMiddleware, api_admin.UpdateSpaceHandler)
 
 	adminRoute.GET("/user/choosable-event-organizers/organizer/:organizerId", app.JWTMiddleware, api_admin.ChoosableUserEventOrganizersHandler)
 	adminRoute.POST("/event/create", app.JWTMiddleware, api_admin.CreateEventHandler)
