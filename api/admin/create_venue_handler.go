@@ -19,6 +19,8 @@ func CreateVenueHandler(gc *gin.Context) {
 		HouseNumber  *string `json:"house_number"`
 		PostalCode   *string `json:"postal_code"`
 		City         *string `json:"city"`
+		CountryCode  *string `json:"country_code"`
+		StateCode    *string `json:"state_code"`
 		ContactEmail *string `json:"contact_email"`
 		WebsiteUrl   *string `json:"website_url"`
 		ContactPhone *string `json:"contact_phone"`
@@ -57,9 +59,20 @@ func CreateVenueHandler(gc *gin.Context) {
 	var newId int
 	insertVenueQuery := `
 		INSERT INTO {{schema}}.venue
-			(organizer_id, name, street, house_number, postal_code, city, contact_email, contact_phone, website_url, wkb_geometry)
+			(organizer_id,
+			 name,
+			 street,
+			 house_number,
+			 postal_code,
+			 city, 
+			 country_code,
+			 state_code,
+			 contact_email,
+			 contact_phone,
+			 website_url,
+			 wkb_geometry)
 		VALUES
-			($1, $2, $3, $4, $5, $6, $7, $8, $9, ST_GeomFromText($10, 4326))
+			($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, ST_GeomFromText($12, 4326))
 		RETURNING id
 	`
 	insertVenueQuery = strings.Replace(insertVenueQuery, "{{schema}}", app.Singleton.Config.DbSchema, 1)
@@ -71,6 +84,8 @@ func CreateVenueHandler(gc *gin.Context) {
 		req.HouseNumber,
 		req.PostalCode,
 		req.City,
+		req.CountryCode,
+		req.StateCode,
 		req.ContactEmail,
 		req.ContactPhone,
 		req.WebsiteUrl,
