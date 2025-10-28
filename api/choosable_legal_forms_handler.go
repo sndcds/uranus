@@ -27,8 +27,8 @@ func ChoosableLegalFormsHandler(gc *gin.Context) {
 	defer rows.Close()
 
 	type LegalForm struct {
-		LegalFormId int64   `json:"legal_form_id"`
-		Name        *string `json:"name"`
+		LegalFormId   int64   `json:"legal_form_id"`
+		LegalFormName *string `json:"legal_form_name"`
 	}
 
 	var legalForms []LegalForm
@@ -37,7 +37,7 @@ func ChoosableLegalFormsHandler(gc *gin.Context) {
 		var legalForm LegalForm
 		if err := rows.Scan(
 			&legalForm.LegalFormId,
-			&legalForm.Name,
+			&legalForm.LegalFormName,
 		); err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
