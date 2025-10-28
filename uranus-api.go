@@ -117,14 +117,16 @@ func main() {
 	adminRoute.DELETE("/user/me/avatar", api_admin.DeleteUserAvatarHandler)
 	adminRoute.GET("/user/me/permissions", app.JWTMiddleware, api_admin.AdminUserPermissionsHandler)
 
-	adminRoute.GET("/event/:id", app.JWTMiddleware, api_admin.GetAdminEventHandler)
+	adminRoute.GET("/event/:eventId", app.JWTMiddleware, api_admin.GetAdminEventHandler)
 
 	adminRoute.GET("/choosable-organizers", app.JWTMiddleware, api_admin.ChoosableOrganizersHandler)
+	adminRoute.GET("/organizer/:organizerId", app.JWTMiddleware, api_admin.GetAdminOrganizerHandler)
 	adminRoute.GET("/organizer/dashboard", app.JWTMiddleware, api_admin.OrganizerDashboardHandler)
 	adminRoute.GET("/organizer/:organizerId/venues", app.JWTMiddleware, api_admin.OrganizerVenuesHandler)
 	adminRoute.GET("/organizer/:organizerId/events", app.JWTMiddleware, api_admin.OrganizerEventsHandler)
 
 	adminRoute.POST("/organizer/create", app.JWTMiddleware, api_admin.CreateOrganizerHandler)
+
 	adminRoute.POST("/venue/create", app.JWTMiddleware, api_admin.CreateVenueHandler)
 	adminRoute.POST("/space/create", app.JWTMiddleware, api_admin.CreateSpaceHandler)
 	adminRoute.GET("/user/choosable-event-organizers/organizer/:organizerId", app.JWTMiddleware, api_admin.ChoosableUserEventOrganizersHandler)

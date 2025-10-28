@@ -28,7 +28,8 @@ type Uranus struct {
 	Config                               Config
 	SqlGetEvent                          string
 	SqlGetEvents                         string
-	SqlAdminGetEvent                     string
+	SqlGetAdminOrganizer                 string
+	SqlGetAdminEvent                     string
 	SqlQueryOrganizerRoles               string
 	SqlQueryVenueRoles                   string
 	SqlQuerySpaceRoles                   string
@@ -156,7 +157,8 @@ func (app *Uranus) PrepareSql() error {
 		{"queries/choosable-venue-spaces.sql", &app.SqlChoosableVenueSpaces},
 
 		// Admin
-		{"queries/admin/get-admin-event.sql", &app.SqlAdminGetEvent},
+		{"queries/admin/get-admin-organizer.sql", &app.SqlGetAdminOrganizer},
+		{"queries/admin/get-admin-event.sql", &app.SqlGetAdminEvent},
 
 		{"queries/admin/admin-user-permissions.sql", &app.SqlAdminUserPermissions},
 		{"queries/admin/admin-user-spaces-can-add-event.sql", &app.SqlAdminSpacesCanAddEvent},
