@@ -6,6 +6,7 @@ SELECT
     closed_at,
     contact_email,
     contact_phone,
+    website_url,
     street,
     house_number,
     postal_code,

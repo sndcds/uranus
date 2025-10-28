@@ -57,9 +57,9 @@ func CreateVenueHandler(gc *gin.Context) {
 	var newId int
 	insertVenueQuery := `
 		INSERT INTO {{schema}}.venue
-			(organizer_id, name, street, house_number, postal_code, city, contact_email, contact_phone, wkb_geometry)
+			(organizer_id, name, street, house_number, postal_code, city, contact_email, contact_phone, website_url, wkb_geometry)
 		VALUES
-			($1, $2, $3, $4, $5, $6, $7, $8, ST_GeomFromText($9, 4326))
+			($1, $2, $3, $4, $5, $6, $7, $8, $9, ST_GeomFromText($10, 4326))
 		RETURNING id
 	`
 	insertVenueQuery = strings.Replace(insertVenueQuery, "{{schema}}", app.Singleton.Config.DbSchema, 1)
@@ -73,6 +73,7 @@ func CreateVenueHandler(gc *gin.Context) {
 		req.City,
 		req.ContactEmail,
 		req.ContactPhone,
+		req.WebsiteUrl,
 		wktPoint,
 	).Scan(&newId)
 
