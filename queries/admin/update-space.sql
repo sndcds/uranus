@@ -1,12 +1,12 @@
 UPDATE {{schema}}.space
 SET
-    "name",
-    description,
-    space_type_id,
-    building_level,
-    total_capacity,
-    seating_capacity,
-    website_url,
-    accessibility_flags,
-    accessibility_summary
-WHERE id = $1
+    name = $2,
+    description = $3,
+    space_type_id = $4,
+    building_level = $5,
+    total_capacity = $6,
+    seating_capacity = $7,
+    website_url = $8,
+    accessibility_flags = $9,
+    accessibility_summary = $10
+WHERE id = $1;
