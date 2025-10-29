@@ -93,7 +93,7 @@ func ResetPasswordHandler(gc *gin.Context) {
 		query,
 		req.Token).Scan(&userId, &expiresAt, &used)
 
-	if err != nil || used || time.Now().After(expiresAt) {
+	if err != nil || used || time.Now().UTC().After(expiresAt) {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired token"})
 		return
 	}
