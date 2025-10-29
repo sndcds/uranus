@@ -27,8 +27,8 @@ func ChoosableLanguagesHandler(gc *gin.Context) {
 	defer rows.Close()
 
 	type Language struct {
-		LanguageCode *string `json:"language_code"`
-		LanguageName *string `json:"language_name"`
+		Id   *string `json:"id"`
+		Name *string `json:"name"`
 	}
 
 	var languages []Language
@@ -36,8 +36,8 @@ func ChoosableLanguagesHandler(gc *gin.Context) {
 	for rows.Next() {
 		var language Language
 		if err := rows.Scan(
-			&language.LanguageCode,
-			&language.LanguageName,
+			&language.Id,
+			&language.Name,
 		); err != nil {
 			fmt.Println(err.Error())
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
