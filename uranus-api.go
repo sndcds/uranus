@@ -66,7 +66,6 @@ func main() {
 	}
 
 	app.Singleton.Config.Print()
-	go sendTestMail()
 
 	_, err = pluto.New(*configFileName, app.Singleton.MainDbPool, true)
 	if err != nil {
