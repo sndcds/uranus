@@ -14,7 +14,7 @@ import (
 
 func ForgotPasswordHandler(gc *gin.Context) {
 	var req struct {
-		Email string `json:"email"`
+		EmailAddress string `json:"email"`
 	}
 	if err := gc.ShouldBindJSON(&req); err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
@@ -26,12 +26,12 @@ func ForgotPasswordHandler(gc *gin.Context) {
 
 	// Look up user
 	query := fmt.Sprintf(
-		"SELECT id FROM %s.user WHERE email = $1",
+		"SELECT id FROM %s.user WHERE email_address = $1",
 		app.Singleton.Config.DbSchema,
 	)
 
 	var userID int
-	err := db.QueryRow(ctx, query, req.Email).Scan(&userID)
+	err := db.QueryRow(ctx, query, req.EmailAddress).Scan(&userID)
 	if err != nil {
 		// Always respond the same way to avoid leaking info
 		gc.JSON(http.StatusOK, gin.H{"message": "If an account exists, a reset link has been sent."})
@@ -62,7 +62,7 @@ func ForgotPasswordHandler(gc *gin.Context) {
 
 	// Send the email
 	go func() {
-		sendResetEmail(req.Email, resetURL)
+		sendResetEmail(req.EmailAddress, resetURL)
 	}()
 
 	gc.JSON(http.StatusOK, gin.H{"message": "If an account exists, a reset link has been sent."})
