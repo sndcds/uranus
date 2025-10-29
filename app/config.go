@@ -26,6 +26,15 @@ type Config struct {
 	PlutoCacheDir           string   `json:"pluto_cache_dir"`
 	JwtSecret               string   `json:"jwt_secret"`
 	AuthTokenExpirationTime int      `json:"auth_token_expiration_time"`
+	AuthSmtpHost            string   `json:"auth_smtp_host"`
+	AuthSmtpPort            int      `json:"auth_smtp_port"`
+	AuthSmtpLogin           string   `json:"auth_smtp_login"`
+	AuthSmtpPassword        string   `json:"auth_smtp_password"`
+	AuthReplyEmailAddress   string   `json:"auth_reply_email_address"`
+	SmtpHost                string   `json:"smtp_host"`
+	SmtpPort                int      `json:"smtp_port"`
+	SmtpLogin               string   `json:"smtp_login"`
+	SmtpPassword            string   `json:"smtp_password"`
 }
 
 func (config Config) Print() {

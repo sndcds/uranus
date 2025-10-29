@@ -18,9 +18,13 @@ func SignupHandler(gc *gin.Context) {
 	}
 
 	if err := gc.BindJSON(&req); err != nil || req.Email == "" || req.Password == "" {
-		// Todo: Validate
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "email and password required"})
 		return
+	}
+
+	// Validate
+	if !app.IsValidEmail(req.Email) {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid email"})
 	}
 
 	// Encrypt password

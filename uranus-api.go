@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net/smtp"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -12,7 +13,43 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
+func sendTestMail() {
+	from := "oklab_noreply@grain.one"
+	password := app.Singleton.Config.SmtpPassword
+
+	// List of recipients
+	to := []string{
+		"pippa@grain.one",
+	}
+
+	// Your SMTP server configuration
+	smtpHost := app.Singleton.Config.SmtpHost
+	smtpPort := app.Singleton.Config.SmtpPort
+
+	// Message body (RFC 822 format)
+	message := []byte("Subject: Hello from Go!\r\n" +
+		"To: undisclosed-recipients:;\r\n" +
+		"From: roald@grain.one\r\n" +
+		"\r\n" +
+		"This is a test email sent from Go.\r\nUranus API is prepared to reset password :-)")
+
+	// Authentication
+	auth := smtp.PlainAuth("", from, password, smtpHost)
+	addr := fmt.Sprintf("%s:%d", smtpHost, smtpPort)
+
+	// Send the email
+	err := smtp.SendMail(addr, auth, from, to, message)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	fmt.Println("Email sent successfully!")
+}
+
 func main() {
+	fmt.Println("start")
+
 	// Configuration
 	configFileName := flag.String("config", "config.json", "Path to config file")
 	verbose := flag.Bool("verbose", false, "Enable verbose logging")
@@ -29,6 +66,7 @@ func main() {
 	}
 
 	app.Singleton.Config.Print()
+	go sendTestMail()
 
 	_, err = pluto.New(*configFileName, app.Singleton.MainDbPool, true)
 	if err != nil {
@@ -113,6 +151,8 @@ func main() {
 	adminRoute.POST("/signup", api_admin.SignupHandler)
 	adminRoute.POST("/login", api_admin.LoginHandler)
 	adminRoute.POST("/refresh", api_admin.RefreshHandler)
+	adminRoute.POST("/forgot-password", api_admin.ForgotPasswordHandler)
+	adminRoute.POST("/reset-password", api_admin.ResetPasswordHandler)
 
 	adminRoute.GET("/user/me", api_admin.GetUserProfileHandler)
 	adminRoute.PUT("/user/me", api_admin.UpdateUserProfileHandler)

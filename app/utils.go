@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"net/mail"
 	"os"
 	"strings"
 
@@ -83,4 +84,9 @@ func ClampFloat32(v, min, max float32) float32 {
 		return max
 	}
 	return v
+}
+
+func IsValidEmail(email string) bool {
+	_, err := mail.ParseAddress(email)
+	return err == nil
 }

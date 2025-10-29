@@ -1,6 +1,6 @@
-UPDATE uranus.space
+UPDATE {{schema}}.space
 SET
-    name,
+    "name",
     description,
     space_type_id,
     building_level,
@@ -10,4 +10,3 @@ SET
     accessibility_flags,
     accessibility_summary
 WHERE id = $1
-
