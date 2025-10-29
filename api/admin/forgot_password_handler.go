@@ -58,7 +58,7 @@ func ForgotPasswordHandler(gc *gin.Context) {
 	}
 
 	// Build reset link
-	resetURL := fmt.Sprintf("https://uranus.oklabflensburg.de/api/admin/reset-password?token=%s", token)
+	resetURL := fmt.Sprintf("https://uranus.oklabflensburg.de/reset-password?token=%s", token)
 
 	// Send the email
 	go func() {
