@@ -130,6 +130,7 @@ func main() {
 	publicRoute.GET("/choosable-legal-forms", api.ChoosableLegalFormsHandler)
 	publicRoute.GET("/choosable-countries", api.ChoosableCountriesHandler)
 	publicRoute.GET("/choosable-states", api.ChoosableStatesHandler)
+	publicRoute.GET("/choosable-languages", api.ChoosableLanguagesHandler)
 
 	publicRoute.GET("/query", api.QueryHandler)                  // TODO: Refactor QueryVenueForMap
 	publicRoute.GET("/user", app.JWTMiddleware, api.UserHandler) // Todo: To be removed
