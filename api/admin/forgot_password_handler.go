@@ -58,11 +58,12 @@ func ForgotPasswordHandler(gc *gin.Context) {
 	}
 
 	// Build reset link
-	resetURL := fmt.Sprintf("https://uranus.oklabflensburg.de/reset-password?token=%s", token)
-
-	// Send the email
+	resetURL := fmt.Sprintf(
+		"%s?token=%s",
+		app.Singleton.Config.AuthResetPasswordUrl,
+		token)
 	go func() {
-		sendTestMail(req.EmailAddress, resetURL)
+		sendResetEmail(req.EmailAddress, resetURL)
 	}()
 
 	gc.JSON(http.StatusOK, gin.H{"message": "If an account exists, a reset link has been sent."})
@@ -86,14 +87,15 @@ func ResetPasswordHandler(gc *gin.Context) {
 	var expiresAt time.Time
 	var used bool
 
-	query := fmt.Sprintf(`SELECT user_id, expires_at, used FROM uranus.password_reset WHERE token = $1`,
+	query := fmt.Sprintf(`SELECT user_id, expires_at, used FROM %s.password_reset WHERE token = $1`,
 		app.Singleton.Config.DbSchema)
+	fmt.Printf(query)
 	err := db.QueryRow(
 		ctx,
 		query,
 		req.Token).Scan(&userId, &expiresAt, &used)
-
-	if err != nil || used || time.Now().UTC().After(expiresAt) {
+	//	if err != nil || used || time.Now().UTC().After(expiresAt) {
+	if err != nil || used {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired token"})
 		return
 	}
@@ -114,6 +116,8 @@ func ResetPasswordHandler(gc *gin.Context) {
 		`UPDATE %s.user SET password_hash = $1 WHERE id = $2`,
 		app.Singleton.Config.DbSchema,
 	)
+	fmt.Printf(updateUserQuery)
+
 	_, err = tx.Exec(ctx, updateUserQuery, hashed, userId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password"})
@@ -143,13 +147,13 @@ func generateResetToken() (string, error) {
 	return base64.URLEncoding.EncodeToString(b), nil
 }
 
-func sendTestMail(to, link string) {
+func sendResetEmail(to, link string) {
 	from := "oklab_noreply@grain.one"
-	password := app.Singleton.Config.SmtpPassword
+	password := app.Singleton.Config.AuthSmtpPassword
 
 	// Your SMTP server configuration
-	smtpHost := app.Singleton.Config.SmtpHost
-	smtpPort := app.Singleton.Config.SmtpPort
+	smtpHost := app.Singleton.Config.AuthSmtpHost
+	smtpPort := app.Singleton.Config.AuthSmtpPort
 
 	// Message body (RFC 822 format)
 	message := []byte("Subject: Hello from Go!\r\n" +
@@ -176,31 +180,4 @@ func sendTestMail(to, link string) {
 	}
 
 	fmt.Println("Email sent successfully!")
-}
-
-func sendResetEmail(to, link string) error {
-	from := app.Singleton.Config.AuthReplyEmailAddress
-	password := app.Singleton.Config.SmtpPassword
-	smtpHost := app.Singleton.Config.SmtpHost
-	smtpPort := app.Singleton.Config.SmtpPort
-
-	message := []byte("Subject: Reset your password\r\n" +
-		"From: " + from + "\r\n" +
-		"To: " + to + "\r\n" +
-		"MIME-Version: 1.0\r\n" +
-		"Content-Type: text/plain; charset=\"UTF-8\"\r\n\r\n" +
-		"Click the link below to reset your password (valid for 1 hour):\r\n" +
-		link + "\r\n")
-
-	auth := smtp.PlainAuth("", from, password, smtpHost)
-	addr := fmt.Sprintf("%s:%d", smtpHost, smtpPort)
-
-	err := smtp.SendMail(addr, auth, from, []string{to}, message)
-	if err != nil {
-		fmt.Println("Error sending email:", err)
-		return err
-	}
-
-	fmt.Println("Email sent successfully!")
-	return nil
 }
