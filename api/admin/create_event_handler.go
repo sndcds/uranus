@@ -35,6 +35,8 @@ type EventDataIncoming struct {
 		SpaceId   *int    `json:"space_id"`
 		AllDay    bool    `json:"all_day"`
 	} `json:"dates"`
+
+	Languages []string `json:"languages"`
 }
 
 func CreateEventHandler(gc *gin.Context) {
@@ -49,9 +51,6 @@ func CreateEventHandler(gc *gin.Context) {
 			gc.JSON(http.StatusBadRequest, gin.H{"error": "failed to read request body"})
 			return
 		}
-
-		// Print raw JSON to console (or log)
-		fmt.Println("Raw JSON:", string(bodyBytes))
 
 		// Reassign body so Gin can still bind it
 		gc.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
@@ -91,8 +90,9 @@ func CreateEventHandler(gc *gin.Context) {
 			title,
 			subtitle,
 			description,
-			teaser_text
-		) VALUES ($1, $2, $3, $4, $5, $6, $7)
+			teaser_text,
+		  	languages
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id`
 
 	sql := strings.Replace(sqlEvent, "{{schema}}", dbSchema, 1)
@@ -106,6 +106,7 @@ func CreateEventHandler(gc *gin.Context) {
 		incoming.Subtitle,
 		incoming.Description,
 		incoming.TeaserText,
+		incoming.Languages,
 	).Scan(&eventId)
 	if err != nil {
 		_ = tx.Rollback(ctx)

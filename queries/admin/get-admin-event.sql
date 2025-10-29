@@ -21,6 +21,8 @@ SELECT
     e.description,
     e.teaser_text,
     e.participation_info,
+    e.languages,
+    e.tags,
     e.meeting_point,
     o.id AS organizer_id,
     o.name AS organizer_name,
