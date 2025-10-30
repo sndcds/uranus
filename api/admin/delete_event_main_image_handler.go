@@ -1,7 +1,6 @@
 package api_admin
 
 import (
-	"database/sql"
 	"fmt"
 	"net/http"
 	"os"
@@ -33,25 +32,35 @@ func UpdateEventMainImageHandler(gc *gin.Context) {
 	}()
 
 	query := fmt.Sprintf(
-		`SELECT gen_file_name FROM %s.event_image_links AS eil
+		`SELECT gen_file_name, pi.id FROM %s.event_image_links AS eil
 		JOIN %s.pluto_image pi ON pi.id = eil.pluto_image_id
-		WHERE eil.event_id = 422 AND eil.main_image = TRUE;`,
+		WHERE eil.event_id = $1 AND eil.main_image = TRUE`,
 		dbSchema, dbSchema)
 
+	var plutoImageId int
 	var plutoGenFileName string
-	err = tx.QueryRow(ctx, query).Scan(&plutoGenFileName)
+	err = tx.QueryRow(ctx, query, eventId).Scan(&plutoGenFileName, &plutoImageId)
 	if err != nil {
-		fmt.Println(err.Error())
-		if err == sql.ErrNoRows {
-			fmt.Println("No main image for this event")
-		} else {
-			fmt.Errorf("failed to query pluto_image_id: %w", err)
-			return
-		}
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Query failed: %v", err)})
+		return
+	}
+
+	query = fmt.Sprintf(`DELETE FROM %s.event_image_links WHERE event_id = $1 AND main_image = TRUE`, dbSchema)
+	_, err = tx.Exec(ctx, query, eventId)
+	if err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Query failed: %v", err)})
+		return
+	}
+
+	query = fmt.Sprintf(`DELETE FROM %s.pluto_image WHERE id = $1`, dbSchema)
+	_, err = tx.Exec(ctx, query, plutoImageId)
+	if err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Query failed: %v", err)})
+		return
 	}
 
 	if err = tx.Commit(ctx); err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to commit transaction: %v", err)})
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to commit transaction: %v", err)})
 		return
 	}
 
