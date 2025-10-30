@@ -48,7 +48,6 @@ func UpdateEventDatesHandler(gc *gin.Context) {
 		}
 	}()
 
-	// Optional: delete all existing event dates for this event
 	sqlDelete := fmt.Sprintf(`DELETE FROM %s.event_date WHERE event_id = $1`, dbSchema)
 	if _, err = tx.Exec(ctx, sqlDelete, eventId); err != nil {
 		_ = tx.Rollback(ctx)
@@ -66,9 +65,20 @@ func UpdateEventDatesHandler(gc *gin.Context) {
 	for _, d := range req.Dates {
 		startTimestamp := d.StartDate + " " + d.StartTime
 		var endTimestamp *string
-		if d.EndDate != nil && d.EndTime != nil {
-			t := *d.EndDate + " " + *d.EndTime
-			endTimestamp = &t
+		if d.EndTime != nil {
+			if d.EndDate != nil {
+				t := *d.EndDate + " " + *d.EndTime
+				endTimestamp = &t
+			} else {
+				t := d.StartDate + " " + *d.EndTime
+				endTimestamp = &t
+			}
+		}
+
+		if endTimestamp != nil {
+			fmt.Println("endTimestamp:", *endTimestamp)
+		} else {
+			fmt.Println("endTimestamp: nil")
 		}
 
 		_, err = tx.Exec(ctx, sqlInsert,
