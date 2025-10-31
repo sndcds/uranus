@@ -2,11 +2,12 @@ package api
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
-func SpaceHandler(gc *gin.Context) {
+func (h *ApiHandler) GetSpace(gc *gin.Context) {
 	modeStr, _ := GetContextParam(gc, "mode")
 
 	switch modeStr {
