@@ -160,6 +160,9 @@ func main() {
 	adminRoute.POST("/forgot-password", apiHandler.ForgotPassword)
 	adminRoute.POST("/reset-password", apiHandler.ResetPassword)
 
+	adminRoute.POST("/send-message", apiHandler.AdminSendMessage)
+	adminRoute.GET("/messages", apiHandler.AdminGetMessages)
+
 	adminRoute.GET("/user/me", apiHandler.AdminGetUserProfil)
 	adminRoute.PUT("/user/me", apiHandler.AdminUpdateUserProfile)
 	adminRoute.POST("/user/me/avatar", apiHandler.AdminUploadUserAvatar)
