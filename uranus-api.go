@@ -67,7 +67,7 @@ func main() {
 	app.Singleton.Config.Print()
 
 	apiHandler := &api.ApiHandler{
-		DBPool: app.Singleton.MainDbPool,
+		DbPool: app.Singleton.MainDbPool,
 		Config: &app.Singleton.Config,
 	}
 
@@ -203,9 +203,9 @@ func main() {
 	adminRoute.DELETE("/event/:eventId/image", app.JWTMiddleware, apiHandler.AdminDeleteEventMainImage)
 
 	// Check ...
-	adminRoute.POST("image/upload", app.JWTMiddleware, api.AdminAddImageHandler)
-	adminRoute.GET("/user/spaces/:mode", app.JWTMiddleware, api.AdminUserSpacesHandler)
-	adminRoute.GET("/events", app.JWTMiddleware, api.AdminEventsHandler)
+	// adminRoute.POST("image/upload", app.JWTMiddleware, api.AdminAddImageHandler) TODO: Unused
+	// adminRoute.GET("/user/spaces/:mode", app.JWTMiddleware, api.AdminUserSpacesHandler) TODO: Unused
+	// adminRoute.GET("/events", app.JWTMiddleware, api.AdminEventsHandler) TODO: Unused
 
 	fmt.Println("Gin mode:", gin.Mode())
 	fmt.Println("Total routes:", len(router.Routes()))

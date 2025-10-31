@@ -28,7 +28,7 @@ type OrganizerUpdateRequest struct {
 }
 
 func (h *ApiHandler) AdminUpdateOrganizer(gc *gin.Context) {
-	pool := app.Singleton.MainDbPool
+	pool := h.DbPool
 	ctx := gc.Request.Context()
 
 	organizerID := gc.Param("organizerId")

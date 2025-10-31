@@ -8,7 +8,7 @@ import (
 )
 
 func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
-	pool := app.Singleton.MainDbPool
+	pool := h.DbPool
 	ctx := gc.Request.Context()
 
 	eventId := gc.Param("eventId")

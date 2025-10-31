@@ -6,11 +6,10 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sndcds/uranus/app"
 )
 
 func (h *ApiHandler) AdminCreateSpace(gc *gin.Context) {
-	pool := app.Singleton.MainDbPool
+	pool := h.DbPool
 	ctx := gc.Request.Context()
 
 	type UpdateRequest struct {
@@ -47,7 +46,7 @@ func (h *ApiHandler) AdminCreateSpace(gc *gin.Context) {
 			($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id
 	`
-	insertSpaceQuery = strings.Replace(insertSpaceQuery, "{{schema}}", app.Singleton.Config.DbSchema, 1)
+	insertSpaceQuery = strings.Replace(insertSpaceQuery, "{{schema}}", h.Config.DbSchema, 1)
 
 	err = tx.QueryRow(gc, insertSpaceQuery,
 		req.VenueId,

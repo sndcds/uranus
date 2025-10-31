@@ -26,7 +26,7 @@ type VenueUpdateRequest struct {
 }
 
 func (h *ApiHandler) AdminUpdateVenue(gc *gin.Context) {
-	pool := app.Singleton.MainDbPool
+	pool := h.DbPool
 	ctx := gc.Request.Context()
 
 	venueId := gc.Param("venueId")

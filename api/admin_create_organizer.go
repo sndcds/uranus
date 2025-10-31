@@ -10,7 +10,7 @@ import (
 )
 
 func (h *ApiHandler) AdminCreateOrganizer(gc *gin.Context) {
-	pool := app.Singleton.MainDbPool
+	pool := h.DbPool
 	ctx := gc.Request.Context()
 
 	type UpdateRequest struct {
@@ -61,7 +61,7 @@ func (h *ApiHandler) AdminCreateOrganizer(gc *gin.Context) {
 			($1, $2, $3, $4, $5, $6, $7, $8, ST_GeomFromText($9, 4326))
 		RETURNING id
 	`
-	insertOrganizerQuery = strings.Replace(insertOrganizerQuery, "{{schema}}", app.Singleton.Config.DbSchema, 1)
+	insertOrganizerQuery = strings.Replace(insertOrganizerQuery, "{{schema}}", h.Config.DbSchema, 1)
 
 	err = tx.QueryRow(gc, insertOrganizerQuery,
 		req.Name,
@@ -85,7 +85,7 @@ func (h *ApiHandler) AdminCreateOrganizer(gc *gin.Context) {
 		INSERT INTO {{schema}}.user_organizer_links (user_id, organizer_id, user_role_id)
 		VALUES ($1, $2, $3)
 	`
-	insertLinkQuery = strings.Replace(insertLinkQuery, "{{schema}}", app.Singleton.Config.DbSchema, 1)
+	insertLinkQuery = strings.Replace(insertLinkQuery, "{{schema}}", h.Config.DbSchema, 1)
 
 	_, err = tx.Exec(gc, insertLinkQuery, userId, newId, 1)
 	if err != nil {

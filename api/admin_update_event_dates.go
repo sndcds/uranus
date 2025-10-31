@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sndcds/uranus/app"
 )
 
 type UpdateEventDatesRequest struct {
@@ -22,8 +21,8 @@ type UpdateEventDatesRequest struct {
 
 func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	pool := app.Singleton.MainDbPool
-	dbSchema := app.Singleton.Config.DbSchema
+	pool := h.DbPool
+	dbSchema := h.Config.DbSchema
 
 	eventId := gc.Param("eventId")
 	if eventId == "" {

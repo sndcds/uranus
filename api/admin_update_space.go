@@ -21,7 +21,7 @@ type SpaceUpdateRequest struct {
 }
 
 func (h *ApiHandler) AdminUpdateSpace(gc *gin.Context) {
-	pool := app.Singleton.MainDbPool
+	pool := h.DbPool
 	ctx := gc.Request.Context()
 
 	spaceId := gc.Param("spaceId")

@@ -8,7 +8,7 @@ import (
 )
 
 func (h *ApiHandler) AdminGetVenue(gc *gin.Context) {
-	pool := app.Singleton.MainDbPool
+	pool := h.DbPool
 	ctx := gc.Request.Context()
 
 	venueId := gc.Param("venueId")

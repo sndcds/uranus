@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sndcds/uranus/app"
 )
 
 type EventDataIncoming struct {
@@ -41,8 +40,8 @@ type EventDataIncoming struct {
 
 func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	pool := app.Singleton.MainDbPool
-	dbSchema := app.Singleton.Config.DbSchema
+	pool := h.DbPool
+	dbSchema := h.Config.DbSchema
 
 	{
 		// Read the raw body

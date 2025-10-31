@@ -11,8 +11,7 @@ import (
 )
 
 func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
-	fmt.Println("Organizer events handler called")
-	pool := app.Singleton.MainDbPool
+	pool := h.DbPool
 	ctx := gc.Request.Context()
 
 	// Todo: Event Type
@@ -32,6 +31,7 @@ func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
 		SpaceName          *string `json:"space_name,omitempty"`
 		VenueLon           float64 `json:"venue_lon"`
 		VenueLat           float64 `json:"venue_lat"`
+		ImageId            *int    `json:"image_id"`
 	}
 
 	organizerIdStr := gc.Param("organizerId")
@@ -81,6 +81,7 @@ func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
 			&e.SpaceName,
 			&e.VenueLon,
 			&e.VenueLat,
+			&e.ImageId,
 		)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

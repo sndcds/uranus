@@ -13,7 +13,7 @@ import (
 )
 
 func (h *ApiHandler) AdminGetOrganizerVenues(gc *gin.Context) {
-	pool := app.Singleton.MainDbPool
+	pool := h.DbPool
 	ctx := gc.Request.Context()
 
 	userId, ok := app.GetCurrentUserOrAbort(gc)

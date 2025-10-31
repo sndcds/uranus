@@ -14,7 +14,6 @@ import (
 	"github.com/rwcarlsen/goexif/exif"
 	"github.com/rwcarlsen/goexif/tiff"
 	"github.com/sndcds/pluto"
-	"github.com/sndcds/uranus/app"
 )
 
 type exifWalker struct {
@@ -28,8 +27,8 @@ func (w *exifWalker) Walk(name exif.FieldName, tag *tiff.Tag) error {
 
 func (h *ApiHandler) AdminUpdateEventImage(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	pool := app.Singleton.MainDbPool
-	dbSchema := app.Singleton.Config.DbSchema
+	pool := h.DbPool
+	dbSchema := h.Config.DbSchema
 
 	eventId := gc.Param("eventId")
 	if eventId == "" {
@@ -95,7 +94,7 @@ func (h *ApiHandler) AdminUpdateEventImage(gc *gin.Context) {
 	}
 
 	// Ensure upload directory exists
-	saveDir := app.Singleton.Config.PlutoImageDir
+	saveDir := h.Config.PlutoImageDir
 	if err := os.MkdirAll(saveDir, os.ModePerm); err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to create directory: %v", err)})
 		return

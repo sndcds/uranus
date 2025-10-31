@@ -11,7 +11,6 @@ import (
 	"github.com/chai2010/webp"
 	"github.com/gin-gonic/gin"
 	"github.com/nfnt/resize"
-	"github.com/sndcds/uranus/app"
 )
 
 func (h *ApiHandler) AdminUploadUserAvatar(gc *gin.Context) {
@@ -21,7 +20,7 @@ func (h *ApiHandler) AdminUploadUserAvatar(gc *gin.Context) {
 		return
 	}
 
-	profileImageDir := app.Singleton.Config.ProfileImageDir
+	profileImageDir := h.Config.ProfileImageDir
 	fmt.Println("profileImageDir", profileImageDir)
 	info, err := os.Stat(profileImageDir)
 	if err != nil || !info.IsDir() {
@@ -52,7 +51,7 @@ func (h *ApiHandler) AdminUploadUserAvatar(gc *gin.Context) {
 	}
 
 	fmt.Println("4")
-	err = processImageAndSave(img, profileImageDir, userId, app.Singleton.Config.ProfileImageQuality)
+	err = processImageAndSave(img, profileImageDir, userId, h.Config.ProfileImageQuality)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to process and save image"})
 		return

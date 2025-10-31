@@ -11,7 +11,7 @@ import (
 )
 
 func (h *ApiHandler) AdminGetOrganizerDashboard(gc *gin.Context) {
-	pool := app.Singleton.MainDbPool
+	pool := h.DbPool
 	ctx := gc.Request.Context()
 
 	userId, ok := app.GetCurrentUserOrAbort(gc)

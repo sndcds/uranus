@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sndcds/uranus/app"
 )
 
 type updateEventLinksRequest struct {
@@ -19,8 +18,8 @@ type updateEventLinksRequest struct {
 
 func (h *ApiHandler) AdminUpdateEventLinks(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	pool := app.Singleton.MainDbPool
-	dbSchema := app.Singleton.Config.DbSchema
+	pool := h.DbPool
+	dbSchema := h.Config.DbSchema
 
 	// Get event ID from URL
 	eventId := gc.Param("eventId")

@@ -8,7 +8,7 @@ import (
 )
 
 func (h *ApiHandler) AdminUserPermissions(gc *gin.Context) {
-	db := app.Singleton.MainDbPool
+	db := h.DbPool
 	ctx := gc.Request.Context()
 
 	userId, ok := app.GetCurrentUserOrAbort(gc)

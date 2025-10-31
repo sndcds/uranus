@@ -6,6 +6,6 @@ import (
 )
 
 type ApiHandler struct {
-	DBPool *pgxpool.Pool
+	DbPool *pgxpool.Pool
 	Config *app.Config
 }

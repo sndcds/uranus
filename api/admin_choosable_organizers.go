@@ -9,7 +9,7 @@ import (
 )
 
 func (h *ApiHandler) AdminGetChoosableOrganizers(gc *gin.Context) {
-	db := app.Singleton.MainDbPool
+	db := h.DbPool
 	ctx := gc.Request.Context()
 
 	userId, ok := app.GetCurrentUserOrAbort(gc)

@@ -8,7 +8,7 @@ import (
 )
 
 func (h *ApiHandler) AdminGetOrganizer(gc *gin.Context) {
-	pool := app.Singleton.MainDbPool
+	pool := h.DbPool
 	ctx := gc.Request.Context()
 
 	organizerId := gc.Param("organizerId")

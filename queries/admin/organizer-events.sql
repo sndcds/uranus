@@ -26,15 +26,18 @@ SELECT
     COALESCE(s.id, es.id) AS space_id,
     COALESCE(s.name, es.name) AS space_name,
     ST_X(v.wkb_geometry) AS venue_lon,
-    ST_Y(v.wkb_geometry) AS venue_lat
+    ST_Y(v.wkb_geometry) AS venue_lat,
+    eil.pluto_image_id AS image_id
 
 FROM event_data ed
-    LEFT JOIN {{schema}}.event e ON ed.event_id = e.id       -- LEFT JOIN now
+    LEFT JOIN {{schema}}.event e ON ed.event_id = e.id
     LEFT JOIN {{schema}}.space s ON ed.space_id = s.id
     LEFT JOIN {{schema}}.space es ON e.space_id = es.id
     JOIN {{schema}}.venue v ON e.venue_id = v.id
     LEFT JOIN {{schema}}.organizer o ON v.organizer_id = o.id
     LEFT JOIN {{schema}}.organizer eo ON e.organizer_id = eo.id
+    LEFT JOIN {{schema}}.event_image_links eil ON e.id = eil.event_id AND eil.main_image = TRUE
+
 
 WHERE (o.id = $1 OR o.id IS NULL)   -- keep event_dates even if venue.organizer is missing
   AND ed.start::date >= $2

@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sndcds/uranus/app"
 )
 
 func (h *ApiHandler) AdminDeleteUserAvatar(gc *gin.Context) {
@@ -17,7 +16,7 @@ func (h *ApiHandler) AdminDeleteUserAvatar(gc *gin.Context) {
 		return
 	}
 
-	profileImageDir := app.Singleton.Config.ProfileImageDir
+	profileImageDir := h.Config.ProfileImageDir
 	info, err := os.Stat(profileImageDir)
 	if err != nil || !info.IsDir() {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "profile image directory does not exist"})

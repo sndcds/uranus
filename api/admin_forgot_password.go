@@ -21,7 +21,7 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 		return
 	}
 
-	db := h.DBPool
+	db := h.DbPool
 	ctx := gc.Request.Context()
 
 	// Look up user
@@ -80,7 +80,7 @@ func (h *ApiHandler) ResetPassword(gc *gin.Context) {
 		return
 	}
 
-	db := h.DBPool
+	db := h.DbPool
 	ctx := gc.Request.Context()
 
 	var userId int

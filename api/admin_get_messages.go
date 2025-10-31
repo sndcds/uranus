@@ -10,7 +10,7 @@ import (
 
 func (h *ApiHandler) AdminGetMessages(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	pool := h.DBPool
+	pool := h.DbPool
 
 	userId := UserIdFromAccessToken(gc)
 	if userId == 0 {
@@ -19,9 +19,9 @@ func (h *ApiHandler) AdminGetMessages(gc *gin.Context) {
 	}
 
 	sql := fmt.Sprintf(`
-		SELECT id, context, context_id, subject, message, created_at, modified_at, from_user_id, is_read
+		SELECT from_user_id, created_at, is_read, subject, message
 		FROM %s.message
-		WHERE context_id = $1
+		WHERE to_user_id = $1
 		ORDER BY created_at DESC
 	`, h.Config.DbSchema)
 
@@ -33,15 +33,11 @@ func (h *ApiHandler) AdminGetMessages(gc *gin.Context) {
 	defer rows.Close()
 
 	type Message struct {
-		ID         int        `json:"id"`
-		Context    string     `json:"context"`
-		ContextID  int        `json:"context_id"`
-		Subject    string     `json:"subject"`
-		Message    string     `json:"message"`
-		CreatedAt  time.Time  `json:"created_at"`
-		ModifiedAt *time.Time `json:"modified_at,omitempty"`
-		FromUserID int        `json:"from_user_id"`
-		IsRead     bool       `json:"is_read"`
+		FromUserId int       `json:"from_user_id"`
+		CreatedAt  time.Time `json:"created_at"`
+		IsRead     bool      `json:"is_read"`
+		Subject    string    `json:"subject"`
+		Message    string    `json:"message"`
 	}
 
 	var messages []Message
@@ -49,15 +45,11 @@ func (h *ApiHandler) AdminGetMessages(gc *gin.Context) {
 	for rows.Next() {
 		var msg Message
 		if err := rows.Scan(
-			&msg.ID,
-			&msg.Context,
-			&msg.ContextID,
+			&msg.FromUserId,
+			&msg.CreatedAt,
+			&msg.IsRead,
 			&msg.Subject,
 			&msg.Message,
-			&msg.CreatedAt,
-			&msg.ModifiedAt,
-			&msg.FromUserID,
-			&msg.IsRead,
 		); err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("scan failed: %v", err)})
 			return

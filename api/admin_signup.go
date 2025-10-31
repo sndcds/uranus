@@ -9,7 +9,7 @@ import (
 )
 
 func (h *ApiHandler) Signup(gc *gin.Context) {
-	pool := h.DBPool
+	pool := h.DbPool
 
 	// Parse incoming JSON
 	var req struct {

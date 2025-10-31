@@ -7,12 +7,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
-	"github.com/sndcds/uranus/app"
 )
 
 func (h *ApiHandler) AdminGetUserProfil(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	pool := app.Singleton.MainDbPool
+	pool := h.DbPool
 
 	userId := UserIdFromAccessToken(gc)
 	if userId == 0 {
@@ -24,8 +23,8 @@ func (h *ApiHandler) AdminGetUserProfil(gc *gin.Context) {
 	sql := strings.Replace(`
         SELECT id, email_address, display_name, first_name, last_name, locale, theme
         FROM {{schema}}.user
-        WHERE id = $1
-    `, "{{schema}}", app.Singleton.Config.DbSchema, 1)
+        WHERE id = $1`,
+		"{{schema}}", h.Config.DbSchema, 1)
 
 	var user struct {
 		UserID      int     `json:"user_id"`
@@ -54,7 +53,7 @@ func (h *ApiHandler) AdminGetUserProfil(gc *gin.Context) {
 
 func (h *ApiHandler) AdminUpdateUserProfile(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	pool := app.Singleton.MainDbPool
+	pool := h.DbPool
 
 	userId := UserIdFromAccessToken(gc)
 	if userId == 0 {
@@ -92,7 +91,7 @@ func (h *ApiHandler) AdminUpdateUserProfile(gc *gin.Context) {
 	defer func() { _ = tx.Rollback(ctx) }()
 
 	// --- Check for existing email ---
-	checkSQL := fmt.Sprintf(`SELECT id FROM %s.user WHERE email_address = $1`, app.Singleton.Config.DbSchema)
+	checkSQL := fmt.Sprintf(`SELECT id FROM %s.user WHERE email_address = $1`, h.Config.DbSchema)
 	var existingUserID int
 	err = tx.QueryRow(ctx, checkSQL, req.EmailAddress).Scan(&existingUserID)
 
@@ -115,8 +114,8 @@ func (h *ApiHandler) AdminUpdateUserProfile(gc *gin.Context) {
             email_address = $4,
             locale = $5,
             theme = $6
-        WHERE id = $7
-    `, app.Singleton.Config.DbSchema)
+        WHERE id = $7`,
+		h.Config.DbSchema)
 
 	_, err = tx.Exec(
 		ctx,

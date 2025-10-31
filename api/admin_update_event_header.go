@@ -16,7 +16,7 @@ type UpdateEventRequest struct {
 
 func (h *ApiHandler) AdminUpdateEventHeader(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	pool := h.DBPool
+	pool := h.DbPool
 	dbSchema := h.Config.DbSchema
 
 	// Get event ID from URL
