@@ -19,7 +19,7 @@ func (h *ApiHandler) AdminGetMessages(gc *gin.Context) {
 	}
 
 	sql := fmt.Sprintf(`
-		SELECT from_user_id, created_at, is_read, subject, message
+		SELECT id, from_user_id, created_at, is_read, subject, message
 		FROM %s.message
 		WHERE to_user_id = $1
 		ORDER BY created_at DESC
@@ -33,6 +33,7 @@ func (h *ApiHandler) AdminGetMessages(gc *gin.Context) {
 	defer rows.Close()
 
 	type Message struct {
+		Id         int       `json:"id"`
 		FromUserId int       `json:"from_user_id"`
 		CreatedAt  time.Time `json:"created_at"`
 		IsRead     bool      `json:"is_read"`
@@ -45,6 +46,7 @@ func (h *ApiHandler) AdminGetMessages(gc *gin.Context) {
 	for rows.Next() {
 		var msg Message
 		if err := rows.Scan(
+			&msg.Id,
 			&msg.FromUserId,
 			&msg.CreatedAt,
 			&msg.IsRead,
