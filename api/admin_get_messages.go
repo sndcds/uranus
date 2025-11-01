@@ -64,6 +64,8 @@ func (h *ApiHandler) AdminGetMessages(gc *gin.Context) {
 		return
 	}
 
+	fmt.Println(messages)
+
 	gc.JSON(http.StatusOK, gin.H{
 		"messages": messages,
 	})

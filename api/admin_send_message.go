@@ -12,8 +12,8 @@ func (h *ApiHandler) AdminSendMessage(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	pool := h.DbPool
 
-	userId := UserIdFromAccessToken(gc)
-	if userId == 0 {
+	fromuserId := UserIdFromAccessToken(gc)
+	if fromuserId <= 0 {
 		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user"})
 		return
 	}
@@ -75,13 +75,15 @@ func (h *ApiHandler) AdminSendMessage(gc *gin.Context) {
 			return
 		}
 
+		fmt.Println(fromuserId)
+
 		for _, toUserId := range userIds {
 			insertSQL := fmt.Sprintf(
 				`INSERT INTO %s.message (to_user_id, from_user_id, subject, message)
              VALUES ($1, $2, $3, $4)`,
 				h.Config.DbSchema,
 			)
-			_, err := tx.Exec(ctx, insertSQL, toUserId, userId, req.Subject, req.Message)
+			_, err := tx.Exec(ctx, insertSQL, toUserId, fromuserId, req.Subject, req.Message)
 			if err != nil {
 				gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to insert message: %v", err)})
 				return
