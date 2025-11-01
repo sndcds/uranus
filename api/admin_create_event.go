@@ -35,7 +35,8 @@ type EventDataIncoming struct {
 		AllDay    bool    `json:"all_day"`
 	} `json:"dates"`
 
-	Languages []string `json:"languages"`
+	Languages   []string `json:"languages"`
+	ReleaseDate string   `json:"release_date"`
 }
 
 func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
@@ -43,17 +44,15 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	pool := h.DbPool
 	dbSchema := h.Config.DbSchema
 
-	{
-		// Read the raw body
-		bodyBytes, err := io.ReadAll(gc.Request.Body)
-		if err != nil {
-			gc.JSON(http.StatusBadRequest, gin.H{"error": "failed to read request body"})
-			return
-		}
-
-		// Reassign body so Gin can still bind it
-		gc.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+	// Read the raw body
+	bodyBytes, err := io.ReadAll(gc.Request.Body)
+	if err != nil {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "failed to read request body"})
+		return
 	}
+
+	// Reassign body so Gin can still bind it
+	gc.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
 	var incoming EventDataIncoming
 	if err := gc.ShouldBindJSON(&incoming); err != nil {
@@ -86,8 +85,9 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			subtitle,
 			description,
 			teaser_text,
-		  	languages
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		  	languages,
+			release_date,
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id`
 
 	sql := strings.Replace(sqlEvent, "{{schema}}", dbSchema, 1)
@@ -102,6 +102,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		incoming.Description,
 		incoming.TeaserText,
 		incoming.Languages,
+		incoming.ReleaseDate,
 	).Scan(&eventId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to insert event: %v", err)})
@@ -214,28 +215,3 @@ func printDebug(incoming EventDataIncoming) {
 		fmt.Println("  AllDay:", d.AllDay)
 	}
 }
-
-/*
-func CreateEventHandler(gc *gin.Context) {
-	if eventData.ImageURL != nil {
-		var imageId int
-		err = tx.QueryRow(ctx,
-			`INSERT INTO image (url) VALUES ($1) RETURNING id`,
-			*eventData.ImageURL,
-		).Scan(&imageId)
-		if err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert image"})
-			return
-		}
-
-		_, err = tx.Exec(ctx,
-			`INSERT INTO event_image_links (event_id, image_id) VALUES ($1, $2)`,
-			eventId, imageId,
-		)
-		if err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to link image"})
-			return
-		}
-	}
-}
-*/

@@ -132,10 +132,11 @@ func main() {
 	publicRoute.GET("/choosable-spaces/venue/:id", apiHandler.GetChoosableVenueSpaces)
 	publicRoute.GET("/choosable-event-types", apiHandler.GetChoosableEventTypes)
 	publicRoute.GET("/choosable-event-genres/event-type/:id", apiHandler.GetChoosableEventGenres)
+	publicRoute.GET("/choosable-states", apiHandler.GetChoosableStates)
 	publicRoute.GET("/choosable-licenses", apiHandler.GetChoosableLicenses)
 	publicRoute.GET("/choosable-legal-forms", apiHandler.GetChoosableLegalForms)
 	publicRoute.GET("/choosable-countries", apiHandler.GetChoosableCountries)
-	publicRoute.GET("/choosable-states", apiHandler.GetChoosableStates)
+	publicRoute.GET("/choosable-release-states", apiHandler.GetChoosableReleaseStates)
 	publicRoute.GET("/choosable-languages", apiHandler.GetChoosableLanguages)
 	publicRoute.GET("/accessibility/flags", apiHandler.GetAccessibilityFlags)
 
@@ -201,6 +202,7 @@ func main() {
 	adminRoute.PUT("/event/:eventId/dates", app.JWTMiddleware, apiHandler.AdminUpdateEventDates)
 	adminRoute.PUT("/event/:eventId/tags", app.JWTMiddleware, apiHandler.AdminUpdateEventTags)
 	adminRoute.PUT("/event/:eventId/languages", app.JWTMiddleware, apiHandler.AdminUpdateEventLanguages)
+	adminRoute.PUT("/event/:eventId/release-status", app.JWTMiddleware, apiHandler.AdminUpdateEventReleaseStatus)
 	adminRoute.DELETE("/event/:eventId/image", app.JWTMiddleware, apiHandler.AdminDeleteEventMainImage)
 
 	// Check ...

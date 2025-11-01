@@ -24,6 +24,8 @@ SELECT
     e.languages,
     e.tags,
     e.meeting_point,
+    e.release_status_id,
+    e.release_date,
     o.id AS organizer_id,
     o.name AS organizer_name,
     v.id AS venue_id,
