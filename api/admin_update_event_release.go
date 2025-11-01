@@ -20,14 +20,19 @@ func (h *ApiHandler) AdminUpdateEventReleaseStatus(gc *gin.Context) {
 	}
 
 	type Incoming struct {
-		ReleaseDate     string `json:"release_date"`
-		ReleaseStatusId int    `json:"release_status_id" binding:"required"`
+		ReleaseDate     *string `json:"release_date"`
+		ReleaseStatusId int     `json:"release_status_id" binding:"required"`
 	}
 
 	var req Incoming
 	if err := gc.ShouldBindJSON(&req); err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	var releaseDate interface{} = req.ReleaseDate
+	if releaseDate != nil && *req.ReleaseDate == "" {
+		releaseDate = nil
 	}
 
 	sqlTemplate := `
