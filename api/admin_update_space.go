@@ -10,14 +10,14 @@ import (
 type SpaceUpdateRequest struct {
 	VenueID              *int    `json:"venue_id"`
 	Name                 *string `json:"name"`
+	Description          *string `json:"description"`
 	TotalCapacity        *int    `json:"total_capacity"`
 	SeatingCapacity      *int    `json:"seating_capacity"`
 	SpaceTypeID          *int    `json:"space_type_id"`
 	BuildingLevel        *int    `json:"building_level"`
 	WebsiteURL           *string `json:"website_url"`
-	AccessibilitySummary *string `json:"accessibility_summary"`
 	AccessibilityFlags   *int64  `json:"accessibility_flags"`
-	Description          *string `json:"description"`
+	AccessibilitySummary *string `json:"accessibility_summary"`
 }
 
 func (h *ApiHandler) AdminUpdateSpace(gc *gin.Context) {

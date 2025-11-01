@@ -13,13 +13,16 @@ func (h *ApiHandler) AdminCreateSpace(gc *gin.Context) {
 	ctx := gc.Request.Context()
 
 	type UpdateRequest struct {
-		VenueId         int     `json:"venue_id"`
-		Name            *string `json:"name"`
-		SpaceTypeId     int     `json:"space_type_id"`
-		BuildingLevel   int     `json:"building_level"`
-		TotalCapacity   int     `json:"total_capacity"`
-		SeatingCapacity int     `json:"seating_capacity"`
-		WebsiteUrl      *string `json:"website_url"`
+		VenueId              int     `json:"venue_id"`
+		Name                 *string `json:"name"`
+		Description          *string `json:"description"`
+		SpaceTypeId          int     `json:"space_type_id"`
+		BuildingLevel        int     `json:"building_level"`
+		TotalCapacity        int     `json:"total_capacity"`
+		SeatingCapacity      int     `json:"seating_capacity"`
+		WebsiteUrl           *string `json:"website_url"`
+		AccessibilityFlags   int64   `json:"accessibility_flags"`
+		AccessibilitySummary *string `json:"accessibility_summary"`
 	}
 
 	// TODO: Check permissions by user and OrganizerId
@@ -41,9 +44,9 @@ func (h *ApiHandler) AdminCreateSpace(gc *gin.Context) {
 	var newId int
 	insertSpaceQuery := `
 		INSERT INTO {{schema}}.space
-			(venue_id, name, space_type_id, building_level, total_capacity, seating_capacity, website_url)
+			(venue_id, name, description, space_type_id, building_level, total_capacity, seating_capacity, website_url, accessibility_flags, accessibility_summary)
 		VALUES
-			($1, $2, $3, $4, $5, $6, $7)
+			($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING id
 	`
 	insertSpaceQuery = strings.Replace(insertSpaceQuery, "{{schema}}", h.Config.DbSchema, 1)
@@ -51,11 +54,14 @@ func (h *ApiHandler) AdminCreateSpace(gc *gin.Context) {
 	err = tx.QueryRow(gc, insertSpaceQuery,
 		req.VenueId,
 		req.Name,
+		req.Description,
 		req.SpaceTypeId,
 		req.BuildingLevel,
 		req.TotalCapacity,
 		req.SeatingCapacity,
 		req.WebsiteUrl,
+		req.AccessibilityFlags,
+		req.AccessibilitySummary,
 	).Scan(&newId)
 
 	if err != nil {

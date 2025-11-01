@@ -27,7 +27,8 @@ SELECT
     COALESCE(s.name, es.name) AS space_name,
     ST_X(v.wkb_geometry) AS venue_lon,
     ST_Y(v.wkb_geometry) AS venue_lat,
-    eil.pluto_image_id AS image_id
+    eil.pluto_image_id AS image_id,
+    et_data.event_types
 
 FROM event_data ed
     LEFT JOIN {{schema}}.event e ON ed.event_id = e.id
@@ -37,6 +38,19 @@ FROM event_data ed
     LEFT JOIN {{schema}}.organizer o ON v.organizer_id = o.id
     LEFT JOIN {{schema}}.organizer eo ON e.organizer_id = eo.id
     LEFT JOIN {{schema}}.event_image_links eil ON e.id = eil.event_id AND eil.main_image = TRUE
+
+    LEFT JOIN LATERAL (
+        SELECT jsonb_agg(DISTINCT jsonb_build_object(
+            'type_id', etl.type_id,
+            'type_name', et.name,
+            'genre_id', COALESCE(gt.type_id, 0),
+            'genre_name', gt.name
+        )) AS event_types
+        FROM {{schema}}.event_type_links etl
+        JOIN {{schema}}.event_type et ON et.type_id = etl.type_id AND et.iso_639_1 = $3
+        LEFT JOIN {{schema}}.genre_type gt ON gt.type_id = etl.genre_id AND gt.iso_639_1 = $3
+        WHERE etl.event_id = e.id
+    ) et_data ON true
 
 
 WHERE (o.id = $1 OR o.id IS NULL)   -- keep event_dates even if venue.organizer is missing

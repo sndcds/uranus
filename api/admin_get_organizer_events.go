@@ -1,7 +1,7 @@
 package api
 
 import (
-	"fmt"
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
@@ -14,24 +14,31 @@ func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
 	pool := h.DbPool
 	ctx := gc.Request.Context()
 
-	// Todo: Event Type
+	type EventType struct {
+		TypeID    int     `json:"type_id"`
+		TypeName  string  `json:"type_name"`
+		GenreID   int     `json:"genre_id"`
+		GenreName *string `json:"genre_name"`
+	}
+
 	type EventWithVenue struct {
-		EventId            int     `json:"event_id"`
-		EventTitle         string  `json:"event_title"`
-		EventSubtitle      *string `json:"event_subtitle"`
-		EventOrganizerId   int     `json:"event_organizer_id"`
-		EventOrganizerName *string `json:"event_organizer_name"`
-		StartDate          *string `json:"start_date"`
-		StartTime          *string `json:"start_time"`
-		EndDate            *string `json:"end_date"`
-		EndTime            *string `json:"end_time"`
-		VenueId            int     `json:"venue_id"`
-		VenueName          string  `json:"venue_name"`
-		SpaceId            *int    `json:"space_id,omitempty"`
-		SpaceName          *string `json:"space_name,omitempty"`
-		VenueLon           float64 `json:"venue_lon"`
-		VenueLat           float64 `json:"venue_lat"`
-		ImageId            *int    `json:"image_id"`
+		EventId            int         `json:"event_id"`
+		EventTitle         string      `json:"event_title"`
+		EventSubtitle      *string     `json:"event_subtitle"`
+		EventOrganizerId   int         `json:"event_organizer_id"`
+		EventOrganizerName *string     `json:"event_organizer_name"`
+		StartDate          *string     `json:"start_date"`
+		StartTime          *string     `json:"start_time"`
+		EndDate            *string     `json:"end_date"`
+		EndTime            *string     `json:"end_time"`
+		VenueId            int         `json:"venue_id"`
+		VenueName          string      `json:"venue_name"`
+		SpaceId            *int        `json:"space_id,omitempty"`
+		SpaceName          *string     `json:"space_name,omitempty"`
+		VenueLon           float64     `json:"venue_lon"`
+		VenueLat           float64     `json:"venue_lat"`
+		ImageId            *int        `json:"image_id"`
+		EventTypes         []EventType `json:"event_types"`
 	}
 
 	organizerIdStr := gc.Param("organizerId")
@@ -51,17 +58,15 @@ func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
 	} else {
 		startDate = time.Now()
 	}
-	fmt.Println("startDate:", startDate)
 
-	rows, err := pool.Query(ctx, app.Singleton.SqlAdminOrganizerEvents, organizerId, startDate)
+	rows, err := pool.Query(ctx, app.Singleton.SqlAdminOrganizerEvents, organizerId, startDate, "de")
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	defer rows.Close()
 
-	fmt.Println("rows:", rows)
-
+	var eventTypesData []byte
 	var events []EventWithVenue
 	for rows.Next() {
 		var e EventWithVenue
@@ -82,10 +87,14 @@ func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
 			&e.VenueLon,
 			&e.VenueLat,
 			&e.ImageId,
+			&eventTypesData,
 		)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
+		}
+		if len(eventTypesData) > 0 {
+			_ = json.Unmarshal(eventTypesData, &e.EventTypes)
 		}
 		events = append(events, e)
 	}
