@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -47,6 +48,18 @@ func (h *ApiHandler) GetEvent(gc *gin.Context) {
 		result = make(map[string]interface{}, len(values))
 		for i, col := range columnNames {
 			result[col] = values[i]
+		}
+
+		// Add extra property image_path
+		imageID := result["image_id"]
+		if imageID == nil {
+			result["image_path"] = nil // or "" if you prefer
+		} else {
+			result["image_path"] = fmt.Sprintf(
+				"%s/api/image/%v",
+				app.Singleton.Config.BaseApiUrl,
+				imageID,
+			)
 		}
 	} else {
 		gc.JSON(http.StatusNotFound, gin.H{"error": "event not found"})

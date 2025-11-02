@@ -20,6 +20,7 @@ SELECT
     e.teaser_text AS teaser_text,
     e.participation_info AS participation_info,
     e.meeting_point AS meeting_point,
+    e.languages,
 
     o.id AS organizer_id,
     o.name AS organizer_name,
