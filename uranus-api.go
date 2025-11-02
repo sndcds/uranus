@@ -169,6 +169,7 @@ func main() {
 	adminRoute.GET("/todo/:todoId", apiHandler.AdminGetTodo)
 	adminRoute.POST("/todo", apiHandler.AdminCreateTodo)
 	adminRoute.PUT("/todo/:todoId", apiHandler.AdminUpdateTodo)
+	adminRoute.DELETE("/todo/:todoId", apiHandler.AdminDeleteTodo)
 
 	adminRoute.GET("/user/me", apiHandler.AdminGetUserProfil)
 	adminRoute.PUT("/user/me", apiHandler.AdminUpdateUserProfile)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -20,6 +21,7 @@ type Todo struct {
 	Title       string     `json:"title"`
 	Description *string    `json:"description"`
 	DueDate     *time.Time `json:"due_date"`
+	Completed   bool       `json:"completed"`
 }
 
 func (h *ApiHandler) AdminGetTodos(gc *gin.Context) {
@@ -33,12 +35,11 @@ func (h *ApiHandler) AdminGetTodos(gc *gin.Context) {
 	}
 
 	sql := fmt.Sprintf(`
-		SELECT id, title, description, due_date
+		SELECT id, title, description, due_date, completed
 		FROM %s.todo
-		WHERE user_id = $1 AND done = FALSE
+		WHERE user_id = $1
 		ORDER BY due_date ASC`,
 		h.Config.DbSchema)
-
 	rows, err := pool.Query(ctx, sql, userId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("query failed: %v", err)})
@@ -55,6 +56,7 @@ func (h *ApiHandler) AdminGetTodos(gc *gin.Context) {
 			&todo.Title,
 			&todo.Description,
 			&todo.DueDate,
+			&todo.Completed,
 		); err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("scan failed: %v", err)})
 			return
@@ -68,7 +70,7 @@ func (h *ApiHandler) AdminGetTodos(gc *gin.Context) {
 	}
 
 	gc.JSON(http.StatusOK, gin.H{
-		"messages": todos,
+		"todos": todos,
 	})
 }
 
@@ -82,7 +84,7 @@ func (h *ApiHandler) AdminGetTodo(gc *gin.Context) {
 		return
 	}
 
-	todoIdStr := gc.Param("todo_id")
+	todoIdStr := gc.Param("todoId")
 	if todoIdStr == "" {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "todo_id is required"})
 		return
@@ -187,7 +189,7 @@ func (h *ApiHandler) AdminUpdateTodo(gc *gin.Context) {
 		return
 	}
 
-	todoIdStr := gc.Param("todo_id")
+	todoIdStr := gc.Param("todoId")
 	if todoIdStr == "" {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "todo_id is required"})
 		return
@@ -200,8 +202,9 @@ func (h *ApiHandler) AdminUpdateTodo(gc *gin.Context) {
 	}
 
 	type Incoming struct {
-		Title       string  `json:"title"`
-		Description string  `json:"description"`
+		Completed   *bool   `json:"completed"`
+		Title       *string `json:"title"`
+		Description *string `json:"description"`
 		DueDate     *string `json:"due_date"`
 	}
 
@@ -211,24 +214,68 @@ func (h *ApiHandler) AdminUpdateTodo(gc *gin.Context) {
 		return
 	}
 
-	var duePtr *time.Time
-	if req.DueDate != nil && *req.DueDate != "" {
-		t, err := time.Parse("2006-01-02", *req.DueDate)
-		if err != nil {
-			gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid due_date format, expected YYYY-MM-DD"})
-			return
-		}
-		duePtr = &t
+	setClauses := []string{}
+	args := []interface{}{}
+	argIdx := 1
+
+	// Completed
+	if req.Completed != nil {
+		setClauses = append(setClauses, fmt.Sprintf("completed = $%d", argIdx))
+		args = append(args, *req.Completed)
+		argIdx++
 	}
 
+	// Title
+	if req.Title != nil {
+		setClauses = append(setClauses, fmt.Sprintf("title = $%d", argIdx))
+		args = append(args, *req.Title)
+		argIdx++
+	}
+
+	// Description
+	if req.Description != nil {
+		setClauses = append(setClauses, fmt.Sprintf("description = $%d", argIdx))
+		args = append(args, *req.Description)
+		argIdx++
+	}
+
+	// DueDate
+	if req.DueDate != nil {
+		var duePtr *time.Time
+		if *req.DueDate != "" {
+			t, err := time.Parse("2006-01-02", *req.DueDate)
+			if err != nil {
+				gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid due_date format, expected YYYY-MM-DD"})
+				return
+			}
+			duePtr = &t
+		}
+		setClauses = append(setClauses, fmt.Sprintf("due_date = $%d", argIdx))
+		args = append(args, duePtr)
+		argIdx++
+	}
+
+	// If nothing to update
+	if len(setClauses) == 0 {
+		gc.JSON(http.StatusOK, gin.H{"message": "nothing to do"})
+		return
+	}
+
+	// Build SQL
 	sql := fmt.Sprintf(`
 		UPDATE %s.todo
-		SET title = $1, description = $2, due_date = $3
-		WHERE user_id = $4 AND id = $5`,
+		SET %s
+		WHERE user_id = $%d AND id = $%d`,
 		dbSchema,
+		strings.Join(setClauses, ", "),
+		argIdx,   // user_id
+		argIdx+1, // todo_id
 	)
 
-	res, err := pool.Exec(ctx, sql, req.Title, req.Description, duePtr, userId, todoId)
+	// Append user_id and todoId to args
+	args = append(args, userId, todoId)
+
+	res, err := pool.Exec(ctx, sql, args...)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("update failed: %v", err)})
 		return
@@ -242,5 +289,46 @@ func (h *ApiHandler) AdminUpdateTodo(gc *gin.Context) {
 	gc.JSON(http.StatusOK, gin.H{
 		"todo_id": todoId,
 		"message": "Todo updated successfully",
+	})
+}
+
+func (h *ApiHandler) AdminDeleteTodo(gc *gin.Context) {
+	ctx := gc.Request.Context()
+	pool := h.DbPool
+	dbSchema := h.Config.DbSchema
+
+	userId := UserIdFromAccessToken(gc)
+	if userId == 0 {
+		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user"})
+		return
+	}
+
+	todoIdStr := gc.Param("todoId")
+	if todoIdStr == "" {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "todo_id is required"})
+		return
+	}
+
+	todoId, err := strconv.Atoi(todoIdStr)
+	if err != nil {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "todo_id must be a number"})
+		return
+	}
+
+	sql := fmt.Sprintf(`DELETE FROM %s.todo WHERE user_id = $1 AND id = $2`, dbSchema)
+	res, err := pool.Exec(ctx, sql, userId, todoId)
+	if err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("delete failed: %v", err)})
+		return
+	}
+
+	if res.RowsAffected() == 0 {
+		gc.JSON(http.StatusNotFound, gin.H{"error": "todo not found"})
+		return
+	}
+
+	gc.JSON(http.StatusOK, gin.H{
+		"todo_id": todoId,
+		"message": "Todo deleted successfully",
 	})
 }
