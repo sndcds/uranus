@@ -155,7 +155,7 @@ func (h *ApiHandler) AdminCreateTodo(gc *gin.Context) {
 	sql := fmt.Sprintf(`
 		INSERT INTO %s.todo (user_id, title, description, due_date)
 		VALUES ($1, $2, $3, $4)
-		RETURNING id, title, description, due_date`,
+		RETURNING id`,
 		dbSchema)
 
 	var duePtr *time.Time
