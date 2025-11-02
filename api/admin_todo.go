@@ -16,7 +16,7 @@ adminRoute.PUT("/todo/:todoId", apiHandler.AdminUpdateTodo)
 */
 
 type Todo struct {
-	Id          int        `json:"id"`
+	Id          int        `json:"todo_id"`
 	Title       string     `json:"title"`
 	Description *string    `json:"description"`
 	DueDate     *time.Time `json:"due_date"`
@@ -33,7 +33,7 @@ func (h *ApiHandler) AdminGetTodos(gc *gin.Context) {
 	}
 
 	sql := fmt.Sprintf(`
-		SELECT id AS todo_id, title, description, due_date
+		SELECT id, title, description, due_date
 		FROM %s.todo
 		WHERE user_id = $1 AND done = FALSE
 		ORDER BY due_date ASC`,
