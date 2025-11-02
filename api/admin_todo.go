@@ -33,7 +33,7 @@ func (h *ApiHandler) AdminGetTodos(gc *gin.Context) {
 	}
 
 	sql := fmt.Sprintf(`
-		SELECT id, title, description, due_date
+		SELECT id AS todo_id, title, description, due_date
 		FROM %s.todo
 		WHERE user_id = $1 AND done = FALSE
 		ORDER BY due_date ASC`,
