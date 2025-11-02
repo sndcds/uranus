@@ -85,9 +85,8 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			subtitle,
 			description,
 			teaser_text,
-		  	languages,
-			release_date,
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		  	languages
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id`
 
 	sql := strings.Replace(sqlEvent, "{{schema}}", dbSchema, 1)
@@ -102,7 +101,6 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		incoming.Description,
 		incoming.TeaserText,
 		incoming.Languages,
-		incoming.ReleaseDate,
 	).Scan(&eventId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to insert event: %v", err)})

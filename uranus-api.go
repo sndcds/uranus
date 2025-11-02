@@ -165,6 +165,11 @@ func main() {
 	adminRoute.POST("/send-message", apiHandler.AdminSendMessage)
 	adminRoute.GET("/messages", apiHandler.AdminGetMessages)
 
+	adminRoute.GET("/todos", apiHandler.AdminGetTodos)
+	adminRoute.GET("/todo/:todoId", apiHandler.AdminGetTodo)
+	adminRoute.POST("/todo", apiHandler.AdminCreateTodo)
+	adminRoute.PUT("/todo/:todoId", apiHandler.AdminUpdateTodo)
+
 	adminRoute.GET("/user/me", apiHandler.AdminGetUserProfil)
 	adminRoute.PUT("/user/me", apiHandler.AdminUpdateUserProfile)
 	adminRoute.POST("/user/me/avatar", apiHandler.AdminUploadUserAvatar)
