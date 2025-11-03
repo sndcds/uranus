@@ -53,6 +53,7 @@ type Uranus struct {
 	SqlAdminOrganizerEvents              string
 	SqlQueryUserOrgEventsOverview        string
 	SqlAdminUserPermissions              string
+	SqlAdminGetUserEventNotification     string
 	SqlAdminChoosableOrganizers          string
 	SqlAdminChoosableUserEventOrganizers string
 	SqlAdminEvent                        string
@@ -174,6 +175,8 @@ func (app *Uranus) PrepareSql() error {
 		{"queries/admin/get-admin-event.sql", &app.SqlGetAdminEvent},
 
 		{"queries/admin/admin-user-permissions.sql", &app.SqlAdminUserPermissions},
+		{"queries/admin/admin-get-user-event-notification.sql", &app.SqlAdminGetUserEventNotification},
+
 		{"queries/admin/admin-user-spaces-can-add-event.sql", &app.SqlAdminSpacesCanAddEvent},
 		{"queries/admin/admin-user-spaces-for-event.sql", &app.SqlAdminSpacesForEvent},
 
