@@ -12,11 +12,7 @@ import (
 func (h *ApiHandler) AdminChoosableUserEventOrganizers(gc *gin.Context) {
 	db := h.DbPool
 	ctx := gc.Request.Context()
-
-	userId, ok := app.GetCurrentUserOrAbort(gc)
-	if !ok {
-		return // already sent error response
-	}
+	userId := gc.GetInt("user-id")
 
 	// Parse organizer ID from path param
 	organizerIdStr := gc.Param("organizerId")

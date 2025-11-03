@@ -12,6 +12,7 @@ import (
 func (h *ApiHandler) AdminCreateOrganizer(gc *gin.Context) {
 	pool := h.DbPool
 	ctx := gc.Request.Context()
+	userId := gc.GetInt("user-id")
 
 	type UpdateRequest struct {
 		Name         *string `json:"name"`
@@ -37,11 +38,6 @@ func (h *ApiHandler) AdminCreateOrganizer(gc *gin.Context) {
 	if err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
-	}
-
-	userId, ok := app.GetCurrentUserOrAbort(gc)
-	if !ok {
-		return // already sent error response
 	}
 
 	// Begin transaction

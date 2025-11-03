@@ -15,10 +15,6 @@ func QueryHandler(gc *gin.Context) {
 		// QueryVenue(gc)
 		break
 
-	case "venue-map":
-		QueryVenueForMap(gc) // TODO: Auslagern!!!!!!
-		break
-
 	case "space":
 		// QuerySpace(gc)
 		break

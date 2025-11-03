@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sndcds/uranus/app"
 )
 
 type ImageMetadata struct {
@@ -20,11 +19,7 @@ type ImageMetadata struct {
 }
 
 func AdminAddImageHandler(gc *gin.Context) {
-
-	userId, ok := app.GetCurrentUserOrAbort(gc)
-	if !ok {
-		return // already sent error response
-	}
+	userId := gc.GetInt("user-id")
 
 	// Parse form values from the POST request
 	meta := ImageMetadata{

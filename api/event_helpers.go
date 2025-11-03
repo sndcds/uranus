@@ -37,10 +37,7 @@ func allIDsExist(gc *gin.Context, tx pgx.Tx, table string, ids []int) (bool, err
 }
 
 func UserCanEditEvent(gc *gin.Context, tx pgx.Tx, eventId int) (bool, error) {
-	userId, ok := app.GetCurrentUserOrAbort(gc)
-	if !ok {
-		return false, nil
-	}
+	userId := gc.GetInt("user-id")
 
 	schema := app.Singleton.Config.DbSchema
 

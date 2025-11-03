@@ -10,11 +10,12 @@ import (
 )
 
 func AdminUserSpacesHandler(gc *gin.Context) {
-	modeStr := gc.Param("mode")
-	fmt.Println("modeStr:", modeStr)
-
 	db := app.Singleton.MainDbPool
 	ctx := gc.Request.Context()
+	userId := gc.GetInt("user-id")
+
+	modeStr := gc.Param("mode")
+	fmt.Println("modeStr:", modeStr)
 
 	type EditableSpace struct {
 		OrganizerID   int    `json:"organizer_id"`
@@ -23,11 +24,6 @@ func AdminUserSpacesHandler(gc *gin.Context) {
 		VenueName     string `json:"venue_name"`
 		SpaceID       int    `json:"space_id"`
 		SpaceName     string `json:"space_name"`
-	}
-
-	userId, ok := app.GetCurrentUserOrAbort(gc)
-	if !ok {
-		return
 	}
 
 	var rows pgx.Rows

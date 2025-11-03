@@ -123,6 +123,8 @@ func main() {
 	publicRoute.GET("/events", apiHandler.GetEvents)
 	publicRoute.GET("/event/:id", apiHandler.GetEvent)
 
+	publicRoute.GET("/geojson/venues", apiHandler.GetGeojsonVenues)
+
 	publicRoute.GET("/organizers", apiHandler.GetOrganizers)
 
 	publicRoute.GET("/user/:userId/avatar/:size", apiHandler.GetUserAvatar)
@@ -162,19 +164,19 @@ func main() {
 	adminRoute.POST("/forgot-password", apiHandler.ForgotPassword)
 	adminRoute.POST("/reset-password", apiHandler.ResetPassword)
 
-	adminRoute.POST("/send-message", apiHandler.AdminSendMessage)
-	adminRoute.GET("/messages", apiHandler.AdminGetMessages)
+	adminRoute.POST("/send-message", app.JWTMiddleware, apiHandler.AdminSendMessage)
+	adminRoute.GET("/messages", app.JWTMiddleware, apiHandler.AdminGetMessages)
 
-	adminRoute.GET("/todos", apiHandler.AdminGetTodos)
-	adminRoute.GET("/todo/:todoId", apiHandler.AdminGetTodo)
-	adminRoute.POST("/todo", apiHandler.AdminCreateTodo)
-	adminRoute.PUT("/todo/:todoId", apiHandler.AdminUpdateTodo)
-	adminRoute.DELETE("/todo/:todoId", apiHandler.AdminDeleteTodo)
+	adminRoute.GET("/todos", app.JWTMiddleware, apiHandler.AdminGetTodos)
+	adminRoute.GET("/todo/:todoId", app.JWTMiddleware, apiHandler.AdminGetTodo)
+	adminRoute.POST("/todo", app.JWTMiddleware, apiHandler.AdminCreateTodo)
+	adminRoute.PUT("/todo/:todoId", app.JWTMiddleware, apiHandler.AdminUpdateTodo)
+	adminRoute.DELETE("/todo/:todoId", app.JWTMiddleware, apiHandler.AdminDeleteTodo)
 
-	adminRoute.GET("/user/me", apiHandler.AdminGetUserProfil)
-	adminRoute.PUT("/user/me", apiHandler.AdminUpdateUserProfile)
-	adminRoute.POST("/user/me/avatar", apiHandler.AdminUploadUserAvatar)
-	adminRoute.DELETE("/user/me/avatar", apiHandler.AdminDeleteUserAvatar)
+	adminRoute.GET("/user/me", app.JWTMiddleware, apiHandler.AdminGetUserProfil)
+	adminRoute.PUT("/user/me", app.JWTMiddleware, apiHandler.AdminUpdateUserProfile)
+	adminRoute.POST("/user/me/avatar", app.JWTMiddleware, apiHandler.AdminUploadUserAvatar)
+	adminRoute.DELETE("/user/me/avatar", app.JWTMiddleware, apiHandler.AdminDeleteUserAvatar)
 	adminRoute.GET("/user/me/permissions", app.JWTMiddleware, apiHandler.AdminUserPermissions)
 
 	adminRoute.GET("/event/:eventId", app.JWTMiddleware, apiHandler.AdminGetEvent)

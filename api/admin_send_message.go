@@ -12,7 +12,7 @@ func (h *ApiHandler) AdminSendMessage(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	pool := h.DbPool
 
-	fromuserId := UserIdFromAccessToken(gc)
+	fromuserId := gc.GetInt("user-id")
 	if fromuserId <= 0 {
 		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user"})
 		return

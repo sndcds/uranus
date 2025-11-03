@@ -107,11 +107,7 @@ func QueryVenueRightsForUser(gc *gin.Context) {
 func queryVenueRightsForUserAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 	start := time.Now() // Start timer
 	ctx := gc.Request.Context()
-
-	userId, ok := app.GetCurrentUserOrAbort(gc)
-	if !ok {
-		return nil, http.StatusUnauthorized, nil
-	}
+	userId := gc.GetInt("user-id")
 
 	rows, err := db.Query(ctx, app.Singleton.SqlQueryUserVenuesById, userId)
 	if err != nil {

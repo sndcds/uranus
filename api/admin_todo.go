@@ -28,11 +28,7 @@ func (h *ApiHandler) AdminGetTodos(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	pool := h.DbPool
 
-	userId := UserIdFromAccessToken(gc)
-	if userId == 0 {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user"})
-		return
-	}
+	userId := gc.GetInt("user-id")
 
 	sql := fmt.Sprintf(`
 		SELECT id, title, description, due_date, completed
@@ -78,11 +74,7 @@ func (h *ApiHandler) AdminGetTodo(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	pool := h.DbPool
 
-	userId := UserIdFromAccessToken(gc)
-	if userId == 0 {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user"})
-		return
-	}
+	userId := gc.GetInt("user-id")
 
 	todoIdStr := gc.Param("todoId")
 	if todoIdStr == "" {
@@ -126,11 +118,7 @@ func (h *ApiHandler) AdminCreateTodo(gc *gin.Context) {
 	pool := h.DbPool
 	dbSchema := h.Config.DbSchema
 
-	userId := UserIdFromAccessToken(gc)
-	if userId == 0 {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user"})
-		return
-	}
+	userId := gc.GetInt("user-id")
 
 	type Incoming struct {
 		Title       string  `json:"title" binding:"required"`
@@ -183,11 +171,7 @@ func (h *ApiHandler) AdminUpdateTodo(gc *gin.Context) {
 	pool := h.DbPool
 	dbSchema := h.Config.DbSchema
 
-	userId := UserIdFromAccessToken(gc)
-	if userId == 0 {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user"})
-		return
-	}
+	userId := gc.GetInt("user-id")
 
 	todoIdStr := gc.Param("todoId")
 	if todoIdStr == "" {
@@ -297,11 +281,7 @@ func (h *ApiHandler) AdminDeleteTodo(gc *gin.Context) {
 	pool := h.DbPool
 	dbSchema := h.Config.DbSchema
 
-	userId := UserIdFromAccessToken(gc)
-	if userId == 0 {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user"})
-		return
-	}
+	userId := gc.GetInt("user-id")
 
 	todoIdStr := gc.Param("todoId")
 	if todoIdStr == "" {

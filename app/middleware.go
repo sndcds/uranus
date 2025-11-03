@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -76,33 +75,12 @@ func JWTMiddleware(gc *gin.Context) {
 		gc.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
 		return
 	}
+	if claims.UserId < 0 {
+		gc.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid user ID"})
+	}
 
 	// 4. Store claims for downstream handlers
 	gc.Set("user-id", claims.UserId)
 
 	gc.Next()
-}
-
-// Get the id of the authorized user or -1
-// userId will only be present if middleware sets it after verifying the JWT.
-// If the user is not logged in or the middleware is not run, this will return -1.
-func CurrentUserId(gc *gin.Context) (int, error) {
-	userIdVal, exists := gc.Get("user-id")
-	if exists {
-		userId, ok := userIdVal.(int)
-		if ok {
-			return userId, nil
-		}
-	}
-	return -1, fmt.Errorf("unauthorized user")
-}
-
-// GetCurrentUserOrAbort returns the user ID if valid, otherwise writes the error response and returns false
-func GetCurrentUserOrAbort(gc *gin.Context) (int, bool) {
-	userId, err := CurrentUserId(gc)
-	if userId < 0 || err != nil {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-		return 0, false
-	}
-	return userId, true
 }

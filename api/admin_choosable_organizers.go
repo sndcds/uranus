@@ -11,11 +11,7 @@ import (
 func (h *ApiHandler) AdminGetChoosableOrganizers(gc *gin.Context) {
 	db := h.DbPool
 	ctx := gc.Request.Context()
-
-	userId, ok := app.GetCurrentUserOrAbort(gc)
-	if !ok {
-		return // already sent error response
-	}
+	userId := gc.GetInt("user-id")
 
 	sql := app.Singleton.SqlAdminChoosableOrganizers
 	rows, err := db.Query(ctx, sql, userId)

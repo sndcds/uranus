@@ -13,11 +13,7 @@ func (h *ApiHandler) AdminGetUserProfil(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	pool := h.DbPool
 
-	userId := UserIdFromAccessToken(gc)
-	if userId == 0 {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user"})
-		return
-	}
+	userId := gc.GetInt("user-id")
 
 	// Query the user table
 	sql := strings.Replace(`
@@ -55,11 +51,7 @@ func (h *ApiHandler) AdminUpdateUserProfile(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	pool := h.DbPool
 
-	userId := UserIdFromAccessToken(gc)
-	if userId == 0 {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user"})
-		return
-	}
+	userId := gc.GetInt("user-id")
 
 	// --- Parse JSON body ---
 	var req struct {

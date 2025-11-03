@@ -10,11 +10,7 @@ import (
 func (h *ApiHandler) AdminUserPermissions(gc *gin.Context) {
 	db := h.DbPool
 	ctx := gc.Request.Context()
-
-	userId, ok := app.GetCurrentUserOrAbort(gc)
-	if !ok {
-		return // already sent error response
-	}
+	userId := gc.GetInt("user-id")
 
 	sql := app.Singleton.SqlAdminUserPermissions
 

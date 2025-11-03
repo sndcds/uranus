@@ -29,11 +29,7 @@ func AdminEventsHandler(gc *gin.Context) {
 func fetchTableView(gc *gin.Context) {
 	db := app.Singleton.MainDbPool
 	ctx := gc.Request.Context()
-
-	userId, ok := app.GetCurrentUserOrAbort(gc)
-	if !ok {
-		return
-	}
+	userId := gc.GetInt("user-id")
 
 	orgID, ok := GetContextParameterAsInt(gc, "org-id")
 	if !ok {

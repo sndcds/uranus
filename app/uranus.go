@@ -44,7 +44,7 @@ type Uranus struct {
 	SqlChoosableEventTypes               string
 	SqlChoosableEventGenres              string
 	SqlGetMetaGenresByEventType          string
-	SqlQueryVenueForMap                  string
+	SqlGetGeojsonVenues                  string
 	SqlQueryVenueByUser                  string
 	SqlQuerySpacesByVenueId              string
 	SqlQueryUserVenuesById               string
@@ -153,7 +153,7 @@ func (app *Uranus) PrepareSql() error {
 		{"queries/choosable-event-types.sql", &app.SqlChoosableEventTypes},
 		{"queries/choosable-event-genres.sql", &app.SqlChoosableEventGenres},
 		{"queries/get-meta-genres-by-event-type.sql", &app.SqlGetMetaGenresByEventType},
-		{"queries/queryVenueForMap.sql", &app.SqlQueryVenueForMap},
+		{"queries/get-geojson-venues.sql", &app.SqlGetGeojsonVenues},
 		{"queries/userVenues.sql", &app.SqlQueryVenueByUser},
 		{"queries/spacesByVenueId.sql", &app.SqlQuerySpacesByVenueId},
 		{"queries/userVenuesById.sql", &app.SqlQueryUserVenuesById},

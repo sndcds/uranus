@@ -15,11 +15,7 @@ import (
 func (h *ApiHandler) AdminGetOrganizerVenues(gc *gin.Context) {
 	pool := h.DbPool
 	ctx := gc.Request.Context()
-
-	userId, ok := app.GetCurrentUserOrAbort(gc)
-	if !ok {
-		return // already sent error response
-	}
+	userId := gc.GetInt("user-id")
 
 	organizerIdStr := gc.Param("organizerId")
 	organizerId, err := strconv.Atoi(organizerIdStr)

@@ -14,11 +14,7 @@ import (
 )
 
 func (h *ApiHandler) AdminUploadUserAvatar(gc *gin.Context) {
-	userId := UserIdFromAccessToken(gc)
-	if userId == 0 {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user"})
-		return
-	}
+	userId := gc.GetInt("user-id")
 
 	profileImageDir := h.Config.ProfileImageDir
 	fmt.Println("profileImageDir", profileImageDir)

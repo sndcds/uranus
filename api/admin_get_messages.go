@@ -12,11 +12,7 @@ func (h *ApiHandler) AdminGetMessages(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	pool := h.DbPool
 
-	userId := UserIdFromAccessToken(gc)
-	if userId == 0 {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user"})
-		return
-	}
+	userId := gc.GetInt("user-id")
 
 	sql := fmt.Sprintf(`
 		SELECT id, from_user_id, created_at, is_read, subject, message

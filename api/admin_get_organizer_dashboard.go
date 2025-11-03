@@ -13,11 +13,7 @@ import (
 func (h *ApiHandler) AdminGetOrganizerDashboard(gc *gin.Context) {
 	pool := h.DbPool
 	ctx := gc.Request.Context()
-
-	userId, ok := app.GetCurrentUserOrAbort(gc)
-	if !ok {
-		return // already sent error response
-	}
+	userId := gc.GetInt("user-id")
 
 	startStr, ok := GetContextParam(gc, "start")
 	var startDate time.Time
