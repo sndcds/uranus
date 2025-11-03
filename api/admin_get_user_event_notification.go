@@ -27,7 +27,7 @@ func (h *ApiHandler) AdminGetUserEventNotification(gc *gin.Context) {
 
 	sql := app.Singleton.SqlAdminGetUserEventNotification
 
-	rows, err := db.Query(ctx, sql, userId)
+	rows, err := db.Query(ctx, sql, userId, 14, 30)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
