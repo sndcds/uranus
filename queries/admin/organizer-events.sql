@@ -21,6 +21,8 @@ SELECT
     TO_CHAR(ed.start, 'HH24:MI') AS start_time,
     TO_CHAR(ed.end, 'YYYY-MM-DD') AS end_date,
     TO_CHAR(ed.end, 'HH24:MI') AS end_time,
+    e.release_status_id,
+    est.name AS release_status_name,
     v.id AS venue_id,
     v.name AS venue_name,
     COALESCE(s.id, es.id) AS space_id,
@@ -38,6 +40,7 @@ FROM event_data ed
     LEFT JOIN {{schema}}.organizer o ON v.organizer_id = o.id
     LEFT JOIN {{schema}}.organizer eo ON e.organizer_id = eo.id
     LEFT JOIN {{schema}}.event_image_links eil ON e.id = eil.event_id AND eil.main_image = TRUE
+    LEFT JOIN {{schema}}.event_status est ON est.status_id = e.release_status_id AND est.iso_639_1 = $3
 
     LEFT JOIN LATERAL (
         SELECT jsonb_agg(DISTINCT jsonb_build_object(

@@ -31,6 +31,8 @@ func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
 		StartTime          *string     `json:"start_time"`
 		EndDate            *string     `json:"end_date"`
 		EndTime            *string     `json:"end_time"`
+		ReleaseStatusId    *int        `json:"release_status_id"`
+		ReleaseStatusName  *string     `json:"release_status_name"`
 		VenueId            int         `json:"venue_id"`
 		VenueName          string      `json:"venue_name"`
 		SpaceId            *int        `json:"space_id,omitempty"`
@@ -80,6 +82,8 @@ func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
 			&e.StartTime,
 			&e.EndDate,
 			&e.EndTime,
+			&e.ReleaseStatusId,
+			&e.ReleaseStatusName,
 			&e.VenueId,
 			&e.VenueName,
 			&e.SpaceId,
