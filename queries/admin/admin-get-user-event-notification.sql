@@ -1,6 +1,7 @@
 SELECT
     e.id AS event_id,
-    e.title,
+    e.title AS event_title,
+    e.release_status_id,
     e.release_date,
     (e.release_date - CURRENT_DATE) AS days_until_release,
     e.organizer_id,
