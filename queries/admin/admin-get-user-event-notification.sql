@@ -18,6 +18,6 @@ LEFT JOIN LATERAL (
 WHERE e.release_status_id < 3
   AND uol.user_id = $1
   AND (
-    (e.release_date IS NOT NULL AND e.release_date <= CURRENT_DATE + $2)
-   OR (ed_min.first_event_date IS NOT NULL AND ed_min.first_event_date::date <= CURRENT_DATE + $3)
+    (e.release_date IS NOT NULL AND e.release_date <= CURRENT_DATE + $2::int)
+   OR (ed_min.first_event_date IS NOT NULL AND ed_min.first_event_date::date <= CURRENT_DATE + $3::int)
     )
