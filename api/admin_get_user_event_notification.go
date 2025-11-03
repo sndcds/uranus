@@ -42,15 +42,14 @@ func (h *ApiHandler) AdminGetUserEventNotification(gc *gin.Context) {
 		err := rows.Scan(
 			&e.EventId,
 			&e.EventTitle,
+			&e.ReleaseStatusId,
+			&e.ReleaseDate,
+			&e.DaysUntilRelease,
 			&e.OrganizerId,
 			&e.OrganizerName,
-			&e.ReleaseDate,
-			&e.ReleaseStatusId,
 			&e.EarliestEventDate,
-			&e.DaysUntilRelease,
 			&e.DaysUntilEvent,
 		)
-
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
