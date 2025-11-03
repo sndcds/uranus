@@ -9,11 +9,15 @@ import (
 )
 
 type EventNotification struct {
-	ID            int        `json:"id"`
-	Title         string     `json:"title"`
-	ReleaseDate   *time.Time `json:"release_date,omitempty"`
-	ReleaseStatus int        `json:"release_status_id"`
-	OrganizerID   int        `json:"organizer_id"`
+	EventId           int        `json:"event_id"`
+	EventTitle        string     `json:"event_title"`
+	OrganizerId       int        `json:"organizer_id"`
+	OrganizerName     *string    `json:"organizer_name"`
+	ReleaseDate       *time.Time `json:"release_date,omitempty"`
+	ReleaseStatusId   int        `json:"release_status_id"`
+	EarliestEventDate *time.Time `json:"earliest_event_date,omitempty"`
+	DaysUntilRelease  int        `json:"days_until_release"`
+	DaysUntilEvent    int        `json:"days_until_event"`
 }
 
 func (h *ApiHandler) AdminGetUserEventNotification(gc *gin.Context) {
@@ -36,12 +40,17 @@ func (h *ApiHandler) AdminGetUserEventNotification(gc *gin.Context) {
 		var e EventNotification
 		// Scan all columns returned by your SQL query
 		err := rows.Scan(
-			&e.ID,
-			&e.Title,
+			&e.EventId,
+			&e.EventTitle,
+			&e.OrganizerId,
+			&e.OrganizerName,
 			&e.ReleaseDate,
-			&e.ReleaseStatus,
-			&e.OrganizerID,
+			&e.ReleaseStatusId,
+			&e.EarliestEventDate,
+			&e.DaysUntilRelease,
+			&e.DaysUntilEvent,
 		)
+
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
