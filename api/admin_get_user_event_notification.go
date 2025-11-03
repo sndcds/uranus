@@ -16,8 +16,8 @@ type EventNotification struct {
 	ReleaseDate       *time.Time `json:"release_date,omitempty"`
 	ReleaseStatusId   int        `json:"release_status_id"`
 	EarliestEventDate *time.Time `json:"earliest_event_date,omitempty"`
-	DaysUntilRelease  int        `json:"days_until_release"`
-	DaysUntilEvent    int        `json:"days_until_event"`
+	DaysUntilRelease  *int       `json:"days_until_release"`
+	DaysUntilEvent    *int       `json:"days_until_event"`
 }
 
 func (h *ApiHandler) AdminGetUserEventNotification(gc *gin.Context) {
