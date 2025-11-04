@@ -9,23 +9,36 @@ import (
 )
 
 func (h *ApiHandler) GetEvent(gc *gin.Context) {
+	// TODO: Implement
+	// Must return an event with all its dates
+	gc.JSON(http.StatusBadRequest, gin.H{"error": "not implemented"})
+}
+
+func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 	// Todo: Adopt SQL Query from GetAdminEventHandler
 	pool := h.DbPool
 	ctx := gc.Request.Context()
 
-	eventId := gc.Param("id")
+	eventId := gc.Param("eventId")
 	if eventId == "" {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "event ID is required"})
 		return
 	}
 
+	dateId := gc.Param("dateId")
+	if eventId == "" {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "date ID is required"})
+		return
+	}
+
+	fmt.Println("eventId:", eventId)
+	fmt.Println("dateId:", dateId)
+
 	langStr := gc.DefaultQuery("lang", "en")
-	dateStr := gc.DefaultQuery("date", "")
-	fmt.Println("dateStr", dateStr)
 
 	query := app.Singleton.SqlGetEvent
 
-	rows, err := pool.Query(ctx, query, eventId, langStr)
+	rows, err := pool.Query(ctx, query, dateId, langStr)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

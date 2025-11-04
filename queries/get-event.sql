@@ -10,7 +10,7 @@ WITH event_data AS (
         ed.accessibility_flags,
         ed.visitor_info_flags
     FROM {{schema}}.event_date ed
-WHERE ed.event_id = $1
+WHERE ed.id = $1
     )
 SELECT
     e.id AS id,
@@ -130,5 +130,3 @@ FROM event_data ed
     FROM {{schema}}.event_url eu
     WHERE eu.event_id = $1
     ) url_data ON true
-
-    LIMIT 1;

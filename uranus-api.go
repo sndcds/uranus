@@ -121,7 +121,8 @@ func main() {
 
 	// OK
 	publicRoute.GET("/events", apiHandler.GetEvents)
-	publicRoute.GET("/event/:id", apiHandler.GetEvent)
+	publicRoute.GET("/event/:eventId", apiHandler.GetEvent)
+	publicRoute.GET("/event/:eventId/date/:dateId", apiHandler.GetEventByDateId)
 
 	publicRoute.GET("/geojson/venues", apiHandler.GetGeojsonVenues)
 
