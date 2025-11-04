@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -41,7 +42,21 @@ func (h *ApiHandler) AdminUpdateEventImage(gc *gin.Context) {
 	altText := gc.PostForm("alt_text")
 	copyright := gc.PostForm("copyright")
 	createdBy := gc.PostForm("created_by")
-	licenseId := gc.PostForm("license_id")
+
+	licenseStr := gc.PostForm("license_id")
+	fmt.Println("licenseStr:", licenseStr)
+
+	var licenseId *int
+	if licenseStr != "" {
+		id, err := strconv.Atoi(licenseStr)
+		if err != nil {
+			gc.String(http.StatusBadRequest, "Invalid license_id")
+			return
+		}
+		if id != 0 {
+			licenseId = &id // only set pointer if not 0
+		}
+	}
 
 	// Handle file upload
 	file, err := gc.FormFile("image")
@@ -113,8 +128,8 @@ func (h *ApiHandler) AdminUpdateEventImage(gc *gin.Context) {
 	defer func() { _ = tx.Rollback(ctx) }()
 
 	sql := strings.Replace(`
-        INSERT INTO {{schema}}.pluto_image (file_name, gen_file_name, width, height, mime_type, exif, alt_text, created_by, copyright, user_id)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`, "{{schema}}", dbSchema, 1)
+        INSERT INTO {{schema}}.pluto_image (file_name, gen_file_name, width, height, mime_type, exif, alt_text, created_by, copyright, license_id, user_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`, "{{schema}}", dbSchema, 1)
 	var plutoImageId int64
 	err = tx.QueryRow(
 		ctx,
@@ -127,6 +142,7 @@ func (h *ApiHandler) AdminUpdateEventImage(gc *gin.Context) {
 		altText,
 		createdBy,
 		copyright,
+		licenseId,
 		userId).Scan(&plutoImageId)
 	if err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("insert pluto image failed: %v", err)})

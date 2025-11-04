@@ -31,7 +31,7 @@ func (h *ApiHandler) AdminUpdateEventTeaserImage(gc *gin.Context) {
 	altText := gc.PostForm("alt_text")
 	copyright := gc.PostForm("copyright")
 	createdBy := gc.PostForm("created_by")
-	licenseId := gc.PostForm("license_id")
+	licenseId := gc.PostForm("license_id") // TODO: Handle string to int as in AdminUpdateEventImage
 
 	// Handle file upload
 	file, err := gc.FormFile("image")

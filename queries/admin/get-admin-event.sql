@@ -111,7 +111,7 @@ FROM {{schema}}.event e
     pi.alt_text AS image_alt_text,
     pi.copyright AS image_copyright,
     pi.created_by AS image_created_by,
-    pi.license AS image_license_id
+    pi.license_id AS image_license_id
     FROM {{schema}}.event_image_links eil
     JOIN {{schema}}.pluto_image pi ON pi.id = eil.pluto_image_id
     WHERE eil.event_id = e.id AND eil.main_image = TRUE

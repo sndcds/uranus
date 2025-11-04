@@ -59,11 +59,17 @@ SELECT
 
     img_data.has_main_image AS has_main_image,
     img_data.id AS image_id,
-    img_data.focus_x AS image_focus_x,
-    img_data.focus_y AS image_focus_y,
+    pimg.width AS image_width,
+    pimg.height AS image_height,
+    pimg.mime_type AS image_mime_type,
+    pimg.alt_text AS image_alt_text,
+    pimg.license_id AS image_license_id,
+    pimg.copyright AS image_copyright,
+    pimg.created_by AS image_created_by,
+    COALESCE(img_data.focus_x, pimg.focus_x) AS image_focus_x,
+    COALESCE(img_data.focus_y, pimg.focus_y) AS image_focus_y,
 
     et_data.event_types AS event_types,
-
     url_data.event_urls AS event_urls
 
 FROM event_data ed
@@ -83,7 +89,10 @@ FROM event_data ed
     FROM {{schema}}.event_image_links eil
     WHERE eil.event_id = e.id AND eil.main_image = TRUE
     LIMIT 1
-    ) img_data ON true
+    ) img_data ON TRUE
+
+-- 🔗 Join pluto_image metadata
+    LEFT JOIN {{schema}}.pluto_image pimg ON pimg.id = img_data.id
 
 -- Event types + genres
     LEFT JOIN LATERAL (
@@ -101,7 +110,7 @@ FROM event_data ed
     ON gt.type_id = etl.genre_id
     AND gt.iso_639_1 = $2
     WHERE etl.event_id = e.id
-    ) et_data ON true
+    ) et_data ON TRUE
 
 -- Accessibility flag names
     LEFT JOIN LATERAL (
@@ -109,7 +118,7 @@ FROM event_data ed
     FROM {{schema}}.accessibility_flags f
     WHERE (ed.accessibility_flags & (1::BIGINT << f.flag)) = (1::BIGINT << f.flag)
     AND f.iso_639_1 = $2
-    ) acc_flags ON true
+    ) acc_flags ON TRUE
 
 -- Visitor info flag names
     LEFT JOIN LATERAL (
@@ -117,7 +126,7 @@ FROM event_data ed
     FROM {{schema}}.visitor_information_flags f
     WHERE (ed.visitor_info_flags & (1::BIGINT << f.flag)) = (1::BIGINT << f.flag)
     AND f.iso_639_1 = $2
-    ) vis_flags ON true
+    ) vis_flags ON TRUE
 
 -- Event URLs
     LEFT JOIN LATERAL (
@@ -128,5 +137,7 @@ FROM event_data ed
     'title', eu.title
     )) AS event_urls
     FROM {{schema}}.event_url eu
-    WHERE eu.event_id = $1
-    ) url_data ON true
+    WHERE eu.event_id = e.id
+    ) url_data ON TRUE
+
+    LIMIT 1;

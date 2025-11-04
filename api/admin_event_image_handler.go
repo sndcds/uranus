@@ -10,7 +10,7 @@ import (
 
 type ImageMetadata struct {
 	UserID    int
-	License   string
+	LicenseId int
 	CreatedBy string
 	Copyright string
 	AltText   string
@@ -18,13 +18,20 @@ type ImageMetadata struct {
 	FocusY    float64
 }
 
+// TODO: remove
 func AdminAddImageHandler(gc *gin.Context) {
 	userId := gc.GetInt("user-id")
+
+	licenseId, err := strconv.Atoi(gc.PostForm("license_id"))
+	if err != nil {
+		gc.String(http.StatusBadRequest, "Invalid license_id")
+		return
+	}
 
 	// Parse form values from the POST request
 	meta := ImageMetadata{
 		UserID:    userId,
-		License:   gc.PostForm("license"),
+		LicenseId: licenseId,
 		CreatedBy: gc.PostForm("creator"),
 		Copyright: gc.PostForm("copyright"),
 		AltText:   gc.PostForm("alt_text"),
