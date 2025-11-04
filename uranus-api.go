@@ -140,6 +140,8 @@ func main() {
 	publicRoute.GET("/choosable-countries", apiHandler.GetChoosableCountries)
 	publicRoute.GET("/choosable-release-states", apiHandler.GetChoosableReleaseStates)
 	publicRoute.GET("/choosable-languages", apiHandler.GetChoosableLanguages)
+	publicRoute.GET("/choosable-url-types/event", apiHandler.GetChoosableEventUrlTypes)
+
 	publicRoute.GET("/accessibility/flags", apiHandler.GetAccessibilityFlags)
 
 	publicRoute.GET("/query", api.QueryHandler)                  // TODO: Refactor QueryVenueForMap
