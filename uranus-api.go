@@ -186,6 +186,8 @@ func main() {
 	adminRoute.GET("/choosable-organizers", app.JWTMiddleware, apiHandler.AdminGetChoosableOrganizers)
 	adminRoute.GET("/organizer/:organizerId", app.JWTMiddleware, apiHandler.AdminGetOrganizer)
 	adminRoute.PUT("/organizer/:organizerId", app.JWTMiddleware, apiHandler.AdminUpdateOrganizer)
+	adminRoute.DELETE("/organizer/:organizerId", app.JWTMiddleware, apiHandler.AdminDeleteOrganizer)
+
 	adminRoute.GET("/organizer/dashboard", app.JWTMiddleware, apiHandler.AdminGetOrganizerDashboard)
 	adminRoute.GET("/organizer/:organizerId/venues", app.JWTMiddleware, apiHandler.AdminGetOrganizerVenues)
 	adminRoute.GET("/organizer/:organizerId/events", app.JWTMiddleware, apiHandler.AdminGetOrganizerEvents)
