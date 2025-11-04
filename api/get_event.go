@@ -8,9 +8,9 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-// Todo: Adopt SQL Query from GetAdminEventHandler
 func (h *ApiHandler) GetEvent(gc *gin.Context) {
-	pool := app.Singleton.MainDbPool
+	// Todo: Adopt SQL Query from GetAdminEventHandler
+	pool := h.DbPool
 	ctx := gc.Request.Context()
 
 	eventId := gc.Param("id")
@@ -20,6 +20,8 @@ func (h *ApiHandler) GetEvent(gc *gin.Context) {
 	}
 
 	langStr := gc.DefaultQuery("lang", "en")
+	dateStr := gc.DefaultQuery("date", "")
+	fmt.Println("dateStr", dateStr)
 
 	query := app.Singleton.SqlGetEvent
 

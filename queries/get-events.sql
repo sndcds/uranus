@@ -44,6 +44,7 @@ SELECT
     COALESCE(s.building_level, es.building_level) AS space_building_level,
     COALESCE(s.website_url, es.website_url) AS space_url,
 
+    event_date_id,
     TO_CHAR(ed.start, 'YYYY-MM-DD') AS start_date,
     TO_CHAR(ed.start, 'HH24:MI') AS start_time,
     TO_CHAR(ed.end, 'YYYY-MM-DD') AS end_date,
