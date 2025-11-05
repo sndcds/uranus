@@ -64,6 +64,9 @@ SELECT
     pimg.mime_type AS image_mime_type,
     pimg.alt_text AS image_alt_text,
     pimg.license_id AS image_license_id,
+    lic.short_name AS image_license_short_name,
+    lic.name AS image_license_name,
+    lic.url AS image_license_url,
     pimg.copyright AS image_copyright,
     pimg.created_by AS image_created_by,
     COALESCE(img_data.focus_x, pimg.focus_x) AS image_focus_x,
@@ -91,8 +94,13 @@ FROM event_data ed
     LIMIT 1
     ) img_data ON TRUE
 
--- 🔗 Join pluto_image metadata
+-- Pluto image metadata
     LEFT JOIN {{schema}}.pluto_image pimg ON pimg.id = img_data.id
+
+-- License name
+    LEFT JOIN {{schema}}.license_type lic
+    ON lic.license_id = pimg.license_id
+    AND lic.iso_639_1 = $2
 
 -- Event types + genres
     LEFT JOIN LATERAL (

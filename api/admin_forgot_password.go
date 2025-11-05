@@ -63,14 +63,22 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 		h.Config.AuthResetPasswordUrl,
 		token)
 	go func() {
-		sendResetEmail(req.EmailAddress, resetURL)
+		sendEmailErr := sendResetEmail(req.EmailAddress, resetURL)
+		if sendEmailErr != nil {
+			gc.JSON(http.StatusOK, gin.H{
+				"message":    "Unable to send reset email.",
+				"error_code": -1,
+			})
+		}
 	}()
 
-	gc.JSON(http.StatusOK, gin.H{"message": "If an account exists, a reset link has been sent."})
+	gc.JSON(http.StatusOK, gin.H{
+		"message":    "If an account exists, a reset link has been sent.",
+		"error_code": 0,
+	})
 }
 
 func (h *ApiHandler) ResetPassword(gc *gin.Context) {
-	fmt.Println("Reset Password")
 	var req struct {
 		Token       string `json:"token"`
 		NewPassword string `json:"new_password"`
@@ -89,7 +97,6 @@ func (h *ApiHandler) ResetPassword(gc *gin.Context) {
 
 	query := fmt.Sprintf(`SELECT user_id, expires_at, used FROM %s.password_reset WHERE token = $1`,
 		h.Config.DbSchema)
-	fmt.Printf(query)
 	err := db.QueryRow(
 		ctx,
 		query,
@@ -116,7 +123,6 @@ func (h *ApiHandler) ResetPassword(gc *gin.Context) {
 		`UPDATE %s.user SET password_hash = $1 WHERE id = $2`,
 		h.Config.DbSchema,
 	)
-	fmt.Printf(updateUserQuery)
 
 	_, err = tx.Exec(ctx, updateUserQuery, hashed, userId)
 	if err != nil {
@@ -147,30 +153,29 @@ func generateResetToken() (string, error) {
 	return base64.URLEncoding.EncodeToString(b), nil
 }
 
-func sendResetEmail(to, link string) {
+func sendResetEmail(to, link string) error {
 	from := app.Singleton.Config.AuthReplyEmailAddress
+	userName := app.Singleton.Config.AuthSmtpLogin
 	password := app.Singleton.Config.AuthSmtpPassword
 	smtpHost := app.Singleton.Config.AuthSmtpHost
-	smtpPort := app.Singleton.Config.AuthSmtpPort
+	smtpPort := app.Singleton.Config.AuthSmtpPort // int
 
-	// Message body (RFC 822 format)
-	message := []byte("Subject: Hello from Go!\r\n" +
+	message := []byte("Subject: Reset your password\r\n" +
 		"MIME-Version: 1.0\r\n" +
-		"To: undisclosed-recipients:;\r\n" +
+		"To: " + to + "\r\n" +
 		"From: " + from + "\r\n" +
 		"Content-Type: text/plain; charset=\"UTF-8\"\r\n" +
 		"\r\n" +
 		"Click the link below to reset your password (valid for 1 hour):\r\n" +
 		link + "\r\n")
 
-	// Authentication
-	auth := smtp.PlainAuth("", from, password, smtpHost)
+	auth := smtp.PlainAuth("", userName, password, smtpHost)
 	addr := fmt.Sprintf("%s:%d", smtpHost, smtpPort)
 
-	// Send the email
-	err := smtp.SendMail(addr, auth, from, []string{to}, message)
+	err := smtp.SendMail(addr, auth, userName, []string{to}, message)
 	if err != nil {
-		fmt.Println("Error:", err)
-		return
+		return fmt.Errorf("unable to send email: %s", err.Error())
 	}
+
+	return nil
 }
