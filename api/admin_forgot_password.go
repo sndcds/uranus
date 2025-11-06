@@ -174,6 +174,7 @@ func sendResetEmail(to, link string) error {
 
 	err := smtp.SendMail(addr, auth, userName, []string{to}, message)
 	if err != nil {
+		// TODO: Write to logfile
 		return fmt.Errorf("unable to send email: %s", err.Error())
 	}
 

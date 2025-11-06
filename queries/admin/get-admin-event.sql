@@ -38,8 +38,13 @@ SELECT
     v.country_code AS venue_country_code,
     ST_X(v.wkb_geometry) AS venue_lon,
     ST_Y(v.wkb_geometry) AS venue_lat,
-    COALESCE(s.id, es.id) AS space_id,
-    COALESCE(s.name, es.name) AS space_name,
+
+    space_data.id AS space_id,
+    space_data.name AS space_name,
+    space_data.total_capacity AS space_total_capacity,
+    space_data.seating_capacity AS space_seating_capacity,
+    space_data.building_level AS space_building_level,
+    space_data.website_url AS space_url,
 
     -- Main image fields
     img_data.image_id,
@@ -102,20 +107,32 @@ FROM {{schema}}.event e
     LEFT JOIN {{schema}}.space es ON es.id = e.space_id
     LEFT JOIN {{schema}}.venue v ON v.id = e.venue_id
 
+-- LATERAL join for space
+    LEFT JOIN LATERAL (
+        SELECT *
+        FROM {{schema}}.space s2
+        WHERE s2.id = ed.space_id
+        UNION ALL
+        SELECT *
+        FROM {{schema}}.space es2
+        WHERE es2.id = e.space_id
+        LIMIT 1
+    ) space_data ON TRUE
+
 -- LATERAL join for main image (must be here, not in SELECT)
     LEFT JOIN LATERAL (
-    SELECT
-    pi.id AS image_id,
-    pi.focus_x AS image_focus_x,
-    pi.focus_y AS image_focus_y,
-    pi.alt_text AS image_alt_text,
-    pi.copyright AS image_copyright,
-    pi.created_by AS image_created_by,
-    pi.license_id AS image_license_id
-    FROM {{schema}}.event_image_links eil
-    JOIN {{schema}}.pluto_image pi ON pi.id = eil.pluto_image_id
-    WHERE eil.event_id = e.id AND eil.main_image = TRUE
-    LIMIT 1
+        SELECT
+        pi.id AS image_id,
+        pi.focus_x AS image_focus_x,
+        pi.focus_y AS image_focus_y,
+        pi.alt_text AS image_alt_text,
+        pi.copyright AS image_copyright,
+        pi.created_by AS image_created_by,
+        pi.license_id AS image_license_id
+        FROM {{schema}}.event_image_links eil
+        JOIN {{schema}}.pluto_image pi ON pi.id = eil.pluto_image_id
+        WHERE eil.event_id = e.id AND eil.main_image = TRUE
+        LIMIT 1
     ) img_data ON true
 WHERE e.id = $1  -- 🔥 THIS is the missing filter
 GROUP BY
@@ -123,8 +140,15 @@ GROUP BY
     e.participation_info, e.meeting_point,
     o.id, o.name,
     v.id, v.name, v.street, v.house_number, v.postal_code, v.city, v.country_code, v.state_code,
-    ST_AsText(v.wkb_geometry), ST_X(v.wkb_geometry), ST_Y(v.wkb_geometry),
-    COALESCE(s.id, es.id), COALESCE(s.name, es.name),
+    ST_AsText(v.wkb_geometry),
+    ST_X(v.wkb_geometry),
+    ST_Y(v.wkb_geometry),
+    space_data.id,
+    space_data.name,
+    space_data.total_capacity,
+    space_data.seating_capacity,
+    space_data.building_level,
+    space_data.website_url,
     img_data.image_id,
     img_data.image_focus_x,
     img_data.image_focus_y,

@@ -37,12 +37,12 @@ SELECT
     ST_X(v.wkb_geometry) AS venue_lon,
     ST_Y(v.wkb_geometry) AS venue_lat,
 
-    COALESCE(s.id, es.id) AS space_id,
-    COALESCE(s.name, es.name) AS space_name,
-    COALESCE(s.total_capacity, es.total_capacity) AS space_total_capacity,
-    COALESCE(s.seating_capacity, es.seating_capacity) AS space_seating_capacity,
-    COALESCE(s.building_level, es.building_level) AS space_building_level,
-    COALESCE(s.website_url, es.website_url) AS space_url,
+    space_data.id AS space_id,
+    space_data.name AS space_name,
+    space_data.total_capacity AS space_total_capacity,
+    space_data.seating_capacity AS space_seating_capacity,
+    space_data.building_level AS space_building_level,
+    space_data.website_url AS space_url,
 
     TO_CHAR(ed.start, 'YYYY-MM-DD') AS start_date,
     TO_CHAR(ed.start, 'HH24:MI') AS start_time,
@@ -81,6 +81,18 @@ FROM event_data ed
     LEFT JOIN {{schema}}.space s ON ed.space_id = s.id
     LEFT JOIN {{schema}}.space es ON e.space_id = es.id
     LEFT JOIN {{schema}}.venue v ON v.id = e.venue_id
+
+    -- Use LATERAL to pick the "first available" space
+    LEFT JOIN LATERAL (
+        SELECT *
+        FROM {{schema}}.space s2
+        WHERE s2.id = ed.space_id
+        UNION ALL
+        SELECT *
+        FROM {{schema}}.space es2
+        WHERE es2.id = e.space_id
+        LIMIT 1
+    ) space_data ON TRUE
 
 -- Main image
     LEFT JOIN LATERAL (

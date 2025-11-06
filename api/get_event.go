@@ -26,7 +26,7 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 	}
 
 	dateId := gc.Param("dateId")
-	if eventId == "" {
+	if dateId == "" {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "date ID is required"})
 		return
 	}
@@ -37,6 +37,7 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 	langStr := gc.DefaultQuery("lang", "en")
 
 	query := app.Singleton.SqlGetEvent
+	fmt.Println("query:", query)
 
 	rows, err := pool.Query(ctx, query, dateId, langStr)
 	if err != nil {
