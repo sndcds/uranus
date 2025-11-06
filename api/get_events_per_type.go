@@ -1,41 +1,21 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sndcds/uranus/app"
 	"github.com/sndcds/uranus/sql"
 )
 
-func QueryEvent(gc *gin.Context) {
-	jsonData, httpStatus, err := queryEventAsJSON(gc, app.Singleton.MainDbPool)
-	if err != nil {
-		gc.JSON(httpStatus, gin.H{"error": err.Error()})
-		return
-	}
-
-	gc.Data(httpStatus, "application/json", jsonData)
-}
-
-func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
-	// TODO:
-	// Note on security:
-	// This version is still vulnerable to SQL injection if any of the inputs are user-controlled. Safe version using parameterized queries (recommended with database/sql or GORM):
-
-	// TODO:
-	// Check for unknown arguments
-
-	start := time.Now() // Start timer
+func (h *ApiHandler) GetEventsPerType(gc *gin.Context) {
+	pool := h.DbPool
 	ctx := gc.Request.Context()
 
-	query := app.Singleton.SqlGetEvents
+	query := app.Singleton.SqlGetEventsPerType
 
 	languageStr, _ := GetContextParam(gc, "lang")
 	_, hasPast := GetContextParam(gc, "past")
@@ -60,8 +40,8 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 	lonStr, _ := GetContextParam(gc, "lon")
 	latStr, _ := GetContextParam(gc, "lat")
 	radiusStr, _ := GetContextParam(gc, "radius")
-	eventTypesStr, _ := GetContextParam(gc, "event_types") // Todo: EventTypeTuple
-	genreTypesStr, _ := GetContextParam(gc, "genre_types") // Todo: EventTypeTuple
+	// eventTypesStr, _ := GetContextParam(gc, "event_types") // Todo: must be refactored
+	// genreTypesStr, _ := GetContextParam(gc, "genre_types") // Todo: must be refactored
 	spaceTypesStr, _ := GetContextParam(gc, "space_types")
 	titleStr, _ := GetContextParam(gc, "title")
 	cityStr, _ := GetContextParam(gc, "city")
@@ -80,8 +60,9 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 	var err error
 
 	if languageStr != "" {
+		// TODO: Check available languages
 		if !app.IsValidIso639_1(languageStr) {
-			return nil, http.StatusInternalServerError, fmt.Errorf("lang format error, %s", languageStr)
+			gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("lang format error %v", err)})
 		}
 	} else {
 		languageStr = "de"
@@ -95,7 +76,7 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 		args = append(args, startStr)
 		argIndex++
 	} else if startStr != "" {
-		return nil, http.StatusInternalServerError, fmt.Errorf("start %s has invalid format", startStr)
+		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Errorf("start %s has invalid format", startStr)})
 	} else {
 		if !hasPast {
 			eventDateConditions += "WHERE ed.start >= NOW()"
@@ -107,59 +88,66 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 		args = append(args, endStr)
 		argIndex++
 	} else if endStr != "" {
-		return nil, http.StatusInternalServerError, fmt.Errorf("end %s has invalid format", endStr)
+		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Errorf("end %s has invalid format", endStr)})
 	}
 
 	argIndex, err = sql.BuildTimeCondition(timeStr, "start", "time", argIndex, &conditions, &args)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 
 	argIndex, err = sql.BuildSanitizedIlikeCondition(searchStr, "e.description", "search", argIndex, &conditions, &args)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 
 	if countryCodesStr != "" {
 		format := "v.country_code IN (%s)"
 		argIndex, err = sql.BuildInConditionForStringSlice(countryCodesStr, format, "country_codes", argIndex, &conditions, &args)
 		if err != nil {
-			return nil, http.StatusInternalServerError, err
+
+			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 	}
 
 	if postalCodeStr != "" {
 		argIndex, err = sql.BuildLikeConditions(postalCodeStr, "v.postal_code", argIndex, &conditions, &args)
 		if err != nil {
-			return nil, http.StatusInternalServerError, err
+
+			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 	}
 
 	if eventIdsStr != "" {
 		argIndex, err = sql.BuildColumnInIntCondition(eventIdsStr, "e.id", "events", argIndex, &conditions, &args)
 		if err != nil {
-			return nil, http.StatusInternalServerError, err
+
+			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 	}
 
 	if venueIdsStr != "" {
 		argIndex, err = sql.BuildColumnInIntCondition(venueIdsStr, "v.id", "venues", argIndex, &conditions, &args)
 		if err != nil {
-			return nil, http.StatusInternalServerError, err
+
+			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 	}
 
 	if orgIdsStr != "" {
 		argIndex, err = sql.BuildColumnInIntCondition(orgIdsStr, "o.id", "organizers", argIndex, &conditions, &args)
 		if err != nil {
-			return nil, http.StatusInternalServerError, err
+
+			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 	}
 
 	if spaceIdsStr != "" {
 		argIndex, err = sql.BuildColumnInIntCondition(spaceIdsStr, "COALESCE(s.id, es.id)", "spaces", argIndex, &conditions, &args)
 		if err != nil {
-			return nil, http.StatusInternalServerError, err
+
+			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 	}
 
@@ -168,15 +156,18 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 		argIndex, &conditions, &args,
 	)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 
+	/* TODO: Handle event types and genres, must be refactored!
 	if eventTypesStr != "" {
 		format := "EXISTS (SELECT 1 FROM " + app.Singleton.Config.DbSchema + ".event_type_links sub_etl WHERE sub_etl.event_id = e.id AND sub_etl.type_id IN (%s))"
 		var err error
 		argIndex, err = sql.BuildInCondition(eventTypesStr, format, "event_types", argIndex, &conditions, &args)
 		if err != nil {
-			return nil, http.StatusInternalServerError, err
+
+			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 	}
 
@@ -185,41 +176,49 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 		var err error
 		argIndex, err = sql.BuildInCondition(genreTypesStr, format, "genre_types", argIndex, &conditions, &args)
 		if err != nil {
-			return nil, http.StatusInternalServerError, err
+
+			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 	}
+	*/
 
 	if spaceTypesStr != "" {
 		format := "COALESCE(s.space_type_id, es.space_type_id) IN (%s)"
 		argIndex, err = sql.BuildInCondition(spaceTypesStr, format, "space_types", argIndex, &conditions, &args)
 		if err != nil {
-			return nil, http.StatusInternalServerError, err
+
+			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 	}
 
 	argIndex, err = sql.BuildSanitizedIlikeCondition(titleStr, "e.title", "title", argIndex, &conditions, &args)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 
 	argIndex, err = sql.BuildSanitizedIlikeCondition(cityStr, "v.city", "city", argIndex, &conditions, &args)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 
 	argIndex, err = sql.BuildContainedInColumnRangeCondition(ageStr, "min_age", "max_age", argIndex, &conditions, &args)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 
 	argIndex, err = sql.BuildBitmaskCondition(accessibilityInfosStr, "ed.accessibility_flags", "accessibility_flags", argIndex, &conditions, &args)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 
 	argIndex, err = sql.BuildBitmaskCondition(visitorInfosStr, "ed.visitor_info_flags", "visitor_info_flags", argIndex, &conditions, &args)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 
 	conditionsStr := ""
@@ -232,7 +231,8 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 	// Add LIMIT and OFFSET
 	limitClause, argIndex, err := sql.BuildLimitOffsetClause(limitStr, offsetStr, argIndex, &args)
 	if err != nil {
-		return nil, http.StatusBadRequest, err
+
+		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
 
 	query = strings.Replace(query, "{{event-date-conditions}}", eventDateConditions, 1)
@@ -248,9 +248,11 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 		fmt.Printf("args: %d: %#v\n", len(args), args)
 	*/
 
-	rows, err := db.Query(ctx, query, args...)
+	fmt.Printf("query", query)
+	rows, err := pool.Query(ctx, query, args...)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 	defer rows.Close()
 
@@ -265,7 +267,8 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 	for rows.Next() {
 		values, err := rows.Values()
 		if err != nil {
-			return nil, http.StatusInternalServerError, err
+			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
 		}
 
 		rowMap := make(map[string]interface{}, len(values))
@@ -273,34 +276,25 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 			rowMap[col] = values[i]
 		}
 
+		// Add extra property image_path
+		imageID := rowMap["image_id"]
+		if imageID == nil {
+			rowMap["image_path"] = nil // or "" if you prefer
+		} else {
+			rowMap["image_path"] = fmt.Sprintf(
+				"%s/api/image/%v",
+				app.Singleton.Config.BaseApiUrl,
+				imageID,
+			)
+		}
+
 		results = append(results, rowMap)
 	}
 
-	if rows.Err() != nil {
-		return nil, http.StatusInternalServerError, rows.Err()
+	if err := rows.Err(); err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
-	type QueryResponse struct {
-		Total   int                      `json:"total"`
-		Time    string                   `json:"time"`
-		Columns []string                 `json:"columns"`
-		Results []map[string]interface{} `json:"events"`
-	}
-
-	elapsed := time.Since(start)
-	milliseconds := int(elapsed.Milliseconds())
-
-	response := QueryResponse{
-		Total:   len(results),
-		Columns: columnNames,
-		Time:    fmt.Sprintf("%d msec", milliseconds),
-		Results: results,
-	}
-
-	if response.Total < 1 {
-		return nil, http.StatusNoContent, fmt.Errorf("query returned 0 results")
-	} else {
-		jsonData, err := json.MarshalIndent(response, "", "  ")
-		return jsonData, http.StatusOK, err
-	}
+	gc.JSON(http.StatusOK, results)
 }

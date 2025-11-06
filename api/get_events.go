@@ -87,7 +87,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Errorf("start %s has invalid format", startStr)})
 	} else {
 		if !hasPast {
-			eventDateConditions += "WHERE ed.start >= CURRENT_DATE"
+			eventDateConditions += "WHERE ed.start >= NOW()"
 		}
 	}
 

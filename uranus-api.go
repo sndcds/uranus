@@ -121,6 +121,7 @@ func main() {
 
 	// OK
 	publicRoute.GET("/events", apiHandler.GetEvents)
+	publicRoute.GET("/events/types-count", apiHandler.GetEventsPerType)
 	publicRoute.GET("/event/:eventId", apiHandler.GetEvent)
 	publicRoute.GET("/event/:eventId/date/:dateId", apiHandler.GetEventByDateId)
 

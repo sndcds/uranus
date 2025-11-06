@@ -28,6 +28,7 @@ type Uranus struct {
 	Config                               Config
 	SqlGetEvent                          string
 	SqlGetEvents                         string
+	SqlGetEventsPerType                  string
 	SqlGetAdminOrganizer                 string
 	SqlUpdateOrganizer                   string
 	SqlGetAdminVenue                     string
@@ -146,6 +147,7 @@ func (app *Uranus) PrepareSql() error {
 		// Public
 		{"queries/get-event.sql", &app.SqlGetEvent},
 		{"queries/get-events.sql", &app.SqlGetEvents},
+		{"queries/get-events-per-type.sql", &app.SqlGetEventsPerType},
 
 		{"queries/organizer_roles.sql", &app.SqlQueryOrganizerRoles},
 		{"queries/venue_roles.sql", &app.SqlQueryVenueRoles},
