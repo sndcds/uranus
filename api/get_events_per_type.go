@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -264,27 +265,26 @@ func (h *ApiHandler) GetEventsPerType(gc *gin.Context) {
 		columnNames[i] = string(fd.Name)
 	}
 
-	var results []map[string]interface{}
+	var jsonResult []byte
 
-	for rows.Next() {
-		values, err := rows.Values()
+	if rows.Next() {
+		err := rows.Scan(&jsonResult)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
-		rowMap := make(map[string]interface{}, len(values))
-		for i, col := range columnNames {
-			rowMap[col] = values[i]
+		// Unmarshal into a generic map
+		var result map[string]interface{}
+		if err := json.Unmarshal(jsonResult, &result); err != nil {
+			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
 		}
 
-		results = append(results, rowMap)
-	}
-
-	if err := rows.Err(); err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		gc.JSON(http.StatusOK, result)
 		return
 	}
 
-	gc.JSON(http.StatusOK, results)
+	// no rows found
+	gc.JSON(http.StatusOK, gin.H{})
 }
