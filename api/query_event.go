@@ -84,7 +84,7 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 			return nil, http.StatusInternalServerError, fmt.Errorf("lang format error, %s", languageStr)
 		}
 	} else {
-		languageStr = "de"
+		languageStr = "en"
 	}
 
 	args = append(args, languageStr)

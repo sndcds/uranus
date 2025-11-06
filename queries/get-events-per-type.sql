@@ -9,9 +9,9 @@ ON ed.event_id = e.id
     ),
     event_counts AS (
 SELECT
-    et.type_id,
-    et.name AS type_name,
-    COUNT(DISTINCT ed.event_id) AS event_count
+    et.type_id AS id,
+    et.name,
+    COUNT(DISTINCT ed.event_id) AS count
 FROM {{schema}}.event_type et
     LEFT JOIN {{schema}}.event_type_links etl
 ON et.type_id = etl.type_id
@@ -23,11 +23,6 @@ WHERE et.iso_639_1 = $1
 GROUP BY et.type_id, et.name
 HAVING COUNT(DISTINCT ed.event_id) > 0
     )
-SELECT jsonb_agg(
-               jsonb_build_object(
-                       'type_id', type_id,
-                       'type_name', type_name,
-                       'count', event_count
-               ) ORDER BY type_name
-       ) AS event_type_counts
+SELECT *
 FROM event_counts
+ORDER BY name

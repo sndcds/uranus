@@ -12,10 +12,10 @@ func (h *ApiHandler) GetSpaceTypes(gc *gin.Context) {
 	pool := app.Singleton.MainDbPool
 	ctx := gc.Request.Context()
 
-	// Get optional language from query param, default to "de"
+	// Get optional language from query param, default to "en"
 	lang := gc.Query("lang")
 	if lang == "" {
-		lang = "de"
+		lang = "en"
 	}
 
 	// SQL query

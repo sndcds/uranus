@@ -73,7 +73,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("lang format error %v", err)})
 		}
 	} else {
-		languageStr = "de"
+		languageStr = "en"
 	}
 
 	args = append(args, languageStr)

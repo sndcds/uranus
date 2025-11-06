@@ -61,7 +61,8 @@ func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
 		startDate = time.Now()
 	}
 
-	rows, err := pool.Query(ctx, app.Singleton.SqlAdminOrganizerEvents, organizerId, startDate, "de")
+	// TODO: lang, default "en", get languageStr
+	rows, err := pool.Query(ctx, app.Singleton.SqlAdminOrganizerEvents, organizerId, startDate, "en")
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

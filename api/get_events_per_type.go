@@ -65,7 +65,7 @@ func (h *ApiHandler) GetEventsPerType(gc *gin.Context) {
 			gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("lang format error %v", err)})
 		}
 	} else {
-		languageStr = "de"
+		languageStr = "en"
 	}
 
 	args = append(args, languageStr)
@@ -274,18 +274,6 @@ func (h *ApiHandler) GetEventsPerType(gc *gin.Context) {
 		rowMap := make(map[string]interface{}, len(values))
 		for i, col := range columnNames {
 			rowMap[col] = values[i]
-		}
-
-		// Add extra property image_path
-		imageID := rowMap["image_id"]
-		if imageID == nil {
-			rowMap["image_path"] = nil // or "" if you prefer
-		} else {
-			rowMap["image_path"] = fmt.Sprintf(
-				"%s/api/image/%v",
-				app.Singleton.Config.BaseApiUrl,
-				imageID,
-			)
 		}
 
 		results = append(results, rowMap)

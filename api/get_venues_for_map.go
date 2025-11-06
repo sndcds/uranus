@@ -12,7 +12,8 @@ func (h *ApiHandler) GetGeojsonVenues(gc *gin.Context) {
 	ctx := gc.Request.Context()
 
 	sql := app.Singleton.SqlGetGeojsonVenues
-	rows, err := db.Query(ctx, sql, "de")
+	// TODO: languageStr, default "en"
+	rows, err := db.Query(ctx, sql, "en")
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
