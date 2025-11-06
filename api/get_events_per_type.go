@@ -17,6 +17,8 @@ func (h *ApiHandler) GetEventsPerType(gc *gin.Context) {
 
 	query := app.Singleton.SqlGetEventsPerType
 
+	// TODO: Important: The parameters must be identical with parameters from GetEvents()
+
 	languageStr, _ := GetContextParam(gc, "lang")
 	_, hasPast := GetContextParam(gc, "past")
 	startStr, _ := GetContextParam(gc, "start")

@@ -23,8 +23,14 @@ WHERE et.iso_639_1 = $1
     {{conditions}}
 GROUP BY et.type_id, et.name
 HAVING COUNT(DISTINCT ed.event_date_id) > 0
-     {{limit}}
+    ),
+
+    total_count AS (
+SELECT COUNT(DISTINCT event_date_id) AS total
+FROM event_data
     )
-SELECT *
-FROM event_counts
-ORDER BY name;
+
+SELECT json_build_object(
+               'total', (SELECT total FROM total_count),
+               'types', (SELECT json_agg(ec ORDER BY ec.name) FROM event_counts ec)
+       ) AS result;
