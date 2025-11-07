@@ -27,7 +27,10 @@ type Uranus struct {
 	MainDbPool                           *pgxpool.Pool
 	Config                               Config
 	SqlGetEvent                          string
-	SqlGetEvents                         string
+	SqlGetEventsBasic                    string
+	SqlGetEventsExtended                 string
+	SqlGetEventsGeometry                 string
+	SqlGetEventsDetailed                 string
 	SqlGetEventsPerType                  string
 	SqlGetAdminOrganizer                 string
 	SqlUpdateOrganizer                   string
@@ -137,65 +140,107 @@ func (app *Uranus) LoadConfig(fileName string) error {
 	return nil
 }
 
-func (app *Uranus) PrepareSql() error {
-	type queryItem struct {
-		filePath string
-		target   *string
+type SqlQueryItem struct {
+	filePath              string
+	target                *string
+	modeDependentFilePath *string
+}
+
+func (q *SqlQueryItem) LoadSql(schema string) error {
+	// Read main SQL file
+	fileContent, err := os.ReadFile(q.filePath)
+	if err != nil {
+		return fmt.Errorf("failed to read file: %w", err)
 	}
 
-	queries := []queryItem{
+	contentStr := string(fileContent)
+
+	// Replace {{schema}} placeholder
+	resultStr := strings.ReplaceAll(contentStr, "{{schema}}", schema)
+
+	// Handle modeDependentFilePath if present
+	if q.modeDependentFilePath != nil && *q.modeDependentFilePath != "" {
+		modeContent, err := os.ReadFile(*q.modeDependentFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to read mode-dependent file: %w", err)
+		}
+
+		resultStr = strings.ReplaceAll(resultStr, "{{mode-dependent-select}}", string(modeContent))
+	}
+
+	// Store final SQL in target
+	if q.target != nil {
+		*q.target = resultStr
+	} else {
+		return fmt.Errorf("target pointer is nil")
+	}
+
+	return nil
+}
+
+func strPtr(s string) *string {
+	return &s
+}
+
+func (app *Uranus) PrepareSql() error {
+
+	queries := []SqlQueryItem{
 		// Public
-		{"queries/get-event.sql", &app.SqlGetEvent},
-		{"queries/get-events.sql", &app.SqlGetEvents},
-		{"queries/get-events-per-type.sql", &app.SqlGetEventsPerType},
+		{"queries/get-events.sql", &app.SqlGetEventsBasic, strPtr("queries/get-events-select-basic.sql")},
+		{"queries/get-events.sql", &app.SqlGetEventsExtended, strPtr("queries/get-events-select-extended.sql")},
+		{"queries/get-events.sql", &app.SqlGetEventsGeometry, strPtr("queries/get-events-select-geometry.sql")},
+		{"queries/get-events.sql", &app.SqlGetEventsDetailed, strPtr("queries/get-events-select-detailed.sql")},
 
-		{"queries/organizer_roles.sql", &app.SqlQueryOrganizerRoles},
-		{"queries/venue_roles.sql", &app.SqlQueryVenueRoles},
-		{"queries/space_roles.sql", &app.SqlQuerySpaceRoles},
-		{"queries/event-roles.sql", &app.SqlQueryEventRoles},
-		{"queries/choosable-event-types.sql", &app.SqlChoosableEventTypes},
-		{"queries/choosable-event-genres.sql", &app.SqlChoosableEventGenres},
-		{"queries/get-meta-genres-by-event-type.sql", &app.SqlGetMetaGenresByEventType},
-		{"queries/get-geojson-venues.sql", &app.SqlGetGeojsonVenues},
-		{"queries/userVenues.sql", &app.SqlQueryVenueByUser},
-		{"queries/spacesByVenueId.sql", &app.SqlQuerySpacesByVenueId},
-		{"queries/userVenuesById.sql", &app.SqlQueryUserVenuesById},
+		{"queries/get-events-per-type.sql", &app.SqlGetEventsPerType, nil},
 
-		{"queries/choosable-organizer-venues.sql", &app.SqlChoosableOrganizerVenues},
-		{"queries/choosable-venue-spaces.sql", &app.SqlChoosableVenueSpaces},
+		{"queries/organizer_roles.sql", &app.SqlQueryOrganizerRoles, nil},
+		{"queries/venue_roles.sql", &app.SqlQueryVenueRoles, nil},
+		{"queries/space_roles.sql", &app.SqlQuerySpaceRoles, nil},
+		{"queries/event-roles.sql", &app.SqlQueryEventRoles, nil},
+		{"queries/choosable-event-types.sql", &app.SqlChoosableEventTypes, nil},
+		{"queries/choosable-event-genres.sql", &app.SqlChoosableEventGenres, nil},
+		{"queries/get-meta-genres-by-event-type.sql", &app.SqlGetMetaGenresByEventType, nil},
+		{"queries/get-geojson-venues.sql", &app.SqlGetGeojsonVenues, nil},
+		{"queries/userVenues.sql", &app.SqlQueryVenueByUser, nil},
+		{"queries/spacesByVenueId.sql", &app.SqlQuerySpacesByVenueId, nil},
+		{"queries/userVenuesById.sql", &app.SqlQueryUserVenuesById, nil},
+
+		{"queries/choosable-organizer-venues.sql", &app.SqlChoosableOrganizerVenues, nil},
+		{"queries/choosable-venue-spaces.sql", &app.SqlChoosableVenueSpaces, nil},
 
 		// Admin
-		{"queries/admin/get-admin-organizer.sql", &app.SqlGetAdminOrganizer},
-		{"queries/admin/update-organizer.sql", &app.SqlUpdateOrganizer},
+		{"queries/admin/get-admin-organizer.sql", &app.SqlGetAdminOrganizer, nil},
+		{"queries/admin/update-organizer.sql", &app.SqlUpdateOrganizer, nil},
 
-		{"queries/admin/get-admin-venue.sql", &app.SqlGetAdminVenue},
-		{"queries/admin/update-venue.sql", &app.SqlUpdateVenue},
+		{"queries/admin/get-admin-venue.sql", &app.SqlGetAdminVenue, nil},
+		{"queries/admin/update-venue.sql", &app.SqlUpdateVenue, nil},
 
-		{"queries/admin/get-admin-space.sql", &app.SqlGetAdminSpace},
-		{"queries/admin/update-space.sql", &app.SqlUpdateSpace},
+		{"queries/admin/get-admin-space.sql", &app.SqlGetAdminSpace, nil},
+		{"queries/admin/update-space.sql", &app.SqlUpdateSpace, nil},
 
-		{"queries/admin/get-admin-event.sql", &app.SqlGetAdminEvent},
+		{"queries/admin/get-admin-event.sql", &app.SqlGetAdminEvent, nil},
 
-		{"queries/admin/admin-user-permissions.sql", &app.SqlAdminUserPermissions},
-		{"queries/admin/admin-get-user-event-notification.sql", &app.SqlAdminGetUserEventNotification},
+		{"queries/admin/admin-user-permissions.sql", &app.SqlAdminUserPermissions, nil},
+		{"queries/admin/admin-get-user-event-notification.sql", &app.SqlAdminGetUserEventNotification, nil},
 
-		{"queries/admin/admin-user-spaces-can-add-event.sql", &app.SqlAdminSpacesCanAddEvent},
-		{"queries/admin/admin-user-spaces-for-event.sql", &app.SqlAdminSpacesForEvent},
+		{"queries/admin/admin-user-spaces-can-add-event.sql", &app.SqlAdminSpacesCanAddEvent, nil},
+		{"queries/admin/admin-user-spaces-for-event.sql", &app.SqlAdminSpacesForEvent, nil},
 
-		{"queries/admin/choosable-organizers.sql", &app.SqlAdminChoosableOrganizers},
-		{"queries/admin/choosable-user-event-organizers.sql", &app.SqlAdminChoosableUserEventOrganizers},
+		{"queries/admin/choosable-organizers.sql", &app.SqlAdminChoosableOrganizers, nil},
+		{"queries/admin/choosable-user-event-organizers.sql", &app.SqlAdminChoosableUserEventOrganizers, nil},
 
-		{"queries/admin/organizer-dashboard.sql", &app.SqlAdminOrganizerDashboard},
-		{"queries/admin/organizer-events.sql", &app.SqlAdminOrganizerEvents},
-		{"queries/admin/organizer-venues.sql", &app.SqlAdminOrganizerVenues},
+		{"queries/admin/organizer-dashboard.sql", &app.SqlAdminOrganizerDashboard, nil},
+		{"queries/admin/organizer-events.sql", &app.SqlAdminOrganizerEvents, nil},
+		{"queries/admin/organizer-venues.sql", &app.SqlAdminOrganizerVenues, nil},
 
 		// TODO
-		{"queries/user-org-events-overview.sql", &app.SqlQueryUserOrgEventsOverview},
-		{"queries/event-images.sql", &app.SqlEventImages},
+		{"queries/user-org-events-overview.sql", &app.SqlQueryUserOrgEventsOverview, nil},
+		{"queries/event-images.sql", &app.SqlEventImages, nil},
 	}
 
-	for _, q := range queries {
-		if err := loadFileReplaceAllSchema(q.filePath, app.Config.DbSchema, q.target); err != nil {
+	for i := range queries {
+		q := &queries[i] // pointer to slice element
+		if err := q.LoadSql(app.Config.DbSchema); err != nil {
 			return err
 		}
 	}

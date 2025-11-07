@@ -35,7 +35,7 @@ func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 	start := time.Now() // Start timer
 	ctx := gc.Request.Context()
 
-	query := app.Singleton.SqlGetEvents
+	query := app.Singleton.SqlGetEventsDetailed
 
 	languageStr, _ := GetContextParam(gc, "lang")
 	_, hasPast := GetContextParam(gc, "past")

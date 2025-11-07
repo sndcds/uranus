@@ -3,8 +3,6 @@ package app
 import (
 	"fmt"
 	"net/mail"
-	"os"
-	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -40,24 +38,6 @@ func CombineFlags(flags []int) uint64 {
 		}
 	}
 	return result
-}
-
-func loadFileReplaceAllSchema(filePath string, replacement string, outString *string) error {
-	return loadFileReplaceAllShortcuts(filePath, "{{schema}}", replacement, outString)
-}
-
-func loadFileReplaceAllShortcuts(filePath string, shortcut string, replacement string, outString *string) error {
-	// Read the SQL file
-	content, err := os.ReadFile(filePath)
-	if err != nil {
-		return fmt.Errorf("failed to read file: %w", err)
-	}
-
-	// Convert to string and replace {{schema}} with actual schema name
-	s := string(content)
-	s = strings.ReplaceAll(s, shortcut, replacement)
-	*outString = s
-	return nil
 }
 
 // GenerateWKT takes lat/lon strings and returns a WKT POINT string

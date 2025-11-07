@@ -12,7 +12,24 @@ import (
 )
 
 func (h *ApiHandler) GetEvents(gc *gin.Context) {
-	pool := app.Singleton.MainDbPool
+	pool := h.DbPool
+
+	var query string
+
+	modeStr := gc.Query("mode") // "" if not provided
+	switch modeStr {
+	case "", "basic":
+		query = app.Singleton.SqlGetEventsBasic
+	case "extended":
+		query = app.Singleton.SqlGetEventsExtended
+	case "geometry":
+		query = app.Singleton.SqlGetEventsGeometry
+	case "detailed":
+		query = app.Singleton.SqlGetEventsDetailed
+	default:
+		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Unknown mode %s", modeStr)})
+		return
+	}
 
 	// TODO:
 	// Note on security:
@@ -22,8 +39,6 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	// Check for unknown arguments
 
 	ctx := gc.Request.Context()
-
-	query := app.Singleton.SqlGetEvents
 
 	languageStr, _ := GetContextParam(gc, "lang")
 	_, hasPast := GetContextParam(gc, "past")
