@@ -163,6 +163,7 @@ func main() {
 
 	// OK
 	adminRoute.POST("/signup", apiHandler.Signup)
+	adminRoute.POST("/activate", apiHandler.Activate)
 	adminRoute.POST("/login", apiHandler.Login)
 	adminRoute.POST("/refresh", apiHandler.Refresh)
 	adminRoute.POST("/forgot-password", apiHandler.ForgotPassword)

@@ -1,6 +1,8 @@
 package api
 
 import (
+	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -17,24 +19,24 @@ func (h *ApiHandler) Login(gc *gin.Context) {
 		Password string `json:"password"`
 	}
 
+	const loginErrorMsg = "invalid email or password"
+
+	// Parse credentials
 	if err := gc.BindJSON(&credentials); err != nil || credentials.Email == "" || credentials.Password == "" {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "credentials required"})
+		gc.JSON(http.StatusUnauthorized, gin.H{"error": loginErrorMsg})
 		return
 	}
 
+	// Load user
 	user, err := model.GetUser(app.Singleton, credentials.Email)
-
-	if err != nil || app.ComparePasswords(user.PasswordHash, credentials.Password) != nil {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
+	if err != nil || !user.IsActive || app.ComparePasswords(user.PasswordHash, credentials.Password) != nil {
+		log.Printf("Login failed for email=%s: err=%v, active=%v", credentials.Email, err, user.IsActive)
+		gc.JSON(http.StatusUnauthorized, gin.H{"error": loginErrorMsg})
 		return
 	}
 
-	// -----------------------
-	// Create tokens
-	// -----------------------
+	// Create access token
 	accessExp := time.Now().Add(time.Duration(h.Config.AuthTokenExpirationTime) * time.Second)
-	refreshExp := time.Now().Add(7 * 24 * time.Hour)
-
 	accessClaims := &app.Claims{
 		UserId: user.Id,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -44,10 +46,13 @@ func (h *ApiHandler) Login(gc *gin.Context) {
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
 	accessTokenStr, err := accessToken.SignedString(app.Singleton.JwtKey)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create access token"})
+		log.Printf("Failed to sign access token for user=%d: %v", user.Id, err)
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
 
+	// Create refresh token
+	refreshExp := time.Now().Add(7 * 24 * time.Hour)
 	refreshClaims := &app.Claims{
 		UserId: user.Id,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -57,14 +62,18 @@ func (h *ApiHandler) Login(gc *gin.Context) {
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
 	refreshTokenStr, err := refreshToken.SignedString(app.Singleton.JwtKey)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create refresh token"})
+		log.Printf("Failed to sign refresh token for user=%d: %v", user.Id, err)
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
 
+	// Return tokens
 	gc.JSON(http.StatusOK, gin.H{
 		"message":       "login successful",
 		"user_id":       user.Id,
 		"display_name":  user.DisplayName,
+		"first_name":    user.FirstName,
+		"last_name":     user.LastName,
 		"locale":        user.Locale,
 		"theme":         user.Theme,
 		"access_token":  accessTokenStr,
@@ -73,28 +82,29 @@ func (h *ApiHandler) Login(gc *gin.Context) {
 }
 
 func (h *ApiHandler) Refresh(gc *gin.Context) {
-	// Get refresh token from Authorization header
-	authHeader := gc.GetHeader("Authorization")
-	if authHeader == "" {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "authorization header missing"})
-		return
-	}
+	const refreshErrorMsg = "invalid refresh token"
 
-	// Expected format: "Bearer <token>"
+	// Get token from Authorization header
+	authHeader := gc.GetHeader("Authorization")
 	parts := strings.SplitN(authHeader, " ", 2)
 	if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authorization header format"})
+		log.Printf("Invalid refresh header: %s", authHeader)
+		gc.JSON(http.StatusUnauthorized, gin.H{"error": refreshErrorMsg})
 		return
 	}
 	refreshToken := parts[1]
 
-	// Parse and validate token
+	// Parse token
 	claims := &app.Claims{}
 	tkn, err := jwt.ParseWithClaims(refreshToken, claims, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
 		return app.Singleton.JwtKey, nil
 	})
 	if err != nil || !tkn.Valid {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid refresh token"})
+		log.Printf("Invalid refresh token: %v", err)
+		gc.JSON(http.StatusUnauthorized, gin.H{"error": refreshErrorMsg})
 		return
 	}
 
@@ -106,15 +116,15 @@ func (h *ApiHandler) Refresh(gc *gin.Context) {
 			ExpiresAt: jwt.NewNumericDate(accessExp),
 		},
 	}
-
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, newClaims)
 	accessTokenStr, err := accessToken.SignedString(app.Singleton.JwtKey)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to sign access token"})
+		log.Printf("Failed to sign new access token for user=%d: %v", claims.UserId, err)
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
 
-	// Send new access token back in header (and optionally JSON body)
+	// Return new access token
 	gc.Header("Authorization", "Bearer "+accessTokenStr)
 	gc.JSON(http.StatusOK, gin.H{
 		"message":      "token refreshed",
