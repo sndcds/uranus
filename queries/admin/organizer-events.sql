@@ -30,7 +30,11 @@ SELECT
     ST_X(v.wkb_geometry) AS venue_lon,
     ST_Y(v.wkb_geometry) AS venue_lat,
     eil.pluto_image_id AS image_id,
-    et_data.event_types
+    et_data.event_types,
+    COALESCE(uelr.add_event, FALSE) OR COALESCE(uolr.add_event, FALSE) OR COALESCE(uvlr.add_event, FALSE) AS can_add_event,
+    COALESCE(uelr.edit_event, FALSE) OR COALESCE(uolr.edit_event, FALSE) OR COALESCE(uvlr.edit_event, FALSE) AS can_edit_event,
+    COALESCE(uelr.delete_event, FALSE) OR COALESCE(uolr.delete_event, FALSE) OR COALESCE(uvlr.delete_event, FALSE) AS can_delete_event,
+    COALESCE(uelr.release_event, FALSE) OR COALESCE(uolr.release_event, FALSE) OR COALESCE(uvlr.release_event, FALSE) AS can_release_event
 
 FROM event_data ed
     LEFT JOIN {{schema}}.event e ON ed.event_id = e.id
@@ -55,7 +59,21 @@ FROM event_data ed
         WHERE etl.event_id = e.id
     ) et_data ON true
 
+    -- User links and roles
+    LEFT JOIN {{schema}}.user_event_links uel ON uel.event_id = e.id AND uel.user_id = $4
+    LEFT JOIN {{schema}}.user_role uelr ON uel.user_role_id = uelr.id
+
+    LEFT JOIN {{schema}}.user_organizer_links uol ON uol.organizer_id = e.organizer_id AND uol.user_id = $4
+    LEFT JOIN {{schema}}.user_role uolr ON uol.user_role_id = uolr.id
+
+    LEFT JOIN {{schema}}.user_venue_links uvl ON uvl.venue_id = e.venue_id AND uvl.user_id = $4
+    LEFT JOIN {{schema}}.user_role uvlr ON uvl.user_role_id = uvlr.id
 
 WHERE (o.id = $1 OR o.id IS NULL)   -- keep event_dates even if venue.organizer is missing
+    --AND (
+    -- (uolr.view_event_insights = TRUE)
+    -- OR (uelr.edit_event = TRUE)
+     -- OR (uvlr.edit_event = TRUE)
+    --)
   AND ed.start::date >= $2
 ORDER BY ed.start

@@ -3,12 +3,15 @@ package api
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/smtp"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/uranus/app"
 )
 
@@ -21,7 +24,7 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 		return
 	}
 
-	db := h.DbPool
+	pool := h.DbPool
 	ctx := gc.Request.Context()
 
 	// Look up user
@@ -31,7 +34,7 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 	)
 
 	var userID int
-	err := db.QueryRow(ctx, query, req.EmailAddress).Scan(&userID)
+	err := pool.QueryRow(ctx, query, req.EmailAddress).Scan(&userID)
 	if err != nil {
 		// Always respond the same way to avoid leaking info
 		gc.JSON(http.StatusOK, gin.H{"message": "If an account exists, a reset link has been sent."})
@@ -51,19 +54,34 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 		VALUES ($1, $2, $3)`,
 		h.Config.DbSchema)
 
-	_, err = db.Exec(ctx, query, userID, token, time.Now().Add(1*time.Hour))
+	_, err = pool.Exec(ctx, query, userID, token, time.Now().Add(1*time.Hour))
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save token"})
 		return
 	}
 
-	// Build reset link
-	resetURL := fmt.Sprintf(
-		"%s?token=%s",
-		h.Config.AuthResetPasswordUrl,
-		token)
+	resetUrl := gc.Request.Referer() + "app/reset-password?token=" + token
+
+	langStr := "en" // TODO: Which language?
+	messageQuery := fmt.Sprintf(`SELECT template FROM %s.system_email_template WHERE context = 'reset-email' AND iso_639_1 = $1`, h.Config.DbSchema)
+	_, err = pool.Exec(gc, messageQuery, langStr)
+	if err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create user"})
+		return
+	}
+	var template string
+	err = pool.QueryRow(gc, messageQuery, langStr).Scan(&template)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			gc.JSON(http.StatusNotFound, gin.H{"error": "email template not found"})
+		} else {
+			gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get email template"})
+		}
+		return
+	}
+	emailContent := strings.Replace(template, "{{link}}", resetUrl, 1)
 	go func() {
-		sendEmailErr := sendResetEmail(req.EmailAddress, resetURL)
+		sendEmailErr := sendEmail(req.EmailAddress, emailContent)
 		if sendEmailErr != nil {
 			gc.JSON(http.StatusOK, gin.H{
 				"message":    "Unable to send reset email.",
@@ -153,28 +171,31 @@ func generateResetToken() (string, error) {
 	return base64.URLEncoding.EncodeToString(b), nil
 }
 
-func sendResetEmail(to, link string) error {
+func sendEmail(to, htmlContent string) error {
 	from := app.Singleton.Config.AuthReplyEmailAddress
 	userName := app.Singleton.Config.AuthSmtpLogin
 	password := app.Singleton.Config.AuthSmtpPassword
 	smtpHost := app.Singleton.Config.AuthSmtpHost
 	smtpPort := app.Singleton.Config.AuthSmtpPort // int
 
+	// Build MIME email message with HTML content
 	message := []byte("Subject: Reset your password\r\n" +
 		"MIME-Version: 1.0\r\n" +
 		"To: " + to + "\r\n" +
 		"From: " + from + "\r\n" +
-		"Content-Type: text/plain; charset=\"UTF-8\"\r\n" +
+		"Content-Type: text/html; charset=\"UTF-8\"\r\n" +
 		"\r\n" +
-		"Click the link below to reset your password (valid for 1 hour):\r\n" +
-		link + "\r\n")
+		htmlContent + "\r\n")
 
 	auth := smtp.PlainAuth("", userName, password, smtpHost)
 	addr := fmt.Sprintf("%s:%d", smtpHost, smtpPort)
 
+	fmt.Println("auth:", auth)
+	fmt.Println("addr:", addr)
+
 	err := smtp.SendMail(addr, auth, userName, []string{to}, message)
 	if err != nil {
-		// TODO: Write to logfile
+		fmt.Println("err:", err.Error())
 		return fmt.Errorf("unable to send email: %s", err.Error())
 	}
 

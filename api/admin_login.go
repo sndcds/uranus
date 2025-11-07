@@ -10,10 +10,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/sndcds/uranus/app"
-	"github.com/sndcds/uranus/model"
 )
 
 func (h *ApiHandler) Login(gc *gin.Context) {
+	pool := h.DbPool
 	var credentials struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -28,9 +28,37 @@ func (h *ApiHandler) Login(gc *gin.Context) {
 	}
 
 	// Load user
-	user, err := model.GetUser(app.Singleton, credentials.Email)
-	if err != nil || !user.IsActive || app.ComparePasswords(user.PasswordHash, credentials.Password) != nil {
-		log.Printf("Login failed for email=%s: err=%v, active=%v", credentials.Email, err, user.IsActive)
+	var userId int
+	var emailAddress string
+	var passwordHash string
+	var displayName *string
+	var firstName *string
+	var lastName *string
+	var locale *string
+	var theme *string
+	var isActive bool
+
+	sql := fmt.Sprintf(
+		`SELECT id, email_address, password_hash, first_name, last_name, display_name, locale, theme, is_active
+		FROM %s.user WHERE email_address = $1`,
+		h.Config.DbSchema)
+	err := pool.QueryRow(gc, sql, credentials.Email).Scan(
+		&userId,
+		&emailAddress,
+		&passwordHash,
+		&firstName,
+		&lastName,
+		&displayName,
+		&locale,
+		&theme,
+		&isActive,
+	)
+	if err != nil {
+		gc.JSON(http.StatusUnauthorized, gin.H{"error": loginErrorMsg})
+		return
+	}
+
+	if !isActive || app.ComparePasswords(passwordHash, credentials.Password) != nil {
 		gc.JSON(http.StatusUnauthorized, gin.H{"error": loginErrorMsg})
 		return
 	}
@@ -38,7 +66,7 @@ func (h *ApiHandler) Login(gc *gin.Context) {
 	// Create access token
 	accessExp := time.Now().Add(time.Duration(h.Config.AuthTokenExpirationTime) * time.Second)
 	accessClaims := &app.Claims{
-		UserId: user.Id,
+		UserId: userId,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(accessExp),
 		},
@@ -46,7 +74,7 @@ func (h *ApiHandler) Login(gc *gin.Context) {
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
 	accessTokenStr, err := accessToken.SignedString(app.Singleton.JwtKey)
 	if err != nil {
-		log.Printf("Failed to sign access token for user=%d: %v", user.Id, err)
+		log.Printf("Failed to sign access token for user=%d: %v", userId, err)
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
@@ -54,7 +82,7 @@ func (h *ApiHandler) Login(gc *gin.Context) {
 	// Create refresh token
 	refreshExp := time.Now().Add(7 * 24 * time.Hour)
 	refreshClaims := &app.Claims{
-		UserId: user.Id,
+		UserId: userId,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(refreshExp),
 		},
@@ -62,7 +90,7 @@ func (h *ApiHandler) Login(gc *gin.Context) {
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
 	refreshTokenStr, err := refreshToken.SignedString(app.Singleton.JwtKey)
 	if err != nil {
-		log.Printf("Failed to sign refresh token for user=%d: %v", user.Id, err)
+		log.Printf("Failed to sign refresh token for user=%d: %v", userId, err)
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
@@ -70,12 +98,12 @@ func (h *ApiHandler) Login(gc *gin.Context) {
 	// Return tokens
 	gc.JSON(http.StatusOK, gin.H{
 		"message":       "login successful",
-		"user_id":       user.Id,
-		"display_name":  user.DisplayName,
-		"first_name":    user.FirstName,
-		"last_name":     user.LastName,
-		"locale":        user.Locale,
-		"theme":         user.Theme,
+		"user_id":       userId,
+		"display_name":  displayName,
+		"first_name":    firstName,
+		"last_name":     lastName,
+		"locale":        locale,
+		"theme":         theme,
 		"access_token":  accessTokenStr,
 		"refresh_token": refreshTokenStr,
 	})

@@ -56,7 +56,7 @@ func GetUserById(app *app.Uranus, userId int) (User, error) {
 func GetUser(app *app.Uranus, eMail string) (User, error) {
 	sql := fmt.Sprintf(
 		`SELECT id, email_address, password_hash, first_name, last_name, display_name, locale, theme, is_active
-		WHERE email_address = $1`,
+		FROM %s.user WHERE email_address = $1`,
 		app.Config.DbSchema,
 	)
 

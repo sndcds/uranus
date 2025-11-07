@@ -13,6 +13,7 @@ import (
 func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
 	pool := h.DbPool
 	ctx := gc.Request.Context()
+	userId := gc.GetInt("user-id")
 
 	type EventType struct {
 		TypeID    int     `json:"type_id"`
@@ -41,6 +42,10 @@ func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
 		VenueLat           float64     `json:"venue_lat"`
 		ImageId            *int        `json:"image_id"`
 		EventTypes         []EventType `json:"event_types"`
+		CanAddEvent        bool        `json:"can_add_event"`
+		CanEditEvent       bool        `json:"can_edit_event"`
+		CanDeleteEvent     bool        `json:"can_delete_event"`
+		CanReleaseEvent    bool        `json:"can_release_event"`
 	}
 
 	organizerIdStr := gc.Param("organizerId")
@@ -62,7 +67,7 @@ func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
 	}
 
 	// TODO: lang, default "en", get languageStr
-	rows, err := pool.Query(ctx, app.Singleton.SqlAdminOrganizerEvents, organizerId, startDate, "en")
+	rows, err := pool.Query(ctx, app.Singleton.SqlAdminOrganizerEvents, organizerId, startDate, "en", userId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -93,6 +98,10 @@ func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
 			&e.VenueLat,
 			&e.ImageId,
 			&eventTypesData,
+			&e.CanAddEvent,
+			&e.CanEditEvent,
+			&e.CanDeleteEvent,
+			&e.CanReleaseEvent,
 		)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

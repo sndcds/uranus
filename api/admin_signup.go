@@ -93,7 +93,7 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 		return
 	}
 
-	messageQuery := fmt.Sprintf(`SELECT template FROM %s.system_email_template WHERE context = 'activate-mail' AND iso_639_1 = $1`, h.Config.DbSchema)
+	messageQuery := fmt.Sprintf(`SELECT template FROM %s.system_email_template WHERE context = 'activate-email' AND iso_639_1 = $1`, h.Config.DbSchema)
 	_, err = pool.Exec(gc, messageQuery, langStr)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create user"})
@@ -114,7 +114,7 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 	template = strings.Replace(template, "{{link}}", linkUrl, 1)
 
 	go func() {
-		sendEmailErr := sendResetEmail(req.Email, template)
+		sendEmailErr := sendEmail(req.Email, template)
 		if sendEmailErr != nil {
 			gc.JSON(http.StatusOK, gin.H{
 				"message":    "Unable to send reset email.",
