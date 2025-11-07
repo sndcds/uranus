@@ -186,6 +186,8 @@ func (app *Uranus) PrepareSql() error {
 
 	queries := []SqlQueryItem{
 		// Public
+		{"queries/get-event.sql", &app.SqlGetEvent, nil},
+
 		{"queries/get-events.sql", &app.SqlGetEventsBasic, strPtr("queries/get-events-select-basic.sql")},
 		{"queries/get-events.sql", &app.SqlGetEventsExtended, strPtr("queries/get-events-select-extended.sql")},
 		{"queries/get-events.sql", &app.SqlGetEventsGeometry, strPtr("queries/get-events-select-geometry.sql")},

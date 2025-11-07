@@ -20,6 +20,5 @@ TO_CHAR(ed.end, 'YYYY-MM-DD') AS end_date,
 TO_CHAR(ed.end, 'HH24:MI') AS end_time,
 TO_CHAR(ed.entry_time, 'HH24:MI') AS entry_time,
 et_data.event_types,
-ST_AsText(v.wkb_geometry) AS venue_geometry,
 ST_X(v.wkb_geometry) AS venue_lon,
 ST_Y(v.wkb_geometry) AS venue_lat
