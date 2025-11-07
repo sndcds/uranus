@@ -19,4 +19,5 @@ TO_CHAR(ed.start, 'HH24:MI') AS start_time,
 TO_CHAR(ed.end, 'YYYY-MM-DD') AS end_date,
 TO_CHAR(ed.end, 'HH24:MI') AS end_time,
 TO_CHAR(ed.entry_time, 'HH24:MI') AS entry_time,
-et_data.event_types
+et_data.event_types,
+img_data.id AS image_id
