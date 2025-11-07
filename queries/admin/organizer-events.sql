@@ -31,7 +31,6 @@ SELECT
     ST_Y(v.wkb_geometry) AS venue_lat,
     eil.pluto_image_id AS image_id,
     et_data.event_types,
-    COALESCE(uelr.add_event, FALSE) OR COALESCE(uolr.add_event, FALSE) OR COALESCE(uvlr.add_event, FALSE) AS can_add_event,
     COALESCE(uelr.edit_event, FALSE) OR COALESCE(uolr.edit_event, FALSE) OR COALESCE(uvlr.edit_event, FALSE) AS can_edit_event,
     COALESCE(uelr.delete_event, FALSE) OR COALESCE(uolr.delete_event, FALSE) OR COALESCE(uvlr.delete_event, FALSE) AS can_delete_event,
     COALESCE(uelr.release_event, FALSE) OR COALESCE(uolr.release_event, FALSE) OR COALESCE(uvlr.release_event, FALSE) AS can_release_event

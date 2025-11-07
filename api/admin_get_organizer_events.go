@@ -42,7 +42,6 @@ func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
 		VenueLat           float64     `json:"venue_lat"`
 		ImageId            *int        `json:"image_id"`
 		EventTypes         []EventType `json:"event_types"`
-		CanAddEvent        bool        `json:"can_add_event"`
 		CanEditEvent       bool        `json:"can_edit_event"`
 		CanDeleteEvent     bool        `json:"can_delete_event"`
 		CanReleaseEvent    bool        `json:"can_release_event"`
@@ -98,7 +97,6 @@ func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
 			&e.VenueLat,
 			&e.ImageId,
 			&eventTypesData,
-			&e.CanAddEvent,
 			&e.CanEditEvent,
 			&e.CanDeleteEvent,
 			&e.CanReleaseEvent,
