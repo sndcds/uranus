@@ -204,6 +204,7 @@ func main() {
 	adminRoute.POST("/venue/create", app.JWTMiddleware, apiHandler.AdminCreateVenue)
 	adminRoute.GET("/venue/:venueId", app.JWTMiddleware, apiHandler.AdminGetVenue)
 	adminRoute.PUT("/venue/:venueId", app.JWTMiddleware, apiHandler.AdminUpdateVenue)
+	adminRoute.DELETE("/venue/:venueId", app.JWTMiddleware, apiHandler.AdminDeleteVenue)
 
 	adminRoute.POST("/space/create", app.JWTMiddleware, apiHandler.AdminCreateSpace)
 	adminRoute.GET("/space/:spaceId", app.JWTMiddleware, apiHandler.AdminGetSpace)
