@@ -27,7 +27,8 @@ func (h *ApiHandler) AdminDeleteEvent(gc *gin.Context) {
 	}
 
 	var body struct {
-		Password string `json:"password"`
+		Password         string `json:"password"`
+		DeleteSeriesFlag bool   `json:"delete_series"`
 	}
 
 	if err := gc.ShouldBindJSON(&body); err != nil {
@@ -57,8 +58,15 @@ func (h *ApiHandler) AdminDeleteEvent(gc *gin.Context) {
 		return
 	}
 
-	query := fmt.Sprintf(`DELETE FROM %s.event WHERE id = $1`, h.Config.DbSchema)
-	cmdTag, err := pool.Exec(ctx, query, eventId)
+	var deleteSql string
+
+	if body.DeleteSeriesFlag == true {
+		deleteSql = fmt.Sprintf(`DELETE FROM %s.event WHERE id = $1`, h.Config.DbSchema)
+	} else {
+		deleteSql = fmt.Sprintf(`DELETE FROM %s.event_date WHERE id = $1`, h.Config.DbSchema)
+	}
+
+	cmdTag, err := pool.Exec(ctx, deleteSql, eventId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete event", "details": err.Error()})
 		return

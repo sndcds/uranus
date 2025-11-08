@@ -24,6 +24,7 @@ func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
 
 	type EventWithVenue struct {
 		EventId            int         `json:"event_id"`
+		EventDateId        int         `json:"event_date_id"`
 		EventTitle         string      `json:"event_title"`
 		EventSubtitle      *string     `json:"event_subtitle"`
 		EventOrganizerId   int         `json:"event_organizer_id"`
@@ -80,6 +81,7 @@ func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
 		var e EventWithVenue
 		err := rows.Scan(
 			&e.EventId,
+			&e.EventDateId,
 			&e.EventTitle,
 			&e.EventSubtitle,
 			&e.EventOrganizerId,
