@@ -64,7 +64,6 @@ SELECT
     v.id AS venue_id,
     v.name AS venue_name,
     v.organizer_id,
-    CASE WHEN ev.venue_id IS NOT NULL THEN true ELSE false END AS can_edit,
     COALESCE(vp.can_edit_venue, false) AS can_edit_venue,
     COALESCE(vp.can_delete_venue, false) AS can_delete_venue,
     COALESCE(vp.can_add_space, false) AS can_add_space,
@@ -116,7 +115,6 @@ SELECT
     json_build_object(
     'venue_id', vi.venue_id,
     'venue_name', vi.venue_name,
-    'can_edit', vi.can_edit,
     'can_edit_venue', vi.can_edit_venue,
     'can_delete_venue', vi.can_delete_venue,
     'can_add_space', vi.can_add_space,

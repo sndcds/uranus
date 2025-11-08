@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/smtp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -26,6 +27,7 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 
 	pool := h.DbPool
 	ctx := gc.Request.Context()
+	langStr := gc.DefaultQuery("lang", "en")
 
 	// Look up user
 	query := fmt.Sprintf(
@@ -54,7 +56,8 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 		VALUES ($1, $2, $3)`,
 		h.Config.DbSchema)
 
-	_, err = pool.Exec(ctx, query, userID, token, time.Now().Add(1*time.Hour))
+	expiryHour := 1
+	_, err = pool.Exec(ctx, query, userID, token, time.Now().Add(time.Duration(expiryHour)*time.Hour))
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save token"})
 		return
@@ -62,15 +65,15 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 
 	resetUrl := gc.Request.Referer() + "app/reset-password?token=" + token
 
-	langStr := "en" // TODO: Which language?
-	messageQuery := fmt.Sprintf(`SELECT template FROM %s.system_email_template WHERE context = 'reset-email' AND iso_639_1 = $1`, h.Config.DbSchema)
+	messageQuery := fmt.Sprintf(`SELECT subject, template FROM %s.system_email_template WHERE context = 'reset-email' AND iso_639_1 = $1`, h.Config.DbSchema)
 	_, err = pool.Exec(gc, messageQuery, langStr)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create user"})
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate email"})
 		return
 	}
+	var subject string
 	var template string
-	err = pool.QueryRow(gc, messageQuery, langStr).Scan(&template)
+	err = pool.QueryRow(gc, messageQuery, langStr).Scan(&subject, &template)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			gc.JSON(http.StatusNotFound, gin.H{"error": "email template not found"})
@@ -79,9 +82,10 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 		}
 		return
 	}
-	emailContent := strings.Replace(template, "{{link}}", resetUrl, 1)
+	emailContent := strings.Replace(template, "{{link}}", resetUrl, -1)
+	emailContent = strings.Replace(emailContent, "{{expiry_hours}}", strconv.Itoa(expiryHour), -1)
 	go func() {
-		sendEmailErr := sendEmail(req.EmailAddress, emailContent)
+		sendEmailErr := sendEmail(req.EmailAddress, subject, emailContent)
 		if sendEmailErr != nil {
 			gc.JSON(http.StatusOK, gin.H{
 				"message":    "Unable to send reset email.",
@@ -171,31 +175,27 @@ func generateResetToken() (string, error) {
 	return base64.URLEncoding.EncodeToString(b), nil
 }
 
-func sendEmail(to, htmlContent string) error {
+func sendEmail(to, subject string, htmlContent string) error {
 	from := app.Singleton.Config.AuthReplyEmailAddress
 	userName := app.Singleton.Config.AuthSmtpLogin
 	password := app.Singleton.Config.AuthSmtpPassword
 	smtpHost := app.Singleton.Config.AuthSmtpHost
 	smtpPort := app.Singleton.Config.AuthSmtpPort // int
 
-	// Build MIME email message with HTML content
-	message := []byte("Subject: Reset your password\r\n" +
-		"MIME-Version: 1.0\r\n" +
-		"To: " + to + "\r\n" +
-		"From: " + from + "\r\n" +
-		"Content-Type: text/html; charset=\"UTF-8\"\r\n" +
-		"\r\n" +
-		htmlContent + "\r\n")
+	message := []byte(
+		"Subject: " + subject + "\r\n" +
+			"MIME-Version: 1.0\r\n" +
+			"To: " + to + "\r\n" +
+			"From: " + from + "\r\n" +
+			"Content-Type: text/html; charset=\"UTF-8\"\r\n" +
+			"\r\n" +
+			htmlContent + "\r\n")
 
 	auth := smtp.PlainAuth("", userName, password, smtpHost)
 	addr := fmt.Sprintf("%s:%d", smtpHost, smtpPort)
 
-	fmt.Println("auth:", auth)
-	fmt.Println("addr:", addr)
-
 	err := smtp.SendMail(addr, auth, userName, []string{to}, message)
 	if err != nil {
-		fmt.Println("err:", err.Error())
 		return fmt.Errorf("unable to send email: %s", err.Error())
 	}
 

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -71,7 +72,8 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 	}
 
 	// Generate token and send email to users
-	signupExp := time.Now().Add(time.Duration(h.Config.AuthTokenExpirationTime) * time.Second)
+	expiryHour := 1
+	signupExp := time.Now().Add(time.Duration(expiryHour) * time.Hour)
 	signupClaims := &app.Claims{
 		UserId: newUserId,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -86,21 +88,21 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 	}
 
 	updateQuery := fmt.Sprintf(`UPDATE %s.user SET activate_token = $1 WHERE id = $2`, h.Config.DbSchema)
-
 	_, err = pool.Exec(gc, updateQuery, signupTokenString, newUserId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create user"})
 		return
 	}
 
-	messageQuery := fmt.Sprintf(`SELECT template FROM %s.system_email_template WHERE context = 'activate-email' AND iso_639_1 = $1`, h.Config.DbSchema)
+	messageQuery := fmt.Sprintf(`SELECT subject, template FROM %s.system_email_template WHERE context = 'activate-email' AND iso_639_1 = $1`, h.Config.DbSchema)
 	_, err = pool.Exec(gc, messageQuery, langStr)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create user"})
 		return
 	}
+	var subject string
 	var template string
-	err = pool.QueryRow(gc, messageQuery, langStr).Scan(&template)
+	err = pool.QueryRow(gc, messageQuery, langStr).Scan(&subject, &template)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			gc.JSON(http.StatusNotFound, gin.H{"error": "email template not found"})
@@ -110,11 +112,11 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 		return
 	}
 
-	linkUrl := gc.Request.Referer() + "app/activate/account?token=" + signupTokenString
-	template = strings.Replace(template, "{{link}}", linkUrl, 1)
-
+	signupUrl := gc.Request.Referer() + "app/activate/account?token=" + signupTokenString
+	emailMessage := strings.Replace(template, "{{link}}", signupUrl, -1)
+	emailMessage = strings.Replace(emailMessage, "{{expiry_hours}}", strconv.Itoa(expiryHour), -1)
 	go func() {
-		sendEmailErr := sendEmail(req.Email, template)
+		sendEmailErr := sendEmail(req.Email, subject, emailMessage)
 		if sendEmailErr != nil {
 			gc.JSON(http.StatusOK, gin.H{
 				"message":    "Unable to send reset email.",
@@ -123,7 +125,6 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 		}
 	}()
 
-	// Respond success
 	gc.JSON(http.StatusCreated, gin.H{
 		"message": "user created successfully",
 		"user_id": newUserId,
