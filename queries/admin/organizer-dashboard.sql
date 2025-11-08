@@ -56,6 +56,8 @@ FROM {{schema}}.venue v
     LEFT JOIN {{schema}}.user_role ur ON ur.id IN (uvl.user_role_id, uol.user_role_id)
 GROUP BY v.id
     ),
+
+-- ✅ space-level event counts
     space_info AS (
 SELECT
     s.id AS space_id,
@@ -67,6 +69,18 @@ FROM {{schema}}.space s
     LEFT JOIN {{schema}}.event_date ed ON ed.event_id = e.id
 GROUP BY s.id, s.name, s.venue_id
     ),
+
+-- ✅ venue-level event counts (for events without space)
+    venue_event_counts AS (
+SELECT
+    v.id AS venue_id,
+    COUNT(DISTINCT ed.id) FILTER (WHERE ed.start > $2) AS upcoming_event_count
+FROM {{schema}}.venue v
+    LEFT JOIN {{schema}}.event e ON e.venue_id = v.id AND e.space_id IS NULL
+    LEFT JOIN {{schema}}.event_date ed ON ed.event_id = e.id
+GROUP BY v.id
+    ),
+
     venue_info AS (
 SELECT
     v.id AS venue_id,
@@ -82,7 +96,7 @@ SELECT
     COALESCE(vp.can_edit_event, false) AS can_edit_event,
     COALESCE(vp.can_delete_event, false) AS can_delete_event,
     COALESCE(vp.can_release_event, false) AS can_release_event,
-    COALESCE(SUM(s.upcoming_event_count), 0) AS upcoming_event_count,
+    COALESCE(SUM(s.upcoming_event_count), 0) + COALESCE(vec.upcoming_event_count, 0) AS upcoming_event_count,
     COALESCE(
     json_agg(
     json_build_object(
@@ -97,12 +111,15 @@ FROM {{schema}}.venue v
     LEFT JOIN space_info s ON s.venue_id = v.id
     LEFT JOIN editable_venues ev ON ev.venue_id = v.id
     LEFT JOIN venue_permissions vp ON vp.venue_id = v.id
+    LEFT JOIN venue_event_counts vec ON vec.venue_id = v.id
 GROUP BY
     v.id, v.name, v.organizer_id, ev.venue_id,
     vp.can_edit_venue, vp.can_delete_venue,
     vp.can_add_space, vp.can_edit_space, vp.can_delete_space,
-    vp.can_add_event, vp.can_edit_event, vp.can_delete_event, vp.can_release_event
+    vp.can_add_event, vp.can_edit_event, vp.can_delete_event, vp.can_release_event,
+    vec.upcoming_event_count
     ),
+
     organizer_permissions AS (
 SELECT
     o.id AS organizer_id,
@@ -113,6 +130,7 @@ FROM {{schema}}.organizer o
     LEFT JOIN {{schema}}.user_role ur ON ur.id = uol.user_role_id
 GROUP BY o.id
     ),
+
     organizer_info AS (
 SELECT
     o.id AS organizer_id,
