@@ -13,8 +13,8 @@ func (h *ApiHandler) GetChoosableOrganizerVenues(gc *gin.Context) {
 	db := app.Singleton.MainDbPool
 	ctx := gc.Request.Context()
 
-	idStr := gc.Param("id")
-	organizerId, err := strconv.Atoi(idStr)
+	organizerIdStr := gc.Param("organizerId")
+	organizerId, err := strconv.Atoi(organizerIdStr)
 	if err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

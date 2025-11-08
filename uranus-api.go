@@ -132,8 +132,9 @@ func main() {
 	publicRoute.GET("/user/:userId/avatar/:size", apiHandler.GetUserAvatar)
 	publicRoute.GET("/user/:userId/avatar", apiHandler.GetUserAvatar)
 
-	publicRoute.GET("/choosable-venues/organizer/:id", apiHandler.GetChoosableOrganizerVenues)
-	publicRoute.GET("/choosable-spaces/venue/:id", apiHandler.GetChoosableVenueSpaces)
+	publicRoute.GET("/choosable-venues", apiHandler.GetChoosableVenues)
+	publicRoute.GET("/choosable-venues/organizer/:organizerId", apiHandler.GetChoosableOrganizerVenues)
+	publicRoute.GET("/choosable-spaces/venue/:venueId", apiHandler.GetChoosableVenueSpaces)
 	publicRoute.GET("/choosable-event-types", apiHandler.GetChoosableEventTypes)
 	publicRoute.GET("/choosable-event-genres/event-type/:id", apiHandler.GetChoosableEventGenres)
 	publicRoute.GET("/choosable-states", apiHandler.GetChoosableStates)
@@ -188,6 +189,7 @@ func main() {
 
 	adminRoute.GET("/event/:eventId", app.JWTMiddleware, apiHandler.AdminGetEvent)
 	adminRoute.DELETE("/event/:eventId", app.JWTMiddleware, apiHandler.AdminDeleteEvent)
+	adminRoute.DELETE("/event/:eventId/date/:eventDateId", app.JWTMiddleware, apiHandler.AdminDeleteEventDate)
 
 	adminRoute.GET("/choosable-organizers", app.JWTMiddleware, apiHandler.AdminGetChoosableOrganizers)
 	adminRoute.GET("/organizer/:organizerId", app.JWTMiddleware, apiHandler.AdminGetOrganizer)

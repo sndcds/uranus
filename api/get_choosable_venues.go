@@ -3,25 +3,17 @@ package api
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sndcds/uranus/app"
 )
 
-func (h *ApiHandler) GetChoosableVenueSpaces(gc *gin.Context) {
+func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
 	db := app.Singleton.MainDbPool
 	ctx := gc.Request.Context()
 
-	venueIdStr := gc.Param("venueId")
-	venueId, err := strconv.Atoi(venueIdStr)
-	if err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	sql := app.Singleton.SqlChoosableVenueSpaces
-	rows, err := db.Query(ctx, sql, venueId)
+	sql := fmt.Sprintf("SELECT id, name FROM %s.venue", h.Config.DbSchema)
+	rows, err := db.Query(ctx, sql)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

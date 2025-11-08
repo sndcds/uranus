@@ -9,7 +9,7 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-func (h *ApiHandler) AdminDeleteEvent(gc *gin.Context) {
+func (h *ApiHandler) AdminDeleteEventDate(gc *gin.Context) {
 	pool := h.DbPool
 	ctx := gc.Request.Context()
 	userId := gc.GetInt("user-id")
@@ -26,9 +26,20 @@ func (h *ApiHandler) AdminDeleteEvent(gc *gin.Context) {
 		return
 	}
 
+	eventDateIdStr := gc.Param("eventDateId")
+	if eventDateIdStr == "" {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "Event Date ID is required"})
+		return
+	}
+
+	eventDateId, err := strconv.Atoi(eventDateIdStr)
+	if err != nil {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event date ID"})
+		return
+	}
+
 	var body struct {
-		Password         string `json:"password"`
-		DeleteSeriesFlag bool   `json:"delete_series"`
+		Password string `json:"password"`
 	}
 
 	if err := gc.ShouldBindJSON(&body); err != nil {
@@ -58,18 +69,17 @@ func (h *ApiHandler) AdminDeleteEvent(gc *gin.Context) {
 		return
 	}
 
-	deleteSql := fmt.Sprintf(`DELETE FROM %s.event WHERE id = $1`, h.Config.DbSchema)
-
-	cmdTag, err := pool.Exec(ctx, deleteSql, eventId)
+	deleteSql := fmt.Sprintf(`DELETE FROM %s.event_date WHERE id = $1`, h.Config.DbSchema)
+	cmdTag, err := pool.Exec(ctx, deleteSql, eventDateId)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete event", "details": err.Error()})
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete event date", "details": err.Error()})
 		return
 	}
 
 	if cmdTag.RowsAffected() == 0 {
-		gc.JSON(http.StatusNotFound, gin.H{"error": "Event not found"})
+		gc.JSON(http.StatusNotFound, gin.H{"error": "Event date not found"})
 		return
 	}
 
-	gc.JSON(http.StatusOK, gin.H{"message": "Event deleted successfully", "id": eventId})
+	gc.JSON(http.StatusOK, gin.H{"message": "Event date deleted successfully", "id": eventId})
 }
