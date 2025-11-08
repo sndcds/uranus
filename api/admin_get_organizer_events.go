@@ -45,6 +45,7 @@ func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
 		CanEditEvent       bool        `json:"can_edit_event"`
 		CanDeleteEvent     bool        `json:"can_delete_event"`
 		CanReleaseEvent    bool        `json:"can_release_event"`
+		TimeSeries         int         `json:"time_series"`
 	}
 
 	organizerIdStr := gc.Param("organizerId")
@@ -100,6 +101,7 @@ func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
 			&e.CanEditEvent,
 			&e.CanDeleteEvent,
 			&e.CanReleaseEvent,
+			&e.TimeSeries,
 		)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

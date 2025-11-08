@@ -33,7 +33,9 @@ SELECT
     et_data.event_types,
     COALESCE(uelr.edit_event, FALSE) OR COALESCE(uolr.edit_event, FALSE) OR COALESCE(uvlr.edit_event, FALSE) AS can_edit_event,
     COALESCE(uelr.delete_event, FALSE) OR COALESCE(uolr.delete_event, FALSE) OR COALESCE(uvlr.delete_event, FALSE) AS can_delete_event,
-    COALESCE(uelr.release_event, FALSE) OR COALESCE(uolr.release_event, FALSE) OR COALESCE(uvlr.release_event, FALSE) AS can_release_event
+    COALESCE(uelr.release_event, FALSE) OR COALESCE(uolr.release_event, FALSE) OR COALESCE(uvlr.release_event, FALSE) AS can_release_event,
+
+    COUNT(ed.event_date_id) OVER (PARTITION BY ed.event_id) AS time_series
 
 FROM event_data ed
     LEFT JOIN {{schema}}.event e ON ed.event_id = e.id
