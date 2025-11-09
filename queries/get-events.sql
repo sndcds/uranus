@@ -16,7 +16,7 @@ SELECT
     {{mode-dependent-select}}
 
 FROM event_data ed
-         JOIN {{schema}}.event e ON ed.event_id = e.id AND e.release_status_id >= 2
+    JOIN {{schema}}.event e ON ed.event_id = e.id AND e.release_status_id >= 3
     JOIN {{schema}}.organizer o ON e.organizer_id = o.id
     LEFT JOIN {{schema}}.space s ON ed.space_id = s.id
     LEFT JOIN {{schema}}.space es ON e.space_id = es.id

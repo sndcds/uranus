@@ -223,18 +223,18 @@ func (app *Uranus) PrepareSql() error {
 
 		{"queries/admin/get-admin-event.sql", &app.SqlGetAdminEvent, nil},
 
-		{"queries/admin/admin-user-permissions.sql", &app.SqlAdminUserPermissions, nil},
-		{"queries/admin/admin-get-user-event-notification.sql", &app.SqlAdminGetUserEventNotification, nil},
+		{"queries/admin/user-permissions.sql", &app.SqlAdminUserPermissions, nil},
+		{"queries/admin/get-user-event-notification.sql", &app.SqlAdminGetUserEventNotification, nil},
 
-		{"queries/admin/admin-user-spaces-can-add-event.sql", &app.SqlAdminSpacesCanAddEvent, nil},
-		{"queries/admin/admin-user-spaces-for-event.sql", &app.SqlAdminSpacesForEvent, nil},
+		{"queries/admin/user-spaces-can-add-event.sql", &app.SqlAdminSpacesCanAddEvent, nil},
+		{"queries/admin/user-spaces-for-event.sql", &app.SqlAdminSpacesForEvent, nil},
 
 		{"queries/admin/choosable-organizers.sql", &app.SqlAdminChoosableOrganizers, nil},
 		{"queries/admin/choosable-user-event-organizers.sql", &app.SqlAdminChoosableUserEventOrganizers, nil},
 
 		{"queries/admin/organizer-dashboard.sql", &app.SqlAdminOrganizerDashboard, nil},
 		{"queries/admin/organizer-events.sql", &app.SqlAdminOrganizerEvents, nil},
-		{"queries/admin/admin-get-organizer-event-permissions.sql", &app.SqlAdminGetOrganizerEventPermissions, nil},
+		{"queries/admin/get-organizer-event-permissions.sql", &app.SqlAdminGetOrganizerEventPermissions, nil},
 
 		{"queries/admin/organizer-venues.sql", &app.SqlAdminOrganizerVenues, nil},
 

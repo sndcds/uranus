@@ -179,8 +179,9 @@ func main() {
 	adminRoute.PUT("/todo/:todoId", app.JWTMiddleware, apiHandler.AdminUpdateTodo)
 	adminRoute.DELETE("/todo/:todoId", app.JWTMiddleware, apiHandler.AdminDeleteTodo)
 
-	adminRoute.GET("/user/me", app.JWTMiddleware, apiHandler.AdminGetUserProfil)
+	adminRoute.GET("/user/me", app.JWTMiddleware, apiHandler.AdminGetUserProfile)
 	adminRoute.PUT("/user/me", app.JWTMiddleware, apiHandler.AdminUpdateUserProfile)
+	adminRoute.PUT("/user/me/settings", app.JWTMiddleware, apiHandler.AdminUpdateUserProfileSettings)
 	adminRoute.POST("/user/me/avatar", app.JWTMiddleware, apiHandler.AdminUploadUserAvatar)
 	adminRoute.DELETE("/user/me/avatar", app.JWTMiddleware, apiHandler.AdminDeleteUserAvatar)
 	adminRoute.GET("/user/me/permissions", app.JWTMiddleware, apiHandler.AdminUserPermissions)

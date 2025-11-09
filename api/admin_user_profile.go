@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (h *ApiHandler) AdminGetUserProfil(gc *gin.Context) {
+func (h *ApiHandler) AdminGetUserProfile(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	pool := h.DbPool
 
@@ -133,5 +133,51 @@ func (h *ApiHandler) AdminUpdateUserProfile(gc *gin.Context) {
 
 	gc.JSON(http.StatusOK, gin.H{
 		"message": "profile updated successfully",
+	})
+}
+
+func (h *ApiHandler) AdminUpdateUserProfileSettings(gc *gin.Context) {
+	ctx := gc.Request.Context()
+	pool := h.DbPool
+	userId := gc.GetInt("user-id")
+
+	var req struct {
+		Locale string `json:"locale"`
+		Theme  string `json:"theme"`
+	}
+
+	if err := gc.ShouldBindJSON(&req); err != nil {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid JSON: %v", err)})
+		return
+	}
+
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	sql := fmt.Sprintf(`UPDATE %s.user SET locale = $1, theme = $2 WHERE id = $3`, h.Config.DbSchema)
+
+	_, err = tx.Exec(
+		ctx,
+		sql,
+		req.Locale,
+		req.Theme,
+		userId,
+	)
+	if err != nil {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("update user settings failed: %v", err)})
+		return
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to commit transaction: %v", err)})
+		return
+	}
+
+	gc.JSON(http.StatusOK, gin.H{
+		"message": "user setting updated successfully",
 	})
 }
