@@ -14,6 +14,7 @@ func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
 	pool := h.DbPool
 	ctx := gc.Request.Context()
 	userId := gc.GetInt("user-id")
+	langStr := gc.DefaultQuery("lang", "en")
 
 	type EventType struct {
 		TypeID    int     `json:"type_id"`
@@ -67,8 +68,7 @@ func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
 		startDate = time.Now()
 	}
 
-	// TODO: lang, default "en", get languageStr
-	rows, err := pool.Query(ctx, app.Singleton.SqlAdminOrganizerEvents, organizerId, startDate, "en", userId)
+	rows, err := pool.Query(ctx, app.Singleton.SqlAdminOrganizerEvents, organizerId, startDate, langStr, userId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

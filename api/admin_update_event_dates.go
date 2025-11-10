@@ -7,18 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type UpdateEventDatesRequest struct {
-	Dates []struct {
-		StartDate string  `json:"start_date" binding:"required"`
-		StartTime string  `json:"start_time" binding:"required"`
-		EndDate   *string `json:"end_date"`
-		EndTime   *string `json:"end_time"`
-		EntryTime *string `json:"entry_time"`
-		AllDay    bool    `json:"all_day"`
-		SpaceId   *int    `json:"space_id"`
-	} `json:"dates" binding:"required,dive"`
-}
-
 func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	pool := h.DbPool
@@ -30,7 +18,17 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 		return
 	}
 
-	var req UpdateEventDatesRequest
+	var req struct {
+		Dates []struct {
+			StartDate string  `json:"start_date" binding:"required"`
+			StartTime string  `json:"start_time" binding:"required"`
+			EndDate   *string `json:"end_date"`
+			EndTime   *string `json:"end_time"`
+			EntryTime *string `json:"entry_time"`
+			AllDay    bool    `json:"all_day"`
+			SpaceId   *int    `json:"space_id"`
+		} `json:"dates" binding:"required,dive"`
+	}
 	if err := gc.ShouldBindJSON(&req); err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -58,21 +56,26 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 
 	for _, d := range req.Dates {
 		startTimestamp := d.StartDate + " " + d.StartTime
+
+		// Compute endTimestamp safely
 		var endTimestamp *string
-		if d.EndTime != nil {
-			if d.EndDate != nil {
-				t := *d.EndDate + " " + *d.EndTime
-				endTimestamp = &t
+		if d.EndTime != nil && *d.EndTime != "" {
+			var endDate string
+			if d.EndDate != nil && *d.EndDate != "" {
+				endDate = *d.EndDate
 			} else {
-				t := d.StartDate + " " + *d.EndTime
-				endTimestamp = &t
+				endDate = d.StartDate
 			}
+			t := endDate + " " + *d.EndTime
+			endTimestamp = &t
 		}
 
-		if endTimestamp != nil {
-			fmt.Println("endTimestamp:", *endTimestamp)
+		// Compute entry_time
+		var entryTime interface{}
+		if d.EntryTime != nil && *d.EntryTime != "" {
+			entryTime = *d.EntryTime
 		} else {
-			fmt.Println("endTimestamp: nil")
+			entryTime = nil
 		}
 
 		_, err = tx.Exec(ctx, sqlInsert,
@@ -80,7 +83,7 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 			d.SpaceId,
 			startTimestamp,
 			endTimestamp,
-			d.EntryTime,
+			entryTime,
 			d.AllDay,
 		)
 		if err != nil {
