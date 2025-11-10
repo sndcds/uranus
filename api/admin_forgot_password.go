@@ -14,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/uranus/app"
+	"golang.org/x/net/idna"
 )
 
 func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
@@ -87,9 +88,8 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 	go func() {
 		sendEmailErr := sendEmail(req.EmailAddress, subject, emailContent)
 		if sendEmailErr != nil {
-			gc.JSON(http.StatusOK, gin.H{
-				"message":    "Unable to send reset email.",
-				"error_code": -1,
+			gc.JSON(http.StatusBadRequest, gin.H{
+				"message": "Unable to send reset email.",
 			})
 		}
 	}()
@@ -182,11 +182,24 @@ func sendEmail(to, subject string, htmlContent string) error {
 	smtpHost := app.Singleton.Config.AuthSmtpHost
 	smtpPort := app.Singleton.Config.AuthSmtpPort // int
 
+	asciiFrom, err := encodeEmailAddress(from)
+	if err != nil {
+		return fmt.Errorf("unable to send email: %s", err.Error())
+	}
+
+	asciiTo, err := encodeEmailAddress(to)
+	if err != nil {
+		return fmt.Errorf("unable to send email: %s", err.Error())
+	}
+
+	// Encode subject in Base64 for UTF-8
+	encodedSubject := fmt.Sprintf("=?UTF-8?B?%s?=", base64.StdEncoding.EncodeToString([]byte(subject)))
+
 	message := []byte(
-		"Subject: " + subject + "\r\n" +
+		"Subject: " + encodedSubject + "\r\n" +
 			"MIME-Version: 1.0\r\n" +
-			"To: " + to + "\r\n" +
-			"From: " + from + "\r\n" +
+			"To: " + asciiTo + "\r\n" +
+			"From: " + asciiFrom + "\r\n" +
 			"Content-Type: text/html; charset=\"UTF-8\"\r\n" +
 			"\r\n" +
 			htmlContent + "\r\n")
@@ -194,10 +207,28 @@ func sendEmail(to, subject string, htmlContent string) error {
 	auth := smtp.PlainAuth("", userName, password, smtpHost)
 	addr := fmt.Sprintf("%s:%d", smtpHost, smtpPort)
 
-	err := smtp.SendMail(addr, auth, userName, []string{to}, message)
+	err = smtp.SendMail(addr, auth, userName, []string{to}, message)
 	if err != nil {
 		return fmt.Errorf("unable to send email: %s", err.Error())
 	}
 
 	return nil
+}
+
+// Encode an email address for SMTP
+func encodeEmailAddress(email string) (string, error) {
+	parts := strings.Split(email, "@")
+	if len(parts) != 2 {
+		return "", fmt.Errorf("invalid email: %s", email)
+	}
+
+	local := parts[0]  // user
+	domain := parts[1] // domain
+
+	asciiDomain, err := idna.ToASCII(domain)
+	if err != nil {
+		return "", err
+	}
+
+	return local + "@" + asciiDomain, nil
 }

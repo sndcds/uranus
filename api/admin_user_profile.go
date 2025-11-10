@@ -3,6 +3,8 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -22,18 +24,16 @@ func (h *ApiHandler) AdminGetUserProfile(gc *gin.Context) {
         WHERE id = $1`,
 		"{{schema}}", h.Config.DbSchema, 1)
 
-	var user struct {
-		UserID      int     `json:"user_id"`
-		Email       string  `json:"email_address"`
-		DisplayName *string `json:"display_name"`
-		FirstName   *string `json:"first_name"`
-		LastName    *string `json:"last_name"`
-		Locale      *string `json:"locale"`
-		Theme       *string `json:"theme"`
-	}
+	var userID int
+	var email string
+	var displayName *string
+	var firstName *string
+	var lastName *string
+	var locale *string
+	var theme *string
 
 	row := pool.QueryRow(ctx, sql, userId)
-	err := row.Scan(&user.UserID, &user.Email, &user.DisplayName, &user.FirstName, &user.LastName, &user.Locale, &user.Theme)
+	err := row.Scan(&userID, &email, &displayName, &firstName, &lastName, &locale, &theme)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			gc.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
@@ -43,8 +43,24 @@ func (h *ApiHandler) AdminGetUserProfile(gc *gin.Context) {
 		return
 	}
 
-	// Return JSON
-	gc.JSON(http.StatusOK, user)
+	imageDir := h.Config.ProfileImageDir
+	avatarFilePath := filepath.Join(imageDir, fmt.Sprintf("profile_img_%d_%d.webp", userId, 64))
+	var avatarUrl *string = nil
+	if _, err := os.Stat(avatarFilePath); err == nil {
+		url := fmt.Sprintf("%s/api/user/%d/avatar/64", h.Config.BaseApiUrl, userId)
+		avatarUrl = &url
+	}
+
+	gc.JSON(http.StatusOK, gin.H{
+		"user_id":       userID,
+		"email_address": email,
+		"display_name":  displayName,
+		"first_name":    firstName,
+		"last_name":     lastName,
+		"locale":        locale,
+		"theme":         theme,
+		"avatar_url":    avatarUrl,
+	})
 }
 
 func (h *ApiHandler) AdminUpdateUserProfile(gc *gin.Context) {

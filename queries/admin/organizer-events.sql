@@ -44,7 +44,15 @@ FROM event_data ed
     JOIN {{schema}}.venue v ON e.venue_id = v.id
     LEFT JOIN {{schema}}.organizer o ON v.organizer_id = o.id
     LEFT JOIN {{schema}}.organizer eo ON e.organizer_id = eo.id
-    LEFT JOIN {{schema}}.event_image_links eil ON e.id = eil.event_id AND eil.main_image = TRUE
+
+    LEFT JOIN LATERAL (
+        SELECT pluto_image_id
+        FROM {{schema}}.event_image_links
+        WHERE event_id = e.id AND main_image = TRUE
+        ORDER BY pluto_image_id ASC  -- pick one deterministically
+        LIMIT 1
+    ) eil ON true
+
     LEFT JOIN {{schema}}.event_status est ON est.status_id = e.release_status_id AND est.iso_639_1 = $3
 
     LEFT JOIN LATERAL (

@@ -70,7 +70,7 @@ func (h *ApiHandler) AdminUserPermissions(gc *gin.Context) {
 	}
 
 	if len(permissions) == 0 {
-		gc.JSON(http.StatusOK, gin.H{"message": "user has no permission"})
+		gc.JSON(http.StatusOK, gin.H{"message": "user has no permissions"})
 		return
 	}
 

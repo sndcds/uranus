@@ -16,7 +16,6 @@ func (h *ApiHandler) GetUserAvatar(gc *gin.Context) {
 	userIdStr := gc.Param("userId")
 	sizeStr := gc.Param("size")
 
-	fmt.Println(userIdStr)
 	userId, err := strconv.Atoi(userIdStr)
 	if err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
@@ -25,7 +24,6 @@ func (h *ApiHandler) GetUserAvatar(gc *gin.Context) {
 
 	// Default to 256px if no size provided
 	size := 256
-	fmt.Println("sizeStr", sizeStr)
 	if sizeStr != "" {
 		s, err := strconv.Atoi(sizeStr)
 		if err != nil || (s != 64 && s != 128 && s != 256 && s != 512) {
