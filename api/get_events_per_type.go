@@ -12,6 +12,7 @@ import (
 	"github.com/sndcds/uranus/sql"
 )
 
+// TODO; Maybe include result in GetEvents?
 func (h *ApiHandler) GetEventsPerType(gc *gin.Context) {
 	pool := h.DbPool
 	ctx := gc.Request.Context()

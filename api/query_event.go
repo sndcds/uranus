@@ -24,6 +24,7 @@ func QueryEvent(gc *gin.Context) {
 	gc.Data(httpStatus, "application/json", jsonData)
 }
 
+// TODO: Remove, not needed anymore!
 func queryEventAsJSON(gc *gin.Context, db *pgxpool.Pool) ([]byte, int, error) {
 	// TODO:
 	// Note on security:

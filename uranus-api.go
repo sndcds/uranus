@@ -220,7 +220,7 @@ func main() {
 	adminRoute.PUT("/event/:eventId/description", app.JWTMiddleware, apiHandler.AdminUpdateEventDescription)
 	adminRoute.PUT("/event/:eventId/teaser", app.JWTMiddleware, apiHandler.AdminUpdateEventTeaser)
 	adminRoute.PUT("/event/:eventId/types", app.JWTMiddleware, apiHandler.AdminUpdateEventTypes)
-	adminRoute.PUT("/event/:eventId/space", app.JWTMiddleware, apiHandler.AdminUpdateEventSpace)
+	adminRoute.PUT("/event/:eventId/venue", app.JWTMiddleware, apiHandler.AdminUpdateEventVenue)
 	adminRoute.PUT("/event/:eventId/links", app.JWTMiddleware, apiHandler.AdminUpdateEventLinks)
 	adminRoute.PUT("/event/:eventId/dates", app.JWTMiddleware, apiHandler.AdminUpdateEventDates)
 	adminRoute.PUT("/event/:eventId/tags", app.JWTMiddleware, apiHandler.AdminUpdateEventTags)

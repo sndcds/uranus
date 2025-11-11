@@ -119,9 +119,8 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 
-	argIndex, err = sql.BuildSanitizedIlikeCondition(searchStr, "e.description", "search", argIndex, &conditions, &args)
+	argIndex, err = sql.BuildSanitizedSearchCondition(searchStr, "e.search_text", "search", argIndex, &conditions, &args)
 	if err != nil {
-
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 
@@ -129,7 +128,6 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		format := "v.country_code IN (%s)"
 		argIndex, err = sql.BuildInConditionForStringSlice(countryCodesStr, format, "country_codes", argIndex, &conditions, &args)
 		if err != nil {
-
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 	}
@@ -137,7 +135,6 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	if postalCodeStr != "" {
 		argIndex, err = sql.BuildLikeConditions(postalCodeStr, "v.postal_code", argIndex, &conditions, &args)
 		if err != nil {
-
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 	}
@@ -145,7 +142,6 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	if eventIdsStr != "" {
 		argIndex, err = sql.BuildColumnInIntCondition(eventIdsStr, "e.id", "events", argIndex, &conditions, &args)
 		if err != nil {
-
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 	}
@@ -263,13 +259,15 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	query = strings.Replace(query, "{{limit}}", limitClause, 1)
 	query = strings.Replace(query, "{{order}}", order, 1)
 
-	/*
-		fmt.Println(query)
-		fmt.Println(args...)
-		fmt.Printf("eventDateConditions: %#v\n", eventDateConditions)
-		fmt.Printf("conditions: %#v\n", conditions)
-		fmt.Printf("args: %d: %#v\n", len(args), args)
-	*/
+	/**/
+	fmt.Println(query)
+	fmt.Println(args...)
+	fmt.Printf("eventDateConditions: %#v\n", eventDateConditions)
+	fmt.Printf("conditions: %#v\n", conditions)
+	fmt.Printf("args: %d: %#v\n", len(args), args)
+	fmt.Printf("languageStr: %s\n", languageStr)
+	fmt.Printf("searchStr: %s\n", searchStr)
+	/**/
 
 	rows, err := pool.Query(ctx, query, args...)
 	if err != nil {
