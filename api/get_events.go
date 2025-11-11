@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -41,7 +42,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 
 	ctx := gc.Request.Context()
 
-	languageStr, _ := GetContextParam(gc, "lang")
+	langStr, _ := GetContextParam(gc, "lang")
 	_, hasPast := GetContextParam(gc, "past")
 	startStr, _ := GetContextParam(gc, "start")
 	endStr, _ := GetContextParam(gc, "end")
@@ -83,16 +84,16 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	argIndex := 1 // Postgres uses $1, $2, etc.
 	var err error
 
-	if languageStr != "" {
+	if langStr != "" {
 		// TODO: Check available languages
-		if !app.IsValidIso639_1(languageStr) {
+		if !app.IsValidIso639_1(langStr) {
 			gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("lang format error %v", err)})
 		}
 	} else {
-		languageStr = "en"
+		langStr = "en"
 	}
 
-	args = append(args, languageStr)
+	args = append(args, langStr)
 	argIndex++
 
 	if app.IsValidDateStr(startStr) {
@@ -266,7 +267,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	fmt.Printf("eventDateConditions: %#v\n", eventDateConditions)
 	fmt.Printf("conditions: %#v\n", conditions)
 	fmt.Printf("args: %d: %#v\n", len(args), args)
-	fmt.Printf("languageStr: %s\n", languageStr)
+	fmt.Printf("langStr: %s\n", langStr)
 	fmt.Printf("searchStr: %s\n", searchStr)
 	*/
 
@@ -379,6 +380,12 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			"count":     entry.Count,
 		})
 	}
+
+	sort.Slice(typeSummary, func(i, j int) bool {
+		nameI := typeSummary[i]["type_name"].(string)
+		nameJ := typeSummary[j]["type_name"].(string)
+		return nameI < nameJ
+	})
 
 	// Total number of events
 	totalEvents := len(results)

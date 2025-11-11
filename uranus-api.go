@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"net/smtp"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -11,40 +10,6 @@ import (
 	"github.com/sndcds/uranus/api"
 	"github.com/sndcds/uranus/app"
 )
-
-func sendTestMail() {
-	from := "oklab_noreply@grain.one"
-	password := app.Singleton.Config.SmtpPassword
-
-	// List of recipients
-	to := []string{
-		"pippa@grain.one",
-	}
-
-	// Your SMTP server configuration
-	smtpHost := app.Singleton.Config.SmtpHost
-	smtpPort := app.Singleton.Config.SmtpPort
-
-	// Message body (RFC 822 format)
-	message := []byte("Subject: Hello from Go!\r\n" +
-		"To: undisclosed-recipients:;\r\n" +
-		"From: roald@grain.one\r\n" +
-		"\r\n" +
-		"This is a test email sent from Go.\r\nUranus API is prepared to reset password :-)")
-
-	// Authentication
-	auth := smtp.PlainAuth("", from, password, smtpHost)
-	addr := fmt.Sprintf("%s:%d", smtpHost, smtpPort)
-
-	// Send the email
-	err := smtp.SendMail(addr, auth, from, to, message)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-
-	fmt.Println("Email sent successfully!")
-}
 
 func main() {
 	fmt.Println("start")
@@ -80,19 +45,6 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New() // Use `Default()` for built-in logging and recovery
 
-	/*
-		if app.Singleton.Config.UseRouterMiddleware {
-			router.Use(cors.New(cors.Config{
-				AllowOrigins:     []string{"*"}, // any origin
-				AllowMethods:     []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"},
-				AllowHeaders:     []string{"Origin", "Authorization", "Content-Type", "Accept"},
-				ExposeHeaders:    []string{"Authorization"},
-				AllowCredentials: false, // no cookies needed
-				MaxAge:           12 * time.Hour,
-			}))
-		}
-	*/
-
 	if app.Singleton.Config.UseRouterMiddleware {
 		router.Use(func(gc *gin.Context) {
 			origin := gc.GetHeader("Origin")
@@ -119,9 +71,7 @@ func main() {
 	// Public endpoints
 	publicRoute := router.Group("/api")
 
-	// OK
 	publicRoute.GET("/events", apiHandler.GetEvents)
-	publicRoute.GET("/events/types-count", apiHandler.GetEventsPerType)
 	publicRoute.GET("/event/:eventId", apiHandler.GetEvent)
 	publicRoute.GET("/event/:eventId/date/:dateId", apiHandler.GetEventByDateId)
 
@@ -162,7 +112,6 @@ func main() {
 	// Authorized endpoints, user must be logged in
 	adminRoute := router.Group("/api/admin")
 
-	// OK
 	adminRoute.POST("/signup", apiHandler.Signup)
 	adminRoute.POST("/activate", apiHandler.Activate)
 	adminRoute.POST("/login", apiHandler.Login)
