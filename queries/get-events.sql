@@ -35,10 +35,10 @@ FROM event_data ed
 
     LEFT JOIN LATERAL (
     SELECT jsonb_agg(DISTINCT jsonb_build_object(
-    'type_id', etl.type_id,
-    'type_name', et.name,
-    'genre_id', COALESCE(gt.type_id, 0),
-    'genre_name', gt.name
+        'type_id', etl.type_id,
+        'type_name', et.name,
+        'genre_id', COALESCE(gt.type_id, 0),
+        'genre_name', gt.name
     )) AS event_types
     FROM {{schema}}.event_type_links etl
     JOIN {{schema}}.event_type et

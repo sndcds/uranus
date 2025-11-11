@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -259,7 +260,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	query = strings.Replace(query, "{{limit}}", limitClause, 1)
 	query = strings.Replace(query, "{{order}}", order, 1)
 
-	/**/
+	/* For debugging ...
 	fmt.Println(query)
 	fmt.Println(args...)
 	fmt.Printf("eventDateConditions: %#v\n", eventDateConditions)
@@ -267,7 +268,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	fmt.Printf("args: %d: %#v\n", len(args), args)
 	fmt.Printf("languageStr: %s\n", languageStr)
 	fmt.Printf("searchStr: %s\n", searchStr)
-	/**/
+	*/
 
 	rows, err := pool.Query(ctx, query, args...)
 	if err != nil {
@@ -283,6 +284,23 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	}
 
 	var results []map[string]interface{}
+
+	// Define a struct matching the JSON structure of event_types
+	type EventType struct {
+		TypeID    int    `json:"type_id"`
+		TypeName  string `json:"type_name"`
+		GenreID   int    `json:"genre_id"`
+		GenreName string `json:"genre_name"`
+	}
+
+	// Map to accumulate counts: type_id -> {name, count}
+	type TypeCountEntry struct {
+		Id    int
+		Name  string
+		Count int
+	}
+
+	typeCount := make(map[int]TypeCountEntry)
 
 	for rows.Next() {
 		values, err := rows.Values()
@@ -308,6 +326,42 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			)
 		}
 
+		// Accumulate event type counts
+		var eventTypes []EventType
+		switch v := rowMap["event_types"].(type) {
+		case nil:
+			// no event types
+		case string:
+			if err := json.Unmarshal([]byte(v), &eventTypes); err != nil {
+				fmt.Println("json.Unmarshal error:", err)
+			}
+		case []byte:
+			if err := json.Unmarshal(v, &eventTypes); err != nil {
+				fmt.Println("json.Unmarshal error:", err)
+			}
+		case []interface{}:
+			// Already decoded array of maps
+			for _, item := range v {
+				if m, ok := item.(map[string]interface{}); ok {
+					typeID, _ := m["type_id"].(float64) // convert float64 -> int
+					typeName, _ := m["type_name"].(string)
+					eventTypes = append(eventTypes, EventType{
+						TypeID:   int(typeID),
+						TypeName: typeName,
+					})
+				}
+			}
+		default:
+			fmt.Printf("unexpected type for event_types: %T\n", v)
+		}
+
+		for _, et := range eventTypes {
+			entry := typeCount[et.TypeID]
+			entry.Name = et.TypeName
+			entry.Count++
+			typeCount[et.TypeID] = entry
+		}
+
 		results = append(results, rowMap)
 	}
 
@@ -316,5 +370,31 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		return
 	}
 
-	gc.JSON(http.StatusOK, results)
+	// Convert typeCount map to a slice for JSON output
+	var typeSummary []map[string]interface{}
+	for id, entry := range typeCount {
+		typeSummary = append(typeSummary, map[string]interface{}{
+			"type_id":   id,
+			"type_name": entry.Name,
+			"count":     entry.Count,
+		})
+	}
+
+	// Total number of events
+	totalEvents := len(results)
+
+	// Build the final response object
+	response := map[string]interface{}{
+		"total":        totalEvents, // <--- total number of events
+		"events":       results,     // your array of event rows
+		"type_summary": typeSummary, // counts per type_id
+	}
+
+	if err := rows.Err(); err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Return combined JSON
+	gc.JSON(http.StatusOK, response)
 }
