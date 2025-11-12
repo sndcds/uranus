@@ -9,9 +9,15 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
+// AdminChoosableUserEventOrganizers returns a list of event organizers
+// that can be selected (choosable) by an admin user. It responds with a JSON
+// array of items.
+//
+// This endpoint is intended for administrative use only and may require
+// authentication or specific permissions.
 func (h *ApiHandler) AdminChoosableUserEventOrganizers(gc *gin.Context) {
-	db := h.DbPool
 	ctx := gc.Request.Context()
+	db := h.DbPool
 	userId := gc.GetInt("user-id")
 
 	// Parse organizer ID from path param

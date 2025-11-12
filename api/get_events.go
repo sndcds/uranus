@@ -73,8 +73,8 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	accessibilityInfosStr, _ := GetContextParam(gc, "accessibility")
 	visitorInfosStr, _ := GetContextParam(gc, "visitor_infos")
 	ageStr, _ := GetContextParam(gc, "age")
-	limitStr, _ := GetContextParam(gc, "limit")
 	offsetStr, _ := GetContextParam(gc, "offset")
+	limitStr, _ := GetContextParam(gc, "limit")
 
 	// TODO: offset, limit
 
@@ -301,7 +301,15 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		Count int
 	}
 
+	type VenueSummary struct {
+		ID             int    `json:"id"`
+		Name           string `json:"name"`
+		City           string `json:"city"`
+		EventDateCount int    `json:"event_date_count"`
+	}
+
 	typeCount := make(map[int]TypeCountEntry)
+	venueMap := make(map[int]*VenueSummary)
 
 	for rows.Next() {
 		values, err := rows.Values()
@@ -363,6 +371,31 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			typeCount[et.TypeID] = entry
 		}
 
+		// Venue summary
+		venueId, ok := ToInt(rowMap["venue_id"])
+		if !ok {
+			continue // skip this row if venue_id can't be converted
+		}
+
+		// Extract other fields
+		venueName, _ := rowMap["venue_name"].(string)
+		venueCity, _ := rowMap["venue_city"].(string)
+
+		fmt.Println(venueId, venueName, venueCity)
+
+		// Initialize venue summary if not yet present
+		if _, exists := venueMap[venueId]; !exists {
+			venueMap[venueId] = &VenueSummary{
+				ID:             venueId,
+				Name:           venueName,
+				City:           venueCity,
+				EventDateCount: 0,
+			}
+		}
+
+		// Increment event count for this venue
+		venueMap[venueId].EventDateCount++
+
 		results = append(results, rowMap)
 	}
 
@@ -390,11 +423,22 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	// Total number of events
 	totalEvents := len(results)
 
+	// Venues summary
+	venuesSummary := make([]VenueSummary, 0, len(venueMap))
+	for _, summary := range venueMap {
+		venuesSummary = append(venuesSummary, *summary)
+	}
+
+	sort.Slice(venuesSummary, func(i, j int) bool {
+		return venuesSummary[i].Name < venuesSummary[j].Name
+	})
+
 	// Build the final response object
 	response := map[string]interface{}{
-		"total":        totalEvents, // <--- total number of events
-		"events":       results,     // your array of event rows
-		"type_summary": typeSummary, // counts per type_id
+		"total":          totalEvents,
+		"events":         results,
+		"type_summary":   typeSummary,
+		"venues_summary": venuesSummary,
 	}
 
 	if err := rows.Err(); err != nil {

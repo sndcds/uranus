@@ -130,3 +130,51 @@ func UserIdFromAccessToken(gc *gin.Context) int {
 
 	return claims.UserId
 }
+
+// ParamInt extracts a URL path parameter as an integer.
+// If conversion fails, it writes a 400 JSON error and returns (0, false).
+func ParamInt(gc *gin.Context, name string) (int, bool) {
+	paramStr := gc.Param(name)
+	val, err := strconv.Atoi(paramStr)
+	if err != nil {
+		gc.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid " + name + " parameter",
+		})
+		return 0, false
+	}
+	return val, true
+}
+
+// ToInt converts an interface{} to int safely.
+// Returns the int value and true if successful, false otherwise.
+func ToInt(value interface{}) (int, bool) {
+	switch v := value.(type) {
+	case int:
+		return v, true
+	case int8:
+		return int(v), true
+	case int16:
+		return int(v), true
+	case int32:
+		return int(v), true
+	case int64:
+		return int(v), true
+	case uint:
+		return int(v), true
+	case uint8:
+		return int(v), true
+	case uint16:
+		return int(v), true
+	case uint32:
+		return int(v), true
+	case uint64:
+		return int(v), true
+	case float32:
+		return int(v), true
+	case float64:
+		return int(v), true
+	default:
+		fmt.Printf("ToInt: unexpected type %T for value %#v\n", value, value)
+		return 0, false
+	}
+}

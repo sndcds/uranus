@@ -70,7 +70,7 @@ type Uranus struct {
 
 var Singleton *Uranus
 
-func New(configFilePath string) (*Uranus, error) {
+func Initialze(configFilePath string) (*Uranus, error) {
 	var uranus Uranus
 
 	uranus.Version = "1.0.0"

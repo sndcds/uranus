@@ -20,7 +20,8 @@ func main() {
 	flag.Parse()
 	fmt.Println("Config file:", *configFileName)
 
-	_, err := app.New(*configFileName)
+	var err error
+	app.Singleton, err = app.Initialze(*configFileName)
 	if err != nil {
 		panic(err)
 	}
@@ -36,7 +37,7 @@ func main() {
 		Config: &app.Singleton.Config,
 	}
 
-	_, err = pluto.New(*configFileName, app.Singleton.MainDbPool, true)
+	_, err = pluto.Initialize(*configFileName, app.Singleton.MainDbPool, true)
 	if err != nil {
 		panic(err)
 	}
@@ -137,11 +138,13 @@ func main() {
 
 	adminRoute.GET("/user/event/notification", app.JWTMiddleware, apiHandler.AdminGetUserEventNotification)
 
+	adminRoute.GET("/choosable-organizers", app.JWTMiddleware, apiHandler.AdminGetChoosableOrganizers)
+	adminRoute.GET("/user/choosable-event-organizers/organizer/:organizerId", app.JWTMiddleware, apiHandler.AdminChoosableUserEventOrganizers)
+
 	adminRoute.GET("/event/:eventId", app.JWTMiddleware, apiHandler.AdminGetEvent)
 	adminRoute.DELETE("/event/:eventId", app.JWTMiddleware, apiHandler.AdminDeleteEvent)
 	adminRoute.DELETE("/event/:eventId/date/:eventDateId", app.JWTMiddleware, apiHandler.AdminDeleteEventDate)
 
-	adminRoute.GET("/choosable-organizers", app.JWTMiddleware, apiHandler.AdminGetChoosableOrganizers)
 	adminRoute.GET("/organizer/:organizerId", app.JWTMiddleware, apiHandler.AdminGetOrganizer)
 	adminRoute.PUT("/organizer/:organizerId", app.JWTMiddleware, apiHandler.AdminUpdateOrganizer)
 	adminRoute.DELETE("/organizer/:organizerId", app.JWTMiddleware, apiHandler.AdminDeleteOrganizer)
@@ -163,7 +166,6 @@ func main() {
 	adminRoute.PUT("/space/:spaceId", app.JWTMiddleware, apiHandler.AdminUpdateSpace)
 	adminRoute.DELETE("/space/:spaceId", app.JWTMiddleware, apiHandler.AdminDeleteSpace)
 
-	adminRoute.GET("/user/choosable-event-organizers/organizer/:organizerId", app.JWTMiddleware, apiHandler.AdminChoosableUserEventOrganizers)
 	adminRoute.POST("/event/create", app.JWTMiddleware, apiHandler.AdminCreateEvent)
 	adminRoute.PUT("/event/:eventId/header", app.JWTMiddleware, apiHandler.AdminUpdateEventHeader)
 	adminRoute.PUT("/event/:eventId/description", app.JWTMiddleware, apiHandler.AdminUpdateEventDescription)
