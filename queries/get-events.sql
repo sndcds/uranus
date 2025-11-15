@@ -28,7 +28,7 @@ FROM event_data ed
     eil.pluto_image_id AS id,
     0 AS focus_x,
     0 AS focus_y
-    FROM {{schema}}.event_image_links eil
+    FROM {{schema}}.event_image_link eil
     WHERE eil.event_id = e.id AND eil.main_image = TRUE
     LIMIT 1
     ) img_data ON true
@@ -40,7 +40,7 @@ FROM event_data ed
         'genre_id', COALESCE(gt.type_id, 0),
         'genre_name', gt.name
     )) AS event_types
-    FROM {{schema}}.event_type_links etl
+    FROM {{schema}}.event_type_link etl
     JOIN {{schema}}.event_type et
     ON et.type_id = etl.type_id
     AND et.iso_639_1 = $1

@@ -27,7 +27,7 @@ func (h *ApiHandler) AdminDeleteEventMainImage(gc *gin.Context) {
 	defer func() { _ = tx.Rollback(ctx) }()
 
 	query := fmt.Sprintf(
-		`SELECT gen_file_name, pi.id FROM %s.event_image_links AS eil
+		`SELECT gen_file_name, pi.id FROM %s.event_image_link AS eil
 		JOIN %s.pluto_image pi ON pi.id = eil.pluto_image_id
 		WHERE eil.event_id = $1 AND eil.main_image = TRUE`,
 		dbSchema, dbSchema)
@@ -40,7 +40,7 @@ func (h *ApiHandler) AdminDeleteEventMainImage(gc *gin.Context) {
 		return
 	}
 
-	query = fmt.Sprintf(`DELETE FROM %s.event_image_links WHERE event_id = $1 AND main_image = TRUE`, dbSchema)
+	query = fmt.Sprintf(`DELETE FROM %s.event_image_link WHERE event_id = $1 AND main_image = TRUE`, dbSchema)
 	_, err = tx.Exec(ctx, query, eventId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Query failed: %v", err)})

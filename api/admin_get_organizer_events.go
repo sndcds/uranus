@@ -36,12 +36,12 @@ func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
 		EndTime            *string     `json:"end_time"`
 		ReleaseStatusId    *int        `json:"release_status_id"`
 		ReleaseStatusName  *string     `json:"release_status_name"`
-		VenueId            int         `json:"venue_id"`
-		VenueName          string      `json:"venue_name"`
+		VenueId            *int        `json:"venue_id"`
+		VenueName          *string     `json:"venue_name"`
 		SpaceId            *int        `json:"space_id,omitempty"`
 		SpaceName          *string     `json:"space_name,omitempty"`
-		VenueLon           float64     `json:"venue_lon"`
-		VenueLat           float64     `json:"venue_lat"`
+		VenueLon           *float64    `json:"venue_lon"`
+		VenueLat           *float64    `json:"venue_lat"`
 		ImageId            *int        `json:"image_id"`
 		EventTypes         []EventType `json:"event_types"`
 		CanEditEvent       bool        `json:"can_edit_event"`

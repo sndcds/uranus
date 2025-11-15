@@ -15,7 +15,6 @@ func (h *ApiHandler) GetEvent(gc *gin.Context) {
 }
 
 func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
-	// Todo: Adopt SQL Query from GetAdminEventHandler
 	pool := h.DbPool
 	ctx := gc.Request.Context()
 
@@ -25,67 +24,80 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 		return
 	}
 
-	dateId := gc.Param("dateId")
-	if dateId == "" {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "date ID is required"})
-		return
-	}
-
-	fmt.Println("eventId:", eventId)
-	fmt.Println("dateId:", dateId)
-
 	langStr := gc.DefaultQuery("lang", "en")
 
-	query := app.Singleton.SqlGetEvent
-	fmt.Println("query:", query)
+	// Query: event-level data (without event_dates)
+	eventQuery := app.Singleton.SqlGetEvent
 
-	rows, err := pool.Query(ctx, query, dateId, langStr)
+	eventRow, err := pool.Query(ctx, eventQuery, eventId, langStr)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer rows.Close()
+	defer eventRow.Close()
 
-	fieldDescriptions := rows.FieldDescriptions()
-	columnNames := make([]string, len(fieldDescriptions))
-	for i, fd := range fieldDescriptions {
-		columnNames[i] = string(fd.Name)
+	if !eventRow.Next() {
+		gc.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
+		return
 	}
 
-	var result map[string]interface{}
+	eventFieldDesc := eventRow.FieldDescriptions()
+	eventCols := make([]string, len(eventFieldDesc))
+	for i, fd := range eventFieldDesc {
+		eventCols[i] = string(fd.Name)
+	}
 
-	if rows.Next() {
-		values, err := rows.Values()
+	eventData := make(map[string]interface{})
+	eventValues, err := eventRow.Values()
+	if err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	for i, col := range eventCols {
+		eventData[col] = eventValues[i]
+	}
+
+	// Add image_path if image_id exists
+	if imageID, ok := eventData["image_id"]; ok && imageID != nil {
+		eventData["image_path"] = fmt.Sprintf("%s/api/image/%v", app.Singleton.Config.BaseApiUrl, imageID)
+	} else {
+		eventData["image_path"] = nil
+	}
+
+	// Query: all event_dates for this event
+	datesQuery := app.Singleton.SqlGetEventDates
+	dateRows, err := pool.Query(ctx, datesQuery, eventId)
+	if err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer dateRows.Close()
+
+	var eventDates []map[string]interface{}
+	dateFieldDesc := dateRows.FieldDescriptions()
+	dateCols := make([]string, len(dateFieldDesc))
+	for i, fd := range dateFieldDesc {
+		dateCols[i] = string(fd.Name)
+	}
+
+	for dateRows.Next() {
+		fmt.Println(dateRows.Values())
+		values, err := dateRows.Values()
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
-		result = make(map[string]interface{}, len(values))
-		for i, col := range columnNames {
-			result[col] = values[i]
+		dateData := make(map[string]interface{}, len(values))
+		for i, col := range dateCols {
+			dateData[col] = values[i]
 		}
 
-		// Add extra property image_path
-		imageID := result["image_id"]
-		if imageID == nil {
-			result["image_path"] = nil // or "" if you prefer
-		} else {
-			result["image_path"] = fmt.Sprintf(
-				"%s/api/image/%v",
-				app.Singleton.Config.BaseApiUrl,
-				imageID,
-			)
-		}
-	} else {
-		gc.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
-		return
+		eventDates = append(eventDates, dateData)
 	}
 
-	if err := rows.Err(); err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+	// Add dates to event JSON
+	eventData["event_dates"] = eventDates
 
-	gc.JSON(http.StatusOK, result)
+	gc.JSON(http.StatusOK, eventData)
 }

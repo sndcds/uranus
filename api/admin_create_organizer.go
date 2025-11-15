@@ -78,12 +78,12 @@ func (h *ApiHandler) AdminCreateOrganizer(gc *gin.Context) {
 
 	// Insert user_organizer_link
 	insertLinkQuery := `
-		INSERT INTO {{schema}}.user_organizer_links (user_id, organizer_id, user_role_id)
+		INSERT INTO {{schema}}.user_organizer_link (user_id, organizer_id, permissions)
 		VALUES ($1, $2, $3)
 	`
 	insertLinkQuery = strings.Replace(insertLinkQuery, "{{schema}}", h.Config.DbSchema, 1)
 
-	_, err = tx.Exec(gc, insertLinkQuery, userId, newId, 1)
+	_, err = tx.Exec(gc, insertLinkQuery, userId, newId, PermissionAdmin)
 	if err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("insert user_organizer_link failed: %v", err)})
 		return

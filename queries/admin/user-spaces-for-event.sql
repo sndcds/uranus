@@ -9,7 +9,7 @@ WITH direct_space_perms AS (
         s.name AS space_name,
         LOWER(s.name) AS space_sort_name,
         ur.add_event
-    FROM {{schema}}.user_space_links usl
+    FROM {{schema}}.user_space_link usl
     JOIN {{schema}}.user_role ur ON usl.user_role_id = ur.id
     JOIN {{schema}}.space s ON usl.space_id = s.id
     JOIN {{schema}}.venue v ON s.venue_id = v.id
@@ -27,7 +27,7 @@ venue_level_perms AS (
         s.name AS space_name,
         LOWER(s.name) AS space_sort_name,
         ur.add_event
-    FROM {{schema}}.user_venue_links uvl
+    FROM {{schema}}.user_venue_link uvl
     JOIN {{schema}}.user_role ur ON uvl.user_role_id = ur.id
     JOIN {{schema}}.venue v ON uvl.venue_id = v.id
     JOIN {{schema}}.space s ON s.venue_id = v.id
@@ -45,7 +45,7 @@ organizer_level_perms AS (
         s.name AS space_name,
         LOWER(s.name) AS space_sort_name,
         ur.add_event
-    FROM {{schema}}.user_organizer_links uol
+    FROM {{schema}}.user_organizer_link uol
     JOIN {{schema}}.user_role ur ON uol.user_role_id = ur.id
     JOIN {{schema}}.organizer o ON uol.organizer_id = o.id
     JOIN {{schema}}.venue v ON v.organizer_id = o.id

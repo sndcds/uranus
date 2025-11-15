@@ -23,6 +23,7 @@ func main() {
 	var err error
 	app.Singleton, err = app.Initialze(*configFileName)
 	if err != nil {
+		fmt.Println(err.Error())
 		panic(err)
 	}
 
@@ -98,15 +99,6 @@ func main() {
 
 	publicRoute.GET("/accessibility/flags", apiHandler.GetAccessibilityFlags)
 
-	publicRoute.GET("/query", api.QueryHandler)                  // TODO: Refactor QueryVenueForMap
-	publicRoute.GET("/user", app.JWTMiddleware, api.UserHandler) // Todo: To be removed
-	publicRoute.GET("/user/events", app.JWTMiddleware, api.AdminHandlerUserEvents)
-	publicRoute.GET("/space", apiHandler.GetSpace)
-	publicRoute.GET("/space/types", apiHandler.GetSpaceTypes)
-
-	// Check ...
-	// publicRoute.GET("/event/images/:event-id", api.EventImagesHandler)
-
 	// Inject app middleware into Pluto's image routes
 	pluto.Singleton.RegisterRoutes(publicRoute, app.JWTMiddleware)
 
@@ -140,6 +132,7 @@ func main() {
 
 	adminRoute.GET("/choosable-organizers", app.JWTMiddleware, apiHandler.AdminGetChoosableOrganizers)
 	adminRoute.GET("/user/choosable-event-organizers/organizer/:organizerId", app.JWTMiddleware, apiHandler.AdminChoosableUserEventOrganizers)
+	adminRoute.GET("/user/choosable-event-venues", app.JWTMiddleware, apiHandler.AdminChoosableUserEventVenues)
 
 	adminRoute.GET("/event/:eventId", app.JWTMiddleware, apiHandler.AdminGetEvent)
 	adminRoute.DELETE("/event/:eventId", app.JWTMiddleware, apiHandler.AdminDeleteEvent)
@@ -152,7 +145,12 @@ func main() {
 	adminRoute.GET("/organizer/dashboard", app.JWTMiddleware, apiHandler.AdminGetOrganizerDashboard)
 	adminRoute.GET("/organizer/:organizerId/venues", app.JWTMiddleware, apiHandler.AdminGetOrganizerVenues)
 	adminRoute.GET("/organizer/:organizerId/events", app.JWTMiddleware, apiHandler.AdminGetOrganizerEvents)
-	adminRoute.GET("/organizer/:organizerId/event/permission", app.JWTMiddleware, apiHandler.AdminGetOrganizerEventPermissions)
+	adminRoute.GET("/organizer/:organizerId/event/permission", app.JWTMiddleware, apiHandler.AdminGetOrganizerAddEventPermission)
+
+	adminRoute.GET("/organizer/:organizerId/team", app.JWTMiddleware, apiHandler.AdminGetOrganizerTeam)
+	adminRoute.DELETE("/organizer/team/member/:memberUserId", app.JWTMiddleware, apiHandler.AdminDeleteOrganizerTeamMember)
+	adminRoute.POST("/organizer/:organizerId/team/invite", app.JWTMiddleware, apiHandler.AdminOrganizerTeamInvite)
+	adminRoute.POST("/organizer/team/invite/accept", apiHandler.AdminOrganizerTeamInviteAccept)
 
 	adminRoute.POST("/organizer/create", app.JWTMiddleware, apiHandler.AdminCreateOrganizer)
 
@@ -185,7 +183,6 @@ func main() {
 
 	// Check ...
 	// adminRoute.POST("image/upload", app.JWTMiddleware, api.AdminAddImageHandler) TODO: Unused
-	// adminRoute.GET("/user/spaces/:mode", app.JWTMiddleware, api.AdminUserSpacesHandler) TODO: Unused
 	// adminRoute.GET("/events", app.JWTMiddleware, api.AdminEventsHandler) TODO: Unused
 
 	fmt.Println("Gin mode:", gin.Mode())

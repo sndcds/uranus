@@ -5,7 +5,7 @@ FROM (
         o.name AS name,
         o.city AS city,
         o.country_code AS country_code
-    FROM {{schema}}.user_event_organizer_links ueol
+    FROM {{schema}}.user_event_organizer_link ueol
     JOIN {{schema}}.organizer o ON o.id = ueol.event_organizer_id
     WHERE ueol.user_id = $1
     AND ueol.organizer_id = $2

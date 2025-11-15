@@ -26,6 +26,7 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 			EndTime   *string `json:"end_time"`
 			EntryTime *string `json:"entry_time"`
 			AllDay    bool    `json:"all_day"`
+			VenueId   *int    `json:"venue_id"`
 			SpaceId   *int    `json:"space_id"`
 		} `json:"dates" binding:"required,dive"`
 	}
@@ -49,8 +50,8 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 
 	sqlInsert := fmt.Sprintf(
 		`INSERT INTO %s.event_date 
-        (event_id, space_id, start, "end", entry_time, all_day)
-        VALUES ($1, $2, $3, $4, $5, $6)`,
+        (event_id, venue_id, space_id, start, "end", entry_time, all_day)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
 		dbSchema,
 	)
 
@@ -78,8 +79,17 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 			entryTime = nil
 		}
 
+		fmt.Println("eventId", eventId)
+		fmt.Println("d.VenueId", d.VenueId)
+		fmt.Println("d.SpaceId", d.SpaceId)
+		fmt.Println("startTimestamp", startTimestamp)
+		fmt.Println("endTimestamp", endTimestamp)
+		fmt.Println("entryTime", entryTime)
+		fmt.Println("d.AllDay", d.AllDay)
+
 		_, err = tx.Exec(ctx, sqlInsert,
 			eventId,
+			d.VenueId,
 			d.SpaceId,
 			startTimestamp,
 			endTimestamp,

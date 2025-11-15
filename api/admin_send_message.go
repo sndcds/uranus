@@ -42,14 +42,14 @@ func (h *ApiHandler) AdminSendMessage(gc *gin.Context) {
 		organizerId := req.ContextId
 		sql := strings.Replace(
 			`SELECT u.id, u.display_name
-			FROM {{schema}}.user_organizer_links ol
+			FROM {{schema}}.user_organizer_link ol
 			JOIN {{schema}}.user u ON u.id = ol.user_id
-			WHERE ol.organizer_id = $1 AND (user_role_id = 1 OR user_role_id = 2)`,
+			WHERE ol.organizer_id = $1 AND (ol.permissions & $2) != 0`,
 			"{{schema}}", h.Config.DbSchema, -1)
 
 		fmt.Println(sql)
 		fmt.Println("organizerId:", organizerId)
-		rows, err := tx.Query(ctx, sql, organizerId)
+		rows, err := tx.Query(ctx, sql, organizerId, 1<<PermissionBitCanReceiveOrganizerMessages)
 		if err != nil {
 			gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("database query failed: %v", err)})
 			return

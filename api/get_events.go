@@ -183,7 +183,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 
 	/* TODO: Handle event types and genres, must be refactored!
 	if eventTypesStr != "" {
-		format := "EXISTS (SELECT 1 FROM " + app.Singleton.Config.DbSchema + ".event_type_links sub_etl WHERE sub_etl.event_id = e.id AND sub_etl.type_id IN (%s))"
+		format := "EXISTS (SELECT 1 FROM " + app.Singleton.Config.DbSchema + ".event_type_link sub_etl WHERE sub_etl.event_id = e.id AND sub_etl.type_id IN (%s))"
 		var err error
 		argIndex, err = sql.BuildInCondition(eventTypesStr, format, "event_types", argIndex, &conditions, &args)
 		if err != nil {
@@ -193,7 +193,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	}
 
 	if genreTypesStr != "" {
-		format := "EXISTS (SELECT 1 FROM " + app.Singleton.Config.DbSchema + ".event_genre_links sub_egl WHERE sub_egl.event_id = e.id AND sub_egl.type_id IN (%s))"
+		format := "EXISTS (SELECT 1 FROM " + app.Singleton.Config.DbSchema + ".event_genre_link sub_egl WHERE sub_egl.event_id = e.id AND sub_egl.type_id IN (%s))"
 		var err error
 		argIndex, err = sql.BuildInCondition(genreTypesStr, format, "genre_types", argIndex, &conditions, &args)
 		if err != nil {
@@ -339,14 +339,14 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		var eventTypes []EventType
 		switch v := rowMap["event_types"].(type) {
 		case nil:
-			// no event types
+			// no event types to include in summary
 		case string:
 			if err := json.Unmarshal([]byte(v), &eventTypes); err != nil {
-				fmt.Println("json.Unmarshal error:", err)
+				fmt.Println("json.Unmarshal error:", err) // TODO: What should happen in this case?
 			}
 		case []byte:
 			if err := json.Unmarshal(v, &eventTypes); err != nil {
-				fmt.Println("json.Unmarshal error:", err)
+				fmt.Println("json.Unmarshal error:", err) // TODO: What should happen in this case?
 			}
 		case []interface{}:
 			// Already decoded array of maps
@@ -361,7 +361,8 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 				}
 			}
 		default:
-			fmt.Printf("unexpected type for event_types: %T\n", v)
+			// TODO: Is this an error?
+			// fmt.Printf("unexpected type for event_types: %T\n", v)
 		}
 
 		for _, et := range eventTypes {
@@ -373,28 +374,23 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 
 		// Venue summary
 		venueId, ok := ToInt(rowMap["venue_id"])
-		if !ok {
-			continue // skip this row if venue_id can't be converted
-		}
+		if ok {
+			venueName, _ := rowMap["venue_name"].(string)
+			venueCity, _ := rowMap["venue_city"].(string)
 
-		// Extract other fields
-		venueName, _ := rowMap["venue_name"].(string)
-		venueCity, _ := rowMap["venue_city"].(string)
-
-		fmt.Println(venueId, venueName, venueCity)
-
-		// Initialize venue summary if not yet present
-		if _, exists := venueMap[venueId]; !exists {
-			venueMap[venueId] = &VenueSummary{
-				ID:             venueId,
-				Name:           venueName,
-				City:           venueCity,
-				EventDateCount: 0,
+			// Initialize venue summary if not yet present
+			if _, exists := venueMap[venueId]; !exists {
+				venueMap[venueId] = &VenueSummary{
+					ID:             venueId,
+					Name:           venueName,
+					City:           venueCity,
+					EventDateCount: 0,
+				}
 			}
-		}
 
-		// Increment event count for this venue
-		venueMap[venueId].EventDateCount++
+			// Increment event count for this venue
+			venueMap[venueId].EventDateCount++
+		}
 
 		results = append(results, rowMap)
 	}

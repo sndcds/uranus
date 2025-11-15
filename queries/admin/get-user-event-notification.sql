@@ -22,7 +22,7 @@ LEFT JOIN LATERAL (
     WHERE ed.event_id = e.id
 ) ed_max ON true
     JOIN {{schema}}.organizer o ON o.id = e.organizer_id
-    JOIN {{schema}}.user_organizer_links uol ON uol.organizer_id = o.id
+    JOIN {{schema}}.user_organizer_link uol ON uol.organizer_id = o.id
     JOIN {{schema}}.event_status es
     ON es.status_id = e.release_status_id
     AND es.iso_639_1 = $4

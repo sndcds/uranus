@@ -145,7 +145,7 @@ func (h *ApiHandler) AdminUpdateEventImage(gc *gin.Context) {
 		}
 
 		sql = strings.Replace(
-			`DELETE FROM {{schema}}.event_image_links WHERE event_id = $1 AND main_image = TRUE`,
+			`DELETE FROM {{schema}}.event_image_link WHERE event_id = $1 AND main_image = TRUE`,
 			"{{schema}}", dbSchema, 1)
 		_, err = tx.Exec(ctx, sql, eventId)
 		if err != nil {
@@ -154,7 +154,7 @@ func (h *ApiHandler) AdminUpdateEventImage(gc *gin.Context) {
 		}
 
 		sql = strings.Replace(
-			`INSERT INTO {{schema}}.event_image_links (event_id, pluto_image_id, main_image, sort_index)
+			`INSERT INTO {{schema}}.event_image_link (event_id, pluto_image_id, main_image, sort_index)
 			VALUES ($1, $2, $3, $4)`,
 			"{{schema}}", dbSchema, 1)
 		_, err = tx.Exec(ctx, sql, eventId, plutoImageId, true, 0)
@@ -164,7 +164,7 @@ func (h *ApiHandler) AdminUpdateEventImage(gc *gin.Context) {
 		}
 	} else {
 		sql := strings.Replace(
-			`SELECT pluto_image_id FROM {{schema}}.event_image_links WHERE event_id = $1 AND main_image = TRUE`,
+			`SELECT pluto_image_id FROM {{schema}}.event_image_link WHERE event_id = $1 AND main_image = TRUE`,
 			"{{schema}}", dbSchema, 1)
 		var plutoImageID string
 		err := tx.QueryRow(ctx, sql, eventId).Scan(&plutoImageID)

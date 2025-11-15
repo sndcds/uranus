@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -19,43 +20,86 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 
 	langStr := gc.DefaultQuery("lang", "en")
 
-	query := app.Singleton.SqlGetAdminEvent
-
-	rows, err := pool.Query(ctx, query, eventId, langStr)
+	// Query event info (without dates)
+	eventRows, err := pool.Query(ctx, app.Singleton.SqlGetAdminEvent, eventId, langStr)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer rows.Close()
+	defer eventRows.Close()
 
-	fieldDescriptions := rows.FieldDescriptions()
-	columnNames := make([]string, len(fieldDescriptions))
-	for i, fd := range fieldDescriptions {
-		columnNames[i] = string(fd.Name)
-	}
+	var event map[string]interface{}
+	if eventRows.Next() {
+		fieldDescs := eventRows.FieldDescriptions()
+		columns := make([]string, len(fieldDescs))
+		for i, fd := range fieldDescs {
+			columns[i] = string(fd.Name)
+		}
 
-	var result map[string]interface{}
-
-	if rows.Next() {
-		values, err := rows.Values()
+		values, err := eventRows.Values()
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
-		result = make(map[string]interface{}, len(values))
-		for i, col := range columnNames {
-			result[col] = values[i]
+		event = make(map[string]interface{}, len(values))
+		for i, col := range columns {
+			event[col] = values[i]
+		}
+
+		// Add image path
+		if imageID := event["image_id"]; imageID != nil {
+			event["image_path"] = fmt.Sprintf("%s/api/image/%v", app.Singleton.Config.BaseApiUrl, imageID)
+		} else {
+			event["image_path"] = nil
 		}
 	} else {
 		gc.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
 		return
 	}
 
-	if err := rows.Err(); err != nil {
+	if err := eventRows.Err(); err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	gc.JSON(http.StatusOK, result)
+	// Query all event_dates for this event
+	dateRows, err := pool.Query(ctx, app.Singleton.SqlGetAdminEventDates, eventId)
+	if err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer dateRows.Close()
+
+	var eventDates []map[string]interface{}
+	dateFieldDescs := dateRows.FieldDescriptions()
+	dateColumns := make([]string, len(dateFieldDescs))
+	for i, fd := range dateFieldDescs {
+		dateColumns[i] = string(fd.Name)
+	}
+
+	for dateRows.Next() {
+		values, err := dateRows.Values()
+		if err != nil {
+			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		rowMap := make(map[string]interface{}, len(values))
+		for i, col := range dateColumns {
+			rowMap[col] = values[i]
+		}
+
+		eventDates = append(eventDates, rowMap)
+	}
+
+	if err := dateRows.Err(); err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Merge event_dates into event map
+	event["event_dates"] = eventDates
+
+	gc.JSON(http.StatusOK, event)
 }

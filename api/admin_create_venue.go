@@ -1,7 +1,10 @@
 package api
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -10,8 +13,8 @@ import (
 )
 
 func (h *ApiHandler) AdminCreateVenue(gc *gin.Context) {
-	pool := h.DbPool
 	ctx := gc.Request.Context()
+	db := h.DbPool
 
 	type UpdateRequest struct {
 		OrganizerId  int     `json:"organizer_id"`
@@ -31,10 +34,35 @@ func (h *ApiHandler) AdminCreateVenue(gc *gin.Context) {
 
 	// TODO: Check permissions by user and OrganizerId
 
-	var req UpdateRequest
-	if err := gc.ShouldBindJSON(&req); err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	// Read body so we can get detailed errors
+	body, err := io.ReadAll(gc.Request.Body)
+	if err != nil {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "failed to read request body"})
 		return
+	}
+
+	var req UpdateRequest
+	if err := json.Unmarshal(body, &req); err != nil {
+		// Detailed error handling
+		var ute *json.UnmarshalTypeError
+		switch {
+		case errors.As(err, &ute):
+			// ute.Field may be empty in some Go versions; try to extract a friendly name
+			field := ute.Field
+			if field == "" {
+				// try to fall back to the JSON field name from ute.Struct? (may be empty)
+				field = ute.Field
+			}
+			gc.JSON(http.StatusBadRequest, gin.H{
+				"error": fmt.Sprintf("invalid type for field %q: expected %v but got %v", field, ute.Type, ute.Value),
+				"hint":  "latitude and longitude must be numbers (float), e.g. 52.520008",
+			})
+			return
+		case err != nil:
+			// generic json error
+			gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 	}
 
 	// Generate WKT point
@@ -45,7 +73,7 @@ func (h *ApiHandler) AdminCreateVenue(gc *gin.Context) {
 	}
 
 	// Begin transaction
-	tx, err := pool.Begin(gc)
+	tx, err := db.Begin(gc)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to start transaction"})
 		return

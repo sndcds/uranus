@@ -11,7 +11,7 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-func (h *ApiHandler) AdminGetOrganizerEventPermissions(gc *gin.Context) {
+func (h *ApiHandler) AdminGetOrganizerAddEventPermission(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	pool := h.DbPool
 
@@ -24,7 +24,7 @@ func (h *ApiHandler) AdminGetOrganizerEventPermissions(gc *gin.Context) {
 		return
 	}
 
-	sql := app.Singleton.SqlAdminGetOrganizerEventPermissions
+	sql := app.Singleton.SqlAdminGetOrganizerAddEventPermission
 
 	var canAddEvent bool
 	err = pool.QueryRow(ctx, sql, userId, organizerId).Scan(&canAddEvent)

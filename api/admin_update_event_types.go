@@ -40,7 +40,7 @@ func (h *ApiHandler) AdminUpdateEventTypes(gc *gin.Context) {
 	defer func() { _ = tx.Rollback(ctx) }()
 
 	// Delete existing type-genre links
-	sqlDelete := strings.Replace(`DELETE FROM {{schema}}.event_type_links WHERE event_id = $1`, "{{schema}}", dbSchema, 1)
+	sqlDelete := strings.Replace(`DELETE FROM {{schema}}.event_type_link WHERE event_id = $1`, "{{schema}}", dbSchema, 1)
 	if _, err = tx.Exec(ctx, sqlDelete, eventId); err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to delete existing type-genre links: %v", err)})
 		return
@@ -48,7 +48,7 @@ func (h *ApiHandler) AdminUpdateEventTypes(gc *gin.Context) {
 
 	// Insert new type-genre pairs
 	sqlInsert := strings.Replace(
-		`INSERT INTO {{schema}}.event_type_links (event_id, type_id, genre_id) VALUES ($1, $2, $3)`,
+		`INSERT INTO {{schema}}.event_type_link (event_id, type_id, genre_id) VALUES ($1, $2, $3)`,
 		"{{schema}}", dbSchema, 1,
 	)
 

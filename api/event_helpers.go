@@ -8,6 +8,7 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
+// TODO: Check!
 func allIDsExist(gc *gin.Context, tx pgx.Tx, table string, ids []int) (bool, error) {
 	if len(ids) == 0 {
 		return true, nil
@@ -36,6 +37,7 @@ func allIDsExist(gc *gin.Context, tx pgx.Tx, table string, ids []int) (bool, err
 	return allExist, nil
 }
 
+// TODO: Check!
 func UserCanEditEvent(gc *gin.Context, tx pgx.Tx, eventId int) (bool, error) {
 	userId := gc.GetInt("user-id")
 
@@ -46,7 +48,7 @@ func UserCanEditEvent(gc *gin.Context, tx pgx.Tx, eventId int) (bool, error) {
 			-- Case 1: via organizer
 			SELECT 1
 			FROM %[1]s.event e
-			JOIN %[1]s.user_organizer_links uol ON e.organizer_id = uol.organizer_id
+			JOIN %[1]s.user_organizer_link uol ON e.organizer_id = uol.organizer_id
 			JOIN %[1]s.user_role ur ON uol.user_role_id = ur.id
 			WHERE e.id = $1 AND uol.user_id = $2 AND ur.edit_event = TRUE
 
@@ -54,7 +56,7 @@ func UserCanEditEvent(gc *gin.Context, tx pgx.Tx, eventId int) (bool, error) {
 
 			-- Case 2: via direct event link
 			SELECT 1
-			FROM %[1]s.user_event_links uel
+			FROM %[1]s.user_event_link uel
 			JOIN %[1]s.user_role ur2 ON uel.user_role_id = ur2.id
 			WHERE uel.event_id = $1 AND uel.user_id = $2 AND ur2.edit_event = TRUE
 		) AS can_edit;

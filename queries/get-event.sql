@@ -1,25 +1,17 @@
-WITH event_data AS (
-    SELECT
-        ed.id AS event_date_id,
-        ed.event_id,
-        ed.space_id,
-        ed.start,
-        ed.end,
-        ed.entry_time,
-        ed.duration,
-        ed.accessibility_flags,
-        ed.visitor_info_flags
-    FROM {{schema}}.event_date ed
-WHERE ed.id = $1
+WITH target_event AS (
+    -- Get the event_id for the provided event_date.id
+    SELECT event_id
+    FROM {{schema}}.event_date
+WHERE id = $1
     )
 SELECT
-    e.id AS id,
-    e.title AS title,
-    e.subtitle AS subtitle,
-    e.description AS description,
-    e.teaser_text AS teaser_text,
-    e.participation_info AS participation_info,
-    e.meeting_point AS meeting_point,
+    e.id AS event_id,
+    e.title,
+    e.subtitle,
+    e.description,
+    e.teaser_text,
+    e.participation_info,
+    e.meeting_point,
     e.languages,
 
     o.id AS organizer_id,
@@ -37,27 +29,14 @@ SELECT
     ST_X(v.wkb_geometry) AS venue_lon,
     ST_Y(v.wkb_geometry) AS venue_lat,
 
-    space_data.id AS space_id,
-    space_data.name AS space_name,
-    space_data.total_capacity AS space_total_capacity,
-    space_data.seating_capacity AS space_seating_capacity,
-    space_data.building_level AS space_building_level,
-    space_data.website_url AS space_url,
+    s.id AS space_id,
+    s.name AS space_name,
+    s.total_capacity AS space_total_capacity,
+    s.seating_capacity AS space_seating_capacity,
+    s.building_level AS space_building_level,
+    s.website_url AS space_url,
 
-    TO_CHAR(ed.start, 'YYYY-MM-DD') AS start_date,
-    TO_CHAR(ed.start, 'HH24:MI') AS start_time,
-    TO_CHAR(ed.end, 'YYYY-MM-DD') AS end_date,
-    TO_CHAR(ed.end, 'HH24:MI') AS end_time,
-    TO_CHAR(ed.entry_time, 'HH24:MI') AS entry_time,
-    ed.duration AS duration,
-
-    ed.accessibility_flags AS accessibility_flags,
-    ed.visitor_info_flags AS visitor_info_flags,
-
-    acc_flags.accessibility_flag_names AS accessibility_flag_names,
-    vis_flags.visitor_info_flag_names AS visitor_info_flag_names,
-
-    img_data.has_main_image AS has_main_image,
+    img_data.has_main_image,
     img_data.id AS image_id,
     pimg.width AS image_width,
     pimg.height AS image_height,
@@ -72,36 +51,25 @@ SELECT
     COALESCE(img_data.focus_x, pimg.focus_x) AS image_focus_x,
     COALESCE(img_data.focus_y, pimg.focus_y) AS image_focus_y,
 
-    et_data.event_types AS event_types,
-    url_data.event_urls AS event_urls
+    et_data.event_types,
+    url_data.event_urls,
+    acc_flags.accessibility_flag_names,
+    vis_flags.visitor_info_flag_names
 
-FROM event_data ed
-    JOIN {{schema}}.event e ON ed.event_id = e.id
-    JOIN {{schema}}.organizer o ON e.organizer_id = o.id
-    LEFT JOIN {{schema}}.space s ON ed.space_id = s.id
-    LEFT JOIN {{schema}}.space es ON e.space_id = es.id
+FROM {{schema}}.event e
+JOIN target_event te ON te.event_id = e.id
+    JOIN {{schema}}.organizer o ON o.id = e.organizer_id
+
+-- Venue (fallback logic if event has venue_id)
     LEFT JOIN {{schema}}.venue v ON v.id = e.venue_id
 
-    -- Use LATERAL to pick the "first available" space
-    LEFT JOIN LATERAL (
-        SELECT *
-        FROM {{schema}}.space s2
-        WHERE s2.id = ed.space_id
-        UNION ALL
-        SELECT *
-        FROM {{schema}}.space es2
-        WHERE es2.id = e.space_id
-        LIMIT 1
-    ) space_data ON TRUE
+-- Space (fallback logic if event has space_id)
+    LEFT JOIN {{schema}}.space s ON s.id = e.space_id
 
 -- Main image
     LEFT JOIN LATERAL (
-    SELECT
-    TRUE AS has_main_image,
-    eil.pluto_image_id AS id,
-    0 AS focus_x,
-    0 AS focus_y
-    FROM {{schema}}.event_image_links eil
+    SELECT TRUE AS has_main_image, eil.pluto_image_id AS id, 0 AS focus_x, 0 AS focus_y
+    FROM {{schema}}.event_image_link eil
     WHERE eil.event_id = e.id AND eil.main_image = TRUE
     LIMIT 1
     ) img_data ON TRUE
@@ -109,7 +77,7 @@ FROM event_data ed
 -- Pluto image metadata
     LEFT JOIN {{schema}}.pluto_image pimg ON pimg.id = img_data.id
 
--- License name
+-- License
     LEFT JOIN {{schema}}.license_type lic
     ON lic.license_id = pimg.license_id
     AND lic.iso_639_1 = $2
@@ -117,34 +85,30 @@ FROM event_data ed
 -- Event types + genres
     LEFT JOIN LATERAL (
     SELECT jsonb_agg(DISTINCT jsonb_build_object(
-        'type_id', etl.type_id,
-        'type_name', et.name,
-        'genre_id', COALESCE(gt.type_id, 0),
-        'genre_name', gt.name
+    'type_id', etl.type_id,
+    'type_name', et.name,
+    'genre_id', COALESCE(gt.type_id, 0),
+    'genre_name', gt.name
     )) AS event_types
-    FROM {{schema}}.event_type_links etl
-    JOIN {{schema}}.event_type et
-    ON et.type_id = etl.type_id
-    AND et.iso_639_1 = $2
-    LEFT JOIN {{schema}}.genre_type gt
-    ON gt.type_id = etl.genre_id
-    AND gt.iso_639_1 = $2
+    FROM {{schema}}.event_type_link etl
+    JOIN {{schema}}.event_type et ON et.type_id = etl.type_id AND et.iso_639_1 = $2
+    LEFT JOIN {{schema}}.genre_type gt ON gt.type_id = etl.genre_id AND gt.iso_639_1 = $2
     WHERE etl.event_id = e.id
     ) et_data ON TRUE
 
--- Accessibility flag names
+-- Accessibility flags
     LEFT JOIN LATERAL (
     SELECT jsonb_agg(name) AS accessibility_flag_names
     FROM {{schema}}.accessibility_flags f
-    WHERE (ed.accessibility_flags & (1::BIGINT << f.flag)) = (1::BIGINT << f.flag)
+    WHERE (e.accessibility_flags & (1::BIGINT << f.flag)) = (1::BIGINT << f.flag)
     AND f.iso_639_1 = $2
     ) acc_flags ON TRUE
 
--- Visitor info flag names
+-- Visitor info flags
     LEFT JOIN LATERAL (
     SELECT jsonb_agg(name) AS visitor_info_flag_names
     FROM {{schema}}.visitor_information_flags f
-    WHERE (ed.visitor_info_flags & (1::BIGINT << f.flag)) = (1::BIGINT << f.flag)
+    WHERE (e.visitor_info_flags & (1::BIGINT << f.flag)) = (1::BIGINT << f.flag)
     AND f.iso_639_1 = $2
     ) vis_flags ON TRUE
 
@@ -158,6 +122,4 @@ FROM event_data ed
     )) AS event_urls
     FROM {{schema}}.event_url eu
     WHERE eu.event_id = e.id
-    ) url_data ON TRUE
-
-    LIMIT 1;
+    ) url_data ON TRUE;

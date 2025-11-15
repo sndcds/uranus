@@ -123,7 +123,7 @@ func (h *ApiHandler) AdminUpdateEventTeaserImage(gc *gin.Context) {
 		return
 	}
 
-	sql = strings.Replace(`INSERT INTO {{schema}}.event_image_links (event_id, pluto_image_id, main_image, sort_index)
+	sql = strings.Replace(`INSERT INTO {{schema}}.event_image_link (event_id, pluto_image_id, main_image, sort_index)
 	VALUES ($1, $2, $3, $4)`, "{{schema}}", dbSchema, 1)
 
 	_, err = tx.Exec(ctx, sql, eventId, plutoImageId, true, 0)
