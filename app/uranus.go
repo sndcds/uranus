@@ -196,8 +196,9 @@ func (app *Uranus) PrepareSql() error {
 		{"queries/choosable-organizer-venues.sql", &app.SqlChoosableOrganizerVenues, nil},
 		{"queries/choosable-venue-spaces.sql", &app.SqlChoosableVenueSpaces, nil},
 
-		{"queries/get-organizer.sql", &app.SqlAdminOrganizer, nil},
+		{"queries/get-organizer.sql", &app.SqlGetOrganizer, nil},
 
+		
 		// Admin
 		{"queries/admin-get-organizer.sql", &app.SqlGetAdminOrganizer, nil},
 		{"queries/admin-update-organizer.sql", &app.SqlUpdateOrganizer, nil},
