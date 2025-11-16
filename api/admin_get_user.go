@@ -2,8 +2,8 @@ package api
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
@@ -20,17 +20,17 @@ func (h *ApiHandler) AdminGetUser(gc *gin.Context) {
 	}
 
 	// Query the user table
-	sql := strings.Replace(`
+	sql := fmt.Sprintf(`
 		SELECT row_to_json(u) AS user
 		FROM (
 			SELECT
 				user_name,
 				email_address,
 				COALESCE(display_name, first_name || ' ' || last_name) AS display_name
-			FROM uranus.user
-			WHERE id = 24
+			FROM %s.user
+			WHERE id = $1
 		) u`,
-		"{{schema}}", h.Config.DbSchema, 1)
+		h.Config.DbSchema)
 
 	var userJSON []byte
 	err := pool.QueryRow(ctx, sql, userId).Scan(&userJSON)
