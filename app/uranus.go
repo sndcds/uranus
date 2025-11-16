@@ -195,32 +195,32 @@ func (app *Uranus) PrepareSql() error {
 		{"queries/choosable-venue-spaces.sql", &app.SqlChoosableVenueSpaces, nil},
 
 		// Admin
-		{"queries/admin/get-admin-organizer.sql", &app.SqlGetAdminOrganizer, nil},
-		{"queries/admin/update-organizer.sql", &app.SqlUpdateOrganizer, nil},
+		{"queries/admin-get-organizer.sql", &app.SqlGetAdminOrganizer, nil},
+		{"queries/admin-update-organizer.sql", &app.SqlUpdateOrganizer, nil},
 
-		{"queries/admin/get-admin-venue.sql", &app.SqlGetAdminVenue, nil},
-		{"queries/admin/update-venue.sql", &app.SqlUpdateVenue, nil},
+		{"queries/admin-get-venue.sql", &app.SqlGetAdminVenue, nil},
+		{"queries/admin-update-venue.sql", &app.SqlUpdateVenue, nil},
 
-		{"queries/admin/get-admin-space.sql", &app.SqlGetAdminSpace, nil},
-		{"queries/admin/update-space.sql", &app.SqlUpdateSpace, nil},
+		{"queries/admin-get-space.sql", &app.SqlGetAdminSpace, nil},
+		{"queries/admin-update-space.sql", &app.SqlUpdateSpace, nil},
 
-		{"queries/admin/get-admin-event.sql", &app.SqlGetAdminEvent, nil},
-		{"queries/admin/get-admin-event-dates.sql", &app.SqlGetAdminEventDates, nil},
+		{"queries/admin-get-event.sql", &app.SqlGetAdminEvent, nil},
+		{"queries/admin-get-event-dates.sql", &app.SqlGetAdminEventDates, nil},
 
-		{"queries/admin/user-permissions.sql", &app.SqlAdminUserPermissions, nil},
-		{"queries/admin/get-user-event-notification.sql", &app.SqlAdminGetUserEventNotification, nil},
+		{"queries/admin-user-permissions.sql", &app.SqlAdminUserPermissions, nil},
+		{"queries/admin-get-user-event-notification.sql", &app.SqlAdminGetUserEventNotification, nil},
 
-		{"queries/admin/user-spaces-for-event.sql", &app.SqlAdminSpacesForEvent, nil},
+		{"queries/admin-user-spaces-for-event.sql", &app.SqlAdminSpacesForEvent, nil},
 
-		{"queries/admin/choosable-organizers.sql", &app.SqlAdminChoosableOrganizers, nil},
-		{"queries/admin/choosable-user-event-organizers.sql", &app.SqlAdminChoosableUserEventOrganizers, nil},
-		{"queries/admin/choosable-user-event-venues.sql", &app.SqlAdminChoosableUserEventVenues, nil},
+		{"queries/admin-choosable-organizers.sql", &app.SqlAdminChoosableOrganizers, nil},
+		{"queries/admin-choosable-user-event-organizers.sql", &app.SqlAdminChoosableUserEventOrganizers, nil},
+		{"queries/admin-choosable-user-event-venues.sql", &app.SqlAdminChoosableUserEventVenues, nil},
 
-		{"queries/admin/organizer-dashboard.sql", &app.SqlAdminOrganizerDashboard, nil},
-		{"queries/admin/organizer-events.sql", &app.SqlAdminOrganizerEvents, nil},
-		{"queries/admin/get-organizer-add-event-permission.sql", &app.SqlAdminGetOrganizerAddEventPermission, nil},
+		{"queries/admin-organizer-dashboard.sql", &app.SqlAdminOrganizerDashboard, nil},
+		{"queries/admin-organizer-events.sql", &app.SqlAdminOrganizerEvents, nil},
+		{"queries/admin-get-organizer-add-event-permission.sql", &app.SqlAdminGetOrganizerAddEventPermission, nil},
 
-		{"queries/admin/organizer-venues.sql", &app.SqlAdminOrganizerVenues, nil},
+		{"queries/admin-organizer-venues.sql", &app.SqlAdminOrganizerVenues, nil},
 	}
 
 	for i := range queries {
