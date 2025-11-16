@@ -99,6 +99,8 @@ func main() {
 
 	publicRoute.GET("/accessibility/flags", apiHandler.GetAccessibilityFlags)
 
+	publicRoute.GET("/organizer/:organizerId", apiHandler.GetOrganizer)
+
 	// Inject app middleware into Pluto's image routes
 	pluto.Singleton.RegisterRoutes(publicRoute, app.JWTMiddleware)
 
@@ -175,10 +177,12 @@ func main() {
 	adminRoute.PUT("/event/:eventId/types", app.JWTMiddleware, apiHandler.AdminUpdateEventTypes)
 	adminRoute.PUT("/event/:eventId/venue", app.JWTMiddleware, apiHandler.AdminUpdateEventVenue)
 	adminRoute.PUT("/event/:eventId/links", app.JWTMiddleware, apiHandler.AdminUpdateEventLinks)
-	adminRoute.PUT("/event/:eventId/dates", app.JWTMiddleware, apiHandler.AdminUpdateEventDates)
+	// adminRoute.PUT("/event/:eventId/dates", app.JWTMiddleware, apiHandler.AdminUpdateEventDates)
 	adminRoute.PUT("/event/:eventId/tags", app.JWTMiddleware, apiHandler.AdminUpdateEventTags)
 	adminRoute.PUT("/event/:eventId/languages", app.JWTMiddleware, apiHandler.AdminUpdateEventLanguages)
 	adminRoute.PUT("/event/:eventId/release-status", app.JWTMiddleware, apiHandler.AdminUpdateEventReleaseStatus)
+
+	adminRoute.PUT("/event/:eventId/date", app.JWTMiddleware, apiHandler.AdminUpsertEventDate)
 
 	adminRoute.POST("/event/:eventId/image", app.JWTMiddleware, apiHandler.AdminUpdateEventImage)
 	adminRoute.DELETE("/event/:eventId/image", app.JWTMiddleware, apiHandler.AdminDeleteEventMainImage)
