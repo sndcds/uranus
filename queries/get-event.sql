@@ -1,9 +1,3 @@
-WITH target_event AS (
-    -- Get the event_id for the provided event_date.id
-    SELECT event_id
-    FROM {{schema}}.event_date
-WHERE id = $1
-    )
 SELECT
     e.id AS event_id,
     e.title,
@@ -17,7 +11,7 @@ SELECT
     o.id AS organizer_id,
     o.name AS organizer_name,
 
-    v.id AS venue_id,
+    -- v.id AS venue_id,
     v.name AS venue_name,
     v.street AS venue_street,
     v.house_number AS venue_house_number,
@@ -25,7 +19,6 @@ SELECT
     v.city AS venue_city,
     v.country_code AS venue_country,
     v.state_code AS venue_state,
-    ST_AsText(v.wkb_geometry) AS venue_geometry,
     ST_X(v.wkb_geometry) AS venue_lon,
     ST_Y(v.wkb_geometry) AS venue_lat,
 
@@ -53,73 +46,68 @@ SELECT
 
     et_data.event_types,
     url_data.event_urls,
-    acc_flags.accessibility_flag_names,
     vis_flags.visitor_info_flag_names
 
 FROM {{schema}}.event e
-JOIN target_event te ON te.event_id = e.id
-    JOIN {{schema}}.organizer o ON o.id = e.organizer_id
+LEFT JOIN {{schema}}.event_date ed ON ed.event_id = e.id AND ed.id = $1
+JOIN {{schema}}.organizer o ON o.id = e.organizer_id
 
 -- Venue (fallback logic if event has venue_id)
-    LEFT JOIN {{schema}}.venue v ON v.id = e.venue_id
+LEFT JOIN {{schema}}.venue v ON v.id = e.venue_id
 
 -- Space (fallback logic if event has space_id)
-    LEFT JOIN {{schema}}.space s ON s.id = e.space_id
+LEFT JOIN {{schema}}.space s ON s.id = e.space_id
 
 -- Main image
-    LEFT JOIN LATERAL (
+LEFT JOIN LATERAL (
     SELECT TRUE AS has_main_image, eil.pluto_image_id AS id, 0 AS focus_x, 0 AS focus_y
     FROM {{schema}}.event_image_link eil
     WHERE eil.event_id = e.id AND eil.main_image = TRUE
     LIMIT 1
-    ) img_data ON TRUE
+) img_data ON TRUE
 
 -- Pluto image metadata
-    LEFT JOIN {{schema}}.pluto_image pimg ON pimg.id = img_data.id
+LEFT JOIN {{schema}}.pluto_image pimg ON pimg.id = img_data.id
 
 -- License
-    LEFT JOIN {{schema}}.license_type lic
-    ON lic.license_id = pimg.license_id
-    AND lic.iso_639_1 = $2
+LEFT JOIN {{schema}}.license_type lic
+ON lic.license_id = pimg.license_id
+AND lic.iso_639_1 = $2
 
 -- Event types + genres
-    LEFT JOIN LATERAL (
-    SELECT jsonb_agg(DISTINCT jsonb_build_object(
-    'type_id', etl.type_id,
-    'type_name', et.name,
-    'genre_id', COALESCE(gt.type_id, 0),
-    'genre_name', gt.name
-    )) AS event_types
+LEFT JOIN LATERAL (
+    SELECT jsonb_agg(
+        DISTINCT jsonb_build_object(
+            'type_id', etl.type_id,
+            'type_name', et.name,
+            'genre_id', COALESCE(gt.type_id, 0),
+            'genre_name', gt.name
+        )
+    ) AS event_types
     FROM {{schema}}.event_type_link etl
     JOIN {{schema}}.event_type et ON et.type_id = etl.type_id AND et.iso_639_1 = $2
     LEFT JOIN {{schema}}.genre_type gt ON gt.type_id = etl.genre_id AND gt.iso_639_1 = $2
     WHERE etl.event_id = e.id
-    ) et_data ON TRUE
-
--- Accessibility flags
-    LEFT JOIN LATERAL (
-    SELECT jsonb_agg(name) AS accessibility_flag_names
-    FROM {{schema}}.accessibility_flags f
-    WHERE (e.accessibility_flags & (1::BIGINT << f.flag)) = (1::BIGINT << f.flag)
-    AND f.iso_639_1 = $2
-    ) acc_flags ON TRUE
+) et_data ON TRUE
 
 -- Visitor info flags
-    LEFT JOIN LATERAL (
+LEFT JOIN LATERAL (
     SELECT jsonb_agg(name) AS visitor_info_flag_names
     FROM {{schema}}.visitor_information_flags f
-    WHERE (e.visitor_info_flags & (1::BIGINT << f.flag)) = (1::BIGINT << f.flag)
+    WHERE (ed.visitor_info_flags & (1::BIGINT << f.flag)) = (1::BIGINT << f.flag)
     AND f.iso_639_1 = $2
-    ) vis_flags ON TRUE
+) vis_flags ON TRUE
 
 -- Event URLs
-    LEFT JOIN LATERAL (
-    SELECT jsonb_agg(jsonb_build_object(
-    'id', eu.id,
-    'url_type', eu.url_type,
-    'url', eu.url,
-    'title', eu.title
-    )) AS event_urls
+LEFT JOIN LATERAL (
+SELECT jsonb_agg(
+    jsonb_build_object(
+        'id', eu.id,
+        'url_type', eu.url_type,
+        'url', eu.url,
+        'title', eu.title
+        )
+    ) AS event_urls
     FROM {{schema}}.event_url eu
     WHERE eu.event_id = e.id
-    ) url_data ON TRUE;
+) url_data ON TRUE;

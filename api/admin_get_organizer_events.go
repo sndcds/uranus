@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -78,6 +79,7 @@ func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
 	var eventTypesData []byte
 	var events []EventWithVenue
 	for rows.Next() {
+		fmt.Printf("....")
 		var e EventWithVenue
 		err := rows.Scan(
 			&e.EventId,

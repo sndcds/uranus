@@ -166,6 +166,7 @@ func (h *ApiHandler) AdminOrganizerTeamInvite(gc *gin.Context) {
 }
 
 func (h *ApiHandler) AdminOrganizerTeamInviteAccept(gc *gin.Context) {
+	ctx := gc.Request.Context()
 	pool := h.DbPool
 
 	var req struct {
@@ -176,7 +177,7 @@ func (h *ApiHandler) AdminOrganizerTeamInviteAccept(gc *gin.Context) {
 		return
 	}
 
-	// Parse JWT token using the same signing method
+	// Parse JWT token
 	token, err := jwt.ParseWithClaims(req.Token, &TeamInviteClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -188,27 +189,31 @@ func (h *ApiHandler) AdminOrganizerTeamInviteAccept(gc *gin.Context) {
 		return
 	}
 
-	// Extract claims
 	claims, ok := token.Claims.(*TeamInviteClaims)
-	if !ok {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token claims 1"})
-		return
-	}
-	if !token.Valid {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token 2"})
+	if !ok || !token.Valid {
+		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token claims"})
 		return
 	}
 
 	userId := claims.UserId
 	organizerId := claims.OrganizerId
 
-	fmt.Println("userId:", userId, "organizerId:", organizerId)
+	// Start a transaction
+	tx, err := pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to start transaction"})
+		return
+	}
+	defer func() {
+		// Rollback if not already committed
+		_ = tx.Rollback(ctx)
+	}()
 
 	// Query stored activation token
 	var storedToken string
 	var organizerMemberLinkId int
-	query := fmt.Sprintf(`SELECT id, accept_token FROM %s.organizer_member_link WHERE user_id = $1 AND organizer_id = $2`, h.Config.DbSchema)
-	err = pool.QueryRow(gc, query, userId, organizerId).Scan(&organizerMemberLinkId, &storedToken)
+	query := fmt.Sprintf(`SELECT id, accept_token FROM %s.organizer_member_link WHERE user_id = $1 AND organizer_id = $2 FOR UPDATE`, h.Config.DbSchema)
+	err = tx.QueryRow(ctx, query, userId, organizerId).Scan(&organizerMemberLinkId, &storedToken)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			gc.JSON(http.StatusNotFound, gin.H{"error": "organizer member link not found"})
@@ -219,9 +224,6 @@ func (h *ApiHandler) AdminOrganizerTeamInviteAccept(gc *gin.Context) {
 	}
 
 	// Compare tokens
-	fmt.Println("storedToken:", storedToken)
-	fmt.Println("req.Token:", req.Token)
-
 	if storedToken != req.Token {
 		gc.JSON(http.StatusUnauthorized, gin.H{"error": "token mismatch"})
 		return
@@ -229,8 +231,23 @@ func (h *ApiHandler) AdminOrganizerTeamInviteAccept(gc *gin.Context) {
 
 	// Activate account
 	updateQuery := fmt.Sprintf(`UPDATE %s.organizer_member_link SET has_joined = true, accept_token = NULL WHERE id = $1`, h.Config.DbSchema)
-	if _, err := pool.Exec(gc, updateQuery, organizerMemberLinkId); err != nil {
+	if _, err := tx.Exec(ctx, updateQuery, organizerMemberLinkId); err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to accept invite, " + err.Error()})
+		return
+	}
+
+	// Create user organizer link
+	uolSql := fmt.Sprintf(`
+		INSERT INTO %s.user_organizer_link (user_id, organizer_id, permissions)
+		VALUES ($1, $2, $3)`, h.Config.DbSchema)
+	if _, err := tx.Exec(ctx, uolSql, userId, organizerId, 0); err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to accept invite, " + err.Error()})
+		return
+	}
+
+	// Commit transaction
+	if err := tx.Commit(ctx); err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to commit transaction"})
 		return
 	}
 

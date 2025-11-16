@@ -1,8 +1,8 @@
 SELECT
     (
-        COALESCE(BOOL_OR((uol.permissions & 1) <> 0), FALSE)
-            OR COALESCE(BOOL_OR((uvl.permissions & 1) <> 0), FALSE)
-            OR COALESCE(BOOL_OR((usl.permissions & 1) <> 0), FALSE)
+        COALESCE(BOOL_OR((uol.permissions & (1 << 24)) <> 0), FALSE)
+            OR COALESCE(BOOL_OR((uvl.permissions & (1 << 24)) <> 0), FALSE)
+            OR COALESCE(BOOL_OR((usl.permissions & (1 << 24)) <> 0), FALSE)
         ) AS can_add_event
 FROM {{schema}}."user" u
 

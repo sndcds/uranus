@@ -1,16 +1,18 @@
 WITH target_event AS (
     SELECT *
     FROM {{schema}}.event
-WHERE id = $1
-    )
+    WHERE id = $1
+)
 SELECT
     ed.id AS event_date_id,
     ed.event_id,
-    ed.start,
-    ed."end" AS end_time,
+    to_char(ed.start, 'YYYY-MM-DD') AS start_date,
+    to_char(ed.start, 'HH24:MI') AS start_time,
+    to_char(ed.end, 'YYYY-MM-DD') AS end_date,
+    to_char(ed.end, 'HH24:MI') AS end_time,
     ed.entry_time,
     ed.duration,
-    ed.accessibility_flags,
+    ed.accessibility_info,
     ed.visitor_info_flags,
 
     -- Venue logic: prefer event_date.venue_id, fallback to event.venue_id
@@ -22,7 +24,7 @@ SELECT
     v.city AS venue_city,
     v.country_code AS venue_country,
     v.state_code AS venue_state,
-    ST_AsText(v.wkb_geometry) AS venue_geometry,
+    -- ST_AsText(v.wkb_geometry) AS venue_geometry,
     ST_X(v.wkb_geometry) AS venue_lon,
     ST_Y(v.wkb_geometry) AS venue_lat,
 
@@ -38,11 +40,11 @@ FROM {{schema}}.event_date ed
 JOIN target_event e ON ed.event_id = e.id
 
 -- Venue fallback
-    LEFT JOIN {{schema}}.venue v
-    ON v.id = COALESCE(ed.venue_id, e.venue_id)
+LEFT JOIN {{schema}}.venue v
+ON v.id = COALESCE(ed.venue_id, e.venue_id)
 
 -- Space fallback
-    LEFT JOIN {{schema}}.space s
-    ON s.id = COALESCE(ed.space_id, e.space_id)
+LEFT JOIN {{schema}}.space s
+ON s.id = COALESCE(ed.space_id, e.space_id)
 
 ORDER BY ed.start;

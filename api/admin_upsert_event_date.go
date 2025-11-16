@@ -3,44 +3,63 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
+type EventDateLocationInput struct {
+	Name        *string  `json:"name"`
+	Street      *string  `json:"street"`
+	HouseNumber *string  `json:"house_number"`
+	PostalCode  *string  `json:"postal_code"`
+	City        *string  `json:"city"`
+	CountryCode *string  `json:"country_code"`
+	StateCode   *string  `json:"state_code"`
+	Latitude    *float64 `json:"lat"`
+	Longitude   *float64 `json:"lon"`
+	Description *string  `json:"description"`
+}
+
+type EventDateInput struct {
+	EventDateId int                    `json:"event_date_id"` // -1 for new
+	StartDate   string                 `json:"start_date" binding:"required"`
+	StartTime   string                 `json:"start_time" binding:"required"`
+	EndDate     *string                `json:"end_date"`
+	EndTime     *string                `json:"end_time"`
+	EntryTime   *string                `json:"entry_time"`
+	AllDay      bool                   `json:"all_day"`
+	VenueId     *int                   `json:"venue_id"`
+	SpaceId     *int                   `json:"space_id"`
+	Location    EventDateLocationInput `json:"location"`
+}
+
 func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	pool := h.DbPool
-	dbSchema := h.Config.DbSchema
+	userId := gc.GetInt("user-id")
 
 	eventId, ok := ParamInt(gc, "eventId")
 	if !ok {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "event ID is required"})
+		return
+	}
+	fmt.Println("userId:", userId)
+	fmt.Println("eventId:", eventId)
+
+	// TODO: Check Permissions!
+
+	var incoming EventDateInput
+	if err := gc.ShouldBindJSON(&incoming); err != nil {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
-	var req struct {
-		EventDateId int     `json:"event_date_id"` // -1 for new
-		StartDate   string  `json:"start_date" binding:"required"`
-		StartTime   string  `json:"start_time" binding:"required"`
-		EndDate     *string `json:"end_date"`
-		EndTime     *string `json:"end_time"`
-		EntryTime   *string `json:"entry_time"`
-		AllDay      bool    `json:"all_day"`
-		VenueId     *int    `json:"venue_id"`
-		SpaceId     *int    `json:"space_id"`
-		/*
-			VisitorInfoFlags int64   `json:"visitor_info_flags" binding:"required"` TODO: Implement
-			ticket_link text,
-			duration integer,
-			custom text,
-			status text CHECK (status = ANY (ARRAY['planned'::text, 'confirmed'::text, 'rescheduled'::text, 'cancelled'::text, 'draft'::text])),
-			availability_status text,
-			all_day boolean,
-			venue_id integer REFERENCES uranus.venue(id) ON DELETE SET NULL,
-			accessibility_info text
-		*/
-	}
-	if err := gc.ShouldBindJSON(&req); err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if !incoming.HasVenue() && !incoming.HasLocation() {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "event date must have either venue_id or location"})
+		return
+	} else if incoming.HasVenue() && incoming.HasLocation() {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "event date cannot have both venue_id and location"})
 		return
 	}
 
@@ -51,16 +70,54 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	startTimestamp := req.StartDate + " " + req.StartTime
+	var locationId *int
+	if incoming.HasLocation() {
+		locationSql := `
+			INSERT INTO {{schema}}.event_location (
+				name,
+				street,
+				house_number,
+				postal_code,
+				city,
+				country_code,
+				state_code,
+			    wkb_geometry,
+				description,
+				create_user_id
+			)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, ST_SetSRID(ST_MakePoint($8, $9), 4326), $10, $11)
+			RETURNING id`
+		locationSql = strings.Replace(locationSql, "{{schema}}", h.Config.DbSchema, 1)
+		location := incoming.Location
+		err = tx.QueryRow(ctx, locationSql,
+			location.Name,
+			location.Street,
+			location.HouseNumber,
+			location.PostalCode,
+			location.City,
+			location.CountryCode,
+			location.StateCode,
+			location.Longitude,
+			location.Latitude,
+			location.Description,
+			userId,
+		).Scan(&locationId)
+		if err != nil {
+			gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to insert event location: %v", err)})
+			return
+		}
+	}
+
+	startTimestamp := incoming.StartDate + " " + incoming.StartTime
 
 	// Compute endTimestamp safely
 	var endTimestamp interface{}
-	if req.EndTime != nil && *req.EndTime != "" {
-		endDate := req.StartDate
-		if req.EndDate != nil && *req.EndDate != "" {
-			endDate = *req.EndDate
+	if incoming.EndTime != nil && *incoming.EndTime != "" {
+		endDate := incoming.StartDate
+		if incoming.EndDate != nil && *incoming.EndDate != "" {
+			endDate = *incoming.EndDate
 		}
-		t := endDate + " " + *req.EndTime
+		t := endDate + " " + *incoming.EndTime
 		endTimestamp = t
 	} else {
 		endTimestamp = nil
@@ -68,31 +125,33 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 
 	// Compute entry_time
 	var entryTime interface{}
-	if req.EntryTime != nil && *req.EntryTime != "" {
-		entryTime = *req.EntryTime
+	if incoming.EntryTime != nil && *incoming.EntryTime != "" {
+		entryTime = *incoming.EntryTime
 	} else {
 		entryTime = nil
 	}
 
-	if req.EventDateId < 0 {
+	if incoming.EventDateId < 0 {
+		fmt.Println("insert new date")
 		// Insert new event date
-		sqlInsert := fmt.Sprintf(`
+		insertSql := fmt.Sprintf(`
 			INSERT INTO %s.event_date 
-				(event_id, venue_id, space_id, start, "end", entry_time, all_day)
-			VALUES ($1, $2, $3, $4, $5, $6, $7)
+				(event_id, venue_id, space_id, location_id, start, "end", entry_time, all_day)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 			RETURNING id
-		`, dbSchema)
+		`, h.Config.DbSchema)
 
-		var newId int
-		err = tx.QueryRow(ctx, sqlInsert,
+		var newEventDateId int
+		err = tx.QueryRow(ctx, insertSql,
 			eventId,
-			req.VenueId,
-			req.SpaceId,
+			incoming.VenueId,
+			incoming.SpaceId,
+			locationId,
 			startTimestamp,
 			endTimestamp,
 			entryTime,
-			req.AllDay,
-		).Scan(&newId)
+			incoming.AllDay,
+		).Scan(&newEventDateId)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to insert event date: %v", err)})
 			return
@@ -105,7 +164,7 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 
 		gc.JSON(http.StatusOK, gin.H{
 			"event_id":      eventId,
-			"event_date_id": newId,
+			"event_date_id": newEventDateId,
 			"message":       "event date created successfully",
 		})
 		return
@@ -116,16 +175,16 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 		UPDATE %s.event_date
 		SET venue_id = $1, space_id = $2, start = $3, "end" = $4, entry_time = $5, all_day = $6
 		WHERE id = $7 AND event_id = $8
-	`, dbSchema)
+	`, h.Config.DbSchema)
 
 	cmdTag, err := tx.Exec(ctx, sqlUpdate,
-		req.VenueId,
-		req.SpaceId,
+		incoming.VenueId,
+		incoming.SpaceId,
 		startTimestamp,
 		endTimestamp,
 		entryTime,
-		req.AllDay,
-		req.EventDateId,
+		incoming.AllDay,
+		incoming.EventDateId,
 		eventId,
 	)
 	if err != nil {
@@ -145,7 +204,25 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 
 	gc.JSON(http.StatusOK, gin.H{
 		"event_id":      eventId,
-		"event_date_id": req.EventDateId,
+		"event_date_id": incoming.EventDateId,
 		"message":       "event date updated successfully",
 	})
+}
+
+func (e *EventDateInput) HasVenue() bool {
+	return e.VenueId != nil
+}
+
+func (e *EventDateInput) HasLocation() bool {
+	l := e.Location
+	return l.Name != nil ||
+		l.Street != nil ||
+		l.HouseNumber != nil ||
+		l.PostalCode != nil ||
+		l.City != nil ||
+		l.CountryCode != nil ||
+		l.StateCode != nil ||
+		l.Latitude != nil ||
+		l.Longitude != nil ||
+		l.Description != nil
 }

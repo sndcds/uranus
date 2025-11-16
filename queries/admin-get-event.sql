@@ -32,7 +32,6 @@ SELECT
     space_data.building_level AS space_building_level,
     space_data.website_url AS space_url,
 
-    -- Main image fields
     img_data.image_id,
     img_data.image_focus_x,
     img_data.image_focus_y,
@@ -41,8 +40,7 @@ SELECT
     img_data.image_created_by,
     img_data.image_license_id,
 
-    -- Event types
-    (
+    ( -- Event types
         SELECT jsonb_agg(jsonb_build_object(
                 'type_id', etl.type_id,
                 'type_name', et.name,
@@ -51,38 +49,39 @@ SELECT
                          ))
         FROM {{schema}}.event_type_link etl
         JOIN {{schema}}.event_type et
-ON et.type_id = etl.type_id AND et.iso_639_1 = $2
-    LEFT JOIN {{schema}}.genre_type gt
-    ON gt.type_id = etl.genre_id AND gt.iso_639_1 = $2
-WHERE etl.event_id = e.id
+        ON et.type_id = etl.type_id AND et.iso_639_1 = $2
+        LEFT JOIN {{schema}}.genre_type gt
+        ON gt.type_id = etl.genre_id AND gt.iso_639_1 = $2
+        WHERE etl.event_id = e.id
     ) AS event_types,
 
--- Event URLs
-    (
-SELECT jsonb_agg(jsonb_build_object(
-    'id', eu.id,
-    'url_type', eu.url_type,
-    'url', eu.url,
-    'title', eu.title
-    ))
-FROM {{schema}}.event_url eu
-WHERE eu.event_id = e.id
+    ( -- Event URLs
+        SELECT jsonb_agg(
+            jsonb_build_object(
+                'id', eu.id,
+                'url_type', eu.url_type,
+                'url', eu.url,
+                'title', eu.title
+            )
+        )
+        FROM {{schema}}.event_url eu
+        WHERE eu.event_id = e.id
     ) AS event_urls
 
 FROM {{schema}}.event e
-    LEFT JOIN {{schema}}.organizer o ON e.organizer_id = o.id
-    LEFT JOIN {{schema}}.venue v ON v.id = e.venue_id
+LEFT JOIN {{schema}}.organizer o ON e.organizer_id = o.id
+LEFT JOIN {{schema}}.venue v ON v.id = e.venue_id
 
-    -- LATERAL join for space
-    LEFT JOIN LATERAL (
+
+LEFT JOIN LATERAL ( -- LATERAL join for space
     SELECT *
     FROM {{schema}}.space s2
     WHERE s2.id = e.space_id
     LIMIT 1
-    ) space_data ON TRUE
+) space_data ON TRUE
 
-    -- LATERAL join for main image
-    LEFT JOIN LATERAL (
+
+LEFT JOIN LATERAL ( -- LATERAL join for main image
     SELECT
     pi.id AS image_id,
     pi.focus_x AS image_focus_x,
@@ -95,7 +94,7 @@ FROM {{schema}}.event e
     JOIN {{schema}}.pluto_image pi ON pi.id = eil.pluto_image_id
     WHERE eil.event_id = e.id AND eil.main_image = TRUE
     LIMIT 1
-    ) img_data ON TRUE
+) img_data ON TRUE
 
 WHERE e.id = $1
-    LIMIT 1;
+LIMIT 1
