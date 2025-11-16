@@ -112,6 +112,8 @@ func main() {
 	adminRoute.POST("/forgot-password", apiHandler.ForgotPassword)
 	adminRoute.POST("/reset-password", apiHandler.ResetPassword)
 
+	adminRoute.GET("/user/:userId", app.JWTMiddleware, apiHandler.AdminGetUser)
+
 	adminRoute.POST("/send-message", app.JWTMiddleware, apiHandler.AdminSendMessage)
 	adminRoute.GET("/messages", app.JWTMiddleware, apiHandler.AdminGetMessages)
 
