@@ -8,7 +8,7 @@ SELECT
     TO_CHAR(ed."end", 'HH24:MI') AS end_time,
     TO_CHAR(ed.entry_time, 'HH24:MI') AS entry_time,
     ed.duration,
-    ed.accessibility_flags,
+    ed.accessibility_info,
     ed.visitor_info_flags,
 
     -- Venue fallback

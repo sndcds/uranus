@@ -7,7 +7,7 @@ WITH event_data AS (
         ed.end,
         ed.entry_time,
         ed.duration,
-        ed.accessibility_flags,
+        ed.accessibility_info,
         ed.visitor_info_flags
     FROM {{schema}}.event_date ed
     )

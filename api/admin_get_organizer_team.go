@@ -116,7 +116,8 @@ func (h *ApiHandler) AdminGetOrganizerTeam(gc *gin.Context) {
 		JOIN %s.user iu ON iu.id = oml.invited_by_user_id
 		JOIN %s.user u ON u.id = oml.user_id
 		JOIN %s.team_member_role tmr ON tmr.type_id = oml.member_role_id AND tmr.iso_639_1 = $2
-		WHERE oml.organizer_id = $1`,
+		WHERE oml.organizer_id = $1
+		AND has_joined = false`,
 		h.Config.DbSchema, h.Config.DbSchema, h.Config.DbSchema, h.Config.DbSchema)
 	rows, err := tx.Query(ctx, invitedMemberSql, organizerId, langStr)
 	if err != nil {
