@@ -18,17 +18,19 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 	pool := h.DbPool
 	ctx := gc.Request.Context()
 
-	eventId := gc.Param("eventId")
-	if eventId == "" {
+	eventId, ok := ParamInt(gc, "eventId")
+	if !ok {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "event ID is required"})
 		return
 	}
 
-	dateId := gc.Param("dateId")
-	if dateId == "" {
+	dateId, ok := ParamInt(gc, "dateId")
+	if !ok {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "date ID is required"})
 		return
 	}
+
+	fmt.Println("eventId:", eventId, "dateId:", dateId)
 
 	langStr := gc.DefaultQuery("lang", "en")
 

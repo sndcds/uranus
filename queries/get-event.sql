@@ -12,22 +12,22 @@ SELECT
     o.name AS organizer_name,
 
     -- v.id AS venue_id,
-    v.name AS venue_name,
-    v.street AS venue_street,
-    v.house_number AS venue_house_number,
-    v.postal_code AS venue_postal_code,
-    v.city AS venue_city,
-    v.country_code AS venue_country,
-    v.state_code AS venue_state,
-    ST_X(v.wkb_geometry) AS venue_lon,
-    ST_Y(v.wkb_geometry) AS venue_lat,
+    -- v.name AS venue_name,
+    -- v.street AS venue_street,
+    -- v.house_number AS venue_house_number,
+    -- v.postal_code AS venue_postal_code,
+    -- v.city AS venue_city,
+    -- v.country_code AS venue_country,
+    -- v.state_code AS venue_state,
+    -- ST_X(v.wkb_geometry) AS venue_lon,
+    -- ST_Y(v.wkb_geometry) AS venue_lat,
 
-    s.id AS space_id,
-    s.name AS space_name,
-    s.total_capacity AS space_total_capacity,
-    s.seating_capacity AS space_seating_capacity,
-    s.building_level AS space_building_level,
-    s.website_url AS space_url,
+    -- s.id AS space_id,
+    -- s.name AS space_name,
+    -- s.total_capacity AS space_total_capacity,
+    -- s.seating_capacity AS space_seating_capacity,
+    -- s.building_level AS space_building_level,
+    -- s.website_url AS space_url,
 
     img_data.has_main_image,
     img_data.id AS image_id,
@@ -45,11 +45,9 @@ SELECT
     COALESCE(img_data.focus_y, pimg.focus_y) AS image_focus_y,
 
     et_data.event_types,
-    url_data.event_urls,
-    vis_flags.visitor_info_flag_names
+    url_data.event_urls
 
 FROM {{schema}}.event e
-LEFT JOIN {{schema}}.event_date ed ON ed.event_id = e.id AND ed.id = $1
 JOIN {{schema}}.organizer o ON o.id = e.organizer_id
 
 -- Venue (fallback logic if event has venue_id)
@@ -90,13 +88,6 @@ LEFT JOIN LATERAL (
     WHERE etl.event_id = e.id
 ) et_data ON TRUE
 
--- Visitor info flags
-LEFT JOIN LATERAL (
-    SELECT jsonb_agg(name) AS visitor_info_flag_names
-    FROM {{schema}}.visitor_information_flags f
-    WHERE (ed.visitor_info_flags & (1::BIGINT << f.flag)) = (1::BIGINT << f.flag)
-    AND f.iso_639_1 = $2
-) vis_flags ON TRUE
 
 -- Event URLs
 LEFT JOIN LATERAL (
@@ -110,4 +101,6 @@ SELECT jsonb_agg(
     ) AS event_urls
     FROM {{schema}}.event_url eu
     WHERE eu.event_id = e.id
-) url_data ON TRUE;
+) url_data ON TRUE
+
+WHERE e.id = $1

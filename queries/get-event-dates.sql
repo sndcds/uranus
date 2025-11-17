@@ -10,7 +10,7 @@ SELECT
     to_char(ed.start, 'HH24:MI') AS start_time,
     to_char(ed.end, 'YYYY-MM-DD') AS end_date,
     to_char(ed.end, 'HH24:MI') AS end_time,
-    ed.entry_time,
+    to_char(ed.entry_time, 'HH24:MI') entry_time,
     ed.duration,
     ed.accessibility_info,
     ed.visitor_info_flags,
