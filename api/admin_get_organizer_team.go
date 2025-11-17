@@ -97,7 +97,7 @@ func (h *ApiHandler) AdminGetOrganizerTeam(gc *gin.Context) {
 	}
 
 	type InvitedMember struct {
-		InviteID  int       `json:"invite_id"`
+		UserID    int       `json:"user_id"`
 		InvitedBy string    `json:"invited_by"`
 		InvitedAt time.Time `json:"invited_at"`
 		Email     string    `json:"email"`
@@ -106,7 +106,7 @@ func (h *ApiHandler) AdminGetOrganizerTeam(gc *gin.Context) {
 	}
 	invitedMemberSql := fmt.Sprintf(`
 		SELECT
-			oml.invited_by_user_id AS invite_id,
+			oml.user_id,
 			COALESCE(iu.display_name, iu.first_name || ' ' || iu.last_name) AS invited_by,
 			oml.invited_at,
 			u.email_address AS email,
@@ -128,7 +128,7 @@ func (h *ApiHandler) AdminGetOrganizerTeam(gc *gin.Context) {
 	var invitedMembers []InvitedMember
 	for rows.Next() {
 		var m InvitedMember
-		if err := rows.Scan(&m.InviteID, &m.InvitedBy, &m.InvitedAt, &m.Email, &m.RoleID, &m.RoleName); err != nil {
+		if err := rows.Scan(&m.UserID, &m.InvitedBy, &m.InvitedAt, &m.Email, &m.RoleID, &m.RoleName); err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to scan invited member"})
 			return
 		}

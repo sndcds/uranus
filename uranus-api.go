@@ -158,8 +158,8 @@ func main() {
 	adminRoute.GET("/organizer/:organizerId/event/permission", app.JWTMiddleware, apiHandler.AdminGetOrganizerAddEventPermission)
 
 	adminRoute.GET("/organizer/:organizerId/team", app.JWTMiddleware, apiHandler.AdminGetOrganizerTeam)
-	adminRoute.DELETE("/organizer/team/member/:memberUserId", app.JWTMiddleware, apiHandler.AdminDeleteOrganizerTeamMember)
 	adminRoute.POST("/organizer/:organizerId/team/invite", app.JWTMiddleware, apiHandler.AdminOrganizerTeamInvite)
+	adminRoute.DELETE("/organizer/:organizerId/team/member/:memberId", app.JWTMiddleware, apiHandler.AdminDeleteOrganizerTeamMember)
 	adminRoute.POST("/organizer/team/invite/accept", apiHandler.AdminOrganizerTeamInviteAccept)
 
 	adminRoute.POST("/organizer/create", app.JWTMiddleware, apiHandler.AdminCreateOrganizer)
