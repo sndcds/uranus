@@ -86,6 +86,7 @@ func main() {
 
 	publicRoute.GET("/choosable-venues", apiHandler.GetChoosableVenues)
 	publicRoute.GET("/choosable-venues/organizer/:organizerId", apiHandler.GetChoosableOrganizerVenues)
+	publicRoute.GET("/choosable-space-types", apiHandler.GetSpaceTypes)
 	publicRoute.GET("/choosable-spaces/venue/:venueId", apiHandler.GetChoosableVenueSpaces)
 	publicRoute.GET("/choosable-event-types", apiHandler.GetChoosableEventTypes)
 	publicRoute.GET("/choosable-event-genres/event-type/:id", apiHandler.GetChoosableEventGenres)
