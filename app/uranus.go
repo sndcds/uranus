@@ -33,6 +33,7 @@ type Uranus struct {
 	SqlGetEventsExtended                   string
 	SqlGetEventsGeometry                   string
 	SqlGetEventsDetailed                   string
+	SqlGetEventsTypeSummary                string
 	SqlGetAdminOrganizer                   string
 	SqlUpdateOrganizer                     string
 	SqlGetAdminVenue                       string
@@ -90,7 +91,7 @@ func Initialze(configFilePath string) (*Uranus, error) {
 		return nil, fmt.Errorf("failed to initialize main DB: %w", err)
 	}
 
-	uranus.Log("prepare sql")
+	uranus.Log("prepare sql_utils")
 	if err := uranus.PrepareSql(); err != nil {
 		return nil, fmt.Errorf("failed to prepare SQL statements: %w", err)
 	}
@@ -188,6 +189,7 @@ func (app *Uranus) PrepareSql() error {
 		{"queries/get-events.sql", &app.SqlGetEventsExtended, strPtr("queries/get-events-select-extended.sql")},
 		{"queries/get-events.sql", &app.SqlGetEventsGeometry, strPtr("queries/get-events-select-geometry.sql")},
 		{"queries/get-events.sql", &app.SqlGetEventsDetailed, strPtr("queries/get-events-select-detailed.sql")},
+		{"queries/get-events.sql", &app.SqlGetEventsTypeSummary, strPtr("queries/get-events-type-summary.sql")},
 
 		{"queries/choosable-event-types.sql", &app.SqlChoosableEventTypes, nil},
 		{"queries/choosable-event-genres.sql", &app.SqlChoosableEventGenres, nil},
@@ -198,7 +200,6 @@ func (app *Uranus) PrepareSql() error {
 
 		{"queries/get-organizer.sql", &app.SqlGetOrganizer, nil},
 
-		
 		// Admin
 		{"queries/admin-get-organizer.sql", &app.SqlGetAdminOrganizer, nil},
 		{"queries/admin-update-organizer.sql", &app.SqlUpdateOrganizer, nil},

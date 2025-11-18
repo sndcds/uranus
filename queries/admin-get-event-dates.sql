@@ -1,11 +1,11 @@
 SELECT
     ed.id AS event_date_id,
     ed.event_id,
-    TO_CHAR(ed.start, 'YYYY-MM-DD') AS start_date,
-    TO_CHAR(ed.start, 'HH24:MI') AS start_time,
-    TO_CHAR(ed."end", 'YYYY-MM-DD') AS end_date,
-    TO_CHAR(ed."end", 'HH24:MI') AS end_time,
-    TO_CHAR(ed.entry_time, 'HH24:MI') AS entry_time,
+    ed.start_date,
+    ed.start_time,
+    ed.end_date,
+    ed.end_time,
+    ed.entry_time,
     ed.duration,
     ed.accessibility_info,
     ed.visitor_info_flags,
@@ -58,4 +58,4 @@ LEFT JOIN {{schema}}.event_location el ON el.id = ed.location_id
     ) space_data ON TRUE
 
 WHERE e.id = $1
-ORDER BY ed.start;
+ORDER BY ed.start_date, ed.start_time;

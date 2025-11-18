@@ -10,24 +10,28 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sndcds/uranus/app"
-	"github.com/sndcds/uranus/sql"
+	"github.com/sndcds/uranus/sql_utils"
 )
 
 func (h *ApiHandler) GetEvents(gc *gin.Context) {
+	ctx := gc.Request.Context()
 	pool := h.DbPool
 
-	var query string
-
+	var sql string
+	var isTypeSummaryMode bool
 	modeStr := gc.Query("mode") // "" if not provided
 	switch modeStr {
 	case "", "basic":
-		query = app.Singleton.SqlGetEventsBasic
+		sql = app.Singleton.SqlGetEventsBasic
 	case "extended":
-		query = app.Singleton.SqlGetEventsExtended
+		sql = app.Singleton.SqlGetEventsExtended
 	case "geometry":
-		query = app.Singleton.SqlGetEventsGeometry
+		sql = app.Singleton.SqlGetEventsGeometry
 	case "detailed":
-		query = app.Singleton.SqlGetEventsDetailed
+		sql = app.Singleton.SqlGetEventsDetailed
+	case "type-summary":
+		sql = app.Singleton.SqlGetEventsTypeSummary
+		isTypeSummaryMode = true
 	default:
 		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Unknown mode %s", modeStr)})
 		return
@@ -35,12 +39,10 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 
 	// TODO:
 	// Note on security:
-	// This version is still vulnerable to SQL injection if any of the inputs are user-controlled. Safe version using parameterized queries (recommended with database/sql or GORM):
+	// This version is still vulnerable to SQL injection if any of the inputs are user-controlled. Safe version using parameterized queries (recommended with database/sql_utils or GORM):
 
 	// TODO:
 	// Check for unknown arguments
-
-	ctx := gc.Request.Context()
 
 	langStr, _ := GetContextParam(gc, "lang")
 	_, hasPast := GetContextParam(gc, "past")
@@ -97,59 +99,59 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	argIndex++
 
 	if app.IsValidDateStr(startStr) {
-		eventDateConditions += "WHERE ed.start >= $" + strconv.Itoa(argIndex)
+		eventDateConditions += "WHERE ed.start_date >= $" + strconv.Itoa(argIndex)
 		args = append(args, startStr)
 		argIndex++
 	} else if startStr != "" {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Errorf("start %s has invalid format", startStr)})
 	} else {
 		if !hasPast {
-			eventDateConditions += "WHERE ed.start >= NOW()"
+			eventDateConditions += "WHERE ed.start_date >= CURRENT_DATE"
 		}
 	}
 
 	if app.IsValidDateStr(endStr) {
-		eventDateConditions += " AND (ed.end <= $" + strconv.Itoa(argIndex) + " OR ed.start <= $" + strconv.Itoa(argIndex) + ")"
+		eventDateConditions += " AND (ed.end_date <= $" + strconv.Itoa(argIndex) + " OR ed.start_date <= $" + strconv.Itoa(argIndex) + ")"
 		args = append(args, endStr)
 		argIndex++
 	} else if endStr != "" {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Errorf("end %s has invalid format", endStr)})
 	}
 
-	argIndex, err = sql.BuildTimeCondition(timeStr, "start", "time", argIndex, &conditions, &args)
+	argIndex, err = sql_utils.BuildTimeCondition(timeStr, "start", "time", argIndex, &conditions, &args)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 
-	argIndex, err = sql.BuildSanitizedSearchCondition(searchStr, "e.search_text", "search", argIndex, &conditions, &args)
+	argIndex, err = sql_utils.BuildSanitizedSearchCondition(searchStr, "e.search_text", "search", argIndex, &conditions, &args)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 
 	if countryCodesStr != "" {
 		format := "v.country_code IN (%s)"
-		argIndex, err = sql.BuildInConditionForStringSlice(countryCodesStr, format, "country_codes", argIndex, &conditions, &args)
+		argIndex, err = sql_utils.BuildInConditionForStringSlice(countryCodesStr, format, "country_codes", argIndex, &conditions, &args)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 	}
 
 	if postalCodeStr != "" {
-		argIndex, err = sql.BuildLikeConditions(postalCodeStr, "v.postal_code", argIndex, &conditions, &args)
+		argIndex, err = sql_utils.BuildLikeConditions(postalCodeStr, "v.postal_code", argIndex, &conditions, &args)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 	}
 
 	if eventIdsStr != "" {
-		argIndex, err = sql.BuildColumnInIntCondition(eventIdsStr, "e.id", "events", argIndex, &conditions, &args)
+		argIndex, err = sql_utils.BuildColumnInIntCondition(eventIdsStr, "e.id", "events", argIndex, &conditions, &args)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 	}
 
 	if venueIdsStr != "" {
-		argIndex, err = sql.BuildColumnInIntCondition(venueIdsStr, "v.id", "venues", argIndex, &conditions, &args)
+		argIndex, err = sql_utils.BuildColumnInIntCondition(venueIdsStr, "v.id", "venues", argIndex, &conditions, &args)
 		if err != nil {
 
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -157,7 +159,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	}
 
 	if orgIdsStr != "" {
-		argIndex, err = sql.BuildColumnInIntCondition(orgIdsStr, "o.id", "organizers", argIndex, &conditions, &args)
+		argIndex, err = sql_utils.BuildColumnInIntCondition(orgIdsStr, "o.id", "organizers", argIndex, &conditions, &args)
 		if err != nil {
 
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -165,14 +167,14 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	}
 
 	if spaceIdsStr != "" {
-		argIndex, err = sql.BuildColumnInIntCondition(spaceIdsStr, "COALESCE(s.id, es.id)", "spaces", argIndex, &conditions, &args)
+		argIndex, err = sql_utils.BuildColumnInIntCondition(spaceIdsStr, "COALESCE(s.id, es.id)", "spaces", argIndex, &conditions, &args)
 		if err != nil {
 
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 	}
 
-	argIndex, err = sql.BuildGeographicRadiusCondition(
+	argIndex, err = sql_utils.BuildGeographicRadiusCondition(
 		lonStr, latStr, radiusStr, "v.wkb_geometry",
 		argIndex, &conditions, &args,
 	)
@@ -185,7 +187,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	if eventTypesStr != "" {
 		format := "EXISTS (SELECT 1 FROM " + app.Singleton.Config.DbSchema + ".event_type_link sub_etl WHERE sub_etl.event_id = e.id AND sub_etl.type_id IN (%s))"
 		var err error
-		argIndex, err = sql.BuildInCondition(eventTypesStr, format, "event_types", argIndex, &conditions, &args)
+		argIndex, err = sql_utils.BuildInCondition(eventTypesStr, format, "event_types", argIndex, &conditions, &args)
 		if err != nil {
 
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -195,7 +197,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	if genreTypesStr != "" {
 		format := "EXISTS (SELECT 1 FROM " + app.Singleton.Config.DbSchema + ".event_genre_link sub_egl WHERE sub_egl.event_id = e.id AND sub_egl.type_id IN (%s))"
 		var err error
-		argIndex, err = sql.BuildInCondition(genreTypesStr, format, "genre_types", argIndex, &conditions, &args)
+		argIndex, err = sql_utils.BuildInCondition(genreTypesStr, format, "genre_types", argIndex, &conditions, &args)
 		if err != nil {
 
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -205,38 +207,38 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 
 	if spaceTypesStr != "" {
 		format := "COALESCE(s.space_type_id, es.space_type_id) IN (%s)"
-		argIndex, err = sql.BuildInCondition(spaceTypesStr, format, "space_types", argIndex, &conditions, &args)
+		argIndex, err = sql_utils.BuildInCondition(spaceTypesStr, format, "space_types", argIndex, &conditions, &args)
 		if err != nil {
 
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 	}
 
-	argIndex, err = sql.BuildSanitizedIlikeCondition(titleStr, "e.title", "title", argIndex, &conditions, &args)
+	argIndex, err = sql_utils.BuildSanitizedIlikeCondition(titleStr, "e.title", "title", argIndex, &conditions, &args)
 	if err != nil {
 
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 
-	argIndex, err = sql.BuildSanitizedIlikeCondition(cityStr, "v.city", "city", argIndex, &conditions, &args)
+	argIndex, err = sql_utils.BuildSanitizedIlikeCondition(cityStr, "v.city", "city", argIndex, &conditions, &args)
 	if err != nil {
 
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 
-	argIndex, err = sql.BuildContainedInColumnRangeCondition(ageStr, "min_age", "max_age", argIndex, &conditions, &args)
+	argIndex, err = sql_utils.BuildContainedInColumnRangeCondition(ageStr, "min_age", "max_age", argIndex, &conditions, &args)
 	if err != nil {
 
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 
-	argIndex, err = sql.BuildBitmaskCondition(accessibilityInfosStr, "ed.accessibility_flags", "accessibility_flags", argIndex, &conditions, &args)
+	argIndex, err = sql_utils.BuildBitmaskCondition(accessibilityInfosStr, "ed.accessibility_flags", "accessibility_flags", argIndex, &conditions, &args)
 	if err != nil {
 
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 
-	argIndex, err = sql.BuildBitmaskCondition(visitorInfosStr, "ed.visitor_info_flags", "visitor_info_flags", argIndex, &conditions, &args)
+	argIndex, err = sql_utils.BuildBitmaskCondition(visitorInfosStr, "ed.visitor_info_flags", "visitor_info_flags", argIndex, &conditions, &args)
 	if err != nil {
 
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -247,31 +249,29 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		conditionsStr = "WHERE " + strings.Join(conditions, " AND ")
 	}
 
-	order := "ORDER BY ed.start ASC, e.id ASC"
+	sql = strings.Replace(sql, "{{event-date-conditions}}", eventDateConditions, 1)
+	sql = strings.Replace(sql, "{{conditions}}", conditionsStr, 1)
 
 	// Add LIMIT and OFFSET
-	limitClause, argIndex, err := sql.BuildLimitOffsetClause(limitStr, offsetStr, argIndex, &args)
-	if err != nil {
+	if isTypeSummaryMode {
+		sql = strings.Replace(sql, "{{limit}}", "", 1)
+	} else {
+		var limitClause string
+		limitClause, argIndex, err = sql_utils.BuildLimitOffsetClause(limitStr, offsetStr, argIndex, &args)
+		if err != nil {
 
-		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		}
+		sql = strings.Replace(sql, "{{limit}}", limitClause, 1)
 	}
 
-	query = strings.Replace(query, "{{event-date-conditions}}", eventDateConditions, 1)
-	query = strings.Replace(query, "{{conditions}}", conditionsStr, 1)
-	query = strings.Replace(query, "{{limit}}", limitClause, 1)
-	query = strings.Replace(query, "{{order}}", order, 1)
+	order := "ORDER BY (ed.start_date + COALESCE(ed.start_time, '00:00:00'::time)) ASC, e.id ASC"
+	sql = strings.Replace(sql, "{{order}}", order, 1)
 
-	/* For debugging ...
-	fmt.Println(query)
-	fmt.Println(args...)
-	fmt.Printf("eventDateConditions: %#v\n", eventDateConditions)
-	fmt.Printf("conditions: %#v\n", conditions)
-	fmt.Printf("args: %d: %#v\n", len(args), args)
-	fmt.Printf("langStr: %s\n", langStr)
-	fmt.Printf("searchStr: %s\n", searchStr)
-	*/
+	fmt.Printf("SQL: %s\n", sql)
+	fmt.Printf("Args: %#v\n", args) // prints slice with types and values
 
-	rows, err := pool.Query(ctx, query, args...)
+	rows, err := pool.Query(ctx, sql, args...)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -323,16 +323,18 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			rowMap[col] = values[i]
 		}
 
-		// Add extra property image_path
-		imageID := rowMap["image_id"]
-		if imageID == nil {
-			rowMap["image_path"] = nil // or "" if you prefer
-		} else {
-			rowMap["image_path"] = fmt.Sprintf(
-				"%s/api/image/%v",
-				app.Singleton.Config.BaseApiUrl,
-				imageID,
-			)
+		if !isTypeSummaryMode {
+			// Add extra property image_path
+			imageID := rowMap["image_id"]
+			if imageID == nil {
+				rowMap["image_path"] = nil // or "" if you prefer
+			} else {
+				rowMap["image_path"] = fmt.Sprintf(
+					"%s/api/image/%v",
+					app.Singleton.Config.BaseApiUrl,
+					imageID,
+				)
+			}
 		}
 
 		// Accumulate event type counts
@@ -429,12 +431,15 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		return venuesSummary[i].Name < venuesSummary[j].Name
 	})
 
-	// Build the final response object
-	response := map[string]interface{}{
-		"total":          totalEvents,
-		"events":         results,
-		"type_summary":   typeSummary,
-		"venues_summary": venuesSummary,
+	// TODO: Check if query does unneccessary work!
+	response := make(map[string]interface{})
+	if isTypeSummaryMode {
+		response["total"] = totalEvents
+		response["type_summary"] = typeSummary
+		response["venues_summary"] = venuesSummary
+
+	} else {
+		response["events"] = results
 	}
 
 	if err := rows.Err(); err != nil {

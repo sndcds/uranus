@@ -110,6 +110,6 @@ Feel free to:
 ## Export Database
 
 ```sh
-pg_dump -U oklab -h localhost -d oklab -n app --data-only --column-inserts --no-owner --no-comments --verbose -f uranus_data_dump.sql
-pg_dump -U oklab -h localhost -d oklab -n app --schema-only --no-owner --no-comments --verbose -f uranus_schema_dump.sql
+pg_dump -U oklab -h localhost -d oklab -n app --data-only --column-inserts --no-owner --no-comments --verbose -f uranus_data_dump.sql_utils
+pg_dump -U oklab -h localhost -d oklab -n app --schema-only --no-owner --no-comments --verbose -f uranus_schema_dump.sql_utils
 ```

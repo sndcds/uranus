@@ -74,7 +74,7 @@ space_info AS (
         s.id AS space_id,
         s.name AS space_name,
         s.venue_id,
-        COUNT(DISTINCT ed.id) FILTER (WHERE ed.start > $2) AS upcoming_event_count
+        COUNT(DISTINCT ed.id) FILTER (WHERE ed.start_date > $2) AS upcoming_event_count
     FROM {{schema}}.space s
     LEFT JOIN {{schema}}.event e ON e.space_id = s.id
     LEFT JOIN {{schema}}.event_date ed ON ed.event_id = e.id
@@ -85,7 +85,7 @@ space_info AS (
 venue_event_counts AS (
     SELECT
         v.id AS venue_id,
-        COUNT(DISTINCT ed.id) FILTER (WHERE ed.start > $2) AS upcoming_event_count
+        COUNT(DISTINCT ed.id) FILTER (WHERE ed.start_date > $2) AS upcoming_event_count
     FROM {{schema}}.venue v
     LEFT JOIN {{schema}}.event e ON e.venue_id = v.id AND e.space_id IS NULL
     LEFT JOIN {{schema}}.event_date ed ON ed.event_id = e.id

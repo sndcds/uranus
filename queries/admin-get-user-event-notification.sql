@@ -12,12 +12,12 @@ SELECT
     (ed_min.first_event_date::date - CURRENT_DATE) AS days_until_event
 FROM {{schema}}.event e
 LEFT JOIN LATERAL (
-    SELECT MIN(ed.start) AS first_event_date
+    SELECT MIN(ed.start_date) AS first_event_date
     FROM {{schema}}.event_date ed
     WHERE ed.event_id = e.id
 ) ed_min ON true
 LEFT JOIN LATERAL (
-    SELECT MAX(ed.start) AS last_event_date
+    SELECT MAX(ed.start_date) AS last_event_date
     FROM {{schema}}.event_date ed
     WHERE ed.event_id = e.id
 ) ed_max ON true

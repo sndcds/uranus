@@ -36,8 +36,8 @@ func fetchTableView(gc *gin.Context) {
 			return
 		}
 
-		sql := app.Singleton.SqlQueryUserOrgEventsOverview
-		rows, err := db.Query(ctx, sql, userId, orgID, "2020-01-01", "3000-01-01")
+		sql_utils := app.Singleton.SqlQueryUserOrgEventsOverview
+		rows, err := db.Query(ctx, sql_utils, userId, orgID, "2020-01-01", "3000-01-01")
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, err)
 			return

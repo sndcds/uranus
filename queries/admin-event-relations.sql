@@ -3,7 +3,7 @@ WITH event_data AS (
         ed.id AS event_date_id,
         ed.event_id,
         ed.space_id,
-        ed.start,
+        ed.start_date,
         ed.end
     FROM {{schema}}.event_date ed
 WHERE ed.event_id = $1

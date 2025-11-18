@@ -6,11 +6,11 @@ WITH target_event AS (
 SELECT
     ed.id AS event_date_id,
     ed.event_id,
-    to_char(ed.start, 'YYYY-MM-DD') AS start_date,
-    to_char(ed.start, 'HH24:MI') AS start_time,
-    to_char(ed.end, 'YYYY-MM-DD') AS end_date,
-    to_char(ed.end, 'HH24:MI') AS end_time,
-    to_char(ed.entry_time, 'HH24:MI') entry_time,
+    TO_CHAR(ed.start_date, 'YYYY-MM-DD') AS start_date,
+    TO_CHAR(ed.start_time, 'HH24:MI') AS start_time,
+    TO_CHAR(ed.end_date, 'YYYY-MM-DD') AS end_date,
+    TO_CHAR(ed.end_time, 'HH24:MI') AS end_time,
+    TO_CHAR(ed.entry_time, 'HH24:MI') AS entry_time,
     ed.duration,
     ed.accessibility_info,
     ed.visitor_info_flags,
@@ -47,4 +47,4 @@ ON v.id = COALESCE(ed.venue_id, e.venue_id)
 LEFT JOIN {{schema}}.space s
 ON s.id = COALESCE(ed.space_id, e.space_id)
 
-ORDER BY ed.start;
+ORDER BY ed.start_date, ed.start_time;

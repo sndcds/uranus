@@ -9,7 +9,6 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -238,32 +237,22 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		INSERT INTO {{schema}}.event_date (
 			event_id,
 			space_id,
-			start,
-			"end",
+			start_date,
+			start_time,
+			end_date,
+		    end_time,
 			entry_time,
-			all_day
-		) VALUES ($1, $2, $3, $4, $5, $6)`
+			all_day,
+            created_by
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
 	sql = strings.Replace(sqlDate, "{{schema}}", h.Config.DbSchema, 1)
 
 	for _, d := range incomingEvent.Dates {
-		// Combine StartDate + StartTime
-		start, errStart := time.Parse("2006-01-02 15:04", d.StartDate+" "+d.StartTime)
-		if errStart != nil {
-			gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid start datetime: %v", errStart)})
-			return
-		}
-
-		var end *time.Time
-		if d.EndDate != nil && *d.EndTime != "" {
-			t, errEnd := time.Parse("2006-01-02 15:04", *d.EndDate+" "+*d.EndTime)
-			if errEnd != nil {
-				gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid end datetime: %v", errEnd)})
-				return
-			}
-			end = &t
-		}
-
-		_, err = tx.Exec(ctx, sql, eventId, d.SpaceId, start, end, d.EntryTime, d.AllDay)
+		_, err = tx.Exec(
+			ctx, sql,
+			eventId, d.SpaceId,
+			d.StartDate, d.StartTime, d.EndDate, d.EndTime, d.EntryTime, d.AllDay,
+			userId)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to insert event_date: %v", err)})
 			return

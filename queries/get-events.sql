@@ -3,14 +3,16 @@ WITH event_data AS (
         ed.id AS event_date_id,
         ed.event_id,
         ed.space_id,
-        ed.start,
-        ed.end,
+        ed.start_date,
+        ed.start_time,
+        ed.end_date,
+        ed.end_time,
         ed.entry_time,
         ed.duration,
         ed.visitor_info_flags
     FROM {{schema}}.event_date ed
     {{event-date-conditions}}
-    )
+)
 SELECT
     {{mode-dependent-select}}
 

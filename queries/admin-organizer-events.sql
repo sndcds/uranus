@@ -3,8 +3,10 @@ WITH event_data AS (
         ed.id AS event_date_id,
         ed.event_id,
         ed.space_id,
-        ed.start,
-        ed.end,
+        ed.start_date,
+        ed.start_time,
+        ed.end_date,
+        ed.end_time,
         ed.entry_time,
         ed.duration,
         ed.accessibility_info,
@@ -18,10 +20,10 @@ SELECT
     e.subtitle AS event_subtitle,
     e.organizer_id AS event_organizer_id,
     eo.name AS event_organizer_name,
-    TO_CHAR(ed.start, 'YYYY-MM-DD') AS start_date,
-    TO_CHAR(ed.start, 'HH24:MI') AS start_time,
-    TO_CHAR(ed.end, 'YYYY-MM-DD') AS end_date,
-    TO_CHAR(ed.end, 'HH24:MI') AS end_time,
+    ed.start_date,
+    ed.start_time,
+    ed.end_date,
+    ed.end_time,
     e.release_status_id,
     est.name AS release_status_name,
     v.id AS venue_id,
@@ -82,5 +84,5 @@ FROM event_data ed
     LEFT JOIN {{schema}}.user_venue_link uvl ON uvl.venue_id = e.venue_id AND uvl.user_id = $4
 
 WHERE (o.id = $1 OR o.id IS NULL)
-  AND ed.start::date >= $2
-ORDER BY ed.start;
+  AND (ed.start_date + COALESCE(ed.start_time, '00:00:00'::time)) >= $2::timestamp
+ORDER BY ed.start_date, ed.start_time

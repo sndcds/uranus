@@ -39,7 +39,7 @@ func (h *ApiHandler) AdminGetUserContextPermissions(gc *gin.Context) {
 	sql := fmt.Sprintf(`
 		SELECT permissions FROM %s.user_%s_link WHERE user_id = $1 AND %s_id = $2`,
 		h.Config.DbSchema, contextName, contextName)
-	fmt.Println("sql:", sql)
+	fmt.Println("sql_utils:", sql)
 
 	var permissions int64
 	err := pool.QueryRow(ctx, sql, userId, contextId).Scan(&permissions)
