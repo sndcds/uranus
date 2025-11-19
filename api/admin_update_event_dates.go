@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO: Eventually to be removed
 func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	pool := h.DbPool

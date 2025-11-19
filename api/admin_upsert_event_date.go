@@ -22,16 +22,15 @@ type EventDateLocationInput struct {
 }
 
 type EventDateInput struct {
-	EventDateId int                    `json:"event_date_id"` // -1 for new
-	StartDate   string                 `json:"start_date" binding:"required"`
-	StartTime   string                 `json:"start_time" binding:"required"`
-	EndDate     *string                `json:"end_date"`
-	EndTime     *string                `json:"end_time"`
-	EntryTime   *string                `json:"entry_time"`
-	AllDay      bool                   `json:"all_day"`
-	VenueId     *int                   `json:"venue_id"`
-	SpaceId     *int                   `json:"space_id"`
-	Location    EventDateLocationInput `json:"location"`
+	StartDate string                 `json:"start_date" binding:"required"`
+	StartTime string                 `json:"start_time" binding:"required"`
+	EndDate   *string                `json:"end_date"`
+	EndTime   *string                `json:"end_time"`
+	EntryTime *string                `json:"entry_time"`
+	AllDay    bool                   `json:"all_day"`
+	VenueId   *int                   `json:"venue_id"`
+	SpaceId   *int                   `json:"space_id"`
+	Location  EventDateLocationInput `json:"location"`
 }
 
 func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
@@ -44,6 +43,13 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "event ID is required"})
 		return
 	}
+
+	dateId, ok := ParamInt(gc, "dateId")
+	if !ok {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "date ID is required"})
+		return
+	}
+
 	fmt.Println("userId:", userId)
 	fmt.Println("eventId:", eventId)
 
@@ -131,7 +137,7 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 		entryTime = nil
 	}
 
-	if incoming.EventDateId < 0 {
+	if dateId < 0 {
 		fmt.Println("insert new date")
 		// Insert new event date
 		insertSql := fmt.Sprintf(`
@@ -174,7 +180,7 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 	sqlUpdate := fmt.Sprintf(`
 		UPDATE %s.event_date
 		SET venue_id = $1, space_id = $2, start = $3, "end" = $4, entry_time = $5, all_day = $6
-		WHERE id = $7 AND event_id = $8
+		WHERE event_id = $7 AND id = $8 
 	`, h.Config.DbSchema)
 
 	cmdTag, err := tx.Exec(ctx, sqlUpdate,
@@ -184,8 +190,8 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 		endTimestamp,
 		entryTime,
 		incoming.AllDay,
-		incoming.EventDateId,
 		eventId,
+		dateId,
 	)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to update event date: %v", err)})
@@ -204,7 +210,7 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 
 	gc.JSON(http.StatusOK, gin.H{
 		"event_id":      eventId,
-		"event_date_id": incoming.EventDateId,
+		"event_date_id": dateId,
 		"message":       "event date updated successfully",
 	})
 }
