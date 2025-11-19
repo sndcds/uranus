@@ -104,11 +104,36 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 		eventDates = append(eventDates, dateData)
 	}
 
-	// Add dates to event JSON
 	eventDates = app.FilterNilSlice(eventDates)
-	eventData["event_dates"] = eventDates
+
+	// Split event dates into selected date + further dates
+	var selectedDate map[string]interface{}
+	var furtherDates []map[string]interface{}
+
+	for _, d := range eventDates {
+		if intFromAny(d["event_date_id"]) == dateId {
+			selectedDate = d
+		} else {
+			furtherDates = append(furtherDates, d)
+		}
+	}
+
+	// Add to output
+	eventData["date"] = selectedDate
+	eventData["further_dates"] = furtherDates
 
 	eventData = app.FilterNilMap(eventData)
-
 	gc.JSON(http.StatusOK, eventData)
+}
+
+func intFromAny(v interface{}) int {
+	switch t := v.(type) {
+	case int32:
+		return int(t)
+	case int64:
+		return int(t)
+	case int:
+		return t
+	}
+	return 0
 }
