@@ -8,11 +8,11 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
+func (h *ApiHandler) GetChoosableOrganizers(gc *gin.Context) {
 	db := app.Singleton.MainDbPool
 	ctx := gc.Request.Context()
 
-	sql := fmt.Sprintf("SELECT id, name FROM %s.venue ORDER BY LOWER(name)", h.Config.DbSchema)
+	sql := fmt.Sprintf("SELECT id, name FROM %s.organizer ORDER BY LOWER(name)", h.Config.DbSchema)
 	rows, err := db.Query(ctx, sql)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -20,24 +20,24 @@ func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
 	}
 	defer rows.Close()
 
-	type Venue struct {
+	type Organizer struct {
 		Id   int64   `json:"id"`
 		Name *string `json:"name"`
 	}
 
-	var venues []Venue
+	var organizers []Organizer
 
 	for rows.Next() {
-		var venue Venue
+		var organizer Organizer
 		if err := rows.Scan(
-			&venue.Id,
-			&venue.Name,
+			&organizer.Id,
+			&organizer.Name,
 		); err != nil {
 			fmt.Println(err.Error())
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		venues = append(venues, venue)
+		organizers = append(organizers, organizer)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -45,10 +45,10 @@ func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
 		return
 	}
 
-	if len(venues) == 0 {
-		gc.JSON(http.StatusOK, []Venue{})
+	if len(organizers) == 0 {
+		gc.JSON(http.StatusOK, []Organizer{})
 		return
 	}
 
-	gc.JSON(http.StatusOK, venues)
+	gc.JSON(http.StatusOK, organizers)
 }
