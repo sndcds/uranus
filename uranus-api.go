@@ -188,6 +188,7 @@ func main() {
 	adminRoute.PUT("/event/:eventId/languages", app.JWTMiddleware, apiHandler.AdminUpdateEventLanguages)
 	adminRoute.PUT("/event/:eventId/release-status", app.JWTMiddleware, apiHandler.AdminUpdateEventReleaseStatus)
 
+	adminRoute.POST("/event/:eventId/date", app.JWTMiddleware, apiHandler.AdminUpsertEventDate)
 	adminRoute.PUT("/event/:eventId/date/:dateId", app.JWTMiddleware, apiHandler.AdminUpsertEventDate)
 
 	adminRoute.POST("/event/:eventId/image", app.JWTMiddleware, apiHandler.AdminUpdateEventImage)

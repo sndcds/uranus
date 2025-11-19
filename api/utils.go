@@ -137,9 +137,6 @@ func ParamInt(gc *gin.Context, name string) (int, bool) {
 	paramStr := gc.Param(name)
 	val, err := strconv.Atoi(paramStr)
 	if err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{
-			"error": "invalid " + name + " parameter",
-		})
 		return 0, false
 	}
 	return val, true

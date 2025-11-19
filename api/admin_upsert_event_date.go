@@ -45,10 +45,11 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 	}
 
 	dateId, ok := ParamInt(gc, "dateId")
+	fmt.Println("dateId:", dateId)
 	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "date ID is required"})
-		return
+		dateId = -1 // New event date must be inserted
 	}
+	fmt.Println("dateId 2:", dateId)
 
 	fmt.Println("userId:", userId)
 	fmt.Println("eventId:", eventId)
@@ -89,7 +90,7 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 				state_code,
 			    wkb_geometry,
 				description,
-				create_user_id
+				created_by
 			)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, ST_SetSRID(ST_MakePoint($8, $9), 4326), $10, $11)
 			RETURNING id`
@@ -114,21 +115,6 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 		}
 	}
 
-	startTimestamp := incoming.StartDate + " " + incoming.StartTime
-
-	// Compute endTimestamp safely
-	var endTimestamp interface{}
-	if incoming.EndTime != nil && *incoming.EndTime != "" {
-		endDate := incoming.StartDate
-		if incoming.EndDate != nil && *incoming.EndDate != "" {
-			endDate = *incoming.EndDate
-		}
-		t := endDate + " " + *incoming.EndTime
-		endTimestamp = t
-	} else {
-		endTimestamp = nil
-	}
-
 	// Compute entry_time
 	var entryTime interface{}
 	if incoming.EntryTime != nil && *incoming.EntryTime != "" {
@@ -142,8 +128,8 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 		// Insert new event date
 		insertSql := fmt.Sprintf(`
 			INSERT INTO %s.event_date 
-				(event_id, venue_id, space_id, location_id, start, "end", entry_time, all_day)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+				(event_id, venue_id, space_id, location_id, start_date, start_time, end_date, end_time, entry_time, all_day, created_by)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 			RETURNING id
 		`, h.Config.DbSchema)
 
@@ -153,10 +139,13 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 			incoming.VenueId,
 			incoming.SpaceId,
 			locationId,
-			startTimestamp,
-			endTimestamp,
+			incoming.StartDate,
+			incoming.StartTime,
+			incoming.EndDate,
+			incoming.EndTime,
 			entryTime,
 			incoming.AllDay,
+			userId,
 		).Scan(&newEventDateId)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to insert event date: %v", err)})
@@ -179,15 +168,17 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 	// Update existing event date
 	sqlUpdate := fmt.Sprintf(`
 		UPDATE %s.event_date
-		SET venue_id = $1, space_id = $2, start = $3, "end" = $4, entry_time = $5, all_day = $6
-		WHERE event_id = $7 AND id = $8 
+		SET venue_id = $1, space_id = $2, start_date = $3, start_time = $4, end_date = $5, end_time = $6, entry_time = $7, all_day = $8
+		WHERE event_id = $9 AND id = $10 
 	`, h.Config.DbSchema)
 
 	cmdTag, err := tx.Exec(ctx, sqlUpdate,
 		incoming.VenueId,
 		incoming.SpaceId,
-		startTimestamp,
-		endTimestamp,
+		incoming.StartDate,
+		incoming.StartTime,
+		incoming.EndDate,
+		incoming.EndTime,
 		entryTime,
 		incoming.AllDay,
 		eventId,
