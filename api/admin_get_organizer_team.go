@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -15,13 +14,11 @@ import (
 )
 
 func (h *ApiHandler) AdminGetOrganizerTeam(gc *gin.Context) {
-	pool := h.DbPool
 	ctx := gc.Request.Context()
+	pool := h.DbPool
 
-	// Get organizer ID
-	organizerIdStr := gc.Param("organizerId")
-	organizerId, err := strconv.Atoi(organizerIdStr)
-	if err != nil {
+	organizerId, ok := ParamInt(gc, "organizerId")
+	if !ok {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid organizer id"})
 		return
 	}
@@ -37,21 +34,27 @@ func (h *ApiHandler) AdminGetOrganizerTeam(gc *gin.Context) {
 	defer tx.Rollback(ctx) // safe rollback if not committed
 
 	// --- Fetch members ---
-	memberSQL := fmt.Sprintf(`
+	memberSql := fmt.Sprintf(`
         SELECT
             u.id AS user_id,
             u.email_address AS email,
             u.user_name,
-            COALESCE(u.display_name, u.first_name || ' ' || u.last_name) AS display_name,
+            COALESCE(
+				u.display_name,
+				u.first_name || ' ' || u.last_name,
+				u.email_address)
+				AS display_name,
             u.modified_at AS last_active_at,
             uml.created_at AS joined_at
         FROM %s.organizer_member_link uml
         JOIN %s."user" u ON u.id = uml.user_id
-        WHERE uml.organizer_id = $1 AND u.user_name IS NOT NULL AND uml.has_joined = true
+        WHERE uml.organizer_id = $1 AND uml.has_joined = true
         ORDER BY display_name`,
-		h.Config.DbSchema, h.Config.DbSchema) // TODO: Prepare
+		h.Config.DbSchema, h.Config.DbSchema)
 
-	memberRows, err := tx.Query(ctx, memberSQL, organizerId)
+	fmt.Println("memberSql:", memberSql)
+
+	memberRows, err := tx.Query(ctx, memberSql, organizerId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

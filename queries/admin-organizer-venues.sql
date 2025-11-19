@@ -127,25 +127,27 @@ organizer_info AS (
         COALESCE(op.can_delete_organizer, false) AS can_delete_organizer,
         COALESCE(SUM(vi.upcoming_event_count), 0) AS total_upcoming_events,
         COALESCE(
-        json_agg(
-            json_build_object(
-                'venue_id', vi.venue_id,
-                'venue_name', vi.venue_name,
-                'can_edit_venue', vi.can_edit_venue,
-                'can_delete_venue', vi.can_delete_venue,
-                'can_add_space', vi.can_add_space,
-                'can_edit_space', vi.can_edit_space,
-                'can_delete_space', vi.can_delete_space,
-                'can_add_event', vi.can_add_event,
-                'can_edit_event', vi.can_edit_event,
-                'can_delete_event', vi.can_delete_event,
-                'can_release_event', vi.can_release_event,
-                'upcoming_event_count', vi.upcoming_event_count,
-                'spaces', vi.spaces
-            )
-        ) FILTER (WHERE vi.venue_id IS NOT NULL),
-        '[]'::json
-    ) AS venues
+            json_agg(
+                json_build_object(
+                    'venue_id', vi.venue_id,
+                    'venue_name', vi.venue_name,
+                    'can_edit_venue', vi.can_edit_venue,
+                    'can_delete_venue', vi.can_delete_venue,
+                    'can_add_space', vi.can_add_space,
+                    'can_edit_space', vi.can_edit_space,
+                    'can_delete_space', vi.can_delete_space,
+                    'can_add_event', vi.can_add_event,
+                    'can_edit_event', vi.can_edit_event,
+                    'can_delete_event', vi.can_delete_event,
+                    'can_release_event', vi.can_release_event,
+                    'upcoming_event_count', vi.upcoming_event_count,
+                    'spaces', vi.spaces
+                )
+                ORDER BY LOWER(vi.venue_name)
+            ) FILTER (WHERE vi.venue_id IS NOT NULL),
+            '[]'::json
+        ) AS venues
+
     FROM accessible_organizers ao
     JOIN {{schema}}.organizer o ON o.id = ao.organizer_id
     LEFT JOIN venue_info vi ON vi.organizer_id = o.id
