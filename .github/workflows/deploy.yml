@@ -1,0 +1,36 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Add SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      - name: Deploy API (Go service)
+        run: |
+          ssh -o StrictHostKeyChecking=no -p "${{ secrets.SSH_PORT }}" \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" << 'EOF'
+            set -e
+
+            # pull new code as user "oklab"
+            sudo -u oklab bash -c "
+              cd /opt/dev/go/uranus &&
+              git pull &&
+              go build -o uranus
+            "
+
+            # restart the service as root
+            sudo systemctl restart uranus.service
+          EOF
