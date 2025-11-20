@@ -111,7 +111,7 @@ func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 		"DTEND:" + dtEnd,
 		"SUMMARY:" + escapeICSText(summary),
 		"DESCRIPTION:" + escapeICSText(description),
-		"LOCATION:" + escapeICSText(location),
+		"LOCATION:" + location,
 		"END:VEVENT",
 		"END:VCALENDAR",
 	}, "\r\n")
