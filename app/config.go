@@ -21,6 +21,8 @@ type Config struct {
 	AllowOrigins            []string `json:"allow_origins"`
 	ProfileImageDir         string   `json:"profile_image_dir"`
 	ProfileImageQuality     float32  `json:"profile_image_quality"`
+	PlutoImageMaxFileSize   int      `json:"pluto_image_max_file_size"`
+	PlutoImageMaxPx         int      `json:"pluto_image_max_px"`
 	PlutoVerbose            bool     `json:"pluto_verbose"`
 	PlutoImageDir           string   `json:"pluto_image_dir"`
 	PlutoCacheDir           string   `json:"pluto_cache_dir"`

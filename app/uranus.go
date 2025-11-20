@@ -86,6 +86,14 @@ func Initialze(configFilePath string) (*Uranus, error) {
 	// Check configuration
 	uranus.Config.ProfileImageQuality = ClampFloat32(uranus.Config.ProfileImageQuality, 30, 100)
 
+	if uranus.Config.PlutoImageMaxFileSize == 0 {
+		uranus.Config.PlutoImageMaxFileSize = 10 * 1014 * 1024 // 10 Mb
+	}
+
+	if uranus.Config.PlutoImageMaxPx == 0 {
+		uranus.Config.PlutoImageMaxPx = 1920
+	}
+
 	uranus.Log("initialize database")
 	if err := uranus.InitMainDB(); err != nil {
 		return nil, fmt.Errorf("failed to initialize main DB: %w", err)
