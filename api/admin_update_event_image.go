@@ -57,6 +57,7 @@ func (h *ApiHandler) AdminUpdateEventImage(gc *gin.Context) {
 			licenseId = &id // only set pointer if not 0
 		}
 	}
+	fmt.Println("licenseId:", licenseId)
 
 	// Begin DB transaction
 	tx, err := pool.Begin(ctx)

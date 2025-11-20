@@ -10,6 +10,7 @@ type Config struct {
 	DevMode                 bool     `json:"dev_mode"`
 	Port                    int      `json:"port"`
 	BaseApiUrl              string   `json:"base_api_url"`
+	ICSDomain               string   `json:"ics_domain"`
 	UseRouterMiddleware     bool     `json:"use_router_middleware"`
 	DbHost                  string   `json:"db_host"`
 	DbPort                  int      `json:"db_port"`
@@ -46,6 +47,7 @@ func (config Config) Print() {
 	fmt.Printf("  dev_mode: %t\n", config.DevMode)
 	fmt.Printf("  port: %d\n", config.Port)
 	fmt.Printf("  base_api_url: %s\n", config.BaseApiUrl)
+	fmt.Printf("  ics_domain: %s\n", config.ICSDomain)
 	fmt.Printf("  use_router_middleware: %t\n", config.UseRouterMiddleware)
 	fmt.Printf("  db_host: %s\n", config.DbHost)
 	fmt.Printf("  db_port: %d\n", config.DbPort)

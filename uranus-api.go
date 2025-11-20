@@ -77,6 +77,7 @@ func main() {
 	// publicRoute.GET("/events/summary/types", apiHandler.GetEventsSummaryTypes)
 	publicRoute.GET("/event/:eventId", apiHandler.GetEvent)
 	publicRoute.GET("/event/:eventId/date/:dateId", apiHandler.GetEventByDateId)
+	publicRoute.GET("/event/:eventId/date/:dateId/ics", apiHandler.GetEventDateICS)
 
 	publicRoute.GET("/geojson/venues", apiHandler.GetGeojsonVenues)
 
