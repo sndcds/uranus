@@ -115,6 +115,7 @@ func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 		"END:VEVENT",
 		"END:VCALENDAR",
 	}, "\r\n")
+	ics = strings.Replace(ics, "DTEND:\r\n", "", 1)
 
 	fmt.Println(ics)
 
