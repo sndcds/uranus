@@ -250,7 +250,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		userId,
 	).Scan(&eventId)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to insert event: %v", err)})
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to insert event: %v, userId: %d", err, userId)})
 		return
 	}
 
