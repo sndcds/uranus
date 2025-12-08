@@ -194,10 +194,9 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 				country_code,
 				state_code,
 			    wkb_geometry,
-				description,
-				creator_name
+				description
 			)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, ST_SetSRID(ST_MakePoint($8, $9), 4326), $10, $11)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, ST_SetSRID(ST_MakePoint($8, $9), 4326), $10)
 			RETURNING id`
 		locationSql = strings.Replace(locationSql, "{{schema}}", h.Config.DbSchema, 1)
 		err = tx.QueryRow(ctx, locationSql,
@@ -210,8 +209,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			incomingEvent.Location.StateCode,
 			incomingEvent.Location.Longitude,
 			incomingEvent.Location.Latitude,
-			incomingEvent.Location.Description,
-			userId,
+			incomingEvent.Location.Description
 		).Scan(&locationId)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to insert event location: %v", err)})
@@ -230,9 +228,8 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			subtitle,
 			description,
 			teaser_text,
-		  	languages,
-		    creator_name
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		  	languages
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id`
 	sql := strings.Replace(sqlEvent, "{{schema}}", h.Config.DbSchema, 1)
 
@@ -247,7 +244,6 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		incomingEvent.Description,
 		incomingEvent.TeaserText,
 		incomingEvent.Languages,
-		userId,
 	).Scan(&eventId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to insert event: %v", err)})
@@ -264,9 +260,8 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			end_date,
 		    end_time,
 			entry_time,
-			all_day,
-            creator_name
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
+			all_day
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
 	sql = strings.Replace(sqlDate, "{{schema}}", h.Config.DbSchema, 1)
 
 	for _, d := range incomingEvent.Dates {
@@ -279,8 +274,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			d.EndDate,
 			d.EndTime,
 			d.EntryTime,
-			d.AllDay,
-			userId)
+			d.AllDay)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to insert event_date: %v", err)})
 			return
