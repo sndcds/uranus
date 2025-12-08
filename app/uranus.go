@@ -31,7 +31,6 @@ type Uranus struct {
 	SqlGetEventDates                       string
 	SqlGetEventsBasic                      string
 	SqlGetEventsExtended                   string
-	SqlGetEventsGeometry                   string
 	SqlGetEventsDetailed                   string
 	SqlGetEventsTypeSummary                string
 	SqlGetUserOrganizerPermissions         string
@@ -198,7 +197,6 @@ func (app *Uranus) PrepareSql() error {
 
 		{"queries/get-events.sql", &app.SqlGetEventsBasic, strPtr("queries/get-events-select-basic.sql")},
 		{"queries/get-events.sql", &app.SqlGetEventsExtended, strPtr("queries/get-events-select-extended.sql")},
-		{"queries/get-events.sql", &app.SqlGetEventsGeometry, strPtr("queries/get-events-select-geometry.sql")},
 		{"queries/get-events.sql", &app.SqlGetEventsDetailed, strPtr("queries/get-events-select-detailed.sql")},
 		{"queries/get-events.sql", &app.SqlGetEventsTypeSummary, strPtr("queries/get-events-type-summary.sql")},
 

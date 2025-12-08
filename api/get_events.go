@@ -21,12 +21,10 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	var isTypeSummaryMode bool
 	modeStr := gc.Query("mode") // "" if not provided
 	switch modeStr {
-	case "", "basic":
+	case "", "basic", "geometry":
 		query = app.Singleton.SqlGetEventsBasic
 	case "extended":
 		query = app.Singleton.SqlGetEventsExtended
-	case "geometry":
-		query = app.Singleton.SqlGetEventsGeometry
 	case "detailed":
 		query = app.Singleton.SqlGetEventsDetailed
 	case "type-summary":
@@ -129,7 +127,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	}
 
 	if countryCodesStr != "" {
-		format := "v.country_code IN (%s)"
+		format := "venue_country_code IN (%s)"
 		argIndex, err = sql_utils.BuildInConditionForStringSlice(countryCodesStr, format, "country_codes", argIndex, &conditions, &args)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -137,7 +135,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	}
 
 	if postalCodeStr != "" {
-		argIndex, err = sql_utils.BuildLikeConditions(postalCodeStr, "v.postal_code", argIndex, &conditions, &args)
+		argIndex, err = sql_utils.BuildLikeConditions(postalCodeStr, "venue_postal_code", argIndex, &conditions, &args)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
@@ -151,7 +149,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	}
 
 	if venueIdsStr != "" {
-		argIndex, err = sql_utils.BuildColumnInIntCondition(venueIdsStr, "v.id", "venues", argIndex, &conditions, &args)
+		argIndex, err = sql_utils.BuildColumnInIntCondition(venueIdsStr, "venue_id", "venues", argIndex, &conditions, &args)
 		if err != nil {
 
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -175,11 +173,11 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	}
 
 	argIndex, err = sql_utils.BuildGeographicRadiusCondition(
-		lonStr, latStr, radiusStr, "v.wkb_geometry",
+		lonStr, latStr, radiusStr, "venue_wkb_geometry",
 		argIndex, &conditions, &args,
 	)
-	if err != nil {
 
+	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 
@@ -220,7 +218,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 
-	argIndex, err = sql_utils.BuildSanitizedIlikeCondition(cityStr, "v.city", "city", argIndex, &conditions, &args)
+	argIndex, err = sql_utils.BuildSanitizedIlikeCondition(cityStr, "venue_city", "city", argIndex, &conditions, &args)
 	if err != nil {
 
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -273,9 +271,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 
 	rows, err := pool.Query(ctx, query, args...)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError,
-			gin.H{"error": err.Error(), "query": query, "args": args},
-		)
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	defer rows.Close()

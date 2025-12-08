@@ -12,6 +12,9 @@ COALESCE(v_ed.postal_code, v_ev.postal_code) AS venue_postal_code,
 COALESCE(v_ed.city, v_ev.city) AS venue_city,
 COALESCE(v_ed.country_code, v_ev.country_code) AS venue_country,
 COALESCE(v_ed.state_code, v_ev.state_code) AS venue_state,
+COALESCE(ST_X(v_ed.wkb_geometry), ST_X(v_ev.wkb_geometry)) AS venue_lon,
+COALESCE(ST_Y(v_ed.wkb_geometry), ST_Y(v_ev.wkb_geometry)) AS venue_lat,
+COALESCE(v_ed.wkb_geometry, v_ev.wkb_geometry) AS venue_wkb_geometry,
 COALESCE(s.id, es.id) AS space_id,
 COALESCE(s.name, es.name) AS space_name,
 TO_CHAR(ed.start_date, 'YYYY-MM-DD') AS start_date,
@@ -23,5 +26,4 @@ et_data.event_types,
 image_data.id AS image_id,
 image_data.focus_x AS image_focus_x,
 image_data.focus_y AS image_focus_y
-
 
