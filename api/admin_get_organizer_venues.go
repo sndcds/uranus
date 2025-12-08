@@ -36,7 +36,7 @@ func (h *ApiHandler) AdminGetOrganizerVenues(gc *gin.Context) {
 	}
 
 	// Run query
-	row := pool.QueryRow(ctx, app.Singleton.SqlAdminOrganizerVenues, userId, organizerId, startDate)
+	row := pool.QueryRow(ctx, app.Singleton.SqlAdminGetOrganizerVenues, userId, organizerId, startDate)
 
 	var jsonResult []byte
 	if err := row.Scan(&jsonResult); err != nil {

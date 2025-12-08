@@ -34,7 +34,7 @@ SELECT
     el.description AS location_description,
     el.name AS location_name,
 
-    -- Space fallback
+    -- Space logic: only if event_date.venue_id exists
     space_data.id AS space_id,
     space_data.name AS space_name,
     space_data.total_capacity AS space_total_capacity,
@@ -46,16 +46,19 @@ FROM {{schema}}.event_date ed
 JOIN {{schema}}.event e ON ed.event_id = e.id
 LEFT JOIN {{schema}}.event_location el ON el.id = ed.location_id
 
--- Venue fallback: use event_date.venue_id if exists, otherwise event.venue_id
-    LEFT JOIN {{schema}}.venue v ON v.id = COALESCE(ed.venue_id, e.venue_id)
+-- Venue fallback
+LEFT JOIN {{schema}}.venue v ON v.id = COALESCE(ed.venue_id, e.venue_id)
 
--- Space fallback: lateral join to pick event_date.space_id or fallback to event.space_id
-    LEFT JOIN LATERAL (
+-- Space lateral join: only join if event_date.venue_id is not null
+LEFT JOIN LATERAL (
     SELECT *
     FROM {{schema}}.space s2
-    WHERE s2.id = COALESCE(ed.space_id, e.space_id)
+    WHERE s2.id = CASE
+    WHEN ed.venue_id IS NOT NULL THEN ed.space_id
+    ELSE NULL
+    END
     LIMIT 1
-    ) space_data ON TRUE
+) space_data ON TRUE
 
 WHERE e.id = $1
-ORDER BY ed.start_date, ed.start_time;
+ORDER BY ed.start_date, ed.start_time

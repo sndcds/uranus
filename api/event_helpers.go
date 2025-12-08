@@ -40,7 +40,6 @@ func allIDsExist(gc *gin.Context, tx pgx.Tx, table string, ids []int) (bool, err
 // TODO: Check!
 func UserCanEditEvent(gc *gin.Context, tx pgx.Tx, eventId int) (bool, error) {
 	userId := gc.GetInt("user-id")
-
 	schema := app.Singleton.Config.DbSchema
 
 	query := fmt.Sprintf(`

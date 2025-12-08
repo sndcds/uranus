@@ -34,6 +34,7 @@ type Uranus struct {
 	SqlGetEventsGeometry                   string
 	SqlGetEventsDetailed                   string
 	SqlGetEventsTypeSummary                string
+	SqlGetUserOrganizerPermissions         string
 	SqlGetAdminOrganizer                   string
 	SqlUpdateOrganizer                     string
 	SqlGetAdminVenue                       string
@@ -42,14 +43,15 @@ type Uranus struct {
 	SqlUpdateSpace                         string
 	SqlGetAdminEvent                       string
 	SqlGetAdminEventDates                  string
+	SqlGetAdminEventTypes                  string
 	SqlChoosableOrganizerVenues            string
 	SqlChoosableVenueSpaces                string
 	SqlChoosableEventTypes                 string
 	SqlChoosableEventGenres                string
 	SqlGetGeojsonVenues                    string
-	SqlAdminOrganizerDashboard             string
-	SqlAdminOrganizerVenues                string
-	SqlAdminOrganizerEvents                string
+	SqlAdminGetOrganizerDashboard          string
+	SqlAdminGetOrganizerVenues             string
+	SqlAdminGetOrganizerEvents             string
 	SqlAdminGetOrganizerAddEventPermission string
 	SqlAdminGetPermissionList              string
 	SqlQueryUserOrgEventsOverview          string
@@ -58,6 +60,7 @@ type Uranus struct {
 	SqlAdminChoosableOrganizers            string
 	SqlAdminChoosableUserEventOrganizers   string
 	SqlAdminChoosableUserEventVenues       string
+	SqlAdminChoosableUserVenuesSpaces      string
 	SqlAdminEvent                          string
 	SqlAdminSpacesForEvent                 string
 	JwtKey                                 []byte `json:"jwt_secret"`
@@ -65,7 +68,7 @@ type Uranus struct {
 
 var Singleton *Uranus
 
-func Initialze(configFilePath string) (*Uranus, error) {
+func Initialize(configFilePath string) (*Uranus, error) {
 	var uranus Uranus
 
 	uranus.Version = "1.0.0"
@@ -209,6 +212,8 @@ func (app *Uranus) PrepareSql() error {
 		{"queries/get-organizer.sql", &app.SqlGetOrganizer, nil},
 
 		// Admin
+		{"queries/admin-get-user-organizer-permissions.sql", &app.SqlGetUserOrganizerPermissions, nil},
+
 		{"queries/admin-get-organizer.sql", &app.SqlGetAdminOrganizer, nil},
 		{"queries/admin-update-organizer.sql", &app.SqlUpdateOrganizer, nil},
 
@@ -220,6 +225,7 @@ func (app *Uranus) PrepareSql() error {
 
 		{"queries/admin-get-event.sql", &app.SqlGetAdminEvent, nil},
 		{"queries/admin-get-event-dates.sql", &app.SqlGetAdminEventDates, nil},
+		{"queries/admin-get-event-types.sql", &app.SqlGetAdminEventTypes, nil},
 
 		{"queries/admin-user-permissions.sql", &app.SqlAdminUserPermissions, nil},
 		{"queries/admin-get-user-event-notification.sql", &app.SqlAdminGetUserEventNotification, nil},
@@ -229,14 +235,15 @@ func (app *Uranus) PrepareSql() error {
 		{"queries/admin-choosable-organizers.sql", &app.SqlAdminChoosableOrganizers, nil},
 		{"queries/admin-choosable-user-event-organizers.sql", &app.SqlAdminChoosableUserEventOrganizers, nil},
 		{"queries/admin-choosable-user-event-venues.sql", &app.SqlAdminChoosableUserEventVenues, nil},
+		{"queries/admin-choosable-user-venues-spaces.sql", &app.SqlAdminChoosableUserVenuesSpaces, nil},
 
-		{"queries/admin-organizer-dashboard.sql", &app.SqlAdminOrganizerDashboard, nil},
-		{"queries/admin-organizer-events.sql", &app.SqlAdminOrganizerEvents, nil},
+		{"queries/admin-organizer-dashboard.sql", &app.SqlAdminGetOrganizerDashboard, nil},
+		{"queries/admin-get-organizer-events.sql", &app.SqlAdminGetOrganizerEvents, nil},
 		{"queries/admin-get-organizer-add-event-permission.sql", &app.SqlAdminGetOrganizerAddEventPermission, nil},
 
 		{"queries/admin-get-permission-list.sql", &app.SqlAdminGetPermissionList, nil},
 
-		{"queries/admin-organizer-venues.sql", &app.SqlAdminOrganizerVenues, nil},
+		{"queries/admin-organizer-venues.sql", &app.SqlAdminGetOrganizerVenues, nil},
 	}
 
 	for i := range queries {

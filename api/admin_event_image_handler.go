@@ -9,13 +9,13 @@ import (
 )
 
 type ImageMetadata struct {
-	UserID    int
-	LicenseId int
-	CreatedBy string
-	Copyright string
-	AltText   string
-	FocusX    float64
-	FocusY    float64
+	UserID      int
+	LicenseId   int
+	CreatorName string
+	Copyright   string
+	AltText     string
+	FocusX      float64
+	FocusY      float64
 }
 
 // TODO: remove
@@ -30,11 +30,11 @@ func AdminAddImageHandler(gc *gin.Context) {
 
 	// Parse form values from the POST request
 	meta := ImageMetadata{
-		UserID:    userId,
-		LicenseId: licenseId,
-		CreatedBy: gc.PostForm("creator"),
-		Copyright: gc.PostForm("copyright"),
-		AltText:   gc.PostForm("alt_text"),
+		UserID:      userId,
+		LicenseId:   licenseId,
+		CreatorName: gc.PostForm("creator_name"),
+		Copyright:   gc.PostForm("copyright"),
+		AltText:     gc.PostForm("alt_text"),
 	}
 
 	// Parse focus_x and focus_y as float64
@@ -123,17 +123,17 @@ func AdminAddImageHandler(gc *gin.Context) {
 	   	fmt.Println("format:", format)
 	   	fmt.Println("exifData:", exifData)
 	   	fmt.Println("meta.License:", meta.License)
-	   	fmt.Println("meta.CreatedBy:", meta.CreatedBy)
+	   	fmt.Println("meta.CreatorName:", meta.CreatorName)
 	   	fmt.Println("meta.Copyright:", meta.Copyright)
 	   	fmt.Println("meta.AltText:", meta.AltText)
 
 	   	userId := 13 // TODO!
 	   	query := fmt.Sprintf(`
 	       	INSERT INTO %s.pluto_image
-	       	(file_name, gen_file_name, width, height, mime_type, exif, license, created_by, copyright, alt_text, user_id)
+	       	(file_name, gen_file_name, width, height, mime_type, exif, license, creator_name, copyright, alt_text, user_id)
 	       	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 	   		`, pq.QuoteIdentifier(Singleton.Config.DbSchema))
-	   	_, err = Singleton.Db.Exec(context.Background(), query, originalFileName, generatedFileName, cfg.Width, cfg.Height, format, exifData, meta.License, meta.CreatedBy, meta.Copyright, meta.AltText, userId)
+	   	_, err = Singleton.Db.Exec(context.Background(), query, originalFileName, generatedFileName, cfg.Width, cfg.Height, format, exifData, meta.License, meta.CreatorName, meta.Copyright, meta.AltText, userId)
 	   	if err != nil {
 	   		gc.String(http.StatusInternalServerError, "DB insert failed: %s", err.Error())
 	   		return

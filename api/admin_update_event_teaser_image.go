@@ -30,7 +30,7 @@ func (h *ApiHandler) AdminUpdateEventTeaserImage(gc *gin.Context) {
 
 	altText := gc.PostForm("alt_text")
 	copyright := gc.PostForm("copyright")
-	createdBy := gc.PostForm("created_by")
+	creatorName := gc.PostForm("creator_name")
 	licenseId := gc.PostForm("license_id") // TODO: Handle string to int as in AdminUpdateEventImage
 
 	// Handle file upload
@@ -103,7 +103,7 @@ func (h *ApiHandler) AdminUpdateEventTeaserImage(gc *gin.Context) {
 	defer func() { _ = tx.Rollback(ctx) }()
 
 	sql := strings.Replace(`
-        INSERT INTO {{schema}}.pluto_image (file_name, gen_file_name, width, height, mime_type, exif, alt_text, created_by, copyright, user_id)
+        INSERT INTO {{schema}}.pluto_image (file_name, gen_file_name, width, height, mime_type, exif, alt_text, creator_name, copyright, user_id)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`, "{{schema}}", dbSchema, 1)
 	var plutoImageId int64
 	err = tx.QueryRow(
@@ -115,7 +115,7 @@ func (h *ApiHandler) AdminUpdateEventTeaserImage(gc *gin.Context) {
 		mimeType,
 		exifData,
 		altText,
-		createdBy,
+		creatorName,
 		copyright,
 		userId).Scan(&plutoImageId)
 	if err != nil {
@@ -149,7 +149,7 @@ func (h *ApiHandler) AdminUpdateEventTeaserImage(gc *gin.Context) {
 		"exif":              exifData,
 		"alt_text":          altText,
 		"copyright":         copyright,
-		"created_by":        createdBy,
+		"creator_name":      creatorName,
 		"license_id":        licenseId,
 	})
 }

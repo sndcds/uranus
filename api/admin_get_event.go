@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -47,12 +46,6 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 			event[col] = values[i]
 		}
 
-		// Add image path
-		if imageID := event["image_id"]; imageID != nil {
-			event["image_path"] = fmt.Sprintf("%s/api/image/%v", app.Singleton.Config.BaseApiUrl, imageID)
-		} else {
-			event["image_path"] = nil
-		}
 	} else {
 		gc.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
 		return

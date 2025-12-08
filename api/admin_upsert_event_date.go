@@ -3,7 +3,6 @@ package api
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,15 +21,14 @@ type EventDateLocationInput struct {
 }
 
 type EventDateInput struct {
-	StartDate string                 `json:"start_date" binding:"required"`
-	StartTime string                 `json:"start_time" binding:"required"`
-	EndDate   *string                `json:"end_date"`
-	EndTime   *string                `json:"end_time"`
-	EntryTime *string                `json:"entry_time"`
-	AllDay    bool                   `json:"all_day"`
-	VenueId   *int                   `json:"venue_id"`
-	SpaceId   *int                   `json:"space_id"`
-	Location  EventDateLocationInput `json:"location"`
+	StartDate string  `json:"start_date" binding:"required"`
+	StartTime string  `json:"start_time" binding:"required"`
+	EndDate   *string `json:"end_date"`
+	EndTime   *string `json:"end_time"`
+	EntryTime *string `json:"entry_time"`
+	AllDay    bool    `json:"all_day"`
+	VenueId   *int    `json:"venue_id"`
+	SpaceId   *int    `json:"space_id"`
 }
 
 func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
@@ -62,58 +60,12 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 		return
 	}
 
-	if !incoming.HasVenue() && !incoming.HasLocation() {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "event date must have either venue_id or location"})
-		return
-	} else if incoming.HasVenue() && incoming.HasLocation() {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "event date cannot have both venue_id and location"})
-		return
-	}
-
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to start transaction"})
 		return
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-
-	var locationId *int
-	if incoming.HasLocation() {
-		locationSql := `
-			INSERT INTO {{schema}}.event_location (
-				name,
-				street,
-				house_number,
-				postal_code,
-				city,
-				country_code,
-				state_code,
-			    wkb_geometry,
-				description,
-				created_by
-			)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, ST_SetSRID(ST_MakePoint($8, $9), 4326), $10, $11)
-			RETURNING id`
-		locationSql = strings.Replace(locationSql, "{{schema}}", h.Config.DbSchema, 1)
-		location := incoming.Location
-		err = tx.QueryRow(ctx, locationSql,
-			location.Name,
-			location.Street,
-			location.HouseNumber,
-			location.PostalCode,
-			location.City,
-			location.CountryCode,
-			location.StateCode,
-			location.Longitude,
-			location.Latitude,
-			location.Description,
-			userId,
-		).Scan(&locationId)
-		if err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to insert event location: %v", err)})
-			return
-		}
-	}
 
 	// Compute entry_time
 	var entryTime interface{}
@@ -124,12 +76,11 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 	}
 
 	if dateId < 0 {
-		fmt.Println("insert new date")
 		// Insert new event date
 		insertSql := fmt.Sprintf(`
 			INSERT INTO %s.event_date 
-				(event_id, venue_id, space_id, location_id, start_date, start_time, end_date, end_time, entry_time, all_day, created_by)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+				(event_id, venue_id, space_id, start_date, start_time, end_date, end_time, entry_time, all_day, created_by)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 			RETURNING id
 		`, h.Config.DbSchema)
 
@@ -138,7 +89,6 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 			eventId,
 			incoming.VenueId,
 			incoming.SpaceId,
-			locationId,
 			incoming.StartDate,
 			incoming.StartTime,
 			incoming.EndDate,
@@ -204,22 +154,4 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 		"event_date_id": dateId,
 		"message":       "event date updated successfully",
 	})
-}
-
-func (e *EventDateInput) HasVenue() bool {
-	return e.VenueId != nil
-}
-
-func (e *EventDateInput) HasLocation() bool {
-	l := e.Location
-	return l.Name != nil ||
-		l.Street != nil ||
-		l.HouseNumber != nil ||
-		l.PostalCode != nil ||
-		l.City != nil ||
-		l.CountryCode != nil ||
-		l.StateCode != nil ||
-		l.Latitude != nil ||
-		l.Longitude != nil ||
-		l.Description != nil
 }

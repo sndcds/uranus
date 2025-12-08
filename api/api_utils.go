@@ -5,11 +5,60 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/sndcds/uranus/app"
 )
+
+// Package-level variables
+var (
+	priceTypesOptionsQuery     string
+	currenciesOptionsQuery     string
+	eventOccasionsOptionsQuery string
+	oncePriceTypes             sync.Once
+	onceCurrencies             sync.Once
+	onceEventOccasions         sync.Once
+)
+
+// ParamInt extracts a URL path parameter as an integer.
+// If conversion fails, returns (0, false).
+func ParamInt(gc *gin.Context, name string) (int, bool) {
+	paramStr := gc.Param(name)
+	val, err := strconv.Atoi(paramStr)
+	if err != nil {
+		return 0, false
+	}
+	return val, true
+}
+
+// getPostFormPtr returns a *string pointing to the form value if present, or nil if not.
+func getPostFormPtr(gc *gin.Context, field string) *string {
+	if val, ok := gc.GetPostForm(field); ok {
+		return &val
+	}
+	return nil
+}
+
+// getPostFormIntPtr returns a *int from a form field if present and valid.
+// Returns nil if field is missing, empty, or zero.
+func getPostFormIntPtr(gc *gin.Context, field string) (*int, error) {
+	valStr := gc.PostForm(field)
+	if valStr == "" {
+		return nil, nil
+	}
+	val, err := strconv.Atoi(valStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid %s: %v", field, err)
+	}
+	if val == 0 {
+		return nil, nil // treat 0 as "not set"
+	}
+	return &val, nil
+}
 
 // GetContextParam attempts to retrieve a parameter value from the Gin context.
 //
@@ -78,20 +127,6 @@ func StringToIntWithDefault(s *string, defaultValue int) (int, bool) {
 	return val, true
 }
 
-func ParamAsIntMessageOnFail(gc *gin.Context, param string) (int, bool) {
-	valueStr := gc.Param(param)
-	value, err := strconv.Atoi(valueStr)
-	if err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{
-			"message": fmt.Sprintf("Uranus server error: 400 (Bad Request) %s .. %s is not a integer number",
-				gc.FullPath(),
-				param),
-		})
-		return 0, false
-	}
-	return value, true
-}
-
 func InternalServerErrorAnswer(gc *gin.Context, err error) bool {
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{
@@ -131,17 +166,6 @@ func UserIdFromAccessToken(gc *gin.Context) int {
 	return claims.UserId
 }
 
-// ParamInt extracts a URL path parameter as an integer.
-// If conversion fails, it writes a 400 JSON error and returns (0, false).
-func ParamInt(gc *gin.Context, name string) (int, bool) {
-	paramStr := gc.Param(name)
-	val, err := strconv.Atoi(paramStr)
-	if err != nil {
-		return 0, false
-	}
-	return val, true
-}
-
 // ToInt converts an interface{} to int safely.
 // Returns the int value and true if successful, false otherwise.
 func ToInt(value interface{}) (int, bool) {
@@ -174,4 +198,26 @@ func ToInt(value interface{}) (int, bool) {
 		fmt.Printf("ToInt: unexpected type %T for value %#v\n", value, value)
 		return 0, false
 	}
+}
+
+// GetUserPermissionBits returns the bitwise AND of user permissions and the given bit mask.
+func (h *ApiHandler) GetUserPermissionBits(
+	gc *gin.Context, tx pgx.Tx, userID, organizerID int, bitMask int64,
+) (int64, error) {
+	ctx := gc.Request.Context()
+	var result pgtype.Int8
+	err := tx.QueryRow(ctx,
+		app.Singleton.SqlGetUserOrganizerPermissions,
+		userID, organizerID, bitMask,
+	).Scan(&result)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return 0, nil
+		}
+		return 0, err
+	}
+	if !result.Valid {
+		return 0, nil
+	}
+	return result.Int64, nil
 }

@@ -7,45 +7,39 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (h *ApiHandler) GetChoosableLicenses(gc *gin.Context) {
-	h.InitFromGin(gc)
+func (h *ApiHandler) GetChoosableCurrencies(gc *gin.Context) {
+	ctx := gc.Request.Context()
+	dbPool := h.DbPool
+
+	onceCurrencies.Do(func() {
+		currenciesOptionsQuery = fmt.Sprintf(`
+			SELECT code AS id, name FROM %s.currency WHERE iso_639_1 = $1 ORDER BY name`,
+			h.Config.DbSchema)
+	})
 
 	langStr := gc.DefaultQuery("lang", "en")
-	useLongName := gc.DefaultQuery("long", "false") == "true"
 
-	var query string
-	if useLongName {
-		query = fmt.Sprintf(
-			`SELECT license_id, name FROM %s.license_type WHERE iso_639_1 = $1 ORDER BY name`,
-			h.DbSchema,
-		)
-	} else {
-		query = fmt.Sprintf(
-			`SELECT license_id, short_name FROM %s.license_type WHERE iso_639_1 = $1 ORDER BY short_name`,
-			h.DbSchema,
-		)
-	}
-
-	rows, err := h.DbPool.Query(h.Context, query, langStr)
+	rows, err := dbPool.Query(ctx, currenciesOptionsQuery, langStr)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	defer rows.Close()
 
-	type Option struct {
-		Id   int64   `json:"id"`
+	type OptionType struct {
+		Id   *string `json:"id"`
 		Name *string `json:"name"`
 	}
 
-	var options []Option
+	var options []OptionType
 
 	for rows.Next() {
-		var option Option
+		var option OptionType
 		if err := rows.Scan(
 			&option.Id,
 			&option.Name,
 		); err != nil {
+			fmt.Println(err.Error())
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
@@ -58,7 +52,7 @@ func (h *ApiHandler) GetChoosableLicenses(gc *gin.Context) {
 	}
 
 	if len(options) == 0 {
-		gc.JSON(http.StatusOK, []Option{})
+		gc.JSON(http.StatusOK, []OptionType{})
 		return
 	}
 

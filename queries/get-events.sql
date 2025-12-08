@@ -2,6 +2,7 @@ WITH event_data AS (
     SELECT
         ed.id AS event_date_id,
         ed.event_id,
+        ed.venue_id,
         ed.space_id,
         ed.start_date,
         ed.start_time,
@@ -12,28 +13,46 @@ WITH event_data AS (
         ed.visitor_info_flags
     FROM {{schema}}.event_date ed
     {{event-date-conditions}}
-)
+    )
 SELECT
     {{mode-dependent-select}}
 
 FROM event_data ed
-JOIN {{schema}}.event e ON ed.event_id = e.id AND e.release_status_id >= 3
-JOIN {{schema}}.organizer o ON e.organizer_id = o.id
-LEFT JOIN {{schema}}.space s ON ed.space_id = s.id
-LEFT JOIN {{schema}}.space es ON e.space_id = es.id
-LEFT JOIN {{schema}}.venue v ON v.id = e.venue_id
 
+-- Base event & organizer
+JOIN {{schema}}.event e
+ON ed.event_id = e.id
+AND e.release_status_id >= 3
+
+JOIN {{schema}}.organizer o
+ON e.organizer_id = o.id
+
+-- Space overrides
+LEFT JOIN {{schema}}.space s
+ON ed.space_id = s.id            -- event_date space override
+
+LEFT JOIN {{schema}}.space es
+ON e.space_id = es.id            -- event-level space
+
+-- Venue overrides
+LEFT JOIN {{schema}}.venue v_ev
+ON v_ev.id = e.venue_id          -- event-level venue
+
+LEFT JOIN {{schema}}.venue v_ed
+ON v_ed.id = ed.venue_id         -- event_date-specific venue override
+
+-- Main image
 LEFT JOIN LATERAL (
     SELECT
-        TRUE AS has_main_image,
-        eil.pluto_image_id AS id,
-        0 AS focus_x,
-        0 AS focus_y
-    FROM {{schema}}.event_image_link eil
-    WHERE eil.event_id = e.id AND eil.main_image = TRUE
+        pli.id AS id,
+        pli.focus_x AS focus_x,
+        pli.focus_y AS focus_y
+    FROM {{schema}}.pluto_image pli
+    WHERE pli.id = e.image1_id
     LIMIT 1
-) img_data ON true
+) image_data ON true
 
+-- Types and Genres
 LEFT JOIN LATERAL (
     SELECT jsonb_agg(
         DISTINCT jsonb_build_object(
@@ -53,10 +72,12 @@ LEFT JOIN LATERAL (
     WHERE etl.event_id = e.id
 ) et_data ON true
 
+-- Visitor info flags
 LEFT JOIN LATERAL (
     SELECT jsonb_agg(name) AS visitor_info_flag_names
     FROM {{schema}}.visitor_information_flags f
-    WHERE (ed.visitor_info_flags & (1::BIGINT << f.flag)) = (1::BIGINT << f.flag) AND f.iso_639_1 = $1
+    WHERE (ed.visitor_info_flags & (1::BIGINT << f.flag)) = (1::BIGINT << f.flag)
+    AND f.iso_639_1 = $1
 ) vis_flags ON true
 
 {{conditions}}

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -24,19 +23,20 @@ func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
 		GenreName *string `json:"genre_name"`
 	}
 
-	type EventWithVenue struct {
+	type OrganizerEvent struct {
 		EventId            int         `json:"event_id"`
 		EventDateId        int         `json:"event_date_id"`
 		EventTitle         string      `json:"event_title"`
 		EventSubtitle      *string     `json:"event_subtitle"`
 		EventOrganizerId   int         `json:"event_organizer_id"`
 		EventOrganizerName *string     `json:"event_organizer_name"`
-		StartDate          *time.Time  `json:"start_date"`
-		StartTime          *time.Time  `json:"start_time"`
-		EndDate            *time.Time  `json:"end_date"`
-		EndTime            *time.Time  `json:"end_time"`
+		StartDate          *string     `json:"start_date"`
+		StartTime          *string     `json:"start_time"`
+		EndDate            *string     `json:"end_date"`
+		EndTime            *string     `json:"end_time"`
 		ReleaseStatusId    *int        `json:"release_status_id"`
 		ReleaseStatusName  *string     `json:"release_status_name"`
+		ReleaseDate        *string     `json:"release_date"`
 		VenueId            *int        `json:"venue_id"`
 		VenueName          *string     `json:"venue_name"`
 		SpaceId            *int        `json:"space_id,omitempty"`
@@ -48,17 +48,20 @@ func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
 		CanEditEvent       bool        `json:"can_edit_event"`
 		CanDeleteEvent     bool        `json:"can_delete_event"`
 		CanReleaseEvent    bool        `json:"can_release_event"`
+		TimeSeriesIndex    int         `json:"time_series_index"`
 		TimeSeries         int         `json:"time_series"`
 	}
 
-	organizerIdStr := gc.Param("organizerId")
-	organizerId, err := strconv.Atoi(organizerIdStr)
-	if err != nil {
+	organizerId, ok := ParamInt(gc, "organizerId")
+	if !ok {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid organizer id"})
 		return
 	}
 
+	fmt.Println("organizerId: ", organizerId)
+
 	startStr := gc.Query("start")
+	var err error
 	var startDate time.Time
 	if startStr != "" {
 		startDate, err = time.Parse("2006-01-02", startStr)
@@ -69,7 +72,7 @@ func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
 		startDate = time.Now()
 	}
 
-	rows, err := pool.Query(ctx, app.Singleton.SqlAdminOrganizerEvents, organizerId, startDate, langStr, userId)
+	rows, err := pool.Query(ctx, app.Singleton.SqlAdminGetOrganizerEvents, organizerId, startDate, langStr, userId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -77,10 +80,10 @@ func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
 	defer rows.Close()
 
 	var eventTypesData []byte
-	var events []EventWithVenue
+	var events []OrganizerEvent
 	for rows.Next() {
 		fmt.Printf("....")
-		var e EventWithVenue
+		var e OrganizerEvent
 		err := rows.Scan(
 			&e.EventId,
 			&e.EventDateId,
@@ -94,6 +97,7 @@ func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
 			&e.EndTime,
 			&e.ReleaseStatusId,
 			&e.ReleaseStatusName,
+			&e.ReleaseDate,
 			&e.VenueId,
 			&e.VenueName,
 			&e.SpaceId,
@@ -105,6 +109,7 @@ func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
 			&e.CanEditEvent,
 			&e.CanDeleteEvent,
 			&e.CanReleaseEvent,
+			&e.TimeSeriesIndex,
 			&e.TimeSeries,
 		)
 		if err != nil {

@@ -1,5 +1,5 @@
 SELECT
-    e.id AS id,
+    e.id AS event_id,
     e.title,
     e.subtitle,
     e.description,
@@ -10,6 +10,36 @@ SELECT
     e.meeting_point,
     e.release_status_id,
     e.release_date,
+
+    e.participation_info,
+    e.meeting_point,
+    e.min_age,
+    e.max_age,
+    e.max_attendees,
+    e.price_type_id,
+    e.min_price,
+    e.max_price,
+    e.ticket_advance,
+    e.ticket_required,
+    e.registration_required,
+    e.currency_code,
+    COALESCE(cu.name, '-') AS currency_name,
+    e.occasion_type_id,
+
+    e.online_event_url,
+    e.source_url,
+
+    e.image1_id,
+    e.image2_id,
+    e.image3_id,
+    e.image4_id,
+    e.image_some_16_9_id,
+    e.image_some_4_5_id,
+    e.image_some_9_16_id,
+    e.image_some_1_1_id,
+
+    e.custom,
+    e.style,
 
     o.id AS organizer_id,
     o.name AS organizer_name,
@@ -32,36 +62,51 @@ SELECT
     space_data.building_level AS space_building_level,
     space_data.website_url AS space_url,
 
-    img_data.image_id,
-    img_data.image_focus_x,
-    img_data.image_focus_y,
-    img_data.image_alt_text,
-    img_data.image_copyright,
-    img_data.image_created_by,
-    img_data.image_license_id,
+    -- image_data.image_id,
+    -- image_data.image_focus_x,
+    -- image_data.image_focus_y,
+    -- image_data.image_alt_text,
+    -- image_data.image_copyright,
+    -- image_data.image_creator_name,
+    -- image_data.image_license_id,
 
-    ( -- Event types
-        SELECT jsonb_agg(jsonb_build_object(
-                'type_id', etl.type_id,
-                'type_name', et.name,
-                'genre_id', COALESCE(gt.type_id, 0),
-                'genre_name', gt.name
-                         ))
-        FROM {{schema}}.event_type_link etl
-        JOIN {{schema}}.event_type et
-        ON et.type_id = etl.type_id AND et.iso_639_1 = $2
-        LEFT JOIN {{schema}}.genre_type gt
-        ON gt.type_id = etl.genre_id AND gt.iso_639_1 = $2
-        WHERE etl.event_id = e.id
+    el.name AS location_name,
+    el.street AS location_street,
+    el.house_number AS location_house_number,
+    el.postal_code AS location_postal_code,
+    el.city AS location_city,
+    el.country_code AS location_country_code,
+    el.state_code AS location_state_code,
+    el.name AS location_name,
+
+    COALESCE(
+        (
+            SELECT jsonb_agg(
+                jsonb_build_object(
+                    'type_id', etl.type_id,
+                    'type_name', et.name,
+                    'genre_id', COALESCE(gt.type_id, 0),
+                    'genre_name', gt.name
+                )
+                ORDER BY et.name, gt.name
+            )
+            FROM {{schema}}.event_type_link etl
+            JOIN {{schema}}.event_type et
+            ON et.type_id = etl.type_id AND et.iso_639_1 = $2
+            LEFT JOIN {{schema}}.genre_type gt
+            ON gt.type_id = etl.genre_id AND gt.iso_639_1 = $2
+            WHERE etl.event_id = e.id
+        ), '[]'::jsonb
     ) AS event_types,
 
-    ( -- Event URLs
+    -- Event URLs
+    (
         SELECT jsonb_agg(
             jsonb_build_object(
-                'id', eu.id,
-                'url_type', eu.url_type,
-                'url', eu.url,
-                'title', eu.title
+               'id', eu.id,
+               'url_type', eu.url_type,
+               'url', eu.url,
+               'title', eu.title
             )
         )
         FROM {{schema}}.event_url eu
@@ -71,30 +116,29 @@ SELECT
 FROM {{schema}}.event e
 LEFT JOIN {{schema}}.organizer o ON e.organizer_id = o.id
 LEFT JOIN {{schema}}.venue v ON v.id = e.venue_id
+LEFT JOIN {{schema}}.event_location el ON e.location_id = el.id
+LEFT JOIN {{schema}}.currency cu ON cu.code = e.currency_code AND cu.iso_639_1 = $2
 
-
-LEFT JOIN LATERAL ( -- LATERAL join for space
+-- LATERAL join for space
+LEFT JOIN LATERAL (
     SELECT *
     FROM {{schema}}.space s2
     WHERE s2.id = e.space_id
     LIMIT 1
 ) space_data ON TRUE
 
-
-LEFT JOIN LATERAL ( -- LATERAL join for main image
+-- LATERAL join for main image
+LEFT JOIN LATERAL (
     SELECT
     pi.id AS image_id,
     pi.focus_x AS image_focus_x,
     pi.focus_y AS image_focus_y,
     pi.alt_text AS image_alt_text,
     pi.copyright AS image_copyright,
-    pi.created_by AS image_created_by,
+    pi.creator_name AS image_creator_name,
     pi.license_id AS image_license_id
-    FROM {{schema}}.event_image_link eil
-    JOIN {{schema}}.pluto_image pi ON pi.id = eil.pluto_image_id
-    WHERE eil.event_id = e.id AND eil.main_image = TRUE
-    LIMIT 1
-) img_data ON TRUE
+    FROM {{schema}}.pluto_image pi WHERE pi.id = e.image1_id
+) image_data ON TRUE
 
 WHERE e.id = $1
 LIMIT 1

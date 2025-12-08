@@ -27,7 +27,7 @@ func (h *ApiHandler) AdminGetOrganizerDashboard(gc *gin.Context) {
 		startDate = time.Now() // fallback if param missing
 	}
 
-	row := pool.QueryRow(ctx, app.Singleton.SqlAdminOrganizerDashboard, userId, startDate)
+	row := pool.QueryRow(ctx, app.Singleton.SqlAdminGetOrganizerDashboard, userId, startDate)
 
 	var jsonResult []byte
 	if err := row.Scan(&jsonResult); err != nil {

@@ -21,7 +21,7 @@ func main() {
 	fmt.Println("Config file:", *configFileName)
 
 	var err error
-	app.Singleton, err = app.Initialze(*configFileName)
+	app.Singleton, err = app.Initialize(*configFileName)
 	if err != nil {
 		fmt.Println(err.Error())
 		panic(err)
@@ -34,8 +34,9 @@ func main() {
 	app.Singleton.Config.Print()
 
 	apiHandler := &api.ApiHandler{
-		DbPool: app.Singleton.MainDbPool,
-		Config: &app.Singleton.Config,
+		Config:   &app.Singleton.Config,
+		DbPool:   app.Singleton.MainDbPool,
+		DbSchema: app.Singleton.Config.DbSchema,
 	}
 
 	_, err = pluto.Initialize(*configFileName, app.Singleton.MainDbPool, true)
@@ -101,6 +102,10 @@ func main() {
 	publicRoute.GET("/choosable-languages", apiHandler.GetChoosableLanguages)
 	publicRoute.GET("/choosable-url-types/event", apiHandler.GetChoosableEventUrlTypes)
 
+	publicRoute.GET("/choosable-price-types", apiHandler.GetChoosablePriceTypes)
+	publicRoute.GET("/choosable-currencies", apiHandler.GetChoosableCurrencies)
+	publicRoute.GET("/choosable-event-ocassions", apiHandler.GetChoosableEventOccasions)
+
 	publicRoute.GET("/accessibility/flags", apiHandler.GetAccessibilityFlags)
 
 	publicRoute.GET("/organizer/:organizerId", apiHandler.GetOrganizer)
@@ -146,11 +151,8 @@ func main() {
 
 	adminRoute.GET("/choosable-organizers", app.JWTMiddleware, apiHandler.AdminGetChoosableOrganizers)
 	adminRoute.GET("/user/choosable-event-organizers/organizer/:organizerId", app.JWTMiddleware, apiHandler.AdminChoosableUserEventOrganizers)
-	adminRoute.GET("/user/choosable-event-venues", app.JWTMiddleware, apiHandler.AdminChoosableUserEventVenues)
-
-	adminRoute.GET("/event/:eventId", app.JWTMiddleware, apiHandler.AdminGetEvent)
-	adminRoute.DELETE("/event/:eventId", app.JWTMiddleware, apiHandler.AdminDeleteEvent)
-	adminRoute.DELETE("/event/:eventId/date/:eventDateId", app.JWTMiddleware, apiHandler.AdminDeleteEventDate)
+	adminRoute.GET("/user/choosable-venues-spaces", app.JWTMiddleware, apiHandler.AdminChoosableUserVenuesSpaces)
+	adminRoute.GET("/user/choosable-event-venues", app.JWTMiddleware, apiHandler.AdminChoosableUserEventVenues) // TODO: Remove!
 
 	adminRoute.GET("/organizer/:organizerId", app.JWTMiddleware, apiHandler.AdminGetOrganizer)
 	adminRoute.PUT("/organizer/:organizerId", app.JWTMiddleware, apiHandler.AdminUpdateOrganizer)
@@ -178,29 +180,30 @@ func main() {
 	adminRoute.PUT("/space/:spaceId", app.JWTMiddleware, apiHandler.AdminUpdateSpace)
 	adminRoute.DELETE("/space/:spaceId", app.JWTMiddleware, apiHandler.AdminDeleteSpace)
 
+	adminRoute.GET("/event/:eventId", app.JWTMiddleware, apiHandler.AdminGetEvent)
+	adminRoute.DELETE("/event/:eventId", app.JWTMiddleware, apiHandler.AdminDeleteEvent)
+	adminRoute.DELETE("/event/:eventId/date/:eventDateId", app.JWTMiddleware, apiHandler.AdminDeleteEventDate)
+
 	adminRoute.POST("/event/create", app.JWTMiddleware, apiHandler.AdminCreateEvent)
+	adminRoute.PUT("/event/:eventId/release-status", app.JWTMiddleware, apiHandler.AdminUpdateEventReleaseStatus)
 	adminRoute.PUT("/event/:eventId/header", app.JWTMiddleware, apiHandler.AdminUpdateEventHeader)
 	adminRoute.PUT("/event/:eventId/description", app.JWTMiddleware, apiHandler.AdminUpdateEventDescription)
 	adminRoute.PUT("/event/:eventId/teaser", app.JWTMiddleware, apiHandler.AdminUpdateEventTeaser)
 	adminRoute.PUT("/event/:eventId/types", app.JWTMiddleware, apiHandler.AdminUpdateEventTypes)
-	adminRoute.PUT("/event/:eventId/venue", app.JWTMiddleware, apiHandler.AdminUpdateEventVenue)
+	adminRoute.PUT("/event/:eventId/place", app.JWTMiddleware, apiHandler.AdminUpdateEventPlace)
 	adminRoute.PUT("/event/:eventId/links", app.JWTMiddleware, apiHandler.AdminUpdateEventLinks)
-	// adminRoute.PUT("/event/:eventId/dates", app.JWTMiddleware, apiHandler.AdminUpdateEventDates)
 	adminRoute.PUT("/event/:eventId/tags", app.JWTMiddleware, apiHandler.AdminUpdateEventTags)
 	adminRoute.PUT("/event/:eventId/languages", app.JWTMiddleware, apiHandler.AdminUpdateEventLanguages)
-	adminRoute.PUT("/event/:eventId/release-status", app.JWTMiddleware, apiHandler.AdminUpdateEventReleaseStatus)
+	adminRoute.PUT("/event/:eventId/participation-infos", app.JWTMiddleware, apiHandler.AdminUpdateEventParticipationInfos)
 
 	adminRoute.POST("/event/:eventId/date", app.JWTMiddleware, apiHandler.AdminUpsertEventDate)
 	adminRoute.PUT("/event/:eventId/date/:dateId", app.JWTMiddleware, apiHandler.AdminUpsertEventDate)
 
-	adminRoute.POST("/event/:eventId/image", app.JWTMiddleware, apiHandler.AdminUpdateEventImage)
+	adminRoute.GET("/event/:eventId/image/:imageIndex/meta", app.JWTMiddleware, apiHandler.AdminGetImageMeta)
+	adminRoute.POST("/event/:eventId/image/:imageIndex", app.JWTMiddleware, apiHandler.AdminUpsertEventImage)
 	adminRoute.DELETE("/event/:eventId/image", app.JWTMiddleware, apiHandler.AdminDeleteEventMainImage)
 
 	adminRoute.POST("/event/:eventId/teaser/image", app.JWTMiddleware, apiHandler.AdminUpdateEventTeaserImage)
-
-	// Check ...
-	// adminRoute.POST("image/upload", app.JWTMiddleware, api.AdminAddImageHandler) TODO: Unused
-	// adminRoute.GET("/events", app.JWTMiddleware, api.AdminEventsHandler) TODO: Unused
 
 	fmt.Println("Gin mode:", gin.Mode())
 	fmt.Println("Total routes:", len(router.Routes()))

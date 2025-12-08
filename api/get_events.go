@@ -17,20 +17,20 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	pool := h.DbPool
 
-	var sql string
+	var query string
 	var isTypeSummaryMode bool
 	modeStr := gc.Query("mode") // "" if not provided
 	switch modeStr {
 	case "", "basic":
-		sql = app.Singleton.SqlGetEventsBasic
+		query = app.Singleton.SqlGetEventsBasic
 	case "extended":
-		sql = app.Singleton.SqlGetEventsExtended
+		query = app.Singleton.SqlGetEventsExtended
 	case "geometry":
-		sql = app.Singleton.SqlGetEventsGeometry
+		query = app.Singleton.SqlGetEventsGeometry
 	case "detailed":
-		sql = app.Singleton.SqlGetEventsDetailed
+		query = app.Singleton.SqlGetEventsDetailed
 	case "type-summary":
-		sql = app.Singleton.SqlGetEventsTypeSummary
+		query = app.Singleton.SqlGetEventsTypeSummary
 		isTypeSummaryMode = true
 	default:
 		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Unknown mode %s", modeStr)})
@@ -249,12 +249,12 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		conditionsStr = "WHERE " + strings.Join(conditions, " AND ")
 	}
 
-	sql = strings.Replace(sql, "{{event-date-conditions}}", eventDateConditions, 1)
-	sql = strings.Replace(sql, "{{conditions}}", conditionsStr, 1)
+	query = strings.Replace(query, "{{event-date-conditions}}", eventDateConditions, 1)
+	query = strings.Replace(query, "{{conditions}}", conditionsStr, 1)
 
 	// Add LIMIT and OFFSET
 	if isTypeSummaryMode {
-		sql = strings.Replace(sql, "{{limit}}", "", 1)
+		query = strings.Replace(query, "{{limit}}", "", 1)
 	} else {
 		var limitClause string
 		limitClause, argIndex, err = sql_utils.BuildLimitOffsetClause(limitStr, offsetStr, argIndex, &args)
@@ -262,16 +262,16 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 
 			gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
-		sql = strings.Replace(sql, "{{limit}}", limitClause, 1)
+		query = strings.Replace(query, "{{limit}}", limitClause, 1)
 	}
 
 	order := "ORDER BY (ed.start_date + COALESCE(ed.start_time, '00:00:00'::time)) ASC, e.id ASC"
-	sql = strings.Replace(sql, "{{order}}", order, 1)
+	query = strings.Replace(query, "{{order}}", order, 1)
 
-	fmt.Printf("SQL: %s\n", sql)
-	fmt.Printf("Args: %#v\n", args) // prints slice with types and values
+	// fmt.Printf("SQL: %s\n", query)
+	// fmt.Printf("Args: %#v\n", args) // prints slice with types and values
 
-	rows, err := pool.Query(ctx, sql, args...)
+	rows, err := pool.Query(ctx, query, args...)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
