@@ -13,19 +13,41 @@ WITH event_data AS (
         ed.visitor_info_flags
     FROM {{schema}}.event_date ed
     {{event-date-conditions}}
-    )
+),
+venue_data AS (
+    SELECT
+        ed.event_date_id AS venue_event_date,
+        COALESCE(v_ed.id, v_ev.id) AS venue_id,
+        COALESCE(v_ed.name, v_ev.name) AS venue_name,
+        COALESCE(v_ed.street, v_ev.street) AS venue_street,
+        COALESCE(v_ed.house_number, v_ev.house_number) AS venue_house_number,
+        COALESCE(v_ed.postal_code, v_ev.postal_code) AS venue_postal_code,
+        COALESCE(v_ed.city, v_ev.city) AS venue_city,
+        COALESCE(v_ed.country_code, v_ev.country_code) AS venue_country_code,
+        COALESCE(v_ed.state_code, v_ev.state_code) AS venue_state_code,
+        COALESCE(ST_X(v_ed.wkb_geometry), ST_X(v_ev.wkb_geometry)) AS venue_lon,
+        COALESCE(ST_Y(v_ed.wkb_geometry), ST_Y(v_ev.wkb_geometry)) AS venue_lat,
+        COALESCE(v_ed.wkb_geometry, v_ev.wkb_geometry) AS venue_wkb_geometry
+    FROM event_data ed
+    LEFT JOIN {{schema}}.venue v_ev ON v_ev.id = (SELECT e.venue_id FROM {{schema}}.event e WHERE e.id = ed.event_id)
+    LEFT JOIN {{schema}}.venue v_ed ON v_ed.id = ed.venue_id
+)
+
 SELECT
     {{mode-dependent-select}}
 
 FROM event_data ed
 
--- Base event & organizer
+-- Base event, organizer, venue
 JOIN {{schema}}.event e
 ON ed.event_id = e.id
 AND e.release_status_id >= 3
 
 JOIN {{schema}}.organizer o
 ON e.organizer_id = o.id
+
+JOIN venue_data vd
+ON vd.venue_event_date = ed.event_date_id
 
 -- Space overrides
 LEFT JOIN {{schema}}.space s

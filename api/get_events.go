@@ -127,7 +127,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	}
 
 	if countryCodesStr != "" {
-		format := "venue_country_code IN (%s)"
+		format := "vd.venue_country_code IN (%s)"
 		argIndex, err = sql_utils.BuildInConditionForStringSlice(countryCodesStr, format, "country_codes", argIndex, &conditions, &args)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -135,7 +135,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	}
 
 	if postalCodeStr != "" {
-		argIndex, err = sql_utils.BuildLikeConditions(postalCodeStr, "venue_postal_code", argIndex, &conditions, &args)
+		argIndex, err = sql_utils.BuildLikeConditions(postalCodeStr, "vd.postal_code", argIndex, &conditions, &args)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
@@ -149,7 +149,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	}
 
 	if venueIdsStr != "" {
-		argIndex, err = sql_utils.BuildColumnInIntCondition(venueIdsStr, "venue_id", "venues", argIndex, &conditions, &args)
+		argIndex, err = sql_utils.BuildColumnInIntCondition(venueIdsStr, "vd.venue_id", "venues", argIndex, &conditions, &args)
 		if err != nil {
 
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -173,7 +173,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	}
 
 	argIndex, err = sql_utils.BuildGeographicRadiusCondition(
-		lonStr, latStr, radiusStr, "venue_wkb_geometry",
+		lonStr, latStr, radiusStr, "vd.venue_wkb_geometry",
 		argIndex, &conditions, &args,
 	)
 
@@ -266,8 +266,8 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	order := "ORDER BY (ed.start_date + COALESCE(ed.start_time, '00:00:00'::time)) ASC, e.id ASC"
 	query = strings.Replace(query, "{{order}}", order, 1)
 
-	// fmt.Printf("SQL: %s\n", query)
-	// fmt.Printf("Args: %#v\n", args) // prints slice with types and values
+	fmt.Printf("query ...................................... \n%s\n", query)
+	fmt.Printf("Args ...................................... \n%#v\n", args) // prints slice with types and values
 
 	rows, err := pool.Query(ctx, query, args...)
 	if err != nil {

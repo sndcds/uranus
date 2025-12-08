@@ -22,8 +22,8 @@ SELECT
     v.house_number AS venue_house_number,
     v.postal_code AS venue_postal_code,
     v.city AS venue_city,
-    v.country_code AS venue_country,
-    v.state_code AS venue_state,
+    v.country_code AS venue_country_code,
+    v.state_code AS venue_state_code,
     ST_X(v.wkb_geometry) AS venue_lon,
     ST_Y(v.wkb_geometry) AS venue_lat,
 
