@@ -209,7 +209,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			incomingEvent.Location.StateCode,
 			incomingEvent.Location.Longitude,
 			incomingEvent.Location.Latitude,
-			incomingEvent.Location.Description
+			incomingEvent.Location.Description,
 		).Scan(&locationId)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to insert event location: %v", err)})
