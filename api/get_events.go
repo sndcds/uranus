@@ -273,7 +273,9 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 
 	rows, err := pool.Query(ctx, query, args...)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		gc.JSON(http.StatusInternalServerError,
+			gin.H{"error": err.Error(), "query": query, "args": args},
+		)
 		return
 	}
 	defer rows.Close()
