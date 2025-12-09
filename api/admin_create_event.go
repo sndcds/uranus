@@ -171,8 +171,8 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	if organizerPermissions.HasAll(app.PermChooseAsEventOrganizer | app.PermAddEvent) {
-		gc.JSON(http.StatusForbidden, gin.H{"error": fmt.Sprintf("insufficient permissions: %x", organizerPermissions)})
+	if !organizerPermissions.HasAll(app.PermChooseAsEventOrganizer | app.PermAddEvent) {
+		gc.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})
 		return
 	}
 
@@ -184,8 +184,8 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		if venuePermissions.Has(app.PermChooseVenue) {
-			gc.JSON(http.StatusForbidden, gin.H{"error": fmt.Sprintf("insufficient permissions: %x", venuePermissions)})
+		if !venuePermissions.Has(app.PermChooseVenue) {
+			gc.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})
 			return
 		}
 	}
@@ -290,8 +290,8 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 				gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
-			if venuePermissions.Has(app.PermChooseVenue) {
-				gc.JSON(http.StatusForbidden, gin.H{"error": fmt.Sprintf("insufficient permissions: %x", venuePermissions)})
+			if !venuePermissions.Has(app.PermChooseVenue) {
+				gc.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})
 				return
 			}
 

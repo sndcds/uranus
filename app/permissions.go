@@ -44,11 +44,11 @@ func (p *Permission) Remove(flag Permission) {
 }
 
 // HasAll checks if all bits in 'mask' are set in 'p'
-func (p *Permission) HasAll(mask Permission) bool {
-	return *p&mask == mask
+func (p Permission) HasAll(mask Permission) bool {
+	return p&mask == mask
 }
 
 // HasAny checks if at least one bit in 'mask' is set in 'p'
-func (p *Permission) HasAny(mask Permission) bool {
-	return *p&mask != 0
+func (p Permission) HasAny(mask Permission) bool {
+	return p&mask != 0
 }
