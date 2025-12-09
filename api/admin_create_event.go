@@ -47,7 +47,7 @@ type EventIncomingDate struct {
 
 type EventDataIncoming struct {
 	Title                string   `json:"title" binding:"required"`
-	Description          string   `json:"description"`
+	Description          string   `json:"description" binding:"required"`
 	Subtitle             *string  `json:"subtitle"`
 	TeaserText           *string  `json:"teaser_text"`
 	Tags                 []string `json:"tags"`
@@ -179,15 +179,18 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 
 	// Check if user can create an event in 'incomingEvent.VenueId'
 	if incomingEvent.VenueId != nil {
+		fmt.Println("GetUserVenuePermissions 1")
 		venuePermissions, err := h.GetUserVenuePermissions(gc, tx, userId, *incomingEvent.OrganizerId, *incomingEvent.VenueId)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
+		fmt.Println("GetUserVenuePermissions 2")
 		if venuePermissions.Has(app.PermChooseVenue) {
 			gc.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})
 			return
 		}
+		fmt.Println("GetUserVenuePermissions 3")
 	}
 
 	var locationId *int
@@ -228,6 +231,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		}
 	}
 
+	fmt.Println("Insert event 1")
 	// Insert event Information
 	sqlEvent := `
 		INSERT INTO {{schema}}.event (
@@ -244,6 +248,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING id`
 	sql := strings.Replace(sqlEvent, "{{schema}}", h.Config.DbSchema, 1)
+	fmt.Println("Insert event 2")
 
 	var eventId int
 	err = tx.QueryRow(ctx, sql,
@@ -263,6 +268,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		return
 	}
 
+	fmt.Println("Insert dates 1")
 	// Event Dates
 	insertDateQuery := `
 		INSERT INTO {{schema}}.event_date (
@@ -278,9 +284,12 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			created_by
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
 	sql = strings.Replace(insertDateQuery, "{{schema}}", h.DbSchema, 1)
+	fmt.Println("Insert dates 2")
 
 	for _, d := range incomingEvent.Dates {
 		if d.VenueId != nil {
+			fmt.Println("Insert dates 3")
+
 			// Check if user can create an event in 'd.VenueId'
 			venuePermissions, err := h.GetUserVenuePermissions(
 				gc, tx, userId, *incomingEvent.OrganizerId, *d.VenueId)
@@ -292,6 +301,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 				gc.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})
 				return
 			}
+			fmt.Println("Insert dates 4")
 
 			if d.SpaceId != nil {
 				spaceOK, err := h.IsSpaceInVenue(gc, tx, *d.SpaceId, *d.VenueId)
@@ -304,6 +314,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 					return
 				}
 			}
+			fmt.Println("Insert dates 5")
 		}
 
 		_, err = tx.Exec(
@@ -322,6 +333,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to insert event_date: %v", err)})
 			return
 		}
+		fmt.Println("Insert dates 6")
 	}
 
 	// Insert Type + Genre pairs
