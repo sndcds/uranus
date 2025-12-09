@@ -8,7 +8,8 @@ import (
 )
 
 func (h *ApiHandler) GetChoosableLicenses(gc *gin.Context) {
-	h.InitFromGin(gc)
+	ctx := gc.Request.Context()
+	// userId := gc.GetInt("user-id")
 
 	langStr := gc.DefaultQuery("lang", "en")
 	useLongName := gc.DefaultQuery("long", "false") == "true"
@@ -26,7 +27,7 @@ func (h *ApiHandler) GetChoosableLicenses(gc *gin.Context) {
 		)
 	}
 
-	rows, err := h.DbPool.Query(h.Context, query, langStr)
+	rows, err := h.DbPool.Query(ctx, query, langStr)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

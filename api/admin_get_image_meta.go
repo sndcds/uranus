@@ -8,7 +8,8 @@ import (
 )
 
 func (h *ApiHandler) AdminGetImageMeta(gc *gin.Context) {
-	h.InitFromGin(gc)
+	ctx := gc.Request.Context()
+	// userId := gc.GetInt("user-id")
 
 	eventId, ok := ParamInt(gc, "eventId")
 	if !ok {
@@ -72,7 +73,7 @@ func (h *ApiHandler) AdminGetImageMeta(gc *gin.Context) {
     `, h.DbSchema, imageCol)
 
 	var meta ImageMeta
-	err := h.DbPool.QueryRow(h.Context, query, eventId).Scan(
+	err := h.DbPool.QueryRow(ctx, query, eventId).Scan(
 		&meta.Id,
 		&meta.FileName,
 		&meta.Width,

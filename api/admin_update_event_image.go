@@ -27,7 +27,8 @@ func (w *exifWalker) Walk(name exif.FieldName, tag *tiff.Tag) error {
 }
 
 func (h *ApiHandler) AdminUpsertEventImage(gc *gin.Context) {
-	h.InitFromGin(gc)
+	ctx := gc.Request.Context()
+	userId := gc.GetInt("user-id")
 
 	plutoImageId := -1
 	plutoRemoveImageId := -1
@@ -59,12 +60,12 @@ func (h *ApiHandler) AdminUpsertEventImage(gc *gin.Context) {
 	}
 
 	// Begin DB transaction
-	tx, err := h.DbPool.Begin(h.Context)
+	tx, err := h.DbPool.Begin(ctx)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer func() { _ = tx.Rollback(h.Context) }()
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	file, err := gc.FormFile("image")
 	if file != nil {
@@ -123,7 +124,7 @@ func (h *ApiHandler) AdminUpsertEventImage(gc *gin.Context) {
 			return
 		}
 
-		plutoRemoveImageId, err = h.GetEventImageId(tx, eventId, imageIndex)
+		plutoRemoveImageId, err = h.GetEventImageId(gc, tx, eventId, imageIndex)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get previous image ID"})
 			return
@@ -133,7 +134,7 @@ func (h *ApiHandler) AdminUpsertEventImage(gc *gin.Context) {
 			INSERT INTO {{schema}}.pluto_image (file_name, gen_file_name, width, height, mime_type, exif, alt_text, creator_name, copyright, license_id, user_id)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`, "{{schema}}", h.DbSchema, 1)
 		err = tx.QueryRow(
-			h.Context,
+			ctx,
 			query,
 			originalFileName,
 			generatedFileName,
@@ -144,20 +145,20 @@ func (h *ApiHandler) AdminUpsertEventImage(gc *gin.Context) {
 			creatorName,
 			copyright,
 			licenseId,
-			h.UserId).Scan(&plutoImageId)
+			userId).Scan(&plutoImageId)
 		if err != nil {
 			gc.JSON(http.StatusBadRequest, gin.H{"error": "Insert pluto image failed"})
 			return
 		}
 
-		err = h.updateEventImage(tx, eventId, imageIndex, plutoImageId)
+		err = h.updateEventImage(gc, tx, eventId, imageIndex, plutoImageId)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 	} else {
 		var plutoImageIdErr error
-		plutoImageId, plutoImageIdErr = h.GetEventImageId(tx, eventId, imageIndex)
+		plutoImageId, plutoImageIdErr = h.GetEventImageId(gc, tx, eventId, imageIndex)
 		if plutoImageIdErr != nil {
 			gc.JSON(http.StatusBadRequest, gin.H{"error": "No main image found for event"})
 			return
@@ -168,7 +169,7 @@ func (h *ApiHandler) AdminUpsertEventImage(gc *gin.Context) {
 			SET alt_text = $1, copyright = $2, creator_name = $3, license_id = $4, description = $5
 			WHERE id = $6`,
 			h.DbSchema)
-		_, err = tx.Exec(h.Context, query, altText, copyright, creatorName, licenseId, description, plutoImageId)
+		_, err = tx.Exec(ctx, query, altText, copyright, creatorName, licenseId, description, plutoImageId)
 		if err != nil {
 			gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -178,7 +179,7 @@ func (h *ApiHandler) AdminUpsertEventImage(gc *gin.Context) {
 	if plutoRemoveImageId >= 0 {
 		// Delete all pluto_cache entries for 'plutoRemoveImageId'
 		query := fmt.Sprintf(`DELETE FROM %s.pluto_cache WHERE image_id = $1`, h.DbSchema)
-		cmdTag, err := tx.Exec(h.Context, query, plutoRemoveImageId)
+		cmdTag, err := tx.Exec(ctx, query, plutoRemoveImageId)
 		if err != nil {
 			gc.JSON(http.StatusBadRequest, gin.H{"error": "failed to delete Pluto cache"})
 			return
@@ -187,7 +188,7 @@ func (h *ApiHandler) AdminUpsertEventImage(gc *gin.Context) {
 
 		// Delete pluto_image for 'plutoRemoveImageId'
 		query = fmt.Sprintf(`DELETE FROM %s.pluto_image WHERE id = $1 RETURNING gen_file_name`, h.DbSchema)
-		row := tx.QueryRow(h.Context, query, plutoRemoveImageId)
+		row := tx.QueryRow(ctx, query, plutoRemoveImageId)
 		err = row.Scan(&plutoPrevFileName)
 		if err != nil {
 			gc.JSON(http.StatusBadRequest, gin.H{"error": "failed to delete Pluto image"})

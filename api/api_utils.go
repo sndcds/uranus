@@ -207,10 +207,11 @@ func (h *ApiHandler) GetUserOrganizerPermissions(
 	userId int,
 	organizerId int,
 ) (app.Permission, error) {
+	ctx := gc.Request.Context()
 	var result pgtype.Int8
 
 	err := tx.QueryRow(
-		h.Context, app.Singleton.SqlGetUserOrganizerPermissions,
+		ctx, app.Singleton.SqlGetUserOrganizerPermissions,
 		userId, organizerId,
 	).Scan(&result)
 	if err != nil {
@@ -234,10 +235,11 @@ func (h *ApiHandler) GetUserVenuePermissions(
 	organizerId int,
 	venueId int,
 ) (app.Permission, error) {
+	ctx := gc.Request.Context()
 	var result pgtype.Int8
 
 	err := tx.QueryRow(
-		h.Context, app.Singleton.SqlGetUserVenuePermissions,
+		ctx, app.Singleton.SqlGetUserVenuePermissions,
 		userId,
 		organizerId,
 		venueId,
@@ -261,11 +263,12 @@ func (h *ApiHandler) IsSpaceInVenue(
 	spaceId int,
 	venueId int,
 ) (bool, error) {
+	ctx := gc.Request.Context()
 	var result bool
 	query := fmt.Sprintf(
 		`SELECT EXISTS (SELECT 1 FROM uranus.space WHERE id = $1 AND venue_id = $2) AS space_exist`,
 		h.DbSchema)
-	err := tx.QueryRow(h.Context, query, spaceId, venueId).Scan(&result)
+	err := tx.QueryRow(ctx, query, spaceId, venueId).Scan(&result)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return false, nil

@@ -81,7 +81,6 @@ type EventDataIncoming struct {
 
 func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	pool := h.DbPool
 	userId := gc.GetInt("user-id")
 
 	// Read the raw body
@@ -159,7 +158,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	}
 
 	// Begin transaction
-	tx, err := pool.Begin(ctx)
+	tx, err := h.DbPool.Begin(ctx)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to start transaction"})
 		return
@@ -180,7 +179,8 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	// Check if user can create an event in 'incomingEvent.VenueId'
 	if incomingEvent.VenueId != nil {
 		fmt.Println("GetUserVenuePermissions 1")
-		venuePermissions, err := h.GetUserVenuePermissions(gc, tx, userId, *incomingEvent.OrganizerId, *incomingEvent.VenueId)
+		venuePermissions, err := h.GetUserVenuePermissions(
+			gc, tx, userId, *incomingEvent.OrganizerId, *incomingEvent.VenueId)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -212,7 +212,8 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			VALUES ($1, $2, $3, $4, $5, $6, $7, ST_SetSRID(ST_MakePoint($8, $9), 4326), $10, $11)
 			RETURNING id`
 		locationQuery = strings.Replace(locationQuery, "{{schema}}", h.Config.DbSchema, 1)
-		err = tx.QueryRow(ctx, locationQuery,
+		err = tx.QueryRow(
+			ctx, locationQuery,
 			incomingEvent.Location.Name,
 			incomingEvent.Location.Street,
 			incomingEvent.Location.HouseNumber,
@@ -251,7 +252,8 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	fmt.Println("Insert event 2")
 
 	var eventId int
-	err = tx.QueryRow(ctx, sql,
+	err = tx.QueryRow(
+		ctx, sql,
 		incomingEvent.OrganizerId,
 		incomingEvent.VenueId,
 		incomingEvent.SpaceId,

@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 
+	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -26,7 +27,13 @@ func GetEventImageField(imageIndex int) (string, error) {
 	return col, nil
 }
 
-func (h *ApiHandler) updateEventImage(tx pgx.Tx, eventId int, imageIndex int, imageId int) error {
+func (h *ApiHandler) updateEventImage(
+	gc *gin.Context,
+	tx pgx.Tx,
+	eventId int,
+	imageIndex int,
+	imageId int) error {
+	ctx := gc.Request.Context()
 	fieldName, err := GetEventImageField(imageIndex)
 	if err != nil {
 		return err
@@ -38,7 +45,7 @@ func (h *ApiHandler) updateEventImage(tx pgx.Tx, eventId int, imageIndex int, im
         WHERE id = $2
     `, h.DbSchema, fieldName)
 
-	_, err = tx.Exec(h.Context, sql, imageId, eventId)
+	_, err = tx.Exec(ctx, sql, imageId, eventId)
 	if err != nil {
 		return fmt.Errorf("Failed to update image")
 	}
@@ -47,7 +54,13 @@ func (h *ApiHandler) updateEventImage(tx pgx.Tx, eventId int, imageIndex int, im
 }
 
 // GetEventImageId fetches the image ID for a given event and imageIndex using a transaction.
-func (h *ApiHandler) GetEventImageId(tx pgx.Tx, eventId int, imageIndex int) (int, error) {
+func (h *ApiHandler) GetEventImageId(
+	gc *gin.Context,
+	tx pgx.Tx,
+	eventId int,
+	imageIndex int,
+) (int, error) {
+	ctx := gc.Request.Context()
 	fieldName, err := GetEventImageField(imageIndex)
 	if err != nil {
 		return 0, err
@@ -55,7 +68,7 @@ func (h *ApiHandler) GetEventImageId(tx pgx.Tx, eventId int, imageIndex int) (in
 
 	query := fmt.Sprintf(`SELECT %s FROM %s.event WHERE id = $1`, fieldName, h.DbSchema)
 	var imageId *int
-	err = tx.QueryRow(h.Context, query, eventId).Scan(&imageId)
+	err = tx.QueryRow(ctx, query, eventId).Scan(&imageId)
 	if err != nil {
 		return 0, fmt.Errorf("Failed to fetch image ID")
 	}
