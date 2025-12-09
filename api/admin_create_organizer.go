@@ -89,6 +89,18 @@ func (h *ApiHandler) AdminCreateOrganizer(gc *gin.Context) {
 		return
 	}
 
+	// Insert organizer_member_link
+	insertMemberQuery := fmt.Sprintf(`
+		INSERT INTO %s.organizer_member_link
+		    (organizer_id, user_id, has_joined, member_role_id)
+		VALUES ($1, $2, $3, $4)`,
+		h.Config.DbSchema)
+	_, err = tx.Exec(gc, insertMemberQuery, newId, userId, true, 1)
+	if err != nil {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("insert organizer_member_link failed: %v", err)})
+		return
+	}
+
 	// Commit transaction
 	if err = tx.Commit(gc); err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to commit transaction"})
