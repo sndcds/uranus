@@ -200,15 +200,18 @@ func ToInt(value interface{}) (int, bool) {
 	}
 }
 
-// GetUserPermissionBits returns the bitwise AND of user permissions and the given bit mask.
-func (h *ApiHandler) GetUserPermissionBits(
-	gc *gin.Context, tx pgx.Tx, userID, organizerID int, bitMask int64,
-) (int64, error) {
-	ctx := gc.Request.Context()
+// GetUserOrganizerPermissions returns the permissions a user has for an organizer.
+func (h *ApiHandler) GetUserOrganizerPermissions(
+	gc *gin.Context,
+	tx pgx.Tx,
+	userId int,
+	organizerId int,
+) (app.Permission, error) {
 	var result pgtype.Int8
-	err := tx.QueryRow(ctx,
-		app.Singleton.SqlGetUserOrganizerPermissions,
-		userID, organizerID, bitMask,
+
+	err := tx.QueryRow(
+		h.Context, app.Singleton.SqlGetUserOrganizerPermissions,
+		userId, organizerId,
 	).Scan(&result)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -216,8 +219,58 @@ func (h *ApiHandler) GetUserPermissionBits(
 		}
 		return 0, err
 	}
+
 	if !result.Valid {
 		return 0, nil
 	}
-	return result.Int64, nil
+	return app.Permission(result.Int64), nil
+}
+
+// GetUserVenuePermissions returns the permissions a user has for a venue.
+func (h *ApiHandler) GetUserVenuePermissions(
+	gc *gin.Context,
+	tx pgx.Tx,
+	userId int,
+	organizerId int,
+	venueId int,
+) (app.Permission, error) {
+	var result pgtype.Int8
+
+	err := tx.QueryRow(
+		h.Context, app.Singleton.SqlGetUserVenuePermissions,
+		userId,
+		organizerId,
+		venueId,
+	).Scan(&result)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return 0, nil
+		}
+		return 0, err
+	}
+
+	if !result.Valid {
+		return 0, nil
+	}
+	return app.Permission(result.Int64), nil
+}
+
+func (h *ApiHandler) IsSpaceInVenue(
+	gc *gin.Context,
+	tx pgx.Tx,
+	spaceId int,
+	venueId int,
+) (bool, error) {
+	var result bool
+	query := fmt.Sprintf(
+		`SELECT EXISTS (SELECT 1 FROM uranus.space WHERE id = $1 AND venue_id = $2) AS space_exist`,
+		h.DbSchema)
+	err := tx.QueryRow(h.Context, query, spaceId, venueId).Scan(&result)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+	return result, nil
 }

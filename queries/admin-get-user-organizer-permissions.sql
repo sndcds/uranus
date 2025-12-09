@@ -1,4 +1,4 @@
-SELECT (uol.permissions::bigint & $3::bigint) AS perm
+SELECT uol.permissions::bigint AS perm
 FROM {{schema}}.user_organizer_link uol
 JOIN {{schema}}.organizer_member_link oml
 ON uol.user_id = oml.user_id

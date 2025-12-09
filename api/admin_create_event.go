@@ -13,11 +13,12 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sndcds/uranus/app"
 )
 
 type EventIncomingLocation struct {
 	Name        *string `json:"name"`
-	Description *string `json:"description"`
+	Description *string `json:"description" binding:"required"`
 	Street      string  `json:"street" binding:"required"`
 	HouseNumber *string `json:"house_number"`
 	PostalCode  string  `json:"postal_code" binding:"required"`
@@ -46,7 +47,7 @@ type EventIncomingDate struct {
 
 type EventDataIncoming struct {
 	Title                string   `json:"title" binding:"required"`
-	Description          string   `json:"description" binding:"required"`
+	Description          string   `json:"description"`
 	Subtitle             *string  `json:"subtitle"`
 	TeaserText           *string  `json:"teaser_text"`
 	Tags                 []string `json:"tags"`
@@ -165,26 +166,34 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	fmt.Println("check bits ...", *incomingEvent.OrganizerId)
-	bits, err := h.GetUserPermissionBits(gc, tx, userId, *incomingEvent.OrganizerId, 0x01000004)
+	// Check if user can create an event with 'incomingEvent.OrganizerId' as the organizer
+	organizerPermissions, err := h.GetUserOrganizerPermissions(gc, tx, userId, *incomingEvent.OrganizerId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	if bits != 0x01000004 {
+	if organizerPermissions.HasAll(app.PermChooseAsEventOrganizer | app.PermAddEvent) {
 		gc.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})
 		return
 	}
 
-	// check if user can create event with organizer_id
-	// check if user can create event in venue_id
-	// If dates uses venue_id, check here also!
-	// Check if space_id are connected to the given venue_id
+	// Check if user can create an event in 'incomingEvent.VenueId'
+	if incomingEvent.VenueId != nil {
+		venuePermissions, err := h.GetUserVenuePermissions(gc, tx, userId, *incomingEvent.OrganizerId, *incomingEvent.VenueId)
+		if err != nil {
+			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		if venuePermissions.Has(app.PermChooseVenue) {
+			gc.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})
+			return
+		}
+	}
 
 	var locationId *int
 	if incomingEvent.hasLocation() {
 		// If JSON has a location field, insert the event location first
-		locationSql := `
+		locationQuery := `
 			INSERT INTO {{schema}}.event_location (
 				"name",
 				street,
@@ -199,8 +208,8 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, ST_SetSRID(ST_MakePoint($8, $9), 4326), $10, $11)
 			RETURNING id`
-		locationSql = strings.Replace(locationSql, "{{schema}}", h.Config.DbSchema, 1)
-		err = tx.QueryRow(ctx, locationSql,
+		locationQuery = strings.Replace(locationQuery, "{{schema}}", h.Config.DbSchema, 1)
+		err = tx.QueryRow(ctx, locationQuery,
 			incomingEvent.Location.Name,
 			incomingEvent.Location.Street,
 			incomingEvent.Location.HouseNumber,
@@ -219,7 +228,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		}
 	}
 
-	// Inter event Information
+	// Insert event Information
 	sqlEvent := `
 		INSERT INTO {{schema}}.event (
 			organizer_id,
@@ -255,9 +264,10 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	}
 
 	// Event Dates
-	sqlDate := `
+	insertDateQuery := `
 		INSERT INTO {{schema}}.event_date (
 			event_id,
+			venue_id,
 			space_id,
 			start_date,
 			start_time,
@@ -266,13 +276,40 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			entry_time,
 			all_day,
 			created_by
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
-	sql = strings.Replace(sqlDate, "{{schema}}", h.Config.DbSchema, 1)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
+	sql = strings.Replace(insertDateQuery, "{{schema}}", h.DbSchema, 1)
 
 	for _, d := range incomingEvent.Dates {
+		if d.VenueId != nil {
+			// Check if user can create an event in 'd.VenueId'
+			venuePermissions, err := h.GetUserVenuePermissions(
+				gc, tx, userId, *incomingEvent.OrganizerId, *d.VenueId)
+			if err != nil {
+				gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			if venuePermissions.Has(app.PermChooseVenue) {
+				gc.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})
+				return
+			}
+
+			if d.SpaceId != nil {
+				spaceOK, err := h.IsSpaceInVenue(gc, tx, *d.SpaceId, *d.VenueId)
+				if err != nil {
+					gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
+				if !spaceOK {
+					gc.JSON(http.StatusInternalServerError, gin.H{"error": "invalid venue/space combination"})
+					return
+				}
+			}
+		}
+
 		_, err = tx.Exec(
 			ctx, sql,
 			eventId,
+			d.VenueId,
 			d.SpaceId,
 			d.StartDate,
 			d.StartTime,
@@ -302,6 +339,9 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			return
 		}
 	}
+
+	// TODO: languages
+	// TODO: tags
 
 	if err = tx.Commit(ctx); err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to commit transaction: %v", err)})

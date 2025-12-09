@@ -266,9 +266,6 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	order := "ORDER BY (ed.start_date + COALESCE(ed.start_time, '00:00:00'::time)) ASC, e.id ASC"
 	query = strings.Replace(query, "{{order}}", order, 1)
 
-	fmt.Printf("query ...................................... \n%s\n", query)
-	fmt.Printf("Args ...................................... \n%#v\n", args) // prints slice with types and values
-
 	rows, err := pool.Query(ctx, query, args...)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -306,8 +303,15 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		EventDateCount int    `json:"event_date_count"`
 	}
 
+	type OrganizerSummary struct {
+		ID             int    `json:"id"`
+		Name           string `json:"name"`
+		EventDateCount int    `json:"event_date_count"`
+	}
+
 	typeCount := make(map[int]TypeCountEntry)
 	venueMap := make(map[int]*VenueSummary)
+	organizerMap := make(map[int]*OrganizerSummary)
 
 	for rows.Next() {
 		values, err := rows.Values()
@@ -372,6 +376,24 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			typeCount[et.TypeID] = entry
 		}
 
+		// Organizer summary
+		organizerId, ok := ToInt(rowMap["organizer_id"])
+		if ok {
+			organizerName, _ := rowMap["organizer_name"].(string)
+
+			// Initialize organizer summary if not yet present
+			if _, exists := organizerMap[organizerId]; !exists {
+				organizerMap[organizerId] = &OrganizerSummary{
+					ID:             organizerId,
+					Name:           organizerName,
+					EventDateCount: 0,
+				}
+			}
+
+			// Increment event count for this organizer
+			organizerMap[organizerId].EventDateCount++
+		}
+
 		// Venue summary
 		venueId, ok := ToInt(rowMap["venue_id"])
 		if ok {
@@ -419,6 +441,12 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	// Total number of events
 	totalEvents := len(results)
 
+	// Organizer summary
+	organizerSummary := make([]OrganizerSummary, 0, len(organizerMap))
+	for _, summary := range organizerMap {
+		organizerSummary = append(organizerSummary, *summary)
+	}
+
 	// Venues summary
 	venuesSummary := make([]VenueSummary, 0, len(venueMap))
 	for _, summary := range venueMap {
@@ -434,6 +462,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	if isTypeSummaryMode {
 		response["total"] = totalEvents
 		response["type_summary"] = typeSummary
+		response["organizer_summary"] = organizerSummary
 		response["venues_summary"] = venuesSummary
 
 	} else {
