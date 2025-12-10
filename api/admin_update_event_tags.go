@@ -8,6 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO: Review code
+
 type UpdateEventTagsRequest struct {
 	Tags []string `json:"tags" binding:"required"`
 }

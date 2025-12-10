@@ -14,6 +14,8 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
+// TODO: Review code
+
 type TeamInviteClaims struct {
 	UserId      int `json:"user_id"`
 	OrganizerId int `json:"organizer_id"`

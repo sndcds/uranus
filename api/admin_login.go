@@ -12,6 +12,8 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
+// TODO: Review code
+
 func (h *ApiHandler) Login(gc *gin.Context) {
 	pool := h.DbPool
 	var credentials struct {

@@ -8,6 +8,8 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
+// TODO: Review code
+
 func (h *ApiHandler) GetChoosableLegalForms(gc *gin.Context) {
 	db := app.Singleton.MainDbPool
 	ctx := gc.Request.Context()

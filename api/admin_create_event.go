@@ -16,6 +16,8 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
+// TODO: Review code
+
 type EventIncomingLocation struct {
 	Name        *string `json:"name"`
 	Description *string `json:"description" binding:"required"`
@@ -172,20 +174,19 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		return
 	}
 	if !organizerPermissions.HasAll(app.PermChooseAsEventOrganizer | app.PermAddEvent) {
-		gc.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions 1"})
+		gc.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})
 		return
 	}
 
 	// Check if user can create an event in 'incomingEvent.VenueId'
 	if incomingEvent.VenueId != nil {
-		venuePermissions, err := h.GetUserVenuePermissions(
-			gc, tx, userId, *incomingEvent.OrganizerId, *incomingEvent.VenueId)
+		venuePermissions, err := h.GetUserVenuePermissions(gc, tx, userId, *incomingEvent.VenueId)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 		if !venuePermissions.Has(app.PermChooseVenue) {
-			gc.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions 2"})
+			gc.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})
 			return
 		}
 	}
@@ -284,14 +285,13 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	for _, d := range incomingEvent.Dates {
 		if d.VenueId != nil {
 			// Check if user can create an event in 'd.VenueId'
-			venuePermissions, err := h.GetUserVenuePermissions(
-				gc, tx, userId, *incomingEvent.OrganizerId, *d.VenueId)
+			venuePermissions, err := h.GetUserVenuePermissions(gc, tx, userId, *d.VenueId)
 			if err != nil {
 				gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
 			if !venuePermissions.Has(app.PermChooseVenue) {
-				gc.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions 3"})
+				gc.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})
 				return
 			}
 

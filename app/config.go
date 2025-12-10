@@ -4,6 +4,8 @@ import (
 	"fmt"
 )
 
+// TODO: Review code
+
 // Config holds database configuration details
 type Config struct {
 	Verbose                 bool     `json:"verbose"`

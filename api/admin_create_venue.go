@@ -12,6 +12,8 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
+// TODO: Review code
+
 func (h *ApiHandler) AdminCreateVenue(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	db := h.DbPool

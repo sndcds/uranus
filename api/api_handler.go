@@ -5,6 +5,8 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
+// TODO: Review code
+
 type ApiHandler struct {
 	Config   *app.Config
 	DbPool   *pgxpool.Pool

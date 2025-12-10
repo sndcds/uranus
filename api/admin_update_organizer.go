@@ -7,6 +7,8 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
+// TODO: Review code
+
 type OrganizerUpdateRequest struct {
 	Name               string   `json:"name"`
 	Description        *string  `json:"description"`

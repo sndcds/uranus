@@ -7,6 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO: Review code
+
 func (h *ApiHandler) GetChoosableReleaseStates(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	db := h.DbPool

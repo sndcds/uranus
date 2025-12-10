@@ -8,6 +8,8 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
+// TODO: Review code
+
 func (h *ApiHandler) GetEvent(gc *gin.Context) {
 	// TODO: Implement
 	// Must return an event with all its dates

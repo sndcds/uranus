@@ -6,7 +6,10 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sndcds/uranus/app"
 )
+
+// TODO: Review code
 
 func (h *ApiHandler) AdminSendMessage(gc *gin.Context) {
 	ctx := gc.Request.Context()
@@ -49,7 +52,7 @@ func (h *ApiHandler) AdminSendMessage(gc *gin.Context) {
 
 		fmt.Println(sql)
 		fmt.Println("organizerId:", organizerId)
-		rows, err := tx.Query(ctx, sql, organizerId, 1<<PermissionBitCanReceiveOrganizerMessages)
+		rows, err := tx.Query(ctx, sql, organizerId, app.PermCanReceiveOrganizerMsgs)
 		if err != nil {
 			gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("database query failed: %v", err)})
 			return

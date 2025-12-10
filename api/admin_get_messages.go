@@ -8,6 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO: Review code
+
 func (h *ApiHandler) AdminGetMessages(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	pool := h.DbPool

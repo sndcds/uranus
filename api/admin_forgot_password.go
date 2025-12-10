@@ -17,6 +17,8 @@ import (
 	"golang.org/x/net/idna"
 )
 
+// TODO: Review code
+
 func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 	var req struct {
 		EmailAddress string `json:"email"`

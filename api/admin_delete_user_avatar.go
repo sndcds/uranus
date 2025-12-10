@@ -9,6 +9,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO: Review code
+
 func (h *ApiHandler) AdminDeleteUserAvatar(gc *gin.Context) {
 	userId := gc.GetInt("user-id")
 

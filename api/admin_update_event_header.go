@@ -8,6 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO: Review code
+
 // Payload for updating title, subtitle, and description
 type UpdateEventRequest struct {
 	Title    string  `json:"title" binding:"required"`

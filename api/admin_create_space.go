@@ -8,6 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO: Review code
+
 func (h *ApiHandler) AdminCreateSpace(gc *gin.Context) {
 	pool := h.DbPool
 	ctx := gc.Request.Context()

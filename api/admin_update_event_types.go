@@ -8,6 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO: Review code
+
 type UpdateEventTypesRequest struct {
 	Types []struct {
 		TypeId  int  `json:"type_id" binding:"required"`

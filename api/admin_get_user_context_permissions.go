@@ -7,6 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO: Review code
+
 type BitStatus struct {
 	Bit     int  `json:"bit"`
 	Enabled bool `json:"enabled"`

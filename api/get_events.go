@@ -13,6 +13,8 @@ import (
 	"github.com/sndcds/uranus/sql_utils"
 )
 
+// TODO: Review code
+
 func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	pool := h.DbPool
@@ -75,8 +77,6 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	ageStr, _ := GetContextParam(gc, "age")
 	offsetStr, _ := GetContextParam(gc, "offset")
 	limitStr, _ := GetContextParam(gc, "limit")
-
-	// TODO: offset, limit
 
 	eventDateConditions := ""
 	var conditions []string
@@ -377,7 +377,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		}
 
 		// Organizer summary
-		organizerId, ok := ToInt(rowMap["organizer_id"])
+		organizerId, ok := app.ToInt(rowMap["organizer_id"])
 		if ok {
 			organizerName, _ := rowMap["organizer_name"].(string)
 
@@ -395,7 +395,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		}
 
 		// Venue summary
-		venueId, ok := ToInt(rowMap["venue_id"])
+		venueId, ok := app.ToInt(rowMap["venue_id"])
 		if ok {
 			venueName, _ := rowMap["venue_name"].(string)
 			venueCity, _ := rowMap["venue_city"].(string)

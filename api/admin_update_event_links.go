@@ -8,6 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO: Review code
+
 type updateEventLinksRequest struct {
 	Links []struct {
 		Url     string `json:"url"`

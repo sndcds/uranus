@@ -7,6 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO: Review code
+
 func (h *ApiHandler) GetChoosablePriceTypes(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	dbPool := h.DbPool

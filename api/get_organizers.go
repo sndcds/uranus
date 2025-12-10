@@ -9,6 +9,8 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
+// TODO: Review code
+
 type Organizer struct {
 	ID           int     `json:"id"`
 	Name         *string `json:"name"`

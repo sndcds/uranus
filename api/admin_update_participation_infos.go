@@ -8,6 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO: Review code
+
 type UpdateParticipationInfoRequest struct {
 	ParticipationInfo    *string  `json:"participation_info"`
 	MeetingPoint         *string  `json:"meeting_point"`

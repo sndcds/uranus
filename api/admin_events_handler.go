@@ -7,6 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO: Review code
+
 func AdminEventsHandler(gc *gin.Context) {
 	modeStr, _ := GetContextParam(gc, "mode")
 

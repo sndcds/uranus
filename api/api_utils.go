@@ -2,17 +2,16 @@ package api
 
 import (
 	"fmt"
-	"net/http"
 	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/sndcds/uranus/app"
 )
+
+// TODO: Review code
 
 // Package-level variables
 var (
@@ -73,17 +72,10 @@ func getPostFormIntPtr(gc *gin.Context, field string) (*int, error) {
 // Returns:
 //   - string: the value of the parameter, if found.
 //   - bool: true if the parameter was found in either query or form data and is non-empty; false otherwise.
-//
-// Example usage:
-//
-//	if val, ok := GetContextParam(c, "user_id"); ok {
-//	    // use val
-//	} else {
-//	    // handle required parameter
-//	}
 func GetContextParam(gc *gin.Context, name string) (string, bool) {
 	val, exists := gc.GetQuery(name)
 	if exists {
+
 		return val, true
 	}
 	val = gc.PostForm(name)
@@ -93,54 +85,8 @@ func GetContextParam(gc *gin.Context, name string) (string, bool) {
 	return "", false
 }
 
-func GetContextParameterAsInt(c *gin.Context, name string) (int, bool) {
-	valStr, ok := GetContextParam(c, name)
-	if !ok {
-		return 0, false
-	}
-	val, err := strconv.Atoi(valStr)
-	if err != nil {
-		return 0, false
-	}
-	return val, true
-}
-
-func GetOptionalIntQueryParam(c *gin.Context, param string, defaultVal int) (int, error) {
-	valStr := c.Query(param)
-	if valStr == "" {
-		return defaultVal, nil
-	}
-	return strconv.Atoi(valStr)
-}
-
-// StringToIntWithDefault converts a pointer to string 's' to an integer.
-// If 's' is nil or points to an empty string, it returns the provided default value and true.
-// If the conversion fails, it returns the default value and false.
-func StringToIntWithDefault(s *string, defaultValue int) (int, bool) {
-	if s == nil || *s == "" {
-		return defaultValue, true
-	}
-	val, err := strconv.Atoi(*s)
-	if err != nil {
-		return defaultValue, false
-	}
-	return val, true
-}
-
-func InternalServerErrorAnswer(gc *gin.Context, err error) bool {
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{
-			"message": fmt.Sprintf("Uranus server error: 500 (InternalServerError) %s .. %s",
-				gc.FullPath(),
-				err.Error()),
-		})
-		return true
-	}
-	return false
-}
-
+// Get the Authorization header
 func UserIdFromAccessToken(gc *gin.Context) int {
-	// Get the Authorization header
 	authHeader := gc.GetHeader("Authorization")
 	if authHeader == "" {
 		return -1
@@ -164,116 +110,4 @@ func UserIdFromAccessToken(gc *gin.Context) int {
 	}
 
 	return claims.UserId
-}
-
-// ToInt converts an interface{} to int safely.
-// Returns the int value and true if successful, false otherwise.
-func ToInt(value interface{}) (int, bool) {
-	switch v := value.(type) {
-	case int:
-		return v, true
-	case int8:
-		return int(v), true
-	case int16:
-		return int(v), true
-	case int32:
-		return int(v), true
-	case int64:
-		return int(v), true
-	case uint:
-		return int(v), true
-	case uint8:
-		return int(v), true
-	case uint16:
-		return int(v), true
-	case uint32:
-		return int(v), true
-	case uint64:
-		return int(v), true
-	case float32:
-		return int(v), true
-	case float64:
-		return int(v), true
-	default:
-		fmt.Printf("ToInt: unexpected type %T for value %#v\n", value, value)
-		return 0, false
-	}
-}
-
-// GetUserOrganizerPermissions returns the permissions a user has for an organizer.
-func (h *ApiHandler) GetUserOrganizerPermissions(
-	gc *gin.Context,
-	tx pgx.Tx,
-	userId int,
-	organizerId int,
-) (app.Permission, error) {
-	ctx := gc.Request.Context()
-	var result pgtype.Int8
-
-	err := tx.QueryRow(
-		ctx, app.Singleton.SqlGetUserOrganizerPermissions,
-		userId, organizerId,
-	).Scan(&result)
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			return 0, nil
-		}
-		return 0, err
-	}
-
-	if !result.Valid {
-		return 0, nil
-	}
-	return app.Permission(result.Int64), nil
-}
-
-// GetUserVenuePermissions returns the permissions a user has for a venue.
-func (h *ApiHandler) GetUserVenuePermissions(
-	gc *gin.Context,
-	tx pgx.Tx,
-	userId int,
-	organizerId int,
-	venueId int,
-) (app.Permission, error) {
-	ctx := gc.Request.Context()
-	var result pgtype.Int8
-
-	err := tx.QueryRow(
-		ctx, app.Singleton.SqlGetUserVenuePermissions,
-		userId,
-		organizerId,
-		venueId,
-	).Scan(&result)
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			return 0, nil
-		}
-		return 0, err
-	}
-
-	if !result.Valid {
-		return 0, nil
-	}
-	return app.Permission(result.Int64), nil
-}
-
-func (h *ApiHandler) IsSpaceInVenue(
-	gc *gin.Context,
-	tx pgx.Tx,
-	spaceId int,
-	venueId int,
-) (bool, error) {
-	ctx := gc.Request.Context()
-	var result bool
-	query := fmt.Sprintf(
-		`SELECT EXISTS (SELECT 1 FROM uranus.space WHERE id = $1 AND venue_id = $2) AS space_exist`,
-		h.DbSchema)
-	err := tx.QueryRow(ctx, query, spaceId, venueId).Scan(&result)
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			return false, nil
-		}
-		return false, err
-	}
-	return result, nil
 }

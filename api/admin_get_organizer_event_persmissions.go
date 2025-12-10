@@ -11,6 +11,8 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
+// TODO: Review code
+
 func (h *ApiHandler) AdminGetOrganizerAddEventPermission(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	pool := h.DbPool

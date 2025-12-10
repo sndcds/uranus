@@ -8,6 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO: Review code
+
 type UpdateEventLanguagesRequest struct {
 	Languages []string `json:"languages" binding:"required"`
 }

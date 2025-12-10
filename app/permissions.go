@@ -2,6 +2,8 @@ package app
 
 type Permission uint64
 
+// TODO: Review code
+
 const (
 	// Organizer permissions
 	PermEditOrganizer           Permission = 1 << 0
@@ -29,6 +31,8 @@ const (
 	PermDeleteEvent       Permission = 1 << 26
 	PermReleaseEvent      Permission = 1 << 27
 	PermViewEventInsights Permission = 1 << 28
+
+	PermCombinationAdmin = 0b00011111000001110000111100111111
 )
 
 func (p Permission) Has(flag Permission) bool {

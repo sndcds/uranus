@@ -9,12 +9,11 @@ import (
 )
 
 func (h *ApiHandler) AdminGetChoosableOrganizers(gc *gin.Context) {
-	db := h.DbPool
 	ctx := gc.Request.Context()
 	userId := gc.GetInt("user-id")
 
-	sql := app.Singleton.SqlAdminChoosableOrganizers
-	rows, err := db.Query(ctx, sql, userId)
+	query := app.Singleton.SqlAdminChoosableOrganizers
+	rows, err := h.DbPool.Query(ctx, query, userId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -29,16 +28,14 @@ func (h *ApiHandler) AdminGetChoosableOrganizers(gc *gin.Context) {
 	var organizers []Organizer
 
 	for rows.Next() {
-		var ueo Organizer
-		if err := rows.Scan(
-			&ueo.Id,
-			&ueo.Name,
-		); err != nil {
+		var organizer Organizer
+		err := rows.Scan(&organizer.Id, &organizer.Name)
+		if err != nil {
 			fmt.Println(err.Error())
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		organizers = append(organizers, ueo)
+		organizers = append(organizers, organizer)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -47,8 +44,7 @@ func (h *ApiHandler) AdminGetChoosableOrganizers(gc *gin.Context) {
 	}
 
 	if len(organizers) == 0 {
-		// It's better to return an empty array instead of 204 so clients can safely parse it.
-		gc.JSON(http.StatusOK, []Organizer{})
+		gc.JSON(http.StatusOK, []Organizer{}) // Returns empty array
 		return
 	}
 

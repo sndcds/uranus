@@ -15,6 +15,8 @@ import (
 	"github.com/sndcds/pluto"
 )
 
+// TODO: Review code
+
 func (h *ApiHandler) AdminUpdateEventTeaserImage(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	pool := h.DbPool

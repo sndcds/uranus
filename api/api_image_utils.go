@@ -7,6 +7,8 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+// TODO: Review code
+
 // GetEventImageField returns the event table column name for a given imageIndex (1-8)
 func GetEventImageField(imageIndex int) (string, error) {
 	columns := map[int]string{
@@ -28,24 +30,18 @@ func GetEventImageField(imageIndex int) (string, error) {
 }
 
 func (h *ApiHandler) updateEventImage(
-	gc *gin.Context,
-	tx pgx.Tx,
-	eventId int,
-	imageIndex int,
-	imageId int) error {
+	gc *gin.Context, tx pgx.Tx, eventId int, imageIndex int, imageId int) error {
 	ctx := gc.Request.Context()
+
 	fieldName, err := GetEventImageField(imageIndex)
 	if err != nil {
 		return err
 	}
 
-	sql := fmt.Sprintf(`
-        UPDATE %s.event
-        SET %s = $1, modified_at = CURRENT_TIMESTAMP
-        WHERE id = $2
-    `, h.DbSchema, fieldName)
-
-	_, err = tx.Exec(ctx, sql, imageId, eventId)
+	query := fmt.Sprintf(`
+        UPDATE %s.event SET %s = $1, modified_at = CURRENT_TIMESTAMP WHERE id = $2`,
+		h.DbSchema, fieldName)
+	_, err = tx.Exec(ctx, query, imageId, eventId)
 	if err != nil {
 		return fmt.Errorf("Failed to update image")
 	}
@@ -53,14 +49,11 @@ func (h *ApiHandler) updateEventImage(
 	return nil
 }
 
-// GetEventImageId fetches the image ID for a given event and imageIndex using a transaction.
+// GetEventImageId fetches the image ID for a given event and imageIndex
 func (h *ApiHandler) GetEventImageId(
-	gc *gin.Context,
-	tx pgx.Tx,
-	eventId int,
-	imageIndex int,
-) (int, error) {
+	gc *gin.Context, tx pgx.Tx, eventId int, imageIndex int) (int, error) {
 	ctx := gc.Request.Context()
+
 	fieldName, err := GetEventImageField(imageIndex)
 	if err != nil {
 		return 0, err

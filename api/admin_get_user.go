@@ -9,6 +9,8 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+// TODO: Review code
+
 func (h *ApiHandler) AdminGetUser(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	pool := h.DbPool

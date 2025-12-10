@@ -9,6 +9,8 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
+// TODO: Review code
+
 func (h *ApiHandler) AdminCreateOrganizer(gc *gin.Context) {
 	pool := h.DbPool
 	ctx := gc.Request.Context()
@@ -83,7 +85,7 @@ func (h *ApiHandler) AdminCreateOrganizer(gc *gin.Context) {
 	`
 	insertLinkQuery = strings.Replace(insertLinkQuery, "{{schema}}", h.Config.DbSchema, 1)
 
-	_, err = tx.Exec(gc, insertLinkQuery, userId, newId, PermissionAdmin)
+	_, err = tx.Exec(gc, insertLinkQuery, userId, newId, app.PermCombinationAdmin)
 	if err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("insert user_organizer_link failed: %v", err)})
 		return

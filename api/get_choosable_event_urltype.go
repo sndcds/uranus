@@ -7,6 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO: Review code
+
 func (h *ApiHandler) GetChoosableEventUrlTypes(gc *gin.Context) {
 	db := h.DbPool
 	ctx := gc.Request.Context()

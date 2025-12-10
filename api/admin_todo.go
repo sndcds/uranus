@@ -11,6 +11,8 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+// TODO: Review code
+
 /*
 adminRoute.POST("/todo", apiHandler.AdminCreateTodo)
 adminRoute.PUT("/todo/:todoId", apiHandler.AdminUpdateTodo)

@@ -8,6 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO: Review code
+
 type ImageMetadata struct {
 	UserID      int
 	LicenseId   int

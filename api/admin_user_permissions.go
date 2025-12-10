@@ -7,6 +7,8 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
+// TODO: Review code
+
 func (h *ApiHandler) AdminUserPermissions(gc *gin.Context) {
 	db := h.DbPool
 	ctx := gc.Request.Context()

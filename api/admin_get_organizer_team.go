@@ -13,6 +13,8 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
+// TODO: Review code
+
 func (h *ApiHandler) AdminGetOrganizerTeam(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	pool := h.DbPool

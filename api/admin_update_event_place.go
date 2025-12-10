@@ -9,6 +9,8 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+// TODO: Review code
+
 func (h *ApiHandler) AdminUpdateEventPlace(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	dbPool := h.DbPool

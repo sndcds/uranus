@@ -8,6 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO: Review code
+
 type UpdateEventTeaserRequest struct {
 	TeaserText string `json:"teaser_text" binding:"required"`
 }

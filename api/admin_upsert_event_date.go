@@ -7,6 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO: Review code
+
 type EventDateLocationInput struct {
 	Name        *string  `json:"name"`
 	Street      *string  `json:"street"`

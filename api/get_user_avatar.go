@@ -12,6 +12,8 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
+// TODO: Review code
+
 func (h *ApiHandler) GetUserAvatar(gc *gin.Context) {
 	userIdStr := gc.Param("userId")
 	sizeStr := gc.Param("size")

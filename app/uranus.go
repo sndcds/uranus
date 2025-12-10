@@ -10,15 +10,15 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"regexp"
 	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5" // PostgreSQL driver
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"golang.org/x/crypto/bcrypt"
 )
+
+// TODO: Review code
 
 type Uranus struct {
 	Version                                string
@@ -190,7 +190,6 @@ func strPtr(s string) *string {
 }
 
 func (app *Uranus) PrepareSql() error {
-
 	queries := []SqlQueryItem{
 		// Public
 		{"queries/get-event.sql", &app.SqlGetEvent, nil},
@@ -277,52 +276,12 @@ func (app *Uranus) CloseAllDBs() {
 	}
 }
 
-// EncryptPassword hashes a password and returns the hashed string along with any error
-func EncryptPassword(password string) (string, error) {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 12) // bcrypt.DefaultCost
-	if err != nil {
-		return "", err // Return an empty string and the error
-	}
-	return string(hashedPassword), nil // Return the hashed password and nil error
-}
-
-// ComparePasswords compares a plain password with a bcrypt hash
-func ComparePasswords(storedHash, password string) error {
-	// Compare the plain password to the bcrypt hash
-	return bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(password))
-}
-
 func ReadSVG(path string) string {
 	svgContent, err := os.ReadFile(path)
 	if err != nil {
 		return ""
 	}
 	return string(svgContent)
-}
-
-// TruncateAtWord truncates the string at the word boundary
-func TruncateAtWord(s string, maxLength int) string {
-	if len(s) <= maxLength {
-		return s
-	}
-	words := strings.Fields(s)
-	var truncated string
-	for _, word := range words {
-		// Add the word and a space if it doesn't exceed the max length
-		if len(truncated)+len(word)+1 <= maxLength {
-			if truncated == "" {
-				truncated = word
-			} else {
-				truncated += " " + word
-			}
-		} else {
-			break
-		}
-	}
-	if len(truncated) < len(s) {
-		truncated += " ..."
-	}
-	return truncated
 }
 
 // Function to convert database errors to HTTP status codes
@@ -401,17 +360,4 @@ func SqlNullBoolToString(nb sql.NullBool) string {
 		return fmt.Sprintf("%t", nb.Bool)
 	}
 	return "NULL" // Return "NULL" if NULL
-}
-
-func IsValidDateStr(dateStr string) bool {
-	_, err := time.Parse("2006-01-02", dateStr)
-	return err == nil
-}
-
-func IsValidIso639_1(languageStr string) bool {
-	if languageStr != "" {
-		match, _ := regexp.MatchString("^[a-z]{2}$", languageStr)
-		return match
-	}
-	return false
 }

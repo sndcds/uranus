@@ -8,6 +8,8 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
+// TODO: Review code
+
 func (h *ApiHandler) GetChoosableEventGenres(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	db := app.Singleton.MainDbPool

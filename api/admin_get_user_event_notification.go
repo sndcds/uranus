@@ -8,6 +8,8 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
+// TODO: Review code
+
 type EventNotification struct {
 	EventId           int        `json:"event_id"`
 	EventTitle        string     `json:"event_title"`

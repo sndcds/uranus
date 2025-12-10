@@ -7,6 +7,8 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
+// TODO: Review code
+
 type SpaceUpdateRequest struct {
 	VenueID              *int    `json:"venue_id"`
 	Name                 *string `json:"name"`

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -17,7 +16,6 @@ import (
 // authentication or specific permissions.
 func (h *ApiHandler) AdminChoosableUserEventOrganizers(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	db := h.DbPool
 	userId := gc.GetInt("user-id")
 
 	// Parse organizer ID from path param
@@ -28,8 +26,8 @@ func (h *ApiHandler) AdminChoosableUserEventOrganizers(gc *gin.Context) {
 		return
 	}
 
-	sql := app.Singleton.SqlAdminChoosableUserEventOrganizers
-	rows, err := db.Query(ctx, sql, userId, organizerId)
+	query := app.Singleton.SqlAdminChoosableUserEventOrganizers
+	rows, err := h.DbPool.Query(ctx, query, userId, organizerId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -45,20 +43,14 @@ func (h *ApiHandler) AdminChoosableUserEventOrganizers(gc *gin.Context) {
 
 	var organizers []Organizer
 
-	fmt.Println("organizerId:", organizerId)
 	for rows.Next() {
-		var ueo Organizer
-		if err := rows.Scan(
-			&ueo.Id,
-			&ueo.Name,
-			&ueo.City,
-			&ueo.CountryCode,
-		); err != nil {
-			fmt.Println(err.Error())
+		var organizer Organizer
+		err := rows.Scan(&organizer.Id, &organizer.Name, &organizer.City, &organizer.CountryCode)
+		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		organizers = append(organizers, ueo)
+		organizers = append(organizers, organizer)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -67,8 +59,7 @@ func (h *ApiHandler) AdminChoosableUserEventOrganizers(gc *gin.Context) {
 	}
 
 	if len(organizers) == 0 {
-		// It's better to return an empty array instead of 204 so clients can safely parse it.
-		gc.JSON(http.StatusOK, []Organizer{})
+		gc.JSON(http.StatusOK, []Organizer{}) // Returns empty array
 		return
 	}
 

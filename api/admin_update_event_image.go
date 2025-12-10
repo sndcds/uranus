@@ -17,6 +17,8 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
+// TODO: Review code
+
 type exifWalker struct {
 	m map[string]string
 }

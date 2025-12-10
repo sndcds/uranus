@@ -10,6 +10,8 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
+// TODO: Review code
+
 func (h *ApiHandler) AdminGetOrganizerEvents(gc *gin.Context) {
 	pool := h.DbPool
 	ctx := gc.Request.Context()

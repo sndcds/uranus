@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+// TODO: Review code
+
 // RemoveFile deletes a file at the given path.
 // Returns an error if the file cannot be deleted.
 func RemoveFile(path string) error {

@@ -11,6 +11,8 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
+// TODO: Review code
+
 func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 	pool := h.DbPool
 	ctx := gc.Request.Context()

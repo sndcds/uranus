@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -10,11 +9,10 @@ import (
 
 func (h *ApiHandler) AdminChoosableUserVenuesSpaces(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	db := h.DbPool
 	userId := gc.GetInt("user-id")
 
-	sql := app.Singleton.SqlAdminChoosableUserVenuesSpaces
-	rows, err := db.Query(ctx, sql, userId)
+	query := app.Singleton.SqlAdminChoosableUserVenuesSpaces
+	rows, err := h.DbPool.Query(ctx, query, userId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -34,15 +32,14 @@ func (h *ApiHandler) AdminChoosableUserVenuesSpaces(gc *gin.Context) {
 
 	for rows.Next() {
 		var place Place
-		if err := rows.Scan(
+		err := rows.Scan(
 			&place.VenueId,
 			&place.VenueName,
 			&place.SpaceId,
 			&place.SpaceName,
 			&place.City,
-			&place.CountryCode,
-		); err != nil {
-			fmt.Println(err.Error())
+			&place.CountryCode)
+		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
@@ -55,8 +52,7 @@ func (h *ApiHandler) AdminChoosableUserVenuesSpaces(gc *gin.Context) {
 	}
 
 	if len(places) == 0 {
-		// It's better to return an empty array instead of 204 so clients can safely parse it.
-		gc.JSON(http.StatusOK, []Place{})
+		gc.JSON(http.StatusOK, []Place{}) // Returns empty array
 		return
 	}
 

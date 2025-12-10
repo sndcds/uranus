@@ -14,6 +14,8 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
+// TODO: Review code
+
 func (h *ApiHandler) Signup(gc *gin.Context) {
 	pool := h.DbPool
 
