@@ -1,4 +1,4 @@
-WITH event_dates AS (
+WITH event_date AS (
     SELECT
         ed.id AS event_date_id,
         ed.event_id,
@@ -20,45 +20,45 @@ event_type_data AS (
         ed.event_date_id,
         etd.type_id,
         et.name AS type_name
-    FROM event_dates ed
+    FROM event_date ed
     JOIN {{schema}}.event_type_link etd ON etd.event_id = ed.event_id
     JOIN {{schema}}.event_type et ON et.type_id = etd.type_id AND et.iso_639_1 = $1
 )
 SELECT json_build_object(
     'organizer_summary', (
-SELECT json_agg(organizer_summary)
-    FROM (
-        SELECT
-            ed.organizer_id AS id,
-            ed.organizer_name AS name,
-            COUNT(ed.event_date_id) AS event_date_count
-        FROM event_dates ed
-        GROUP BY ed.organizer_id, ed.organizer_name
-        ORDER BY name ASC
-    ) organizer_summary
-),
-'total', (SELECT COUNT(*) FROM event_dates),
-'type_summary', (
-    SELECT json_agg(type_summary)
-    FROM (
-        SELECT
-            COUNT(etd.event_date_id) AS count,
-            etd.type_id,
-            etd.type_name
-        FROM event_type_data etd
-        GROUP BY etd.type_id, etd.type_name
-        ORDER BY count DESC
-    ) type_summary
-),
-'venues_summary', (
-    SELECT json_agg(venue_summary)
+        SELECT json_agg(organizer_summary)
+        FROM (
+            SELECT
+                ed.organizer_id AS id,
+                ed.organizer_name AS name,
+                COUNT(ed.event_date_id) AS event_date_count
+            FROM event_date ed
+            GROUP BY ed.organizer_id, ed.organizer_name
+            ORDER BY name ASC
+        ) organizer_summary
+    ),
+    'total', (SELECT COUNT(*) FROM event_date),
+    'type_summary', (
+        SELECT json_agg(type_summary)
+        FROM (
+            SELECT
+                COUNT(etd.event_date_id) AS count,
+                etd.type_id,
+                etd.type_name
+            FROM event_type_data etd
+            GROUP BY etd.type_id, etd.type_name
+            ORDER BY count DESC
+        ) type_summary
+    ),
+    'venues_summary', (
+        SELECT json_agg(venue_summary)
         FROM (
             SELECT
                 ed.venue_id AS id,
                 ed.venue_name AS name,
                 ed.venue_city AS city,
                 COUNT(ed.event_date_id) AS event_date_count
-            FROM event_dates ed
+            FROM event_date ed
             WHERE ed.venue_id IS NOT NULL
             GROUP BY ed.venue_id, ed.venue_name, ed.venue_city
             ORDER BY name ASC

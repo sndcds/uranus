@@ -1,6 +1,10 @@
 package app
 
-import "strings"
+import (
+	"fmt"
+	"strconv"
+	"strings"
+)
 
 // TODO: Review code
 
@@ -27,4 +31,28 @@ func TruncateAtWord(s string, maxLength int) string {
 		truncated += " ..."
 	}
 	return truncated
+}
+
+func ParseIntSliceCSV(s string) ([]int, error) {
+	parts := strings.Split(s, ",")
+	ids := make([]int, 0, len(parts))
+
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+
+		id, err := strconv.Atoi(p)
+		if err != nil {
+			return nil, fmt.Errorf("invalid integer: %q", p)
+		}
+		ids = append(ids, id)
+	}
+
+	if len(ids) == 0 {
+		return nil, fmt.Errorf("no valid integers provided")
+	}
+
+	return ids, nil
 }

@@ -12,6 +12,7 @@ WITH event_data AS (
         ed.duration,
         ed.visitor_info_flags
     FROM {{schema}}.event_date ed
+    JOIN {{schema}}.event e ON e.id = ed.event_id
     {{event-date-conditions}}
 ),
 venue_data AS (

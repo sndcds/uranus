@@ -15,7 +15,6 @@ import (
 
 func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	pool := h.DbPool
 
 	var query string
 	var isTypeSummaryMode bool
@@ -65,7 +64,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	lonStr, _ := GetContextParam(gc, "lon")
 	latStr, _ := GetContextParam(gc, "lat")
 	radiusStr, _ := GetContextParam(gc, "radius")
-	// eventTypesStr, _ := GetContextParam(gc, "event_types") // Todo: must be refactored
+	eventTypesStr, _ := GetContextParam(gc, "event_types")
 	// genreTypesStr, _ := GetContextParam(gc, "genre_types") // Todo: must be refactored
 	spaceTypesStr, _ := GetContextParam(gc, "space_types")
 	titleStr, _ := GetContextParam(gc, "title")
@@ -77,6 +76,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	limitStr, _ := GetContextParam(gc, "limit")
 
 	eventDateConditions := ""
+	eventDateConditionCount := 0
 	var conditions []string
 	var args []interface{}
 	argIndex := 1 // Postgres uses $1, $2, etc.
@@ -96,6 +96,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 
 	if app.IsValidDateStr(startStr) {
 		eventDateConditions += "WHERE ed.start_date >= $" + strconv.Itoa(argIndex)
+		eventDateConditionCount++
 		args = append(args, startStr)
 		argIndex++
 	} else if startStr != "" {
@@ -103,11 +104,16 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	} else {
 		if !hasPast {
 			eventDateConditions += "WHERE ed.start_date >= CURRENT_DATE"
+			eventDateConditionCount++
 		}
 	}
 
 	if app.IsValidDateStr(endStr) {
-		eventDateConditions += " AND (ed.end_date <= $" + strconv.Itoa(argIndex) + " OR ed.start_date <= $" + strconv.Itoa(argIndex) + ")"
+		if eventDateConditionCount > 0 {
+			eventDateConditions += " AND "
+		}
+
+		eventDateConditions += "(ed.end_date <= $" + strconv.Itoa(argIndex) + " OR ed.start_date <= $" + strconv.Itoa(argIndex) + ")"
 		args = append(args, endStr)
 		argIndex++
 	} else if endStr != "" {
@@ -179,19 +185,29 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 
-	/* TODO: Handle event types and genres, must be refactored!
 	if eventTypesStr != "" {
-		format := "EXISTS (SELECT 1 FROM " + app.Singleton.Config.DbSchema + ".event_type_link sub_etl WHERE sub_etl.event_id = e.id AND sub_etl.type_id IN (%s))"
-		var err error
-		argIndex, err = sql_utils.BuildInCondition(eventTypesStr, format, "event_types", argIndex, &conditions, &args)
-		if err != nil {
-
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		if eventDateConditionCount > 0 {
+			eventDateConditions += " AND "
 		}
+
+		ids, err := app.ParseIntSliceCSV(eventTypesStr)
+		if err != nil {
+			gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		eventDateConditions +=
+			"EXISTS (SELECT 1 FROM " + h.DbSchema +
+				".event_type_link sub_etl WHERE sub_etl.event_id = e.id AND sub_etl.type_id = ANY($" +
+				strconv.Itoa(argIndex) + "))"
+
+		args = append(args, ids)
+		argIndex++
 	}
 
+	/* TODO: Handle event types and genres, must be refactored!
 	if genreTypesStr != "" {
-		format := "EXISTS (SELECT 1 FROM " + app.Singleton.Config.DbSchema + ".event_genre_link sub_egl WHERE sub_egl.event_id = e.id AND sub_egl.type_id IN (%s))"
+		format := "EXISTS (SELECT 1 FROM " + h.DbSchema + ".event_genre_link sub_egl WHERE sub_egl.event_id = e.id AND sub_egl.type_id IN (%s))"
 		var err error
 		argIndex, err = sql_utils.BuildInCondition(genreTypesStr, format, "genre_types", argIndex, &conditions, &args)
 		if err != nil {
@@ -249,7 +265,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	query = strings.Replace(query, "{{conditions}}", conditionsStr, 1)
 
 	if isTypeSummaryMode {
-		row := pool.QueryRow(ctx, query, args...)
+		row := h.DbPool.QueryRow(ctx, query, args...)
 
 		var jsonResult []byte
 		err := row.Scan(&jsonResult)
@@ -273,7 +289,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	order := "ORDER BY (ed.start_date + COALESCE(ed.start_time, '00:00:00'::time)) ASC, e.id ASC"
 	query = strings.Replace(query, "{{order}}", order, 1)
 
-	rows, err := pool.Query(ctx, query, args...)
+	rows, err := h.DbPool.Query(ctx, query, args...)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
