@@ -8,11 +8,11 @@ WITH event_dates AS (
         COALESCE(v_ed.name, v_e.name) AS venue_name,
         COALESCE(v_ed.city, v_e.city) AS venue_city
     FROM {{schema}}.event_date ed
-    JOIN {{schema}}.event e ON ed.event_id = e.id
+    JOIN {{schema}}.event e ON ed.event_id = e.id AND e.release_status_id >= 3
     JOIN {{schema}}.organizer o ON e.organizer_id = o.id
     LEFT JOIN {{schema}}.venue v_e ON e.venue_id = v_e.id
     LEFT JOIN {{schema}}.venue v_ed ON ed.venue_id = v_ed.id
-    WHERE e.release_status_id >= 3
+    {{event-date-conditions}}
 ),
 event_type_data AS (
     -- Deduplicate type per event per event_date
