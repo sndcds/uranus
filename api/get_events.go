@@ -248,24 +248,6 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	query = strings.Replace(query, "{{event-date-conditions}}", eventDateConditions, 1)
 	query = strings.Replace(query, "{{conditions}}", conditionsStr, 1)
 
-	// Add LIMIT and OFFSET
-	if isTypeSummaryMode {
-		fmt.Println("conditionsStr:", conditionsStr)
-		fmt.Println("query:", query)
-		fmt.Println("Query args:", args)
-	} else {
-		var limitClause string
-		limitClause, argIndex, err = sql_utils.BuildLimitOffsetClause(limitStr, offsetStr, argIndex, &args)
-		if err != nil {
-
-			gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		}
-		query = strings.Replace(query, "{{limit}}", limitClause, 1)
-
-		order := "ORDER BY (ed.start_date + COALESCE(ed.start_time, '00:00:00'::time)) ASC, e.id ASC"
-		query = strings.Replace(query, "{{order}}", order, 1)
-	}
-
 	if isTypeSummaryMode {
 		row := pool.QueryRow(ctx, query, args...)
 
@@ -279,6 +261,17 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		gc.Data(http.StatusOK, "application/json", jsonResult)
 		return
 	}
+
+	var limitClause string
+	limitClause, argIndex, err = sql_utils.BuildLimitOffsetClause(limitStr, offsetStr, argIndex, &args)
+	if err != nil {
+
+		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+	query = strings.Replace(query, "{{limit}}", limitClause, 1)
+
+	order := "ORDER BY (ed.start_date + COALESCE(ed.start_time, '00:00:00'::time)) ASC, e.id ASC"
+	query = strings.Replace(query, "{{order}}", order, 1)
 
 	rows, err := pool.Query(ctx, query, args...)
 	if err != nil {
