@@ -254,7 +254,7 @@ func BuildContainedInColumnRangeCondition(
 // Parameters:
 //   - idStr: A comma-separated list of integer values (e.g., "1,2,3").
 //   - expr: The SQL column or expression to match against (e.g., "user_id").
-//   - label: A human-readable label used in error messages (e.g., "DbUser ID").
+//   - label: A human-readable label used in error messages (e.g., "DbUser Id").
 //   - startIndex: The current argument index for SQL placeholder numbering.
 //   - conditions: A pointer to a slice of SQL condition strings to be appended to.
 //   - args: A pointer to a slice of arguments to be passed to the SQL query.

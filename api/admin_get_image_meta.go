@@ -15,7 +15,7 @@ func (h *ApiHandler) AdminGetImageMeta(gc *gin.Context) {
 
 	eventId, ok := ParamInt(gc, "eventId")
 	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "event ID is required"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "event Id is required"})
 		return
 	}
 

@@ -40,19 +40,14 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 
 	eventId, ok := ParamInt(gc, "eventId")
 	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "event ID is required"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "event Id is required"})
 		return
 	}
 
 	dateId, ok := ParamInt(gc, "dateId")
-	fmt.Println("dateId:", dateId)
 	if !ok {
 		dateId = -1 // New event date must be inserted
 	}
-	fmt.Println("dateId 2:", dateId)
-
-	fmt.Println("userId:", userId)
-	fmt.Println("eventId:", eventId)
 
 	// TODO: Check Permissions!
 
@@ -86,6 +81,17 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 			RETURNING id
 		`, h.Config.DbSchema)
 
+		fmt.Println("eventId:", eventId)
+		fmt.Println("incoming.VenueId:", incoming.VenueId)
+		fmt.Println("incoming.SpaceId:", incoming.SpaceId)
+		fmt.Println("incoming.StartDate:", incoming.StartDate)
+		fmt.Println("incoming.StartTime:", incoming.StartTime)
+		fmt.Println("incoming.EndDate:", incoming.EndDate)
+		fmt.Println("incoming.EndTime:", incoming.EndTime)
+		fmt.Println("entryTime:", entryTime)
+		fmt.Println("incoming.AllDay:", incoming.AllDay)
+		fmt.Println("userId:", userId)
+
 		var newEventDateId int
 		err = tx.QueryRow(ctx, insertSql,
 			eventId,
@@ -99,6 +105,7 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 			incoming.AllDay,
 			userId,
 		).Scan(&newEventDateId)
+		fmt.Println("newEventDateId:", newEventDateId)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to insert event date: %v", err)})
 			return

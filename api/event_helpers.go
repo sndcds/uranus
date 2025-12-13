@@ -23,7 +23,7 @@ func allIDsExist(gc *gin.Context, tx pgx.Tx, table string, ids []int) (bool, err
 	case "event_genre":
 		sql = fmt.Sprintf("SELECT COUNT(DISTINCT type_id) = $2 FROM %s.genre_type WHERE type_id = ANY($1)", schema)
 	default:
-		return false, fmt.Errorf("unsupported table for ID check: %s", table)
+		return false, fmt.Errorf("unsupported table for Id check: %s", table)
 	}
 
 	fmt.Println(sql)

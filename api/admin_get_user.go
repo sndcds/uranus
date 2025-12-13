@@ -17,7 +17,7 @@ func (h *ApiHandler) AdminGetUser(gc *gin.Context) {
 
 	userId, ok := ParamInt(gc, "userId")
 	if !ok {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "user ID required"})
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "user Id required"})
 		return
 	}
 

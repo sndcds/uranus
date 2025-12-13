@@ -7,27 +7,25 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/sndcds/uranus/app"
 )
-
-// TODO: Review code
 
 func (h *ApiHandler) AdminUpdateOrganizerMemberPermission(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	pool := h.DbPool
+	userId := gc.GetInt("user-id")
 
 	organizerId, ok := ParamInt(gc, "organizerId")
 	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid organizerId"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "organizer Id is required"})
 		return
 	}
 
 	memberId, ok := ParamInt(gc, "memberId")
 	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid memberId"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "memberID is required"})
 		return
 	}
 
-	// Parse incoming JSON: {"bit":24,"enabled":false}
 	var input struct {
 		Bit     int  `json:"bit"`
 		Enabled bool `json:"enabled"`
@@ -41,8 +39,27 @@ func (h *ApiHandler) AdminUpdateOrganizerMemberPermission(gc *gin.Context) {
 		return
 	}
 
+	// Begin transaction
+	tx, err := h.DbPool.Begin(ctx)
+	if err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to start transaction"})
+		return
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	// Check if user can manage member permissions as the organizer
+	organizerPermissions, err := h.GetUserOrganizerPermissions(gc, tx, userId, organizerId)
+	if err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if !organizerPermissions.HasAll(app.PermManagePermissions | app.PermManageTeam) {
+		gc.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})
+		return
+	}
+
 	// Perform the bitwise update
-	sql := fmt.Sprintf(`
+	query := fmt.Sprintf(`
 		UPDATE %s.user_organizer_link
 		SET permissions = CASE
 			WHEN $1 THEN permissions | (1::bigint << $2)
@@ -52,16 +69,20 @@ func (h *ApiHandler) AdminUpdateOrganizerMemberPermission(gc *gin.Context) {
 		RETURNING permissions`,
 		h.Config.DbSchema)
 
-	fmt.Println(sql)
-
 	var updatedPermissions int64
-	err := pool.QueryRow(ctx, sql, input.Enabled, input.Bit, memberId, organizerId).Scan(&updatedPermissions)
+	err = tx.QueryRow(ctx, query, input.Enabled, input.Bit, memberId, organizerId).
+		Scan(&updatedPermissions)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			gc.JSON(http.StatusNotFound, gin.H{"error": "member not found"})
-		} else {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
 		}
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to commit transaction: %v", err)})
 		return
 	}
 

@@ -18,13 +18,13 @@ func (h *ApiHandler) AdminDeleteSpace(gc *gin.Context) {
 
 	spaceIdStr := gc.Param("spaceId")
 	if spaceIdStr == "" {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Space ID is required"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "Space Id is required"})
 		return
 	}
 
 	spaceId, err := strconv.Atoi(spaceIdStr)
 	if err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid space ID"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid space Id"})
 		return
 	}
 

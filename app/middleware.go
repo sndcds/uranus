@@ -42,7 +42,7 @@ func JWTMiddleware(gc *gin.Context) {
 		return
 	}
 	if claims.UserId < 0 {
-		gc.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid user ID"})
+		gc.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid user Id"})
 	}
 
 	// 4. Store claims for downstream handlers

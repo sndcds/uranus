@@ -33,7 +33,7 @@ func (h *ApiHandler) AdminUpdateVenue(gc *gin.Context) {
 
 	venueId := gc.Param("venueId")
 	if venueId == "" {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Venue ID is required"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "Venue Id is required"})
 		return
 	}
 

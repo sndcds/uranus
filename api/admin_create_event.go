@@ -6,11 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
-	"net/url"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sndcds/uranus/app"
@@ -18,7 +15,7 @@ import (
 
 // TODO: Review code
 
-type EventIncomingLocation struct {
+type incomingLocation struct {
 	Name        *string `json:"name"`
 	Description *string `json:"description" binding:"required"`
 	Street      string  `json:"street" binding:"required"`
@@ -31,12 +28,12 @@ type EventIncomingLocation struct {
 	Longitude   float64 `json:"longitude"`
 }
 
-type EventIncomingTypeGenrePair struct {
+type incomingTypeGenrePair struct {
 	TypeId  int  `json:"type_id" binding:"required"`
 	GenreId *int `json:"genre_id"`
 }
 
-type EventIncomingDate struct {
+type incomingEventDate struct {
 	StartDate string  `json:"start_date" binding:"required"`
 	StartTime string  `json:"start_time" binding:"required"`
 	EndDate   *string `json:"end_date"`
@@ -47,7 +44,7 @@ type EventIncomingDate struct {
 	AllDay    *bool   `json:"all_day"`
 }
 
-type EventDataIncoming struct {
+type incomingEvent struct {
 	Title                string   `json:"title" binding:"required"`
 	Description          string   `json:"description" binding:"required"`
 	Subtitle             *string  `json:"subtitle"`
@@ -76,9 +73,9 @@ type EventDataIncoming struct {
 	ReleaseStatusId      *int     `json:"release_status_id"`
 	ReleaseDate          *string  `json:"release_date"`
 
-	Location       *EventIncomingLocation       `json:"location"`
-	Dates          []EventIncomingDate          `json:"dates" binding:"required"`
-	TypeGenrePairs []EventIncomingTypeGenrePair `json:"types"`
+	Location       *incomingLocation       `json:"location"`
+	Dates          []incomingEventDate     `json:"dates" binding:"required"`
+	TypeGenrePairs []incomingTypeGenrePair `json:"types"`
 }
 
 func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
@@ -107,40 +104,35 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		return
 	}
 
-	var incomingEvent EventDataIncoming
-	if err := json.Unmarshal(body, &incomingEvent); err != nil {
-		var ute *json.UnmarshalTypeError
-		var se *json.SyntaxError
-		var iue *json.InvalidUnmarshalError
+	var incomingEvent incomingEvent
+	err = json.Unmarshal(body, &incomingEvent)
+	if err != nil {
+		var unmarshalTypeError *json.UnmarshalTypeError
+		var syntaxErr *json.SyntaxError
+		var invalidUnmarshalError *json.InvalidUnmarshalError
 
 		switch {
-		case errors.As(err, &se):
+		case errors.As(err, &syntaxErr):
 			gc.JSON(http.StatusBadRequest, gin.H{
-				"error": fmt.Sprintf("invalid JSON syntax (at offset %d)", se.Offset),
+				"error": fmt.Sprintf("invalid JSON syntax (at offset %d)", syntaxErr.Offset),
 			})
 			return
-
-		case errors.As(err, &ute):
-			field := ute.Field
+		case errors.As(err, &unmarshalTypeError):
+			field := unmarshalTypeError.Field
 			if field == "" {
 				field = "(unknown field)"
 			}
 			gc.JSON(http.StatusBadRequest, gin.H{
-				"error": fmt.Sprintf("invalid type for field %q: expected %v but got %v", field, ute.Type, ute.Value),
+				"error": fmt.Sprintf("invalid type for field %q: expected %v but got %v", field, unmarshalTypeError.Type, unmarshalTypeError.Value),
 				"hint":  "check numeric and boolean values — don't quote numbers or booleans",
 			})
 			return
-
 		case errors.Is(err, io.EOF):
 			gc.JSON(http.StatusBadRequest, gin.H{"error": "empty request body"})
 			return
-
-		case errors.As(err, &iue):
-			// This is a programming bug, not client error
-			log.Printf("Internal unmarshal error: %v", err)
+		case errors.As(err, &invalidUnmarshalError):
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 			return
-
 		default:
 			gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -155,7 +147,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	}
 
 	if incomingEvent.OrganizerId == nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "organizer ID is required"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "organizer Id is required"})
 		return
 	}
 
@@ -353,7 +345,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	gc.JSON(http.StatusCreated, gin.H{"event_id": eventId})
 }
 
-func (e *EventDataIncoming) printDebug() {
+func (e *incomingEvent) printDebug() {
 	fmt.Println("VenueId:", e.VenueId)
 	if e.SpaceId != nil {
 		fmt.Println("SpaceId:", *e.SpaceId)
@@ -396,8 +388,8 @@ func (e *EventDataIncoming) printDebug() {
 	}
 }
 
-// Validate validates the EventDataIncoming struct
-func (e *EventDataIncoming) Validate() error {
+// Validate validates the incomingEvent struct
+func (e *incomingEvent) Validate() error {
 	var errs []string
 
 	// Validate Title
@@ -411,12 +403,14 @@ func (e *EventDataIncoming) Validate() error {
 	}
 
 	// Validate Subtitle
-	if err := validateOptionalNonEmptyString("subtitle", e.Subtitle); err != nil {
+	err := app.ValidateOptionalNonEmptyString("subtitle", e.Subtitle)
+	if err != nil {
 		errs = append(errs, err.Error())
 	}
 
 	// Validate TeaserText
-	if err := validateOptionalNonEmptyString("teaser_text", e.TeaserText); err != nil {
+	err = app.ValidateOptionalNonEmptyString("teaser_text", e.TeaserText)
+	if err != nil {
 		errs = append(errs, err.Error())
 	}
 
@@ -430,12 +424,12 @@ func (e *EventDataIncoming) Validate() error {
 	}
 
 	// Validate SourceUrl (optional)
-	if err := validateOptionalURL("source_url", e.SourceUrl); err != nil {
+	if err := app.ValidateOptionalURL("source_url", e.SourceUrl); err != nil {
 		errs = append(errs, err.Error())
 	}
 
 	// Validate OnlineEventUrl (optional)
-	if err := validateOptionalURL("online_event_url", e.OnlineEventUrl); err != nil {
+	if err := app.ValidateOptionalURL("online_event_url", e.OnlineEventUrl); err != nil {
 		errs = append(errs, err.Error())
 	}
 
@@ -454,12 +448,12 @@ func (e *EventDataIncoming) Validate() error {
 	}
 
 	// Validate ExternalId (optional)
-	if err := validateOptionalNonEmptyString("external_id", e.ExternalId); err != nil {
+	if err := app.ValidateOptionalNonEmptyString("external_id", e.ExternalId); err != nil {
 		errs = append(errs, err.Error())
 	}
 
 	// Validate ParticipationInfo (optional)
-	if err := validateOptionalNonEmptyString("participation_info", e.ParticipationInfo); err != nil {
+	if err := app.ValidateOptionalNonEmptyString("participation_info", e.ParticipationInfo); err != nil {
 		errs = append(errs, err.Error())
 	}
 
@@ -492,7 +486,7 @@ func (e *EventDataIncoming) Validate() error {
 	}
 
 	// Validate MeetingPoint (optional)
-	if err := validateOptionalNonEmptyString("meeting_point", e.MeetingPoint); err != nil {
+	if err := app.ValidateOptionalNonEmptyString("meeting_point", e.MeetingPoint); err != nil {
 		errs = append(errs, err.Error())
 	}
 
@@ -512,12 +506,12 @@ func (e *EventDataIncoming) Validate() error {
 	}
 
 	// Validate Custom (optional)
-	if err := validateOptionalNonEmptyString("custom", e.Custom); err != nil {
+	if err := app.ValidateOptionalNonEmptyString("custom", e.Custom); err != nil {
 		errs = append(errs, err.Error())
 	}
 
 	// Validate Style (optional)
-	if err := validateOptionalNonEmptyString("style", e.Style); err != nil {
+	if err := app.ValidateOptionalNonEmptyString("style", e.Style); err != nil {
 		errs = append(errs, err.Error())
 	}
 
@@ -529,7 +523,7 @@ func (e *EventDataIncoming) Validate() error {
 	}
 
 	// Validate ReleaseDate (optional)
-	if err := validateOptionalDate("release_date", e.ReleaseDate); err != nil {
+	if err := app.ValidateOptionalDate("release_date", e.ReleaseDate); err != nil {
 		errs = append(errs, err.Error())
 	}
 
@@ -541,38 +535,38 @@ func (e *EventDataIncoming) Validate() error {
 			// Required fields
 			if strings.TrimSpace(date.StartDate) == "" {
 				errs = append(errs, fmt.Sprintf("dates[%d].start_date is required", i))
-			} else if err := validateOptionalDate(fmt.Sprintf("dates[%d].start_date", i), &date.StartDate); err != nil {
+			} else if err := app.ValidateOptionalDate(fmt.Sprintf("dates[%d].start_date", i), &date.StartDate); err != nil {
 				errs = append(errs, err.Error())
 			}
 
 			if strings.TrimSpace(date.StartTime) == "" {
 				errs = append(errs, fmt.Sprintf("dates[%d].start_time is required", i))
-			} else if err := validateOptionalTime(fmt.Sprintf("dates[%d].start_time", i), &date.StartTime); err != nil {
+			} else if err := app.ValidateOptionalTime(fmt.Sprintf("dates[%d].start_time", i), &date.StartTime); err != nil {
 				errs = append(errs, err.Error())
 			}
 
 			// Optional fields
-			if err := validateOptionalDate(fmt.Sprintf("dates[%d].end_date", i), date.EndDate); err != nil {
+			if err := app.ValidateOptionalDate(fmt.Sprintf("dates[%d].end_date", i), date.EndDate); err != nil {
 				errs = append(errs, err.Error())
 			}
-			if err := validateOptionalTime(fmt.Sprintf("dates[%d].end_time", i), date.EndTime); err != nil {
+			if err := app.ValidateOptionalTime(fmt.Sprintf("dates[%d].end_time", i), date.EndTime); err != nil {
 				errs = append(errs, err.Error())
 			}
-			if err := validateOptionalTime(fmt.Sprintf("dates[%d].entry_time", i), date.EntryTime); err != nil {
+			if err := app.ValidateOptionalTime(fmt.Sprintf("dates[%d].entry_time", i), date.EntryTime); err != nil {
 				errs = append(errs, err.Error())
 			}
 		}
 	}
 
 	/*
-			TODO:
-			- Validate location
-			- Validate startDate/startTime in the past
-		    - Validate endDate/endTime before startDate/startTime
-			- OrganizerId, check permissions for organizer_id
-			- Dates, check permissions for using: venue_id, space_id
-			- OccasionTypeId, check if valid value
-			- PriceTypeId, check if valid value
+		TODO:
+		- Validate location
+		- Validate startDate/startTime in the past
+		- Validate endDate/endTime before startDate/startTime
+		- OrganizerId, check permissions for organizer_id
+		- Dates, check permissions for using: venue_id, space_id
+		- OccasionTypeId, check if valid value
+		- PriceTypeId, check if valid value
 	*/
 
 	if len(errs) > 0 {
@@ -582,84 +576,11 @@ func (e *EventDataIncoming) Validate() error {
 	return nil
 }
 
-func (e *EventDataIncoming) hasVenue() bool {
+func (e *incomingEvent) hasVenue() bool {
+
 	return e.VenueId != nil
 }
 
-func (e *EventDataIncoming) hasLocation() bool {
+func (e *incomingEvent) hasLocation() bool {
 	return e.Location != nil
-}
-
-// validateOptionalNonEmptyString checks if an optional string pointer is non-empty.
-// - If value is nil, it's considered valid.
-// - If value is non-nil but empty or whitespace-only, it returns an error.
-func validateOptionalNonEmptyString(fieldName string, value *string) error {
-	if value != nil && strings.TrimSpace(*value) == "" {
-		return fmt.Errorf("%s cannot be empty if provided", fieldName)
-	}
-	return nil
-}
-
-// validateOptionalURL validates a pointer to a string as a URL.
-// - If the pointer is nil, it's considered valid.
-// - If the string is empty or whitespace, it's considered invalid.
-// - Otherwise, it checks for valid URL format and http/https scheme.
-func validateOptionalURL(fieldName string, value *string) error {
-	if value == nil {
-		// No value provided → valid
-		return nil
-	}
-
-	trimmed := strings.TrimSpace(*value)
-	if trimmed == "" {
-		// Value is provided but empty → error
-		return fmt.Errorf("%s cannot be empty if provided", fieldName)
-	}
-
-	// Validate URL format
-	u, err := url.Parse(trimmed)
-	if err != nil || u.Scheme == "" || u.Host == "" {
-		return fmt.Errorf("%s must be a valid URL", fieldName)
-	}
-
-	// Ensure it starts with http:// or https://
-	if !(strings.HasPrefix(trimmed, "http://") || strings.HasPrefix(trimmed, "https://")) {
-		return fmt.Errorf("%s must start with http:// or https://", fieldName)
-	}
-
-	return nil
-}
-
-// ValidateOptionalDate validates an optional date string in the format YYYY-MM-DD.
-// - If the pointer is nil or empty, it is considered valid.
-// - Otherwise, it checks if the value matches the format "2006-01-02".
-func validateOptionalDate(fieldName string, value *string) error {
-	if value == nil {
-		return nil
-	}
-	trimmed := strings.TrimSpace(*value)
-	if trimmed == "" {
-		return nil
-	}
-	if _, err := time.Parse("2006-01-02", trimmed); err != nil {
-		return fmt.Errorf("%s must be in format YYYY-MM-DD", fieldName)
-	}
-	return nil
-}
-
-// validateOptionalTime validates an optional time string in the format HH:MM (24-hour).
-// - If the pointer is nil or empty, it is considered valid.
-// - Otherwise, it checks if the value matches the format "15:04".
-func validateOptionalTime(fieldName string, value *string) error {
-	if value == nil {
-		return nil
-	}
-	trimmed := strings.TrimSpace(*value)
-	if trimmed == "" {
-		return nil
-	}
-	if _, err := time.Parse("15:04", trimmed); err != nil {
-		return fmt.Errorf("%s must be in format HH:MM (24-hour)", fieldName)
-	}
-	return nil
 }

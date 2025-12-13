@@ -16,16 +16,16 @@ func (h *ApiHandler) AdminDeleteOrganizer(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := gc.GetInt("user-id")
 
-	// 1. Get organizer ID
+	// 1. Get organizer Id
 	organizerIdStr := gc.Param("organizerId")
 	if organizerIdStr == "" {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Organizer ID is required"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "Organizer Id is required"})
 		return
 	}
 
 	organizerId, err := strconv.Atoi(organizerIdStr)
 	if err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid organizer ID"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid organizer Id"})
 		return
 	}
 

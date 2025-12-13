@@ -21,7 +21,7 @@ func (h *ApiHandler) AdminUpdateEventLanguages(gc *gin.Context) {
 
 	eventId := gc.Param("eventId")
 	if eventId == "" {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "event ID is required"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "event Id is required"})
 		return
 	}
 

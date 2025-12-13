@@ -283,9 +283,9 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 
 	// Define a struct matching the JSON structure of event_types
 	type EventType struct {
-		TypeID    int    `json:"type_id"`
+		TypeId    int    `json:"type_id"`
 		TypeName  string `json:"type_name"`
-		GenreID   int    `json:"genre_id"`
+		GenreId   int    `json:"genre_id"`
 		GenreName string `json:"genre_name"`
 	}
 
@@ -297,14 +297,14 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	}
 
 	type VenueSummary struct {
-		ID             int    `json:"id"`
+		Id             int    `json:"id"`
 		Name           string `json:"name"`
 		City           string `json:"city"`
 		EventDateCount int    `json:"event_date_count"`
 	}
 
 	type OrganizerSummary struct {
-		ID             int    `json:"id"`
+		Id             int    `json:"id"`
 		Name           string `json:"name"`
 		EventDateCount int    `json:"event_date_count"`
 	}
@@ -312,6 +312,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	typeCount := make(map[int]TypeCountEntry)
 	venueMap := make(map[int]*VenueSummary)
 	organizerMap := make(map[int]*OrganizerSummary)
+	typeEventMap := make(map[int]map[int]bool) // type_id -> event_id -> bool
 
 	for rows.Next() {
 		values, err := rows.Values()
@@ -325,16 +326,24 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			rowMap[col] = values[i]
 		}
 
+		var eventId int
+		if id, ok := rowMap["id"].(int32); ok {
+			eventId = int(id)
+		} else {
+			gc.JSON(http.StatusInternalServerError, gin.H{"error": "eventId must be of type int"})
+			return
+		}
+
 		if !isTypeSummaryMode {
 			// Add extra property image_path
-			imageID := rowMap["image_id"]
-			if imageID == nil {
+			imageId := rowMap["image_id"]
+			if imageId == nil {
 				rowMap["image_path"] = nil // or "" if you prefer
 			} else {
 				rowMap["image_path"] = fmt.Sprintf(
 					"%s/api/image/%v",
 					app.Singleton.Config.BaseApiUrl,
-					imageID,
+					imageId,
 				)
 			}
 		}
@@ -356,10 +365,10 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			// Already decoded array of maps
 			for _, item := range v {
 				if m, ok := item.(map[string]interface{}); ok {
-					typeID, _ := m["type_id"].(float64) // convert float64 -> int
+					typeId, _ := m["type_id"].(float64) // convert float64 -> int
 					typeName, _ := m["type_name"].(string)
 					eventTypes = append(eventTypes, EventType{
-						TypeID:   int(typeID),
+						TypeId:   int(typeId),
 						TypeName: typeName,
 					})
 				}
@@ -370,12 +379,30 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		}
 
 		for _, et := range eventTypes {
-			entry := typeCount[et.TypeID]
-			entry.Name = et.TypeName
-			entry.Count++
-			typeCount[et.TypeID] = entry
-		}
+			// Initialize nested map if needed
+			if _, exists := typeEventMap[et.TypeId]; !exists {
+				typeEventMap[et.TypeId] = make(map[int]bool)
+			}
+			fmt.Println("et.TypeId:", et.TypeId)
+			fmt.Println("typeEventMap[et.TypeId]:", typeEventMap[et.TypeId])
+			// Count this type only if this event hasn't been counted yet
+			if !typeEventMap[et.TypeId][eventId] {
+				typeEventMap[et.TypeId][eventId] = true
 
+				entry := typeCount[et.TypeId]
+				entry.Name = et.TypeName
+				entry.Count++
+				typeCount[et.TypeId] = entry
+			}
+		}
+		/*
+			for _, et := range eventTypes {
+				entry := typeCount[et.TypeId]
+				entry.Name = et.TypeName
+				entry.Count++
+				typeCount[et.TypeId] = entry
+			}
+		*/
 		// Organizer summary
 		organizerId, ok := app.ToInt(rowMap["organizer_id"])
 		if ok {
@@ -384,7 +411,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			// Initialize organizer summary if not yet present
 			if _, exists := organizerMap[organizerId]; !exists {
 				organizerMap[organizerId] = &OrganizerSummary{
-					ID:             organizerId,
+					Id:             organizerId,
 					Name:           organizerName,
 					EventDateCount: 0,
 				}
@@ -403,7 +430,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			// Initialize venue summary if not yet present
 			if _, exists := venueMap[venueId]; !exists {
 				venueMap[venueId] = &VenueSummary{
-					ID:             venueId,
+					Id:             venueId,
 					Name:           venueName,
 					City:           venueCity,
 					EventDateCount: 0,

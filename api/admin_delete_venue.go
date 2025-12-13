@@ -18,13 +18,13 @@ func (h *ApiHandler) AdminDeleteVenue(gc *gin.Context) {
 
 	venueIdStr := gc.Param("venueId")
 	if venueIdStr == "" {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Venue ID is required"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "Venue Id is required"})
 		return
 	}
 
 	venueId, err := strconv.Atoi(venueIdStr)
 	if err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid venue ID"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid venue Id"})
 		return
 	}
 

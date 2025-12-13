@@ -10,19 +10,18 @@ import (
 // TODO: Review code
 
 func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
-	pool := h.DbPool
 	ctx := gc.Request.Context()
 
 	eventId := gc.Param("eventId")
 	if eventId == "" {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "event ID is required"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "event Id is required"})
 		return
 	}
 
 	langStr := gc.DefaultQuery("lang", "en")
 
 	// Query event info (without dates)
-	eventRows, err := pool.Query(ctx, app.Singleton.SqlGetAdminEvent, eventId, langStr)
+	eventRows, err := h.DbPool.Query(ctx, app.Singleton.SqlGetAdminEvent, eventId, langStr)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -59,7 +58,7 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 	}
 
 	// Query all event_dates for this event
-	dateRows, err := pool.Query(ctx, app.Singleton.SqlGetAdminEventDates, eventId)
+	dateRows, err := h.DbPool.Query(ctx, app.Singleton.SqlGetAdminEventDates, eventId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

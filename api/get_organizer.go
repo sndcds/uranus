@@ -15,7 +15,7 @@ func (h *ApiHandler) GetOrganizer(gc *gin.Context) {
 
 	organizerId, ok := ParamInt(gc, "organizerId")
 	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "organizer ID is required"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "organizer Id is required"})
 		return
 	}
 

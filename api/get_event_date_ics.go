@@ -20,13 +20,13 @@ func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 	// Parse parameters
 	eventId, ok := ParamInt(gc, "eventId")
 	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "event ID is required"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "event Id is required"})
 		return
 	}
 
 	dateId, ok := ParamInt(gc, "dateId")
 	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "date ID is required"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "date Id is required"})
 		return
 	}
 

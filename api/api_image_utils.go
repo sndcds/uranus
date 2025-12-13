@@ -49,7 +49,7 @@ func (h *ApiHandler) updateEventImage(
 	return nil
 }
 
-// GetEventImageId fetches the image ID for a given event and imageIndex
+// GetEventImageId fetches the image Id for a given event and imageIndex
 func (h *ApiHandler) GetEventImageId(
 	gc *gin.Context, tx pgx.Tx, eventId int, imageIndex int) (int, error) {
 	ctx := gc.Request.Context()
@@ -63,7 +63,7 @@ func (h *ApiHandler) GetEventImageId(
 	var imageId *int
 	err = tx.QueryRow(ctx, query, eventId).Scan(&imageId)
 	if err != nil {
-		return 0, fmt.Errorf("Failed to fetch image ID")
+		return 0, fmt.Errorf("Failed to fetch image Id")
 	}
 
 	if imageId == nil {

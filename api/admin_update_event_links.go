@@ -23,10 +23,10 @@ func (h *ApiHandler) AdminUpdateEventLinks(gc *gin.Context) {
 	pool := h.DbPool
 	dbSchema := h.Config.DbSchema
 
-	// Get event ID from URL
+	// Get event Id from URL
 	eventId := gc.Param("eventId")
 	if eventId == "" {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "event ID is required"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "event Id is required"})
 		return
 	}
 

@@ -52,7 +52,7 @@ func (h *ApiHandler) AdminSendMessage(gc *gin.Context) {
 
 		fmt.Println(sql)
 		fmt.Println("organizerId:", organizerId)
-		rows, err := tx.Query(ctx, sql, organizerId, app.PermCanReceiveOrganizerMsgs)
+		rows, err := tx.Query(ctx, sql, organizerId, app.PermReceiveOrganizerMsgs)
 		if err != nil {
 			gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("database query failed: %v", err)})
 			return

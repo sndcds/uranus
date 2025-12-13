@@ -20,7 +20,7 @@ func (h *ApiHandler) GetUserAvatar(gc *gin.Context) {
 
 	userId, err := strconv.Atoi(userIdStr)
 	if err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid user Id"})
 		return
 	}
 

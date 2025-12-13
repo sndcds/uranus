@@ -20,13 +20,13 @@ func (h *ApiHandler) AdminGetUserContextPermissions(gc *gin.Context) {
 
 	userId, ok := ParamInt(gc, "userId")
 	if !ok {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "user ID is required"})
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "user Id is required"})
 		return
 	}
 
 	contextId, ok := ParamInt(gc, "contextId")
 	if !ok {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "context ID is required"})
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "context Id is required"})
 		return
 	}
 

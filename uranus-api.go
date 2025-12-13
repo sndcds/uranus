@@ -144,7 +144,6 @@ func main() {
 	adminRoute.GET("/permission/list", app.JWTMiddleware, apiHandler.AdminGetPermissionList)
 
 	adminRoute.GET("/user/:userId/:contextName/:contextId/permissions", app.JWTMiddleware, apiHandler.AdminGetUserContextPermissions)
-
 	adminRoute.PUT("/organizer/:organizerId/member/:memberId/permission", app.JWTMiddleware, apiHandler.AdminUpdateOrganizerMemberPermission)
 
 	adminRoute.GET("/user/event/notification", app.JWTMiddleware, apiHandler.AdminGetUserEventNotification)

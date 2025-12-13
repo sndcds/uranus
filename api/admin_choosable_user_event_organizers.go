@@ -18,7 +18,7 @@ func (h *ApiHandler) AdminChoosableUserEventOrganizers(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := gc.GetInt("user-id")
 
-	// Parse organizer ID from path param
+	// Parse organizer Id from path param
 	organizerIdStr := gc.Param("organizerId")
 	organizerId, err := strconv.Atoi(organizerIdStr)
 	if err != nil {

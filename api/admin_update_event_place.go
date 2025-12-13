@@ -18,7 +18,7 @@ func (h *ApiHandler) AdminUpdateEventPlace(gc *gin.Context) {
 
 	eventId := gc.Param("eventId")
 	if eventId == "" {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "event ID is required"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "event Id is required"})
 		return
 	}
 
@@ -83,7 +83,7 @@ func (h *ApiHandler) AdminUpdateEventPlace(gc *gin.Context) {
 				prevLocationId.Valid = false
 			} else {
 				gc.JSON(http.StatusInternalServerError, gin.H{
-					"error": fmt.Sprintf("failed to get location ID: %v", err),
+					"error": fmt.Sprintf("failed to get location Id: %v", err),
 				})
 				return
 			}

@@ -15,7 +15,7 @@ func (h *ApiHandler) AdminGetSpace(gc *gin.Context) {
 
 	spaceId := gc.Param("spaceId")
 	if spaceId == "" {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Space ID is required"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "Space Id is required"})
 		return
 	}
 

@@ -18,25 +18,25 @@ func (h *ApiHandler) AdminDeleteEventDate(gc *gin.Context) {
 
 	eventIdStr := gc.Param("eventId")
 	if eventIdStr == "" {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Event ID is required"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "Event Id is required"})
 		return
 	}
 
 	eventId, err := strconv.Atoi(eventIdStr)
 	if err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event Id"})
 		return
 	}
 
 	eventDateIdStr := gc.Param("eventDateId")
 	if eventDateIdStr == "" {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Event Date ID is required"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "Event Date Id is required"})
 		return
 	}
 
 	eventDateId, err := strconv.Atoi(eventDateIdStr)
 	if err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event date ID"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event date Id"})
 		return
 	}
 

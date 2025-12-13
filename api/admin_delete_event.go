@@ -18,13 +18,13 @@ func (h *ApiHandler) AdminDeleteEvent(gc *gin.Context) {
 
 	eventIdStr := gc.Param("eventId")
 	if eventIdStr == "" {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Event ID is required"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "Event Id is required"})
 		return
 	}
 
 	eventId, err := strconv.Atoi(eventIdStr)
 	if err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event Id"})
 		return
 	}
 

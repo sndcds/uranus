@@ -128,7 +128,7 @@ func (h *ApiHandler) AdminUpsertEventImage(gc *gin.Context) {
 
 		plutoRemoveImageId, err = h.GetEventImageId(gc, tx, eventId, imageIndex)
 		if err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get previous image ID"})
+			gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get previous image Id"})
 			return
 		}
 
