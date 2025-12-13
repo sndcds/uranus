@@ -35,7 +35,7 @@ SELECT json_build_object(
                          COUNT(ed.event_date_id) AS event_date_count
                      FROM event_dates ed
                      GROUP BY ed.organizer_id, ed.organizer_name
-                     ORDER BY event_date_count DESC
+                     ORDER BY name ASC
                  ) organizer_summary
         ),
                'total', (SELECT COUNT(*) FROM event_dates),
@@ -62,7 +62,7 @@ SELECT json_build_object(
                             FROM event_dates ed
                             WHERE ed.venue_id IS NOT NULL
                             GROUP BY ed.venue_id, ed.venue_name, ed.venue_city
-                            ORDER BY event_date_count DESC
+                            ORDER BY name ASC
                         ) venue_summary
                )
        ) AS summary
