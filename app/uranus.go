@@ -198,7 +198,7 @@ func (app *Uranus) PrepareSql() error {
 		{"queries/get-events.sql", &app.SqlGetEventsBasic, strPtr("queries/get-events-select-basic.sql")},
 		{"queries/get-events.sql", &app.SqlGetEventsExtended, strPtr("queries/get-events-select-extended.sql")},
 		{"queries/get-events.sql", &app.SqlGetEventsDetailed, strPtr("queries/get-events-select-detailed.sql")},
-		{"queries/get-events.sql", &app.SqlGetEventsTypeSummary, strPtr("queries/get-events-type-summary.sql")},
+		{"queries/get-events-type-summary.sql", &app.SqlGetEventsTypeSummary, nil},
 
 		{"queries/choosable-event-types.sql", &app.SqlChoosableEventTypes, nil},
 		{"queries/choosable-event-genres.sql", &app.SqlChoosableEventGenres, nil},

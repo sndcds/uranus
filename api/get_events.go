@@ -1,10 +1,8 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -252,7 +250,9 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 
 	// Add LIMIT and OFFSET
 	if isTypeSummaryMode {
-		query = strings.Replace(query, "{{limit}}", "", 1)
+		fmt.Println("conditionsStr:", conditionsStr)
+		fmt.Println("query:", query)
+		fmt.Println("Query args:", args)
 	} else {
 		var limitClause string
 		limitClause, argIndex, err = sql_utils.BuildLimitOffsetClause(limitStr, offsetStr, argIndex, &args)
@@ -261,10 +261,24 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
 		query = strings.Replace(query, "{{limit}}", limitClause, 1)
+
+		order := "ORDER BY (ed.start_date + COALESCE(ed.start_time, '00:00:00'::time)) ASC, e.id ASC"
+		query = strings.Replace(query, "{{order}}", order, 1)
 	}
 
-	order := "ORDER BY (ed.start_date + COALESCE(ed.start_time, '00:00:00'::time)) ASC, e.id ASC"
-	query = strings.Replace(query, "{{order}}", order, 1)
+	if isTypeSummaryMode {
+		row := pool.QueryRow(ctx, query, args...)
+
+		var jsonResult []byte
+		err := row.Scan(&jsonResult)
+		if err != nil {
+			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		gc.Data(http.StatusOK, "application/json", jsonResult)
+		return
+	}
 
 	rows, err := pool.Query(ctx, query, args...)
 	if err != nil {
@@ -281,39 +295,6 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 
 	var results []map[string]interface{}
 
-	// Define a struct matching the JSON structure of event_types
-	type EventType struct {
-		TypeId    int    `json:"type_id"`
-		TypeName  string `json:"type_name"`
-		GenreId   int    `json:"genre_id"`
-		GenreName string `json:"genre_name"`
-	}
-
-	// Map to accumulate counts: type_id -> {name, count}
-	type TypeCountEntry struct {
-		Id    int
-		Name  string
-		Count int
-	}
-
-	type VenueSummary struct {
-		Id             int    `json:"id"`
-		Name           string `json:"name"`
-		City           string `json:"city"`
-		EventDateCount int    `json:"event_date_count"`
-	}
-
-	type OrganizerSummary struct {
-		Id             int    `json:"id"`
-		Name           string `json:"name"`
-		EventDateCount int    `json:"event_date_count"`
-	}
-
-	typeCount := make(map[int]TypeCountEntry)
-	venueMap := make(map[int]*VenueSummary)
-	organizerMap := make(map[int]*OrganizerSummary)
-	typeEventMap := make(map[int]map[int]bool) // type_id -> event_id -> bool
-
 	for rows.Next() {
 		values, err := rows.Values()
 		if err != nil {
@@ -326,119 +307,16 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			rowMap[col] = values[i]
 		}
 
-		var eventId int
-		if id, ok := rowMap["id"].(int32); ok {
-			eventId = int(id)
+		// Add extra property image_path
+		imageId := rowMap["image_id"]
+		if imageId == nil {
+			rowMap["image_path"] = nil
 		} else {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": "eventId must be of type int"})
-			return
-		}
-
-		if !isTypeSummaryMode {
-			// Add extra property image_path
-			imageId := rowMap["image_id"]
-			if imageId == nil {
-				rowMap["image_path"] = nil // or "" if you prefer
-			} else {
-				rowMap["image_path"] = fmt.Sprintf(
-					"%s/api/image/%v",
-					app.Singleton.Config.BaseApiUrl,
-					imageId,
-				)
-			}
-		}
-
-		// Accumulate event type counts
-		var eventTypes []EventType
-		switch v := rowMap["event_types"].(type) {
-		case nil:
-			// no event types to include in summary
-		case string:
-			if err := json.Unmarshal([]byte(v), &eventTypes); err != nil {
-				fmt.Println("json.Unmarshal error:", err) // TODO: What should happen in this case?
-			}
-		case []byte:
-			if err := json.Unmarshal(v, &eventTypes); err != nil {
-				fmt.Println("json.Unmarshal error:", err) // TODO: What should happen in this case?
-			}
-		case []interface{}:
-			// Already decoded array of maps
-			for _, item := range v {
-				if m, ok := item.(map[string]interface{}); ok {
-					typeId, _ := m["type_id"].(float64) // convert float64 -> int
-					typeName, _ := m["type_name"].(string)
-					eventTypes = append(eventTypes, EventType{
-						TypeId:   int(typeId),
-						TypeName: typeName,
-					})
-				}
-			}
-		default:
-			// TODO: Is this an error?
-			// fmt.Printf("unexpected type for event_types: %T\n", v)
-		}
-
-		for _, et := range eventTypes {
-			// Initialize nested map if needed
-			if _, exists := typeEventMap[et.TypeId]; !exists {
-				typeEventMap[et.TypeId] = make(map[int]bool)
-			}
-			fmt.Println("et.TypeId:", et.TypeId)
-			fmt.Println("typeEventMap[et.TypeId]:", typeEventMap[et.TypeId])
-			// Count this type only if this event hasn't been counted yet
-			if !typeEventMap[et.TypeId][eventId] {
-				typeEventMap[et.TypeId][eventId] = true
-
-				entry := typeCount[et.TypeId]
-				entry.Name = et.TypeName
-				entry.Count++
-				typeCount[et.TypeId] = entry
-			}
-		}
-		/*
-			for _, et := range eventTypes {
-				entry := typeCount[et.TypeId]
-				entry.Name = et.TypeName
-				entry.Count++
-				typeCount[et.TypeId] = entry
-			}
-		*/
-		// Organizer summary
-		organizerId, ok := app.ToInt(rowMap["organizer_id"])
-		if ok {
-			organizerName, _ := rowMap["organizer_name"].(string)
-
-			// Initialize organizer summary if not yet present
-			if _, exists := organizerMap[organizerId]; !exists {
-				organizerMap[organizerId] = &OrganizerSummary{
-					Id:             organizerId,
-					Name:           organizerName,
-					EventDateCount: 0,
-				}
-			}
-
-			// Increment event count for this organizer
-			organizerMap[organizerId].EventDateCount++
-		}
-
-		// Venue summary
-		venueId, ok := app.ToInt(rowMap["venue_id"])
-		if ok {
-			venueName, _ := rowMap["venue_name"].(string)
-			venueCity, _ := rowMap["venue_city"].(string)
-
-			// Initialize venue summary if not yet present
-			if _, exists := venueMap[venueId]; !exists {
-				venueMap[venueId] = &VenueSummary{
-					Id:             venueId,
-					Name:           venueName,
-					City:           venueCity,
-					EventDateCount: 0,
-				}
-			}
-
-			// Increment event count for this venue
-			venueMap[venueId].EventDateCount++
+			rowMap["image_path"] = fmt.Sprintf(
+				"%s/api/image/%v",
+				app.Singleton.Config.BaseApiUrl,
+				imageId,
+			)
 		}
 
 		results = append(results, rowMap)
@@ -449,58 +327,13 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		return
 	}
 
-	// Convert typeCount map to a slice for JSON output
-	var typeSummary []map[string]interface{}
-	for id, entry := range typeCount {
-		typeSummary = append(typeSummary, map[string]interface{}{
-			"type_id":   id,
-			"type_name": entry.Name,
-			"count":     entry.Count,
-		})
-	}
-
-	sort.Slice(typeSummary, func(i, j int) bool {
-		nameI := typeSummary[i]["type_name"].(string)
-		nameJ := typeSummary[j]["type_name"].(string)
-		return nameI < nameJ
-	})
-
-	// Total number of events
-	totalEvents := len(results)
-
-	// Organizer summary
-	organizerSummary := make([]OrganizerSummary, 0, len(organizerMap))
-	for _, summary := range organizerMap {
-		organizerSummary = append(organizerSummary, *summary)
-	}
-
-	// Venues summary
-	venuesSummary := make([]VenueSummary, 0, len(venueMap))
-	for _, summary := range venueMap {
-		venuesSummary = append(venuesSummary, *summary)
-	}
-
-	sort.Slice(venuesSummary, func(i, j int) bool {
-		return venuesSummary[i].Name < venuesSummary[j].Name
-	})
-
-	// TODO: Check if query does unneccessary work!
 	response := make(map[string]interface{})
-	if isTypeSummaryMode {
-		response["total"] = totalEvents
-		response["type_summary"] = typeSummary
-		response["organizer_summary"] = organizerSummary
-		response["venues_summary"] = venuesSummary
-
-	} else {
-		response["events"] = results
-	}
+	response["events"] = results
 
 	if err := rows.Err(); err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Return combined JSON
 	gc.JSON(http.StatusOK, response)
 }
