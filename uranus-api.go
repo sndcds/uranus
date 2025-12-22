@@ -172,6 +172,7 @@ func main() {
 	adminRoute.POST("/organization/team/invite/accept", apiHandler.AdminOrganizationTeamInviteAccept)
 
 	adminRoute.GET("/venue/:venueId", app.JWTMiddleware, apiHandler.AdminGetVenue)
+	adminRoute.PUT("/venue", app.JWTMiddleware, apiHandler.AdminUpsertVenue)
 	adminRoute.PUT("/venue/:venueId", app.JWTMiddleware, apiHandler.AdminUpsertVenue)
 	adminRoute.DELETE("/venue/:venueId", app.JWTMiddleware, apiHandler.AdminDeleteVenue)
 
