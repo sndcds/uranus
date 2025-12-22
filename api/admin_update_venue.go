@@ -10,7 +10,7 @@ import (
 )
 
 type venueReq struct {
-	OrganizationId int      `json:"organizationId" binding:"required"`
+	OrganizationId int      `json:"organization_id" binding:"required"`
 	Name           string   `json:"name"`
 	Description    *string  `json:"description"`
 	OpenedAt       *string  `json:"opened_at"`
