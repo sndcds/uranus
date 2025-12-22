@@ -17,22 +17,11 @@ SELECT
     v.house_number AS venue_house_number,
     v.postal_code AS venue_postal_code,
     v.city AS venue_city,
-    v.state_code AS venue_state_code,
     v.country_code AS venue_country_code,
-    ST_X(v.wkb_geometry) AS venue_lon,
-    ST_Y(v.wkb_geometry) AS venue_lat,
-
-    el.id AS location_id,
-    el.name AS location_name,
-    el.street AS location_street,
-    el.house_number AS location_house_number,
-    el.postal_code AS location_,
-    el.country_code AS location_country_code,
-    el.state_code AS location_state_code,
-    ST_X(el.wkb_geometry) AS location_lon,
-    ST_Y(el.wkb_geometry) AS location_lat,
-    el.description AS location_description,
-    el.name AS location_name,
+    v.state_code AS venue_state_code,
+    ST_X(v.wkb_pos) AS venue_lon,
+    ST_Y(v.wkb_pos) AS venue_lat,
+    v.website_url AS venue_url,
 
     space_data.id AS space_id,
     space_data.name AS space_name,
@@ -43,7 +32,6 @@ SELECT
 
 FROM {{schema}}.event_date ed
 JOIN {{schema}}.event e ON ed.event_id = e.id
-LEFT JOIN {{schema}}.event_location el ON el.id = ed.location_id
 LEFT JOIN {{schema}}.venue v ON v.id = COALESCE(ed.venue_id, e.venue_id)
 LEFT JOIN LATERAL (
     SELECT *

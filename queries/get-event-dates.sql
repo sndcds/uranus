@@ -24,8 +24,9 @@ SELECT
     v.city AS venue_city,
     v.country_code AS venue_country_code,
     v.state_code AS venue_state_code,
-    ST_X(v.wkb_geometry) AS venue_lon,
-    ST_Y(v.wkb_geometry) AS venue_lat,
+    ST_X(v.wkb_pos) AS venue_lon,
+    ST_Y(v.wkb_pos) AS venue_lat,
+    v.website_url AS venue_url,
 
     -- Space logic: take from event_date only if event_date.venue_id exists, else NULL
     s.id AS space_id,
@@ -46,7 +47,7 @@ ON v.id = COALESCE(ed.venue_id, e.venue_id)
 LEFT JOIN {{schema}}.space s
 ON s.id = CASE
 WHEN ed.venue_id IS NOT NULL THEN ed.space_id
-ELSE NULL
+ELSE e.space_id
 END
 
 ORDER BY ed.start_date, ed.start_time

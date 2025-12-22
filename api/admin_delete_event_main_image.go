@@ -6,77 +6,89 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 )
 
 // TODO: Review code
 
 func (h *ApiHandler) AdminDeleteEventMainImage(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	pool := h.DbPool
-	dbSchema := h.Config.DbSchema
 
-	eventId := gc.Param("eventId")
-	if eventId == "" {
+	eventId, ok := ParamInt(gc, "eventId")
+	if !ok {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "event Id is required"})
 		return
 	}
 
-	tx, err := pool.Begin(ctx)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to start transaction"})
-		return
-	}
-	defer func() { _ = tx.Rollback(ctx) }()
+	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
+		query := fmt.Sprintf(`
+SELECT gen_file_name, pi.id FROM %s.event_image_link AS eil
+JOIN %s.pluto_image pi ON pi.id = eil.pluto_image_id
+WHERE eil.event_id = $1 AND eil.main_image = TRUE`,
+			h.DbSchema, h.DbSchema)
 
-	query := fmt.Sprintf(
-		`SELECT gen_file_name, pi.id FROM %s.event_image_link AS eil
-		JOIN %s.pluto_image pi ON pi.id = eil.pluto_image_id
-		WHERE eil.event_id = $1 AND eil.main_image = TRUE`,
-		dbSchema, dbSchema)
+		var plutoImageId int
+		var plutoGenFileName string
+		err := tx.QueryRow(ctx, query, eventId).Scan(&plutoGenFileName, &plutoImageId)
+		if err != nil {
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  fmt.Errorf("Query failed: %v", err),
+			}
+		}
 
-	var plutoImageId int
-	var plutoGenFileName string
-	err = tx.QueryRow(ctx, query, eventId).Scan(&plutoGenFileName, &plutoImageId)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Query failed: %v", err)})
-		return
-	}
+		query = fmt.Sprintf(`DELETE FROM %s.event_image_link WHERE event_id = $1 AND main_image = TRUE`, h.DbSchema)
+		_, err = tx.Exec(ctx, query, eventId)
+		if err != nil {
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  fmt.Errorf("Query failed: %v", err),
+			}
+		}
 
-	query = fmt.Sprintf(`DELETE FROM %s.event_image_link WHERE event_id = $1 AND main_image = TRUE`, dbSchema)
-	_, err = tx.Exec(ctx, query, eventId)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Query failed: %v", err)})
-		return
-	}
+		query = fmt.Sprintf(`DELETE FROM %s.pluto_image WHERE id = $1`, h.DbSchema)
+		_, err = tx.Exec(ctx, query, plutoImageId)
+		if err != nil {
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  fmt.Errorf("Query failed: %v", err),
+			}
+		}
 
-	query = fmt.Sprintf(`DELETE FROM %s.pluto_image WHERE id = $1`, dbSchema)
-	_, err = tx.Exec(ctx, query, plutoImageId)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Query failed: %v", err)})
-		return
-	}
+		if len(plutoGenFileName) <= 0 {
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  fmt.Errorf("No Pluto image file to delete: %v", err),
+			}
+		}
 
-	if err = tx.Commit(ctx); err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to commit transaction: %v", err)})
-		return
-	}
+		filePath := h.Config.PlutoImageDir + "/" + plutoGenFileName
+		err = os.Remove(filePath)
+		if err != nil {
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  fmt.Errorf("Error removing file: %v", err),
+			}
+		}
 
-	if len(plutoGenFileName) <= 0 {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("No Pluto image file to delete: %v", err)})
-		return
-	}
+		err = RefreshEventProjections(ctx, tx, "event", []int{eventId})
+		if err != nil {
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  fmt.Errorf("refresh projection tables failed: %v", err),
+			}
+		}
 
-	filePath := h.Config.PlutoImageDir + "/" + plutoGenFileName
-	fmt.Println("filePath:", filePath)
+		return nil
+	})
 
-	err = os.Remove(filePath)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Error removing file: %v", err)})
+	if txErr != nil {
+		gc.JSON(txErr.Code, gin.H{"error": txErr.Error()})
 		return
 	}
 
 	gc.JSON(http.StatusOK, gin.H{
-		"event_id": eventId,
 		"message":  "event image deleted successfully",
+		"event_id": eventId,
 	})
 }

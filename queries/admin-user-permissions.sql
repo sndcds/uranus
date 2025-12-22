@@ -1,13 +1,13 @@
-WITH organizer_perms AS (
+WITH organization_perms AS (
     SELECT
-        'organizer'::text AS entity_type,
-        uol.organizer_id::integer AS entity_id,
+        'organization'::text AS entity_type,
+        uol.organization_id::integer AS entity_id,
         o.name::text AS entity_name,
         NULL::integer AS relation_id,
         r.*
-    FROM {{schema}}.user_organizer_link uol
+    FROM {{schema}}.user_organization_link uol
     JOIN {{schema}}.user_role r ON uol.user_role_id = r.id
-    JOIN {{schema}}.organizer o ON uol.organizer_id = o.id
+    JOIN {{schema}}.organization o ON uol.organization_id = o.id
     WHERE uol.user_id = $1
 ),
 venue_perms AS (
@@ -15,7 +15,7 @@ venue_perms AS (
         'venue'::text AS entity_type,
         uvl.venue_id::integer AS entity_id,
         v.name::text AS entity_name,
-        v.organizer_id::integer AS relation_id,
+        v.organization_id::integer AS relation_id,
         r.*
     FROM {{schema}}.user_venue_link uvl
     JOIN {{schema}}.user_role r ON uvl.user_role_id = r.id
@@ -39,14 +39,14 @@ event_perms AS (
         'event'::text AS entity_type,
         uel.event_id::integer AS entity_id,
         e.title::text AS entity_name,
-        e.organizer_id AS relation_id,
+        e.organization_id AS relation_id,
         r.*
     FROM {{schema}}.user_event_link uel
     JOIN {{schema}}.user_role r ON uel.user_role_id = r.id
     JOIN {{schema}}.event e ON uel.event_id = e.id
     WHERE uel.user_id = $1
 )
-SELECT * FROM organizer_perms
+SELECT * FROM organization_perms
 UNION ALL
 SELECT * FROM venue_perms
 UNION ALL

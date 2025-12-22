@@ -19,7 +19,7 @@ func (h *ApiHandler) AdminGetSpace(gc *gin.Context) {
 		return
 	}
 
-	query := app.Singleton.SqlGetAdminSpace
+	query := app.Singleton.SqlAdminGetSpace
 	rows, err := pool.Query(ctx, query, spaceId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

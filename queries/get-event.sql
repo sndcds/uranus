@@ -7,9 +7,21 @@ SELECT
     e.participation_info,
     e.meeting_point,
     e.languages,
+    e.tags,
 
-    o.id AS organizer_id,
-    o.name AS organizer_name,
+    o.id AS organization_id,
+    o.name AS organization_name,
+    o.website_url AS organization_url,
+
+    l.id AS location_id,
+    l.name AS location_name,
+    l.street AS location_street,
+    l.house_number AS location_house_number,
+    l.city AS location_city,
+    l.country_code AS location_country_code,
+    l.state_code AS location_state_code,
+    ST_X(l.wkb_pos) AS location_lon,
+    ST_Y(l.wkb_pos) AS location_lat,
 
     -- Main image
     (image_data.id IS NOT NULL) AS has_main_image,
@@ -34,13 +46,17 @@ SELECT
     url_data.event_urls
 
 FROM {{schema}}.event e
-JOIN {{schema}}.organizer o ON o.id = e.organizer_id
+JOIN {{schema}}.organization o ON o.id = e.organization_id
 
 -- Venue (fallback logic if event has venue_id)
 LEFT JOIN {{schema}}.venue v ON v.id = e.venue_id
 
 -- Space (fallback logic if event has space_id)
 LEFT JOIN {{schema}}.space s ON s.id = e.space_id
+
+-- Location
+LEFT JOIN {{schema}}.event_location l ON l.id = e.location_id
+
 
 -- Main image (first non-null of the four direct columns)
 LEFT JOIN LATERAL (

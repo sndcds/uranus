@@ -41,18 +41,18 @@ func (h *ApiHandler) AdminSendMessage(gc *gin.Context) {
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	if req.Context == "organizer" {
-		organizerId := req.ContextId
+	if req.Context == "organization" {
+		organizationId := req.ContextId
 		sql := strings.Replace(
 			`SELECT u.id, u.display_name
-			FROM {{schema}}.user_organizer_link ol
+			FROM {{schema}}.user_organization_link ol
 			JOIN {{schema}}.user u ON u.id = ol.user_id
-			WHERE ol.organizer_id = $1 AND (ol.permissions & $2) != 0`,
+			WHERE ol.organization_id = $1 AND (ol.permissions & $2) != 0`,
 			"{{schema}}", h.Config.DbSchema, -1)
 
 		fmt.Println(sql)
-		fmt.Println("organizerId:", organizerId)
-		rows, err := tx.Query(ctx, sql, organizerId, app.PermReceiveOrganizerMsgs)
+		fmt.Println("organizationId:", organizationId)
+		rows, err := tx.Query(ctx, sql, organizationId, app.PermReceiveOrganizationMsgs)
 		if err != nil {
 			gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("database query failed: %v", err)})
 			return

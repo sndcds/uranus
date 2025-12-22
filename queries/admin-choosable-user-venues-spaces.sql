@@ -1,5 +1,5 @@
 WITH allowed_spaces AS (
-    -- A. From organizer permission (all spaces)
+    -- A. From organization permission (all spaces)
     SELECT
         v.id AS venue_id,
         v.name AS venue_name,
@@ -9,7 +9,7 @@ WITH allowed_spaces AS (
         v.country_code AS country_code
     FROM {{schema}}.space s
     JOIN {{schema}}.venue v ON v.id = s.venue_id
-    JOIN {{schema}}.user_organizer_link uol ON uol.organizer_id = v.organizer_id
+    JOIN {{schema}}.user_organization_link uol ON uol.organization_id = v.organization_id
     WHERE uol.user_id = $1
     AND (uol.permissions & 0x00000800) <> 0
 
@@ -55,8 +55,8 @@ allowed_venues AS (
         v.city AS city,
         v.country_code AS country_code
     FROM {{schema}}.venue v
-    -- From organizer permission
-    JOIN {{schema}}.user_organizer_link uol ON uol.organizer_id = v.organizer_id
+    -- From organization permission
+    JOIN {{schema}}.user_organization_link uol ON uol.organization_id = v.organization_id
     WHERE uol.user_id = $1
     AND (uol.permissions & 0x00000800) <> 0
 

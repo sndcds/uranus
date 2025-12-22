@@ -27,7 +27,7 @@ func (h *ApiHandler) AdminCreateSpace(gc *gin.Context) {
 		AccessibilitySummary *string `json:"accessibility_summary"`
 	}
 
-	// TODO: Check permissions by user and OrganizerId
+	// TODO: Check permissions by user and OrganizationId
 
 	var req UpdateRequest
 	if err := gc.ShouldBindJSON(&req); err != nil {

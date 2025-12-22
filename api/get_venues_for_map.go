@@ -8,6 +8,7 @@ import (
 )
 
 // TODO: Review code
+// TODO: Add url parameter
 
 func (h *ApiHandler) GetGeojsonVenues(gc *gin.Context) {
 	db := h.DbPool

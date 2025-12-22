@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -11,37 +12,75 @@ import (
 	"github.com/sndcds/uranus/sql_utils"
 )
 
-// TODO: Review code
+// eventType represents a type-genre mapping (example)
+type eventType struct {
+	TypeID    int    `json:"type_id"`
+	TypeName  string `json:"type_name,omitempty"`
+	GenreID   int    `json:"genre_id"`
+	GenreName string `json:"genre_name,omitempty"`
+}
 
-func (h *ApiHandler) GetEvents(gc *gin.Context) {
-	ctx := gc.Request.Context()
+// eventResponse is the JSON structure for each event
+type eventResponse struct {
+	EventDateID             int         `json:"event_date_id"`
+	ID                      int         `json:"id"` // event_id
+	Title                   string      `json:"title"`
+	Subtitle                *string     `json:"subtitle"`
+	Description             *string     `json:"description"`
+	StartDate               string      `json:"start_date"`
+	StartTime               string      `json:"start_time,omitempty"`
+	EndDate                 *string     `json:"end_date,omitempty"`
+	EndTime                 *string     `json:"end_time,omitempty"`
+	EntryTime               *string     `json:"entry_time,omitempty"`
+	Duration                *int        `json:"duration,omitempty"`
+	AllDay                  *bool       `json:"all_day,omitempty"`
+	Status                  *string     `json:"status,omitempty"`
+	TicketLink              *string     `json:"ticket_link,omitempty"`
+	SpaceID                 *int        `json:"space_id,omitempty"`
+	SpaceName               *string     `json:"space_name,omitempty"`
+	SpaceAccessibilityFlags *int64      `json:"space_accessibility_flags,omitempty"`
+	VenueID                 *int        `json:"venue_id,omitempty"`
+	VenueName               *string     `json:"venue_name,omitempty"`
+	VenueCity               *string     `json:"venue_city,omitempty"`
+	VenueStreet             *string     `json:"venue_street,omitempty"`
+	VenueHouse              *string     `json:"venue_house_number,omitempty"`
+	VenuePostal             *string     `json:"venue_postal_code,omitempty"`
+	VenueState              *string     `json:"venue_state_code,omitempty"`
+	VenueCountry            *string     `json:"venue_country_code,omitempty"`
+	VenueLat                *float64    `json:"venue_lat,omitempty"`
+	VenueLon                *float64    `json:"venue_lon,omitempty"`
+	ImageId                 *int        `json:"image_id,omitempty"`
+	ImagePath               *string     `json:"image_path,omitempty"`
+	OrganizationID          int         `json:"organization_id"`
+	OrganizationName        string      `json:"organization_name"`
+	EventTypes              []eventType `json:"event_types,omitempty"`
+	Languages               []string    `json:"languages"`
+	Tags                    []string    `json:"tags"`
+	MinAge                  *int        `json:"min_age"`
+	MaxAge                  *int        `json:"max_age"`
+	VisitorInfoFlags        *int64      `json:"visitor_info_flags,omitempty"`
+	// Add other fields as needed
+}
 
-	var query string
-	var isTypeSummaryMode bool
-	modeStr := gc.Query("mode") // "" if not provided
-	switch modeStr {
-	case "", "basic", "geometry":
-		query = app.Singleton.SqlGetEventsBasic
-	case "extended":
-		query = app.Singleton.SqlGetEventsExtended
-	case "detailed":
-		query = app.Singleton.SqlGetEventsDetailed
-	case "type-summary":
-		query = app.Singleton.SqlGetEventsTypeSummary
-		isTypeSummaryMode = true
-	default:
-		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Unknown mode %s", modeStr)})
-		return
-	}
+// buildEventFilters parses all query parameters from the context
+// and returns:
+// - dateConditions: the date-specific condition string
+// - conditionsStr: all other conditions concatenated
+// - limitClause: SQL LIMIT/OFFSET clause
+// - args: list of query arguments
+// - nextArgIndex: next placeholder index
+func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
+	dateConditions string,
+	conditionsStr string,
+	limitClause string,
+	args []interface{},
+	nextArgIndex int,
+	err error,
+) {
+	args = []interface{}{}
+	nextArgIndex = 1
+	var conditions []string
 
-	// TODO:
-	// Note on security:
-	// This version is still vulnerable to SQL injection if any of the inputs are user-controlled. Safe version using parameterized queries (recommended with database/sql_utils or GORM):
-
-	// TODO:
-	// Check for unknown arguments
-
-	langStr, _ := GetContextParam(gc, "lang")
 	_, hasPast := GetContextParam(gc, "past")
 	startStr, _ := GetContextParam(gc, "start")
 	endStr, _ := GetContextParam(gc, "end")
@@ -50,299 +89,367 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	eventIdsStr, _ := GetContextParam(gc, "events")
 	venueIdsStr, _ := GetContextParam(gc, "venues")
 	spaceIdsStr, _ := GetContextParam(gc, "spaces")
-	orgIdsStr, _ := GetContextParam(gc, "organizers")
-	countryCodesStr, _ := GetContextParam(gc, "countries")
-	// stateCode := GetContextParam(gc, "state_code")
-	postalCodeStr, _ := GetContextParam(gc, "postal_code")
-	// buildingLevelCodeStr := GetContextParam(gc, "building_level")
-	// buildingMinLevelCodeStr := GetContextParam(gc, "building_min_level")
-	// buildingMaxLevelCodeStr := GetContextParam(gc, "building_max_level")
-	// spaceMinCapacityCodeStr := GetContextParam(gc, "space_min_capacity")
-	// spaceMaxCapacityCodeStr := GetContextParam(gc, "space_max_capacity")
-	// spaceMinSeatsCodeStr := GetContextParam(gc, "space_min_seats")
-	// spaceMaxSeatsCodeStr := GetContextParam(gc, "space_max_seats")
-	lonStr, _ := GetContextParam(gc, "lon")
-	latStr, _ := GetContextParam(gc, "lat")
-	radiusStr, _ := GetContextParam(gc, "radius")
-	eventTypesStr, _ := GetContextParam(gc, "event_types")
-	// genreTypesStr, _ := GetContextParam(gc, "genre_types") // Todo: must be refactored
 	spaceTypesStr, _ := GetContextParam(gc, "space_types")
+	organizationIdsStr, _ := GetContextParam(gc, "organizations")
+	countryCodesStr, _ := GetContextParam(gc, "countries")
+	postalCodeStr, _ := GetContextParam(gc, "postal_code")
 	titleStr, _ := GetContextParam(gc, "title")
 	cityStr, _ := GetContextParam(gc, "city")
+	eventTypesStr, _ := GetContextParam(gc, "event_types")
+	tagsStr, _ := GetContextParam(gc, "tags")
 	accessibilityInfosStr, _ := GetContextParam(gc, "accessibility")
 	visitorInfosStr, _ := GetContextParam(gc, "visitor_infos")
 	ageStr, _ := GetContextParam(gc, "age")
+	lonStr, _ := GetContextParam(gc, "lon")
+	latStr, _ := GetContextParam(gc, "lat")
+	radiusStr, _ := GetContextParam(gc, "radius")
 	offsetStr, _ := GetContextParam(gc, "offset")
 	limitStr, _ := GetContextParam(gc, "limit")
 
-	eventDateConditions := ""
-	eventDateConditionCount := 0
-	var conditions []string
-	var args []interface{}
-	argIndex := 1 // Postgres uses $1, $2, etc.
-	var err error
-
-	if langStr != "" {
-		// TODO: Check available languages
-		if !app.IsValidIso639_1(langStr) {
-			gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("lang format error %v", err)})
-		}
-	} else {
-		langStr = "en"
-	}
-
-	args = append(args, langStr)
-	argIndex++
-
+	// --- date conditions ---
+	dateConditionCount := 0
 	if app.IsValidDateStr(startStr) {
-		eventDateConditions += "WHERE ed.start_date >= $" + strconv.Itoa(argIndex)
-		eventDateConditionCount++
+		dateConditions += "edp.start_date >= $" + strconv.Itoa(nextArgIndex)
 		args = append(args, startStr)
-		argIndex++
+		nextArgIndex++
+		dateConditionCount++
 	} else if startStr != "" {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Errorf("start %s has invalid format", startStr)})
-	} else {
-		if !hasPast {
-			eventDateConditions += "WHERE ed.start_date >= CURRENT_DATE"
-			eventDateConditionCount++
-		}
+		return "", "", "", nil, 0, fmt.Errorf("start %s has invalid format", startStr)
+	} else if !hasPast {
+		dateConditions += "edp.start_date >= CURRENT_DATE"
+		dateConditionCount++
 	}
 
 	if app.IsValidDateStr(endStr) {
-		if eventDateConditionCount > 0 {
-			eventDateConditions += " AND "
+		if dateConditionCount > 0 {
+			dateConditions += " AND "
 		}
-
-		eventDateConditions += "(ed.end_date <= $" + strconv.Itoa(argIndex) + " OR ed.start_date <= $" + strconv.Itoa(argIndex) + ")"
+		dateConditions += "(edp.end_date <= $" + strconv.Itoa(nextArgIndex) + " OR edp.start_date <= $" + strconv.Itoa(nextArgIndex) + ")"
 		args = append(args, endStr)
-		argIndex++
+		nextArgIndex++
 	} else if endStr != "" {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Errorf("end %s has invalid format", endStr)})
+		return "", "", "", nil, 0, fmt.Errorf("end %s has invalid format", endStr)
 	}
 
-	argIndex, err = sql_utils.BuildTimeCondition(timeStr, "start", "time", argIndex, &conditions, &args)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	// --- other conditions ---
+	var errBuild error
+	nextArgIndex, errBuild = sql_utils.BuildTimeCondition(timeStr, "edp.start_time", "time", nextArgIndex, &conditions, &args)
+	if errBuild != nil {
+		return "", "", "", nil, 0, errBuild
 	}
-
-	argIndex, err = sql_utils.BuildSanitizedSearchCondition(searchStr, "e.search_text", "search", argIndex, &conditions, &args)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	nextArgIndex, errBuild = sql_utils.BuildSanitizedSearchCondition(searchStr, "ep.search_text", "search", nextArgIndex, &conditions, &args)
+	if errBuild != nil {
+		return "", "", "", nil, 0, errBuild
+	}
+	nextArgIndex, errBuild = sql_utils.BuildSanitizedIlikeCondition(titleStr, "ep.title", "title", nextArgIndex, &conditions, &args)
+	if errBuild != nil {
+		return "", "", "", nil, 0, errBuild
 	}
 
 	if countryCodesStr != "" {
-		format := "vd.venue_country_code IN (%s)"
-		argIndex, err = sql_utils.BuildInConditionForStringSlice(countryCodesStr, format, "country_codes", argIndex, &conditions, &args)
-		if err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		format := "COALESCE(edp.venue_country_code, ep.venue_country_code) = ANY(%s)"
+		nextArgIndex, errBuild = sql_utils.BuildInConditionForStringSlice(countryCodesStr, format, "countries", nextArgIndex, &conditions, &args)
+		if errBuild != nil {
+			return "", "", "", nil, 0, errBuild
 		}
 	}
-
 	if postalCodeStr != "" {
-		argIndex, err = sql_utils.BuildLikeConditions(postalCodeStr, "vd.postal_code", argIndex, &conditions, &args)
-		if err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		nextArgIndex, errBuild = sql_utils.BuildLikeConditions(postalCodeStr, "COALESCE(edp.venue_postal_code, ep.venue_postal_code)", nextArgIndex, &conditions, &args)
+		if errBuild != nil {
+			return "", "", "", nil, 0, errBuild
 		}
 	}
-
+	nextArgIndex, errBuild = sql_utils.BuildSanitizedIlikeCondition(cityStr, "COALESCE(edp.venue_city, ep.venue_city)", "city", nextArgIndex, &conditions, &args)
+	if errBuild != nil {
+		return "", "", "", nil, 0, errBuild
+	}
 	if eventIdsStr != "" {
-		argIndex, err = sql_utils.BuildColumnInIntCondition(eventIdsStr, "e.id", "events", argIndex, &conditions, &args)
-		if err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		nextArgIndex, errBuild = sql_utils.BuildColumnInIntCondition(eventIdsStr, "edp.event_id", nextArgIndex, &conditions, &args)
+		if errBuild != nil {
+			return "", "", "", nil, 0, errBuild
 		}
 	}
-
+	if organizationIdsStr != "" {
+		nextArgIndex, errBuild = sql_utils.BuildColumnInIntCondition(organizationIdsStr, "ep.organization_id", nextArgIndex, &conditions, &args)
+		if errBuild != nil {
+			return "", "", "", nil, 0, errBuild
+		}
+	}
 	if venueIdsStr != "" {
-		argIndex, err = sql_utils.BuildColumnInIntCondition(venueIdsStr, "vd.venue_id", "venues", argIndex, &conditions, &args)
-		if err != nil {
-
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		nextArgIndex, errBuild = sql_utils.BuildColumnInIntCondition(venueIdsStr, "COALESCE(edp.venue_id, ep.venue_id)", nextArgIndex, &conditions, &args)
+		if errBuild != nil {
+			return "", "", "", nil, 0, errBuild
 		}
 	}
-
-	if orgIdsStr != "" {
-		argIndex, err = sql_utils.BuildColumnInIntCondition(orgIdsStr, "o.id", "organizers", argIndex, &conditions, &args)
-		if err != nil {
-
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		}
-	}
-
 	if spaceIdsStr != "" {
-		argIndex, err = sql_utils.BuildColumnInIntCondition(spaceIdsStr, "COALESCE(s.id, es.id)", "spaces", argIndex, &conditions, &args)
-		if err != nil {
-
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		nextArgIndex, errBuild = sql_utils.BuildColumnInIntCondition(spaceIdsStr, "COALESCE(edp.space_id, ep.space_id)", nextArgIndex, &conditions, &args)
+		if errBuild != nil {
+			return "", "", "", nil, 0, errBuild
 		}
 	}
-
-	argIndex, err = sql_utils.BuildGeographicRadiusCondition(
-		lonStr, latStr, radiusStr, "vd.venue_wkb_geometry",
-		argIndex, &conditions, &args,
-	)
-
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if spaceTypesStr != "" {
+		nextArgIndex, errBuild = sql_utils.BuildColumnInIntCondition(spaceTypesStr, "COALESCE(edp.space_type_id, ep.space_type_id)", nextArgIndex, &conditions, &args)
+		if errBuild != nil {
+			return "", "", "", nil, 0, errBuild
+		}
+	}
+	nextArgIndex, errBuild = sql_utils.BuildGeoRadiusCondition(lonStr, latStr, radiusStr, "COALESCE(edp.venue_geo_pos, ep.venue_geo_pos)", nextArgIndex, &conditions, &args)
+	if errBuild != nil {
+		return "", "", "", nil, 0, errBuild
+	}
+	nextArgIndex, errBuild = sql_utils.BuildContainedInColumnIntRangeCondition(ageStr, "ep.min_age", "ep.max_age", nextArgIndex, &conditions, &args)
+	if errBuild != nil {
+		return "", "", "", nil, 0, errBuild
+	}
+	nextArgIndex, errBuild = sql_utils.BuildBitmaskCondition(accessibilityInfosStr, "edp.space_accessibility_flags", "accessibility", nextArgIndex, &conditions, &args)
+	if errBuild != nil {
+		return "", "", "", nil, 0, errBuild
+	}
+	nextArgIndex, errBuild = sql_utils.BuildBitmaskCondition(visitorInfosStr, "edp.visitor_info_flags", "visitor_infos", nextArgIndex, &conditions, &args)
+	if errBuild != nil {
+		return "", "", "", nil, 0, errBuild
 	}
 
 	if eventTypesStr != "" {
-		if eventDateConditionCount > 0 {
-			eventDateConditions += " AND "
-		}
-
-		ids, err := app.ParseIntSliceCSV(eventTypesStr)
-		if err != nil {
-			gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		eventDateConditions +=
-			"EXISTS (SELECT 1 FROM " + h.DbSchema +
-				".event_type_link sub_etl WHERE sub_etl.event_id = e.id AND sub_etl.type_id = ANY($" +
-				strconv.Itoa(argIndex) + "))"
-
-		args = append(args, ids)
-		argIndex++
-	}
-
-	/* TODO: Handle event types and genres, must be refactored!
-	if genreTypesStr != "" {
-		format := "EXISTS (SELECT 1 FROM " + h.DbSchema + ".event_genre_link sub_egl WHERE sub_egl.event_id = e.id AND sub_egl.type_id IN (%s))"
-		var err error
-		argIndex, err = sql_utils.BuildInCondition(genreTypesStr, format, "genre_types", argIndex, &conditions, &args)
-		if err != nil {
-
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		}
-	}
-	*/
-
-	if spaceTypesStr != "" {
-		format := "COALESCE(s.space_type_id, es.space_type_id) IN (%s)"
-		argIndex, err = sql_utils.BuildInCondition(spaceTypesStr, format, "space_types", argIndex, &conditions, &args)
-		if err != nil {
-
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		nextArgIndex, errBuild = sql_utils.BuildJsonbArrayIntCondition(
+			eventTypesStr,
+			"types",
+			0, // index 0 = event_type_id
+			nextArgIndex,
+			&conditions,
+			&args,
+		)
+		if errBuild != nil {
+			return "", "", "", nil, 0, errBuild
 		}
 	}
 
-	argIndex, err = sql_utils.BuildSanitizedIlikeCondition(titleStr, "e.title", "title", argIndex, &conditions, &args)
-	if err != nil {
-
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if tagsStr != "" {
+		nextArgIndex, errBuild = sql_utils.BuildArrayContainsCondition(
+			tagsStr,
+			"tags",
+			nextArgIndex,
+			&conditions,
+			&args,
+		)
+		if errBuild != nil {
+			return "", "", "", nil, 0, errBuild
+		}
 	}
 
-	argIndex, err = sql_utils.BuildSanitizedIlikeCondition(cityStr, "venue_city", "city", argIndex, &conditions, &args)
-	if err != nil {
-
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-	}
-
-	argIndex, err = sql_utils.BuildContainedInColumnRangeCondition(ageStr, "min_age", "max_age", argIndex, &conditions, &args)
-	if err != nil {
-
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-	}
-
-	argIndex, err = sql_utils.BuildBitmaskCondition(accessibilityInfosStr, "ed.accessibility_flags", "accessibility_flags", argIndex, &conditions, &args)
-	if err != nil {
-
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-	}
-
-	argIndex, err = sql_utils.BuildBitmaskCondition(visitorInfosStr, "ed.visitor_info_flags", "visitor_info_flags", argIndex, &conditions, &args)
-	if err != nil {
-
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-	}
-
-	conditionsStr := ""
+	// join all conditions
 	if len(conditions) > 0 {
-		conditionsStr = "WHERE " + strings.Join(conditions, " AND ")
+		conditionsStr = " AND " + strings.Join(conditions, " AND ")
 	}
 
-	query = strings.Replace(query, "{{event-date-conditions}}", eventDateConditions, 1)
-	query = strings.Replace(query, "{{conditions}}", conditionsStr, 1)
+	// build limit/offset clause
+	limitClause, nextArgIndex, errBuild = sql_utils.BuildLimitOffsetClause(limitStr, offsetStr, nextArgIndex, &args)
+	if errBuild != nil {
+		return "", "", "", nil, 0, errBuild
+	}
 
-	if isTypeSummaryMode {
-		row := h.DbPool.QueryRow(ctx, query, args...)
+	return dateConditions, conditionsStr, limitClause, args, nextArgIndex, nil
+}
 
-		var jsonResult []byte
-		err := row.Scan(&jsonResult)
-		if err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
+func (h *ApiHandler) GetEvents(gc *gin.Context) {
+	ctx := gc.Request.Context()
 
-		gc.Data(http.StatusOK, "application/json", jsonResult)
+	dateConditions, conditionsStr, limitClause, args, _, err := h.buildEventFilters(gc)
+	if err != nil {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	var limitClause string
-	limitClause, argIndex, err = sql_utils.BuildLimitOffsetClause(limitStr, offsetStr, argIndex, &args)
-	if err != nil {
+	query := fmt.Sprintf(`
+WITH upcoming_dates AS (
+    SELECT *
+    FROM %s.event_date_projection edp
+    WHERE edp.start_date >= CURRENT_DATE
+)
+SELECT
+    edp.event_date_id,
+    edp.event_id,
+    ep.organization_id,
+    COALESCE(edp.venue_id, ep.venue_id) AS venue_id,
+    COALESCE(edp.space_id, ep.space_id) AS space_id,
+	TO_CHAR(edp.start_date, 'YYYY-MM-DD') AS start_date,
+    TO_CHAR(edp.start_time, 'HH24:MI') AS start_time,
+    TO_CHAR(edp.end_date, 'YYYY-MM-DD') AS end_date,
+    TO_CHAR(edp.end_time, 'HH24:MI') AS end_time,
+    TO_CHAR(edp.entry_time, 'HH24:MI') AS entry_time,
+    edp.duration,
+    edp.all_day,
+    edp.status,
+    edp.ticket_link,
+    ep.title,
+	ep.subtitle,
+	ep.description,
+	ep.types,
+	ep.languages,
+	ep.tags,
+    ep.organization_name,
+	ep.image_id,
+    COALESCE(edp.venue_name, ep.venue_name) AS venue_name,
+    COALESCE(edp.venue_city, ep.venue_city) AS venue_city,
+    COALESCE(edp.venue_street, ep.venue_street) AS venue_street,
+    COALESCE(edp.venue_house_number, ep.venue_house_number) AS venue_house_number,
+    COALESCE(edp.venue_postal_code, ep.venue_postal_code) AS venue_postal_code,
+    COALESCE(edp.venue_state_code, ep.venue_state_code) AS venue_state_code,
+    COALESCE(edp.venue_country_code, ep.venue_country_code) AS venue_country_code,
+    ST_Y(COALESCE(edp.venue_geo_pos, ep.venue_geo_pos)) AS venue_lat,
+    ST_X(COALESCE(edp.venue_geo_pos, ep.venue_geo_pos)) AS venue_lon,
+    COALESCE(edp.space_name, ep.space_name) AS space_name,
+    COALESCE(edp.space_accessibility_flags, ep.space_accessibility_flags) AS space_accessibility_flags,
+	ep.min_age,
+	ep.max_age,
+	edp.visitor_info_flags
+FROM upcoming_dates edp
+JOIN %s.event_projection ep ON ep.event_id = edp.event_id
+WHERE ep.release_status_id >= 3
+AND {{date_conditions}}
+{{conditions}}
+ORDER BY edp.start_date, edp.start_time
+{{limit}}
+`, h.DbSchema, h.DbSchema)
 
-		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-	}
+	query = strings.Replace(query, "{{date_conditions}}", dateConditions, 1)
+	query = strings.Replace(query, "{{conditions}}", conditionsStr, 1)
 	query = strings.Replace(query, "{{limit}}", limitClause, 1)
 
-	order := "ORDER BY (ed.start_date + COALESCE(ed.start_time, '00:00:00'::time)) ASC, e.id ASC"
-	query = strings.Replace(query, "{{order}}", order, 1)
-
 	rows, err := h.DbPool.Query(ctx, query, args...)
+	if err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("query failed: %v", err)})
+		return
+	}
+	defer rows.Close()
+
+	var events []eventResponse
+
+	for rows.Next() {
+		var e eventResponse
+		var typesJSON []byte
+		err := rows.Scan(
+			&e.EventDateID,
+			&e.ID,
+			&e.OrganizationID,
+			&e.VenueID,
+			&e.SpaceID,
+			&e.StartDate,
+			&e.StartTime,
+			&e.EndDate,
+			&e.EndTime,
+			&e.EntryTime,
+			&e.Duration,
+			&e.AllDay,
+			&e.Status,
+			&e.TicketLink,
+			&e.Title,
+			&e.Subtitle,
+			&e.Description,
+			&typesJSON,
+			&e.Languages,
+			&e.Tags,
+			&e.OrganizationName,
+			&e.ImageId,
+			&e.VenueName,
+			&e.VenueCity,
+			&e.VenueStreet,
+			&e.VenueHouse,
+			&e.VenuePostal,
+			&e.VenueState,
+			&e.VenueCountry,
+			&e.VenueLat,
+			&e.VenueLon,
+			&e.SpaceName,
+			&e.SpaceAccessibilityFlags,
+			&e.MinAge,
+			&e.MaxAge,
+			&e.VisitorInfoFlags,
+		)
+		if err != nil {
+			gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("scan failed: %v", err)})
+			return
+		}
+
+		// Convert types JSON
+		var rawTypes [][]int
+		if len(typesJSON) > 0 {
+			if err := json.Unmarshal(typesJSON, &rawTypes); err != nil {
+				gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("json unmarshal failed (types): %v", err)})
+				return
+			}
+			e.EventTypes = make([]eventType, len(rawTypes))
+			for i, pair := range rawTypes {
+				e.EventTypes[i] = eventType{
+					TypeID:  pair[0],
+					GenreID: pair[1],
+				}
+			}
+		} else {
+			e.EventTypes = []eventType{}
+		}
+
+		if e.ImageId != nil {
+			path := fmt.Sprintf("http://localhost:9090/api/image/%d", *e.ImageId)
+			e.ImagePath = &path
+		}
+
+		events = append(events, e)
+	}
+
+	if len(events) == 0 {
+		gc.JSON(http.StatusNotFound, gin.H{"events": events})
+		return
+	}
+
+	gc.JSON(http.StatusOK, gin.H{"events": events})
+}
+
+func (h *ApiHandler) GetEventTypeDateSummary(gc *gin.Context) {
+	dateConditions, conditionsStr, _, args, _, err := h.buildEventFilters(gc)
+	if err != nil {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	query := fmt.Sprintf(`
+WITH upcoming_dates AS (
+    SELECT *
+    FROM %s.event_date_projection edp
+    WHERE %s
+)
+SELECT
+    (elem->>0)::int AS type_id,
+    COUNT(edp.event_date_id) AS date_count
+FROM upcoming_dates edp
+JOIN %s.event_projection ep ON ep.event_id = edp.event_id
+CROSS JOIN LATERAL jsonb_array_elements(ep.types) AS elem
+WHERE ep.release_status_id >= 3
+%s
+GROUP BY type_id
+ORDER BY date_count DESC;
+`, h.DbSchema, dateConditions, h.DbSchema, conditionsStr)
+
+	rows, err := h.DbPool.Query(gc.Request.Context(), query, args...)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	defer rows.Close()
 
-	fieldDescriptions := rows.FieldDescriptions()
-	columnNames := make([]string, len(fieldDescriptions))
-	for i, fd := range fieldDescriptions {
-		columnNames[i] = string(fd.Name)
+	type summaryEntry struct {
+		TypeID    int `json:"type_id"`
+		DateCount int `json:"date_count"`
 	}
-
-	var results []map[string]interface{}
-
+	var summary []summaryEntry
 	for rows.Next() {
-		values, err := rows.Values()
-		if err != nil {
+		var s summaryEntry
+		if err := rows.Scan(&s.TypeID, &s.DateCount); err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-
-		rowMap := make(map[string]interface{}, len(values))
-		for i, col := range columnNames {
-			rowMap[col] = values[i]
-		}
-
-		// Add extra property image_path
-		imageId := rowMap["image_id"]
-		if imageId == nil {
-			rowMap["image_path"] = nil
-		} else {
-			rowMap["image_path"] = fmt.Sprintf(
-				"%s/api/image/%v",
-				app.Singleton.Config.BaseApiUrl,
-				imageId,
-			)
-		}
-
-		results = append(results, rowMap)
+		summary = append(summary, s)
 	}
 
-	if err := rows.Err(); err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	response := make(map[string]interface{})
-	response["events"] = results
-
-	if err := rows.Err(); err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	gc.JSON(http.StatusOK, response)
+	gc.JSON(http.StatusOK, gin.H{"summary": summary})
 }

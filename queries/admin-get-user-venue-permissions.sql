@@ -6,8 +6,8 @@ WITH user_venue_perm AS (
 user_org_perm AS (
     SELECT v.id AS venue_id, uo.permissions
     FROM {{schema}}.venue v
-    JOIN {{schema}}.user_organizer_link uo
-    ON uo.organizer_id = v.organizer_id
+    JOIN {{schema}}.user_organization_link uo
+    ON uo.organization_id = v.organization_id
     WHERE uo.user_id = $1
     )
 SELECT

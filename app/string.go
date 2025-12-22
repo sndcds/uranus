@@ -33,7 +33,7 @@ func TruncateAtWord(s string, maxLength int) string {
 	return truncated
 }
 
-func ParseIntSliceCSV(s string) ([]int, error) {
+func ParseIntSliceCsv(s string) ([]int, error) {
 	parts := strings.Split(s, ",")
 	ids := make([]int, 0, len(parts))
 
@@ -55,4 +55,12 @@ func ParseIntSliceCSV(s string) ([]int, error) {
 	}
 
 	return ids, nil
+}
+
+func IntSliceToCsv(ids []int) string {
+	strIds := make([]string, len(ids))
+	for i, id := range ids {
+		strIds[i] = fmt.Sprintf("%d", id)
+	}
+	return strings.Join(strIds, ",")
 }

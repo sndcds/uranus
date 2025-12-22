@@ -29,8 +29,8 @@ func (h *ApiHandler) GetChoosableLegalForms(gc *gin.Context) {
 	defer rows.Close()
 
 	type LegalForm struct {
-		LegalFormId   int64   `json:"legal_form_id"`
-		LegalFormName *string `json:"legal_form_name"`
+		LegalFormId   int64   `json:"id"`
+		LegalFormName *string `json:"name"`
 	}
 
 	var legalForms []LegalForm

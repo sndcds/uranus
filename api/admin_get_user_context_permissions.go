@@ -55,7 +55,7 @@ func (h *ApiHandler) AdminGetUserContextPermissions(gc *gin.Context) {
 
 func isValidContext(name string) bool {
 	switch name {
-	case "organizer", "venue", "space", "event":
+	case "organization", "venue", "space", "event":
 		return true
 	default:
 		return false

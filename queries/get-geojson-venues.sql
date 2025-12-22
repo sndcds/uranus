@@ -1,8 +1,8 @@
 SELECT
     venue.name AS venue_name,
     venue.city AS venue_city,
-    ST_X(venue.wkb_geometry) AS venue_lon,
-    ST_Y(venue.wkb_geometry) AS venue_lat,
+    ST_X(venue.wkb_pos) AS venue_lon,
+    ST_Y(venue.wkb_pos) AS venue_lat,
     STRING_AGG(venue_type.name, ', ') AS venue_type_list,
     MAX(venue_url.url) AS venue_url
 FROM {{schema}}.venue AS venue
@@ -14,4 +14,4 @@ LEFT JOIN {{schema}}.venue_type AS venue_type
 LEFT JOIN {{schema}}.venue_url AS venue_url
     ON venue_url.venue_id = venue.id
     AND venue_url.link_type = 'website'
-GROUP BY venue.id, venue.name, venue.city, venue.wkb_geometry
+GROUP BY venue.id, venue.name, venue.city, venue.wkb_pos

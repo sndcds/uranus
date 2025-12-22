@@ -13,8 +13,8 @@ import (
 type EventNotification struct {
 	EventId           int        `json:"event_id"`
 	EventTitle        string     `json:"event_title"`
-	OrganizerId       int        `json:"organizer_id"`
-	OrganizerName     *string    `json:"organizer_name"`
+	OrganizationId    int        `json:"organization_id"`
+	OrganizationName  *string    `json:"organization_name"`
 	ReleaseDate       *time.Time `json:"release_date,omitempty"`
 	ReleaseStatusId   int        `json:"release_status_id"`
 	ReleaseStatusName *string    `json:"release_status_name"`
@@ -47,8 +47,8 @@ func (h *ApiHandler) AdminGetUserEventNotification(gc *gin.Context) {
 		err := rows.Scan(
 			&e.EventId,
 			&e.EventTitle,
-			&e.OrganizerId,
-			&e.OrganizerName,
+			&e.OrganizationId,
+			&e.OrganizationName,
 			&e.ReleaseDate,
 			&e.ReleaseStatusId,
 			&e.ReleaseStatusName,

@@ -26,9 +26,9 @@ venue_data AS (
         COALESCE(v_ed.city, v_ev.city) AS venue_city,
         COALESCE(v_ed.country_code, v_ev.country_code) AS venue_country_code,
         COALESCE(v_ed.state_code, v_ev.state_code) AS venue_state_code,
-        COALESCE(ST_X(v_ed.wkb_geometry), ST_X(v_ev.wkb_geometry)) AS venue_lon,
-        COALESCE(ST_Y(v_ed.wkb_geometry), ST_Y(v_ev.wkb_geometry)) AS venue_lat,
-        COALESCE(v_ed.wkb_geometry, v_ev.wkb_geometry) AS venue_wkb_geometry
+        COALESCE(ST_X(v_ed.wkb_pos), ST_X(v_ev.wkb_pos)) AS venue_lon,
+        COALESCE(ST_Y(v_ed.wkb_pos), ST_Y(v_ev.wkb_pos)) AS venue_lat,
+        COALESCE(v_ed.wkb_pos, v_ev.wkb_pos) AS venue_wkb_pos
     FROM event_data ed
     LEFT JOIN {{schema}}.venue v_ev ON v_ev.id = (SELECT e.venue_id FROM {{schema}}.event e WHERE e.id = ed.event_id)
     LEFT JOIN {{schema}}.venue v_ed ON v_ed.id = ed.venue_id
@@ -39,13 +39,13 @@ SELECT
 
 FROM event_data ed
 
--- Base event, organizer, venue
+-- Base event, organization, venue
 JOIN {{schema}}.event e
 ON ed.event_id = e.id
 AND e.release_status_id >= 3
 
-JOIN {{schema}}.organizer o
-ON e.organizer_id = o.id
+JOIN {{schema}}.organization o
+ON e.organization_id = o.id
 
 JOIN venue_data vd
 ON vd.venue_event_date = ed.event_date_id

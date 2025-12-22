@@ -9,10 +9,10 @@ WITH direct_venues AS (
 indirect_venues AS (
     SELECT v.id, v.name, v.city, v.country_code
     FROM {{schema}}.venue v
-    JOIN {{schema}}.organizer o
-    ON o.id = v.organizer_id
-    JOIN {{schema}}.user_organizer_link uol
-    ON uol.organizer_id = o.id
+    JOIN {{schema}}.organization o
+    ON o.id = v.organization_id
+    JOIN {{schema}}.user_organization_link uol
+    ON uol.organization_id = o.id
     WHERE uol.user_id = $1
     AND (uol.permissions & (1 << 11) <> 0)
 )

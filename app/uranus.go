@@ -21,49 +21,54 @@ import (
 // TODO: Review code
 
 type Uranus struct {
-	Version                                string
-	APIName                                string
-	APIVersion                             string
-	MainDbPool                             *pgxpool.Pool
-	Config                                 Config
-	SqlGetOrganizer                        string
-	SqlGetEvent                            string
-	SqlGetEventDates                       string
-	SqlGetEventsBasic                      string
-	SqlGetEventsExtended                   string
-	SqlGetEventsDetailed                   string
-	SqlGetEventsTypeSummary                string
-	SqlGetUserOrganizerPermissions         string
-	SqlGetUserVenuePermissions             string
-	SqlGetAdminOrganizer                   string
-	SqlUpdateOrganizer                     string
-	SqlGetAdminVenue                       string
-	SqlUpdateVenue                         string
-	SqlGetAdminSpace                       string
-	SqlUpdateSpace                         string
-	SqlGetAdminEvent                       string
-	SqlGetAdminEventDates                  string
-	SqlGetAdminEventTypes                  string
-	SqlChoosableOrganizerVenues            string
-	SqlChoosableVenueSpaces                string
-	SqlChoosableEventTypes                 string
-	SqlChoosableEventGenres                string
-	SqlGetGeojsonVenues                    string
-	SqlAdminGetOrganizerDashboard          string
-	SqlAdminGetOrganizerVenues             string
-	SqlAdminGetOrganizerEvents             string
-	SqlAdminGetOrganizerAddEventPermission string
-	SqlAdminGetPermissionList              string
-	SqlQueryUserOrgEventsOverview          string
-	SqlAdminUserPermissions                string
-	SqlAdminGetUserEventNotification       string
-	SqlAdminChoosableOrganizers            string
-	SqlAdminChoosableUserEventOrganizers   string
-	SqlAdminChoosableUserEventVenues       string
-	SqlAdminChoosableUserVenuesSpaces      string
-	SqlAdminEvent                          string
-	SqlAdminSpacesForEvent                 string
-	JwtKey                                 []byte `json:"jwt_secret"`
+	Version                                   string
+	APIName                                   string
+	APIVersion                                string
+	MainDbPool                                *pgxpool.Pool
+	Config                                    Config
+	SqlGetOrganization                        string
+	SqlGetEvent                               string
+	SqlGetEventDates                          string
+	SqlGetEventsBasic                         string
+	SqlGetEventsExtended                      string
+	SqlGetEventsDetailed                      string
+	SqlGetEventsTypeSummary                   string
+	SqlGetUserOrganizationPermissions         string
+	SqlGetUserVenuePermissions                string
+	SqlGetUserEffectiveVenuePermissions       string
+	SqlGetAdminOrganization                   string
+	SqlInsertOrganization                     string
+	SqlUpdateOrganization                     string
+	SqlGetAdminVenue                          string
+	SqlInsertVenue                            string
+	SqlUpdateVenue                            string
+	SqlAdminGetSpace                          string
+	SqlUpdateSpace                            string
+	SqlAdminGetEvent                          string
+	SqlAdminGetEventDates                     string
+	SqlAdminGetEventTypes                     string
+	SqlChoosableOrganizationVenues            string
+	SqlChoosableVenueSpaces                   string
+	SqlChoosableEventTypes                    string
+	SqlChoosableEventGenres                   string
+	SqlGetGeojsonVenues                       string
+	SqlAdminGetOrganizationDashboard          string
+	SqlAdminGetOrganizationVenues             string
+	SqlAdminGetOrganizationEvents             string
+	SqlAdminGetOrganizationAddEventPermission string
+	SqlAdminGetPermissionList                 string
+	SqlQueryUserOrgEventsOverview             string
+	SqlAdminUserPermissions                   string
+	SqlAdminGetUserEventNotification          string
+	SqlAdminChoosableOrganizations            string
+	SqlAdminChoosableUserEventOrganizations   string
+	SqlAdminChoosableUserEventVenues          string
+	SqlAdminChoosableUserVenuesSpaces         string
+	SqlAdminEvent                             string
+	SqlAdminSpacesForEvent                    string
+	SqlInsertPlutoImage                       string
+	SqlUpdatePlutoImageMeta                   string
+	JwtKey                                    []byte `json:"jwt_secret"`
 }
 
 var Singleton *Uranus
@@ -204,45 +209,52 @@ func (app *Uranus) PrepareSql() error {
 		{"queries/choosable-event-genres.sql", &app.SqlChoosableEventGenres, nil},
 		{"queries/get-geojson-venues.sql", &app.SqlGetGeojsonVenues, nil},
 
-		{"queries/choosable-organizer-venues.sql", &app.SqlChoosableOrganizerVenues, nil},
+		{"queries/choosable-organization-venues.sql", &app.SqlChoosableOrganizationVenues, nil},
 		{"queries/choosable-venue-spaces.sql", &app.SqlChoosableVenueSpaces, nil},
 
-		{"queries/get-organizer.sql", &app.SqlGetOrganizer, nil},
+		{"queries/get-organization.sql", &app.SqlGetOrganization, nil},
 
 		// Admin
-		{"queries/admin-get-user-organizer-permissions.sql", &app.SqlGetUserOrganizerPermissions, nil},
+
+		{"queries/admin-get-user-organization-permissions.sql", &app.SqlGetUserOrganizationPermissions, nil},
+		{"queries/admin-get-user-effective-venue-permissions.sql", &app.SqlGetUserEffectiveVenuePermissions, nil},
 		{"queries/admin-get-user-venue-permissions.sql", &app.SqlGetUserVenuePermissions, nil},
 
-		{"queries/admin-get-organizer.sql", &app.SqlGetAdminOrganizer, nil},
-		{"queries/admin-update-organizer.sql", &app.SqlUpdateOrganizer, nil},
+		{"queries/admin-get-organization.sql", &app.SqlGetAdminOrganization, nil},
+		{"queries/admin-insert-organization.sql", &app.SqlInsertOrganization, nil},
+		{"queries/admin-update-organization.sql", &app.SqlUpdateOrganization, nil},
 
 		{"queries/admin-get-venue.sql", &app.SqlGetAdminVenue, nil},
+		{"queries/admin-insert-venue.sql", &app.SqlInsertVenue, nil},
 		{"queries/admin-update-venue.sql", &app.SqlUpdateVenue, nil},
 
-		{"queries/admin-get-space.sql", &app.SqlGetAdminSpace, nil},
+		{"queries/admin-get-space.sql", &app.SqlAdminGetSpace, nil},
 		{"queries/admin-update-space.sql", &app.SqlUpdateSpace, nil},
 
-		{"queries/admin-get-event.sql", &app.SqlGetAdminEvent, nil},
-		{"queries/admin-get-event-dates.sql", &app.SqlGetAdminEventDates, nil},
-		{"queries/admin-get-event-types.sql", &app.SqlGetAdminEventTypes, nil},
+		{"queries/admin-get-event.sql", &app.SqlAdminGetEvent, nil},
+		{"queries/admin-get-event-dates.sql", &app.SqlAdminGetEventDates, nil},
+		{"queries/admin-get-event-types.sql", &app.SqlAdminGetEventTypes, nil},
 
 		{"queries/admin-user-permissions.sql", &app.SqlAdminUserPermissions, nil},
 		{"queries/admin-get-user-event-notification.sql", &app.SqlAdminGetUserEventNotification, nil},
 
 		{"queries/admin-user-spaces-for-event.sql", &app.SqlAdminSpacesForEvent, nil},
 
-		{"queries/admin-choosable-organizers.sql", &app.SqlAdminChoosableOrganizers, nil},
-		{"queries/admin-choosable-user-event-organizers.sql", &app.SqlAdminChoosableUserEventOrganizers, nil},
+		{"queries/admin-choosable-organizations.sql", &app.SqlAdminChoosableOrganizations, nil},
+		{"queries/admin-choosable-user-event-organizations.sql", &app.SqlAdminChoosableUserEventOrganizations, nil},
 		{"queries/admin-choosable-user-event-venues.sql", &app.SqlAdminChoosableUserEventVenues, nil},
 		{"queries/admin-choosable-user-venues-spaces.sql", &app.SqlAdminChoosableUserVenuesSpaces, nil},
 
-		{"queries/admin-organizer-dashboard.sql", &app.SqlAdminGetOrganizerDashboard, nil},
-		{"queries/admin-get-organizer-events.sql", &app.SqlAdminGetOrganizerEvents, nil},
-		{"queries/admin-get-organizer-add-event-permission.sql", &app.SqlAdminGetOrganizerAddEventPermission, nil},
+		{"queries/admin-organization-dashboard.sql", &app.SqlAdminGetOrganizationDashboard, nil},
+		{"queries/admin-get-organization-events.sql", &app.SqlAdminGetOrganizationEvents, nil},
+		{"queries/admin-get-organization-add-event-permission.sql", &app.SqlAdminGetOrganizationAddEventPermission, nil},
 
 		{"queries/admin-get-permission-list.sql", &app.SqlAdminGetPermissionList, nil},
 
-		{"queries/admin-organizer-venues.sql", &app.SqlAdminGetOrganizerVenues, nil},
+		{"queries/admin-organization-venues.sql", &app.SqlAdminGetOrganizationVenues, nil},
+
+		{"queries/insert-pluto-image.sql", &app.SqlInsertPlutoImage, nil},
+		{"queries/update-pluto-image-meta.sql", &app.SqlUpdatePlutoImageMeta, nil},
 	}
 
 	for i := range queries {

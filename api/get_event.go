@@ -17,7 +17,6 @@ func (h *ApiHandler) GetEvent(gc *gin.Context) {
 }
 
 func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
-	pool := h.DbPool
 	ctx := gc.Request.Context()
 
 	eventId, ok := ParamInt(gc, "eventId")
@@ -32,13 +31,10 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 		return
 	}
 
-	fmt.Println("eventId:", eventId, "dateId:", dateId)
-
 	langStr := gc.DefaultQuery("lang", "en")
 
 	// Query event-level data without event dates
-
-	eventRow, err := pool.Query(ctx, app.Singleton.SqlGetEvent, eventId, langStr)
+	eventRow, err := h.DbPool.Query(ctx, app.Singleton.SqlGetEvent, eventId, langStr)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -73,10 +69,9 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 		eventData["image_path"] = nil
 	}
 
-	// Query all event dates for this event
-
+	// Query all event dates
 	datesQuery := app.Singleton.SqlGetEventDates
-	dateRows, err := pool.Query(ctx, datesQuery, eventId)
+	dateRows, err := h.DbPool.Query(ctx, datesQuery, eventId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -123,8 +118,8 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 	// Add to output
 	eventData["date"] = selectedDate
 	eventData["further_dates"] = furtherDates
-
 	eventData = app.FilterNilMap(eventData)
+
 	gc.JSON(http.StatusOK, eventData)
 }
 

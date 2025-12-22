@@ -45,10 +45,10 @@ func UserCanEditEvent(gc *gin.Context, tx pgx.Tx, eventId int) (bool, error) {
 
 	query := fmt.Sprintf(`
 		SELECT EXISTS (
-			-- Case 1: via organizer
+			-- Case 1: via organization
 			SELECT 1
 			FROM %[1]s.event e
-			JOIN %[1]s.user_organizer_link uol ON e.organizer_id = uol.organizer_id
+			JOIN %[1]s.user_organization_link uol ON e.organization_id = uol.organization_id
 			JOIN %[1]s.user_role ur ON uol.user_role_id = ur.id
 			WHERE e.id = $1 AND uol.user_id = $2 AND ur.edit_event = TRUE
 

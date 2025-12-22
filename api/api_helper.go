@@ -11,19 +11,50 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-// GetUserOrganizerPermissions returns the permissions a user has for an organizer.
-func (h *ApiHandler) GetUserOrganizerPermissions(
+func (h *ApiHandler) GetUserEffectiveVenuePermissions(
 	gc *gin.Context,
 	tx pgx.Tx,
 	userId int,
-	organizerId int,
+	venueId int,
+) (app.Permission, error) {
+
+	ctx := gc.Request.Context()
+	var result pgtype.Int8
+
+	err := tx.QueryRow(
+		ctx,
+		app.Singleton.SqlGetUserEffectiveVenuePermissions,
+		userId,
+		venueId,
+	).Scan(&result)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return 0, nil
+		}
+		return 0, err
+	}
+
+	if !result.Valid {
+		return 0, nil
+	}
+
+	return app.Permission(result.Int64), nil
+}
+
+// GetUserOrganizationPermissions returns the permissions a user has for an organization.
+func (h *ApiHandler) GetUserOrganizationPermissions(
+	gc *gin.Context,
+	tx pgx.Tx,
+	userId int,
+	organizationId int,
 ) (app.Permission, error) {
 	ctx := gc.Request.Context()
 	var result pgtype.Int8
 
 	err := tx.QueryRow(
-		ctx, app.Singleton.SqlGetUserOrganizerPermissions,
-		userId, organizerId,
+		ctx, app.Singleton.SqlGetUserOrganizationPermissions,
+		userId, organizationId,
 	).Scan(&result)
 	if err != nil {
 		if err == pgx.ErrNoRows {

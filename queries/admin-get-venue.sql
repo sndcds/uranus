@@ -1,7 +1,7 @@
 SELECT
     name,
     description,
-    organizer_id,
+    organization_id,
     opened_at,
     closed_at,
     contact_email,
@@ -13,7 +13,7 @@ SELECT
     city,
     state_code,
     country_code,
-    ST_X(venue.wkb_geometry) AS lon,
-    ST_Y(venue.wkb_geometry) AS lat
+    ST_X(venue.wkb_pos) AS lon,
+    ST_Y(venue.wkb_pos) AS lat
 FROM {{schema}}.venue
 WHERE id = $1

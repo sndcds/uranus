@@ -9,10 +9,8 @@ SELECT
     e.tags,
     e.meeting_point,
     e.release_status_id,
-    e.release_date,
+    TO_CHAR(e.release_date, 'YYYY-MM-DD'),
 
-    e.participation_info,
-    e.meeting_point,
     e.min_age,
     e.max_age,
     e.max_attendees,
@@ -41,8 +39,8 @@ SELECT
     e.custom,
     e.style,
 
-    o.id AS organizer_id,
-    o.name AS organizer_name,
+    o.id AS organization_id,
+    o.name AS organization_name,
 
     v.id AS venue_id,
     v.name AS venue_name,
@@ -50,10 +48,10 @@ SELECT
     v.house_number AS venue_house_number,
     v.postal_code AS venue_postal_code,
     v.city AS venue_city,
-    v.state_code AS venue_state_code,
     v.country_code AS venue_country_code,
-    ST_X(v.wkb_geometry) AS venue_lon,
-    ST_Y(v.wkb_geometry) AS venue_lat,
+    v.state_code AS venue_state_code,
+    ST_X(v.wkb_pos) AS venue_lon,
+    ST_Y(v.wkb_pos) AS venue_lat,
 
     space_data.id AS space_id,
     space_data.name AS space_name,
@@ -62,14 +60,6 @@ SELECT
     space_data.building_level AS space_building_level,
     space_data.website_url AS space_url,
 
-    -- image_data.image_id,
-    -- image_data.image_focus_x,
-    -- image_data.image_focus_y,
-    -- image_data.image_alt_text,
-    -- image_data.image_copyright,
-    -- image_data.image_creator_name,
-    -- image_data.image_license_id,
-
     el.name AS location_name,
     el.street AS location_street,
     el.house_number AS location_house_number,
@@ -77,7 +67,6 @@ SELECT
     el.city AS location_city,
     el.country_code AS location_country_code,
     el.state_code AS location_state_code,
-    el.name AS location_name,
 
     COALESCE(
         (
@@ -114,7 +103,7 @@ SELECT
     ) AS event_urls
 
 FROM {{schema}}.event e
-LEFT JOIN {{schema}}.organizer o ON e.organizer_id = o.id
+LEFT JOIN {{schema}}.organization o ON e.organization_id = o.id
 LEFT JOIN {{schema}}.venue v ON v.id = e.venue_id
 LEFT JOIN {{schema}}.event_location el ON e.location_id = el.id
 LEFT JOIN {{schema}}.currency cu ON cu.code = e.currency_code AND cu.iso_639_1 = $2

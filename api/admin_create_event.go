@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/uranus/app"
 )
 
@@ -52,7 +53,7 @@ type incomingEvent struct {
 	Tags                 []string `json:"tags"`
 	SourceUrl            *string  `json:"source_url"`
 	OnlineEventUrl       *string  `json:"online_event_url"`
-	OrganizerId          *int     `json:"organizer_id" binding:"required"`
+	OrganizationId       *int     `json:"organization_id" binding:"required"`
 	VenueId              *int     `json:"venue_id"`
 	SpaceId              *int     `json:"space_id"`
 	ExternalId           *string  `json:"external_id"`
@@ -146,47 +147,48 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		return
 	}
 
-	if incomingEvent.OrganizerId == nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "organizer Id is required"})
+	if incomingEvent.OrganizationId == nil {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "organization Id is required"})
 		return
 	}
 
-	// Begin transaction
-	tx, err := h.DbPool.Begin(ctx)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to start transaction"})
-		return
-	}
-	defer func() { _ = tx.Rollback(ctx) }()
+	var newEventId int
 
-	// Check if user can create an event with 'incomingEvent.OrganizerId' as the organizer
-	organizerPermissions, err := h.GetUserOrganizerPermissions(gc, tx, userId, *incomingEvent.OrganizerId)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	if !organizerPermissions.HasAll(app.PermChooseAsEventOrganizer | app.PermAddEvent) {
-		gc.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})
-		return
-	}
-
-	// Check if user can create an event in 'incomingEvent.VenueId'
-	if incomingEvent.VenueId != nil {
-		venuePermissions, err := h.GetUserVenuePermissions(gc, tx, userId, *incomingEvent.VenueId)
+	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
+		// Check if user can create an event with 'incomingEvent.OrganizationId' as the organization
+		organizationPermissions, err := h.GetUserOrganizationPermissions(gc, tx, userId, *incomingEvent.OrganizationId)
 		if err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  err,
+			}
 		}
-		if !venuePermissions.Has(app.PermChooseVenue) {
-			gc.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})
-			return
-		}
-	}
 
-	var locationId *int
-	if incomingEvent.hasLocation() {
-		// If JSON has a location field, insert the event location first
-		locationQuery := `
+		if !organizationPermissions.HasAll(app.PermChooseAsEventOrganization | app.PermAddEvent) {
+			return &ApiTxError{
+				Code: http.StatusForbidden,
+				Err:  fmt.Errorf("insufficient permissions"),
+			}
+		}
+
+		// Check if user can create an event in 'incomingEvent.VenueId'
+		if incomingEvent.VenueId != nil {
+			venuePermissions, err := h.GetUserVenuePermissions(gc, tx, userId, *incomingEvent.VenueId)
+			if err != nil {
+				return &ApiTxError{Code: http.StatusForbidden, Err: err}
+			}
+			if !venuePermissions.Has(app.PermChooseVenue) {
+				return &ApiTxError{
+					Code: http.StatusForbidden,
+					Err:  fmt.Errorf("insufficient permissions"),
+				}
+			}
+		}
+
+		var locationId *int
+		if incomingEvent.hasLocation() {
+			// If JSON has a location field, insert the event location first
+			locationQuery := `
 			INSERT INTO {{schema}}.event_location (
 				"name",
 				street,
@@ -195,37 +197,39 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 				city,
 				country_code,
 				state_code,
-			    wkb_geometry,
+			    wkb_pos,
 				description,
 			    created_by
 			)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, ST_SetSRID(ST_MakePoint($8, $9), 4326), $10, $11)
 			RETURNING id`
-		locationQuery = strings.Replace(locationQuery, "{{schema}}", h.Config.DbSchema, 1)
-		err = tx.QueryRow(
-			ctx, locationQuery,
-			incomingEvent.Location.Name,
-			incomingEvent.Location.Street,
-			incomingEvent.Location.HouseNumber,
-			incomingEvent.Location.PostalCode,
-			incomingEvent.Location.City,
-			incomingEvent.Location.CountryCode,
-			incomingEvent.Location.StateCode,
-			incomingEvent.Location.Longitude,
-			incomingEvent.Location.Latitude,
-			incomingEvent.Location.Description,
-			userId,
-		).Scan(&locationId)
-		if err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to insert event location: %v", err)})
-			return
+			locationQuery = strings.Replace(locationQuery, "{{schema}}", h.Config.DbSchema, 1)
+			err = tx.QueryRow(
+				ctx, locationQuery,
+				incomingEvent.Location.Name,
+				incomingEvent.Location.Street,
+				incomingEvent.Location.HouseNumber,
+				incomingEvent.Location.PostalCode,
+				incomingEvent.Location.City,
+				incomingEvent.Location.CountryCode,
+				incomingEvent.Location.StateCode,
+				incomingEvent.Location.Longitude,
+				incomingEvent.Location.Latitude,
+				incomingEvent.Location.Description,
+				userId,
+			).Scan(&locationId)
+			if err != nil {
+				return &ApiTxError{
+					Code: http.StatusForbidden,
+					Err:  fmt.Errorf("failed to insert event location: %v", err),
+				}
+			}
 		}
-	}
 
-	// Insert event Information
-	sqlEvent := `
+		// Insert event Information
+		sqlEvent := `
 		INSERT INTO {{schema}}.event (
-			organizer_id,
+			organization_id,
 			venue_id,
 			space_id,
 			location_id,
@@ -237,29 +241,30 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			created_by
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING id`
-	sql := strings.Replace(sqlEvent, "{{schema}}", h.Config.DbSchema, 1)
+		sql := strings.Replace(sqlEvent, "{{schema}}", h.Config.DbSchema, 1)
 
-	var eventId int
-	err = tx.QueryRow(
-		ctx, sql,
-		incomingEvent.OrganizerId,
-		incomingEvent.VenueId,
-		incomingEvent.SpaceId,
-		locationId,
-		incomingEvent.Title,
-		incomingEvent.Subtitle,
-		incomingEvent.Description,
-		incomingEvent.TeaserText,
-		incomingEvent.Languages,
-		userId,
-	).Scan(&eventId)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to insert event: %v, userId: %d", err, userId)})
-		return
-	}
+		err = tx.QueryRow(
+			ctx, sql,
+			incomingEvent.OrganizationId,
+			incomingEvent.VenueId,
+			incomingEvent.SpaceId,
+			locationId,
+			incomingEvent.Title,
+			incomingEvent.Subtitle,
+			incomingEvent.Description,
+			incomingEvent.TeaserText,
+			incomingEvent.Languages,
+			userId,
+		).Scan(&newEventId)
+		if err != nil {
+			return &ApiTxError{
+				Code: http.StatusForbidden,
+				Err:  fmt.Errorf("failed to insert event: %v, userId: %d", err, userId),
+			}
+		}
 
-	// Event Dates
-	insertDateQuery := `
+		// Event Dates
+		insertDateQuery := `
 		INSERT INTO {{schema}}.event_date (
 			event_id,
 			venue_id,
@@ -272,120 +277,89 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			all_day,
 			created_by
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
-	sql = strings.Replace(insertDateQuery, "{{schema}}", h.DbSchema, 1)
+		sql = strings.Replace(insertDateQuery, "{{schema}}", h.DbSchema, 1)
 
-	for _, d := range incomingEvent.Dates {
-		if d.VenueId != nil {
-			// Check if user can create an event in 'd.VenueId'
-			venuePermissions, err := h.GetUserVenuePermissions(gc, tx, userId, *d.VenueId)
-			if err != nil {
-				gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-				return
-			}
-			if !venuePermissions.Has(app.PermChooseVenue) {
-				gc.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})
-				return
-			}
-
-			if d.SpaceId != nil {
-				spaceOK, err := h.IsSpaceInVenue(gc, tx, *d.SpaceId, *d.VenueId)
+		for _, d := range incomingEvent.Dates {
+			if d.VenueId != nil {
+				// Check if user can create an event in 'd.VenueId'
+				venuePermissions, err := h.GetUserVenuePermissions(gc, tx, userId, *d.VenueId)
 				if err != nil {
-					gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-					return
+					return &ApiTxError{Code: http.StatusInternalServerError, Err: err}
 				}
-				if !spaceOK {
-					gc.JSON(http.StatusInternalServerError, gin.H{"error": "invalid venue/space combination"})
-					return
+				if !venuePermissions.Has(app.PermChooseVenue) {
+					return &ApiTxError{Code: http.StatusForbidden, Err: fmt.Errorf("insufficient permissions")}
+				}
+
+				if d.SpaceId != nil {
+					spaceOK, err := h.IsSpaceInVenue(gc, tx, *d.SpaceId, *d.VenueId)
+					if err != nil {
+						return &ApiTxError{Code: http.StatusInternalServerError, Err: err}
+					}
+					if !spaceOK {
+						return &ApiTxError{
+							Code: http.StatusInternalServerError,
+							Err:  fmt.Errorf("invalid venue/space combination"),
+						}
+					}
+				}
+			}
+
+			_, err = tx.Exec(
+				ctx, sql,
+				newEventId,
+				d.VenueId,
+				d.SpaceId,
+				d.StartDate,
+				d.StartTime,
+				d.EndDate,
+				d.EndTime,
+				d.EntryTime,
+				d.AllDay,
+				userId)
+			if err != nil {
+				return &ApiTxError{
+					Code: http.StatusInternalServerError,
+					Err:  fmt.Errorf("failed to insert event_date: %v", err),
 				}
 			}
 		}
 
-		_, err = tx.Exec(
-			ctx, sql,
-			eventId,
-			d.VenueId,
-			d.SpaceId,
-			d.StartDate,
-			d.StartTime,
-			d.EndDate,
-			d.EndTime,
-			d.EntryTime,
-			d.AllDay,
-			userId)
-		if err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to insert event_date: %v", err)})
-			return
-		}
-	}
-
-	// Insert Type + Genre pairs
-	queryTemplate := `
+		// Insert Type + Genre pairs
+		queryTemplate := `
 		INSERT INTO {{schema}}.event_type_link (event_id, type_id, genre_id)
 		VALUES ($1, $2, $3)`
-	query := strings.Replace(queryTemplate, "{{schema}}", h.Config.DbSchema, 1)
+		query := strings.Replace(queryTemplate, "{{schema}}", h.Config.DbSchema, 1)
 
-	for _, pair := range incomingEvent.TypeGenrePairs {
-		_, err := tx.Exec(ctx, query, eventId, pair.TypeId, pair.GenreId)
-		if err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Sprintf("failed to insert type-genre pair: %v", err),
-			})
-			return
+		for _, pair := range incomingEvent.TypeGenrePairs {
+			_, err := tx.Exec(ctx, query, newEventId, pair.TypeId, pair.GenreId)
+			if err != nil {
+				return &ApiTxError{
+					Code: http.StatusInternalServerError,
+					Err:  fmt.Errorf("failed to insert type-genre pair: %v", err),
+				}
+			}
 		}
-	}
 
-	// TODO: languages
-	// TODO: tags
+		// TODO: Insert languages
+		// TODO: Insert tags
 
-	if err = tx.Commit(ctx); err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to commit transaction: %v", err)})
+		err = RefreshEventProjections(ctx, tx, "event", []int{newEventId})
+		if err != nil {
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  fmt.Errorf("refresh projection tables failed: %v", err),
+			}
+		}
+
+		return nil
+	})
+
+	if txErr != nil {
+		gc.JSON(txErr.Code, gin.H{"error": txErr.Error()})
 		return
 	}
 
-	gc.JSON(http.StatusCreated, gin.H{"event_id": eventId})
-}
-
-func (e *incomingEvent) printDebug() {
-	fmt.Println("VenueId:", e.VenueId)
-	if e.SpaceId != nil {
-		fmt.Println("SpaceId:", *e.SpaceId)
-	}
-	fmt.Println("Title:", e.Title)
-	if e.Subtitle != nil {
-		fmt.Println("Subtitle:", *e.Subtitle)
-	}
-	fmt.Println("Description:", e.Description)
-	if e.TeaserText != nil {
-		fmt.Println("Teaser:", *e.TeaserText)
-	}
-
-	fmt.Println("Types length:", len(e.TypeGenrePairs))
-	for i, pair := range e.TypeGenrePairs {
-		fmt.Printf("Type %d: type_id=%d, genre_id=%d\n", i+1, pair.TypeId, pair.GenreId)
-	}
-
-	fmt.Println("Dates length:", len(e.Dates))
-
-	for i, d := range e.Dates {
-		fmt.Printf("Date %d:\n", i+1)
-		fmt.Println("  StartDate:", d.StartDate)
-		if d.EndDate != nil {
-			fmt.Println("  EndDate:", *d.EndDate)
-		}
-		fmt.Println("  StartTime:", d.StartTime)
-		fmt.Println("  EndTime:", d.EndTime)
-		if d.EntryTime != nil {
-			fmt.Println("  EntryTime:", *d.EntryTime)
-		}
-		if d.SpaceId != nil {
-			fmt.Println("  SpaceId:", *d.SpaceId)
-		}
-		fmt.Println("  AllDay:", d.AllDay)
-	}
-
-	if e.hasLocation() {
-		fmt.Println("Location:", e.Location)
-	}
+	gc.JSON(http.StatusCreated, gin.H{"event_id": newEventId})
 }
 
 // Validate validates the incomingEvent struct
@@ -424,20 +398,20 @@ func (e *incomingEvent) Validate() error {
 	}
 
 	// Validate SourceUrl (optional)
-	if err := app.ValidateOptionalURL("source_url", e.SourceUrl); err != nil {
+	if err := app.ValidateOptionalUrl("source_url", e.SourceUrl); err != nil {
 		errs = append(errs, err.Error())
 	}
 
 	// Validate OnlineEventUrl (optional)
-	if err := app.ValidateOptionalURL("online_event_url", e.OnlineEventUrl); err != nil {
+	if err := app.ValidateOptionalUrl("online_event_url", e.OnlineEventUrl); err != nil {
 		errs = append(errs, err.Error())
 	}
 
-	// Validate OrganizerId (permissons to use this will be checked in the actual queries)
-	if e.OrganizerId == nil {
-		errs = append(errs, "organizer_id is required")
-	} else if *e.OrganizerId < 0 {
-		errs = append(errs, "organizer_id is invalid")
+	// Validate OrganizationId (permissons to use this will be checked in the actual queries)
+	if e.OrganizationId == nil {
+		errs = append(errs, "organization_id is required")
+	} else if *e.OrganizationId < 0 {
+		errs = append(errs, "organization_id is invalid")
 	}
 
 	// Validate VenueId/Location
@@ -563,7 +537,7 @@ func (e *incomingEvent) Validate() error {
 		- Validate location
 		- Validate startDate/startTime in the past
 		- Validate endDate/endTime before startDate/startTime
-		- OrganizerId, check permissions for organizer_id
+		- OrganizationId, check permissions for organization_id
 		- Dates, check permissions for using: venue_id, space_id
 		- OccasionTypeId, check if valid value
 		- PriceTypeId, check if valid value

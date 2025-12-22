@@ -3,14 +3,12 @@ package api
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 )
 
-// TODO: Review code
-
-type UpdateEventTypesRequest struct {
+type eventTypesRequest struct {
 	Types []struct {
 		TypeId  int  `json:"type_id" binding:"required"`
 		GenreId *int `json:"genre_id"`
@@ -19,55 +17,65 @@ type UpdateEventTypesRequest struct {
 
 func (h *ApiHandler) AdminUpdateEventTypes(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	pool := h.DbPool
-	dbSchema := h.Config.DbSchema
 
-	eventId := gc.Param("eventId")
-	if eventId == "" {
+	eventId, ok := ParamInt(gc, "eventId")
+	if !ok {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "event Id is required"})
 		return
 	}
 
-	var req UpdateEventTypesRequest
+	var req eventTypesRequest
 	if err := gc.ShouldBindJSON(&req); err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	tx, err := pool.Begin(ctx)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to start transaction"})
-		return
-	}
-	defer func() { _ = tx.Rollback(ctx) }()
-
-	// Delete existing type-genre links
-	sqlDelete := strings.Replace(`DELETE FROM {{schema}}.event_type_link WHERE event_id = $1`, "{{schema}}", dbSchema, 1)
-	if _, err = tx.Exec(ctx, sqlDelete, eventId); err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to delete existing type-genre links: %v", err)})
-		return
-	}
-
-	// Insert new type-genre pairs
-	sqlInsert := strings.Replace(
-		`INSERT INTO {{schema}}.event_type_link (event_id, type_id, genre_id) VALUES ($1, $2, $3)`,
-		"{{schema}}", dbSchema, 1,
-	)
-
-	for _, pair := range req.Types {
-		if _, err = tx.Exec(ctx, sqlInsert, eventId, pair.TypeId, pair.GenreId); err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to insert type_id=%d, genre_id=%d: %v", pair.TypeId, pair.GenreId, err)})
-			return
+	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
+		// Delete existing type-genre links
+		deleteQuery := fmt.Sprintf(`DELETE FROM %s.event_type_link WHERE event_id = $1`, h.DbSchema)
+		_, err := tx.Exec(ctx, deleteQuery, eventId)
+		if err != nil {
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  fmt.Errorf("failed to delete existing type-genre links: %v", err),
+			}
 		}
-	}
 
-	if err = tx.Commit(ctx); err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to commit transaction: %v", err)})
+		// Insert new type-genre pairs
+		insertQuery := fmt.Sprintf(`INSERT INTO %s.event_type_link (event_id, type_id, genre_id) VALUES ($1, $2, $3)`, h.DbSchema)
+
+		for _, pair := range req.Types {
+			genreId := 0
+			if pair.GenreId != nil {
+				genreId = *pair.GenreId
+			}
+			_, err = tx.Exec(ctx, insertQuery, eventId, pair.TypeId, genreId)
+			if err != nil {
+				return &ApiTxError{
+					Code: http.StatusInternalServerError,
+					Err:  fmt.Errorf("failed to insert type_id=%d, genre_id=%d: %v", pair.TypeId, pair.GenreId, err),
+				}
+			}
+		}
+
+		err = RefreshEventProjections(ctx, tx, "event", []int{eventId})
+		if err != nil {
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  fmt.Errorf("refresh projection tables failed: %v", err),
+			}
+		}
+
+		return nil
+	})
+
+	if txErr != nil {
+		gc.JSON(txErr.Code, gin.H{"error": txErr.Error()})
 		return
 	}
 
 	gc.JSON(http.StatusOK, gin.H{
-		"event_id": eventId,
 		"message":  "event types and genres updated successfully",
+		"event_id": eventId,
 	})
 }

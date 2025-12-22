@@ -21,19 +21,19 @@ The data is accessible through an **open API** for use in:
 - Website integrations
 - Custom applications
 
-Unlike other systems that focus solely on single events, Uranus emphasizes the **relationships** between locations, dates, and organizers — enabling advanced search and visualizations (e.g., maps and portals).
+Unlike other systems that focus solely on single events, Uranus emphasizes the **relationships** between locations, dates, and organizations — enabling advanced search and visualizations (e.g., maps and portals).
 
 ---
 
 ## Target Audiences
 
-- **Event Organizers**: Associations, initiatives, educational and cultural institutions, etc.
+- **Event Organizations**: Associations, initiatives, educational and cultural institutions, etc.
 - **Event Enthusiasts**: Users searching for events based on:
 	- Date
 	- Audience
 	- Type/genre
 	- Location
-	- Organizers
+	- Organizations
 	- Accessibility
 - **Portals & Institutions**: Municipalities, cultural associations, or media platforms that want to integrate event data
 - **Journalists & Culture Reporters**: Looking for structured event information

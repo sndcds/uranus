@@ -9,15 +9,11 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// TODO: Review code
-
 func (h *ApiHandler) AdminUpdateEventPlace(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	dbPool := h.DbPool
-	dbSchema := h.Config.DbSchema
 
-	eventId := gc.Param("eventId")
-	if eventId == "" {
+	eventId, ok := ParamInt(gc, "eventId")
+	if !ok {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "event Id is required"})
 		return
 	}
@@ -50,142 +46,150 @@ func (h *ApiHandler) AdminUpdateEventPlace(gc *gin.Context) {
 		return
 	}
 
-	tx, err := dbPool.BeginTx(ctx, pgx.TxOptions{})
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to start transaction: %v", err)})
+	var newLocationId int64
+
+	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
+		if usingVenue {
+			// Handle venue/space update
+			// Check if the space belongs to the venue
+			var setSpaceId *int
+			spaceExists := false
+			if req.SpaceId != nil {
+				query := fmt.Sprintf(`SELECT EXISTS(SELECT 1 FROM %s.space WHERE id=$1 AND venue_id=$2)`, h.DbSchema)
+				if err := tx.QueryRow(ctx, query, *req.SpaceId, *req.VenueId).Scan(&spaceExists); err != nil {
+					return &ApiTxError{
+						Code: http.StatusInternalServerError,
+						Err:  fmt.Errorf("failed to check space: %v", err),
+					}
+				}
+			}
+
+			if spaceExists {
+				setSpaceId = req.SpaceId
+			}
+
+			var prevLocationId sql.NullInt64
+			query := fmt.Sprintf(`SELECT location_id FROM %s.event WHERE id = $1`, h.DbSchema)
+			err := tx.QueryRow(ctx, query, eventId).Scan(&prevLocationId)
+			if err != nil {
+				if err == pgx.ErrNoRows {
+					// handle no rows found if needed
+					prevLocationId.Valid = false
+				} else {
+					return &ApiTxError{
+						Code: http.StatusInternalServerError,
+						Err:  fmt.Errorf("failed to get location Id: %v", err),
+					}
+				}
+			}
+
+			query = fmt.Sprintf(`UPDATE %s.event SET venue_id = $1, space_id = $2, location_id = NULL WHERE id = $3`, h.DbSchema)
+			_, err = tx.Exec(ctx, query, *req.VenueId, setSpaceId, eventId)
+			if err != nil {
+				return &ApiTxError{
+					Code: http.StatusInternalServerError,
+					Err:  fmt.Errorf("failed to update event: %v", err),
+				}
+			}
+
+			if prevLocationId.Valid {
+				query = fmt.Sprintf(`DELETE FROM %s.event_location WHERE id = $1`, h.DbSchema)
+				_, err = tx.Exec(ctx, query, prevLocationId.Int64)
+				if err != nil {
+					return &ApiTxError{
+						Code: http.StatusInternalServerError,
+						Err:  fmt.Errorf("failed to delete event location: %v", err),
+					}
+				}
+			}
+		} else if usingLocation {
+			// Handle custom location update
+			var locationId sql.NullInt64
+			query := fmt.Sprintf(`SELECT location_id FROM %s.event WHERE id = $1`, h.DbSchema)
+			err := tx.QueryRow(ctx, query, eventId).Scan(&locationId)
+			if err != nil {
+				if err == pgx.ErrNoRows {
+					return &ApiTxError{
+						Code: http.StatusNotFound,
+						Err:  fmt.Errorf("event not found"),
+					}
+				}
+				return &ApiTxError{
+					Code: http.StatusNotFound,
+					Err:  fmt.Errorf("failed to get event location: %v", err),
+				}
+			}
+
+			if locationId.Valid {
+				query = fmt.Sprintf(`DELETE FROM %s.event_location WHERE id = $1`, h.DbSchema)
+				_, err = tx.Exec(ctx, query, locationId.Int64)
+				if err != nil {
+					return &ApiTxError{
+						Code: http.StatusNotFound,
+						Err:  fmt.Errorf("failed to delete event location: %v", err),
+					}
+				}
+			}
+
+			query = fmt.Sprintf(`
+INSERT INTO %s.event_location (name, street, house_number, postal_code, city, wkb_pos)
+VALUES ($1, $2, $3, $4, $5, ST_SetSRID(ST_MakePoint($6, $7), 4326)) RETURNING id`,
+				h.DbSchema)
+
+			err = tx.QueryRow(ctx, query,
+				req.LocationName,
+				req.LocationStreet,
+				req.LocationHouseNumber,
+				req.LocationPostalCode,
+				req.LocationCity,
+				req.LocationLon,
+				req.LocationLat,
+			).Scan(&newLocationId)
+			if err != nil {
+				return &ApiTxError{
+					Code: http.StatusNotFound,
+					Err:  fmt.Errorf("failed to insert new event location: %v", err),
+				}
+			}
+
+			// Update the event with the new location_id
+			updateEventQuery := fmt.Sprintf(`UPDATE %s.event SET venue_id = NULL, space_id = NULL, location_id = $1 WHERE id = $2`, h.DbSchema)
+			_, err = tx.Exec(ctx, updateEventQuery, newLocationId, eventId)
+			if err != nil {
+				return &ApiTxError{
+					Code: http.StatusNotFound,
+					Err:  fmt.Errorf("failed to update event with new location: %v", err),
+				}
+			}
+
+		}
+
+		err := RefreshEventProjections(ctx, tx, "event", []int{eventId})
+		if err != nil {
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  fmt.Errorf("refresh projection tables failed: %v", err),
+			}
+		}
+
+		return nil
+	})
+
+	if txErr != nil {
+		gc.JSON(txErr.Code, gin.H{"error": txErr.Error()})
 		return
 	}
-	defer tx.Rollback(ctx) // safe rollback if commit fails
 
-	if usingVenue {
-		// Handle venue/space update
-		// Check if the space belongs to the venue
-		var setSpaceId *int
-		spaceExists := false
-		if req.SpaceId != nil {
-			query := fmt.Sprintf(`SELECT EXISTS(SELECT 1 FROM %s.space WHERE id=$1 AND venue_id=$2)`, dbSchema)
-			if err := tx.QueryRow(ctx, query, *req.SpaceId, *req.VenueId).Scan(&spaceExists); err != nil {
-				gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to check space: %v", err)})
-				return
-			}
-		}
-
-		if spaceExists {
-			setSpaceId = req.SpaceId
-		}
-
-		var prevLocationId sql.NullInt64
-		query := fmt.Sprintf(`SELECT location_id FROM %s.event WHERE id = $1`, dbSchema)
-		err := tx.QueryRow(ctx, query, eventId).Scan(&prevLocationId)
-		if err != nil {
-			if err == pgx.ErrNoRows {
-				// handle no rows found if needed
-				prevLocationId.Valid = false
-			} else {
-				gc.JSON(http.StatusInternalServerError, gin.H{
-					"error": fmt.Sprintf("failed to get location Id: %v", err),
-				})
-				return
-			}
-		}
-
-		query = fmt.Sprintf(`
-			UPDATE %s.event SET venue_id = $1, space_id = $2, location_id = NULL WHERE id = $3`,
-			dbSchema)
-		_, err = tx.Exec(ctx, query, *req.VenueId, setSpaceId, eventId)
-		if err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to update event: %v", err)})
-			return
-		}
-
-		if prevLocationId.Valid {
-			fmt.Println("prevLocationId.Int64:", prevLocationId.Int64)
-			query = fmt.Sprintf(`DELETE FROM %s.event_location WHERE id = $1`, dbSchema)
-			_, err = tx.Exec(ctx, query, prevLocationId.Int64)
-			if err != nil {
-				gc.JSON(http.StatusInternalServerError, gin.H{
-					"error": fmt.Sprintf("failed to delete event location: %v", err),
-				})
-				return
-			}
-		}
-
-		if err = tx.Commit(ctx); err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to commit transaction: %v", err)})
-			return
-		}
-
-		gc.JSON(http.StatusOK, gin.H{"event_id": eventId, "message": "event venue and space updated successfully"})
-		return
-
-	} else if usingLocation {
-		// Handle custom location update
-		var locationId sql.NullInt64
-		query := fmt.Sprintf(`SELECT location_id FROM %s.event WHERE id = $1`, dbSchema)
-		err = tx.QueryRow(ctx, query, eventId).Scan(&locationId)
-		if err != nil {
-			if err == pgx.ErrNoRows {
-				gc.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
-				return
-			}
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to get event location: %v", err)})
-			return
-		}
-
-		if locationId.Valid {
-			query = fmt.Sprintf(`DELETE FROM %s.event_location WHERE id = $1`, dbSchema)
-			_, err = tx.Exec(ctx, query, locationId.Int64)
-			if err != nil {
-				gc.JSON(http.StatusInternalServerError, gin.H{
-					"error": fmt.Sprintf("failed to delete event location: %v", err),
-				})
-				return
-			}
-		}
-
-		query = fmt.Sprintf(`INSERT INTO %s.event_location (name, street, house_number, postal_code, city, wkb_geometry)
-		    VALUES ($1, $2, $3, $4, $5, ST_SetSRID(ST_MakePoint($6, $7), 4326)) RETURNING id`, dbSchema)
-		var newLocationId int64
-		err = tx.QueryRow(ctx, query,
-			req.LocationName,
-			req.LocationStreet,
-			req.LocationHouseNumber,
-			req.LocationPostalCode,
-			req.LocationCity,
-			req.LocationLon,
-			req.LocationLat,
-		).Scan(&newLocationId)
-		if err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Sprintf("failed to insert new event location: %v", err),
-			})
-			return
-		}
-
-		// Update the event with the new location_id
-		updateEventQuery := fmt.Sprintf(`UPDATE %s.event SET venue_id = NULL, space_id = NULL, location_id = $1 WHERE id = $2`, dbSchema)
-		_, err = tx.Exec(ctx, updateEventQuery, newLocationId, eventId)
-		if err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Sprintf("failed to update event with new location: %v", err),
-			})
-			return
-		}
-
-		// Success response
+	if newLocationId != 0 {
 		gc.JSON(http.StatusOK, gin.H{
 			"message":     "event location created",
 			"location_id": newLocationId,
 		})
-
-		if err := tx.Commit(ctx); err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to commit transaction: %v", err)})
-			return
-		}
-
-		gc.JSON(http.StatusOK, gin.H{"event_id": eventId, "message": "event location updated successfully"})
 		return
 	}
 
-	gc.JSON(http.StatusInternalServerError, gin.H{"message": "Internal server error"})
+	gc.JSON(http.StatusOK, gin.H{
+		"message":  "event location updated successfully",
+		"event_id": eventId,
+	})
 }

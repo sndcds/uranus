@@ -17,11 +17,11 @@ func ValidateOptionalNonEmptyString(fieldName string, value *string) error {
 	return nil
 }
 
-// ValidateOptionalURL validates a pointer to a string as a URL.
+// ValidateOptionalUrl validates a pointer to a string as a URL.
 // - If the pointer is nil, it's considered valid.
 // - If the string is empty or whitespace, it's considered invalid.
 // - Otherwise, it checks for valid URL format and http/https scheme.
-func ValidateOptionalURL(fieldName string, value *string) error {
+func ValidateOptionalUrl(fieldName string, value *string) error {
 	if value == nil {
 		// No value provided → valid
 		return nil

@@ -1,15 +1,15 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/uranus/app"
 )
 
-// TODO: Review code
-
-type SpaceUpdateRequest struct {
+type spaceReq struct {
 	VenueID              *int    `json:"venue_id"`
 	Name                 *string `json:"name"`
 	Description          *string `json:"description"`
@@ -17,44 +17,62 @@ type SpaceUpdateRequest struct {
 	SeatingCapacity      *int    `json:"seating_capacity"`
 	SpaceTypeID          *int    `json:"space_type_id"`
 	BuildingLevel        *int    `json:"building_level"`
-	WebsiteURL           *string `json:"website_url"`
+	WebsiteUrl           *string `json:"website_url"`
 	AccessibilityFlags   *int64  `json:"accessibility_flags"`
 	AccessibilitySummary *string `json:"accessibility_summary"`
 }
 
 func (h *ApiHandler) AdminUpdateSpace(gc *gin.Context) {
-	pool := h.DbPool
 	ctx := gc.Request.Context()
 
-	spaceId := gc.Param("spaceId")
-	if spaceId == "" {
+	spaceId, ok := ParamInt(gc, "spaceId")
+	if !ok {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "Space Id is required"})
 		return
 	}
 
-	var req SpaceUpdateRequest
+	var req spaceReq
 	if err := gc.ShouldBindJSON(&req); err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	_, err := pool.Exec(
-		ctx,
-		app.Singleton.SqlUpdateSpace,
-		spaceId,
-		req.Name,
-		req.Description,
-		req.SpaceTypeID,
-		req.BuildingLevel,
-		req.TotalCapacity,
-		req.SeatingCapacity,
-		req.WebsiteURL,
-		req.AccessibilityFlags,
-		req.AccessibilitySummary,
-	)
+	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
+		_, err := h.DbPool.Exec(
+			ctx,
+			app.Singleton.SqlUpdateSpace,
+			spaceId,
+			req.Name,
+			req.Description,
+			req.SpaceTypeID,
+			req.BuildingLevel,
+			req.TotalCapacity,
+			req.SeatingCapacity,
+			req.WebsiteUrl,
+			req.AccessibilityFlags,
+			req.AccessibilitySummary,
+		)
 
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		if err != nil {
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  fmt.Errorf("failed to update event space: %v", err),
+			}
+		}
+
+		err = RefreshEventProjections(ctx, tx, "space", []int{spaceId})
+		if err != nil {
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  fmt.Errorf("refresh projection tables failed: %v", err),
+			}
+		}
+
+		return nil
+	})
+
+	if txErr != nil {
+		gc.JSON(txErr.Code, gin.H{"error": txErr.Error()})
 		return
 	}
 

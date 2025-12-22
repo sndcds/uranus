@@ -6,11 +6,10 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 )
 
-// TODO: Review code
-
-type UpdateParticipationInfoRequest struct {
+type participationInfoRequest struct {
 	ParticipationInfo    *string  `json:"participation_info"`
 	MeetingPoint         *string  `json:"meeting_point"`
 	MinAge               *int     `json:"min_age"`
@@ -28,16 +27,14 @@ type UpdateParticipationInfoRequest struct {
 
 func (h *ApiHandler) AdminUpdateEventParticipationInfos(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	pool := h.DbPool
-	dbSchema := h.Config.DbSchema
 
-	eventId := gc.Param("eventId")
-	if eventId == "" {
+	eventId, ok := ParamInt(gc, "eventId")
+	if !ok {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "event Id is required"})
 		return
 	}
 
-	var req UpdateParticipationInfoRequest
+	var req participationInfoRequest
 	if err := gc.ShouldBindJSON(&req); err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -119,28 +116,46 @@ func (h *ApiHandler) AdminUpdateEventParticipationInfos(gc *gin.Context) {
 		return
 	}
 
-	sqlQuery := fmt.Sprintf(`
-        UPDATE %s.event
-        SET %s
-        WHERE id = $1`,
-		dbSchema,
-		strings.Join(setClauses, ", "),
-	)
+	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
+		query := fmt.Sprintf(`UPDATE %s.event SET %s WHERE id = $1`,
+			h.DbSchema,
+			strings.Join(setClauses, ", "),
+		)
 
-	res, err := pool.Exec(ctx, sqlQuery, args...)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to update event: %v", err)})
-		return
-	}
+		res, err := tx.Exec(ctx, query, args...)
+		if err != nil {
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  fmt.Errorf("failed to update event: %v", err),
+			}
+		}
 
-	if res.RowsAffected() == 0 {
-		gc.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
+		if res.RowsAffected() == 0 {
+			return &ApiTxError{
+				Code: http.StatusNotFound,
+				Err:  fmt.Errorf("event not found"),
+			}
+		}
+
+		err = RefreshEventProjections(ctx, tx, "event", []int{eventId})
+		if err != nil {
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  fmt.Errorf("refresh projection tables failed: %v", err),
+			}
+		}
+
+		return nil
+	})
+
+	if txErr != nil {
+		gc.JSON(txErr.Code, gin.H{"error": txErr.Error()})
 		return
 	}
 
 	gc.JSON(http.StatusOK, gin.H{
+		"message":  "event participation info updated",
 		"event_id": eventId,
 		"updated":  setClauses,
-		"message":  "event participation info updated",
 	})
 }
