@@ -390,7 +390,7 @@ ORDER BY edp.start_date, edp.start_time
 		}
 
 		if e.ImageId != nil {
-			path := fmt.Sprintf("http://localhost:9090/api/image/%d", *e.ImageId)
+			path := fmt.Sprintf("%s/api/image/%d", h.Config.BaseApiUrl, *e.ImageId)
 			e.ImagePath = &path
 		}
 
