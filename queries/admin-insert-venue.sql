@@ -2,7 +2,7 @@ INSERT INTO {{schema}}.venue (
     name,
     description,
     opened_at,
-    closed_at
+    closed_at,
     contact_email,
     contact_phone,
     website_url,
