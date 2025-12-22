@@ -10,21 +10,22 @@ import (
 )
 
 type venueReq struct {
-	Name         string   `json:"name"`
-	Description  *string  `json:"description"`
-	OpenedAt     *string  `json:"opened_at"`
-	ClosedAt     *string  `json:"closed_at"`
-	ContactEmail *string  `json:"contact_email"`
-	ContactPhone *string  `json:"contact_phone"`
-	WebsiteUrl   *string  `json:"website_url"`
-	Street       *string  `json:"street"`
-	HouseNumber  *string  `json:"house_number"`
-	PostalCode   *string  `json:"postal_code"`
-	City         *string  `json:"city"`
-	StateCode    *string  `json:"state_code"`
-	CountryCode  *string  `json:"country_code"`
-	Longitude    *float64 `json:"longitude"`
-	Latitude     *float64 `json:"latitude"`
+	OrganizationId int      `json:"organizationId" binding:"required"`
+	Name           string   `json:"name"`
+	Description    *string  `json:"description"`
+	OpenedAt       *string  `json:"opened_at"`
+	ClosedAt       *string  `json:"closed_at"`
+	ContactEmail   *string  `json:"contact_email"`
+	ContactPhone   *string  `json:"contact_phone"`
+	WebsiteUrl     *string  `json:"website_url"`
+	Street         *string  `json:"street"`
+	HouseNumber    *string  `json:"house_number"`
+	PostalCode     *string  `json:"postal_code"`
+	City           *string  `json:"city"`
+	StateCode      *string  `json:"state_code"`
+	CountryCode    *string  `json:"country_code"`
+	Longitude      *float64 `json:"longitude"`
+	Latitude       *float64 `json:"latitude"`
 }
 
 func (h *ApiHandler) AdminUpsertVenue(gc *gin.Context) {
@@ -47,6 +48,7 @@ func (h *ApiHandler) AdminUpsertVenue(gc *gin.Context) {
 			err := tx.QueryRow(
 				ctx,
 				app.Singleton.SqlInsertVenue,
+				req.OrganizationId,
 				req.Name,
 				req.Description,
 				req.OpenedAt,
