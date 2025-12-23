@@ -21,54 +21,55 @@ import (
 // TODO: Review code
 
 type Uranus struct {
-	Version                                   string
-	APIName                                   string
-	APIVersion                                string
-	MainDbPool                                *pgxpool.Pool
-	Config                                    Config
-	SqlGetOrganization                        string
-	SqlGetEvent                               string
-	SqlGetEventDates                          string
-	SqlGetEventsBasic                         string
-	SqlGetEventsExtended                      string
-	SqlGetEventsDetailed                      string
-	SqlGetEventsTypeSummary                   string
-	SqlGetUserOrganizationPermissions         string
-	SqlGetUserVenuePermissions                string
-	SqlGetUserEffectiveVenuePermissions       string
-	SqlGetAdminOrganization                   string
-	SqlInsertOrganization                     string
-	SqlUpdateOrganization                     string
-	SqlGetAdminVenue                          string
-	SqlInsertVenue                            string
-	SqlUpdateVenue                            string
-	SqlAdminGetSpace                          string
-	SqlUpdateSpace                            string
-	SqlAdminGetEvent                          string
-	SqlAdminGetEventDates                     string
-	SqlAdminGetEventTypes                     string
-	SqlChoosableOrganizationVenues            string
-	SqlChoosableVenueSpaces                   string
-	SqlChoosableEventTypes                    string
-	SqlChoosableEventGenres                   string
-	SqlGetGeojsonVenues                       string
-	SqlAdminGetOrganizationDashboard          string
-	SqlAdminGetOrganizationVenues             string
-	SqlAdminGetOrganizationEvents             string
-	SqlAdminGetOrganizationAddEventPermission string
-	SqlAdminGetPermissionList                 string
-	SqlQueryUserOrgEventsOverview             string
-	SqlAdminUserPermissions                   string
-	SqlAdminGetUserEventNotification          string
-	SqlAdminChoosableOrganizations            string
-	SqlAdminChoosableUserEventOrganizations   string
-	SqlAdminChoosableUserEventVenues          string
-	SqlAdminChoosableUserVenuesSpaces         string
-	SqlAdminEvent                             string
-	SqlAdminSpacesForEvent                    string
-	SqlInsertPlutoImage                       string
-	SqlUpdatePlutoImageMeta                   string
-	JwtKey                                    []byte `json:"jwt_secret"`
+	Version                                 string
+	APIName                                 string
+	APIVersion                              string
+	MainDbPool                              *pgxpool.Pool
+	Config                                  Config
+	SqlGetOrganization                      string
+	SqlGetEvent                             string
+	SqlGetEventDates                        string
+	SqlGetEventsBasic                       string
+	SqlGetEventsExtended                    string
+	SqlGetEventsDetailed                    string
+	SqlGetEventsTypeSummary                 string
+	SqlGetUserOrganizationPermissions       string
+	SqlGetUserVenuePermissions              string
+	SqlGetUserEffectiveVenuePermissions     string
+	SqlGetAdminOrganization                 string
+	SqlInsertOrganization                   string
+	SqlUpdateOrganization                   string
+	SqlGetAdminVenue                        string
+	SqlInsertVenue                          string
+	SqlUpdateVenue                          string
+	SqlAdminGetSpace                        string
+	SqlUpdateSpace                          string
+	SqlAdminGetEvent                        string
+	SqlAdminGetEventDates                   string
+	SqlAdminGetEventTypes                   string
+	SqlChoosableOrganizationVenues          string
+	SqlChoosableVenueSpaces                 string
+	SqlChoosableEventTypes                  string
+	SqlChoosableEventGenres                 string
+	SqlGetGeojsonVenues                     string
+	SqlAdminGetOrganizationDashboard        string
+	SqlAdminGetOrganizationVenues           string
+	SqlAdminGetOrganizationEvents           string
+	SqlAdminCheckOrganizationMember         string
+	SqlAdminGetOrganizationMembers          string
+	SqlAdminGetPermissionList               string
+	SqlQueryUserOrgEventsOverview           string
+	SqlAdminUserPermissions                 string
+	SqlAdminGetUserEventNotification        string
+	SqlAdminChoosableOrganizations          string
+	SqlAdminChoosableUserEventOrganizations string
+	SqlAdminChoosableUserEventVenues        string
+	SqlAdminChoosableUserVenuesSpaces       string
+	SqlAdminEvent                           string
+	SqlAdminSpacesForEvent                  string
+	SqlInsertPlutoImage                     string
+	SqlUpdatePlutoImageMeta                 string
+	JwtKey                                  []byte `json:"jwt_secret"`
 }
 
 var Singleton *Uranus
@@ -245,13 +246,14 @@ func (app *Uranus) PrepareSql() error {
 		{"queries/admin-choosable-user-event-venues.sql", &app.SqlAdminChoosableUserEventVenues, nil},
 		{"queries/admin-choosable-user-venues-spaces.sql", &app.SqlAdminChoosableUserVenuesSpaces, nil},
 
-		{"queries/admin-organization-dashboard.sql", &app.SqlAdminGetOrganizationDashboard, nil},
+		{"queries/admin-get-organization-dashboard.sql", &app.SqlAdminGetOrganizationDashboard, nil},
 		{"queries/admin-get-organization-events.sql", &app.SqlAdminGetOrganizationEvents, nil},
-		{"queries/admin-get-organization-add-event-permission.sql", &app.SqlAdminGetOrganizationAddEventPermission, nil},
 
+		{"queries/admin-check-organization-member.sql", &app.SqlAdminCheckOrganizationMember, nil},
+		{"queries/admin-get-organization-members.sql", &app.SqlAdminGetOrganizationMembers, nil},
 		{"queries/admin-get-permission-list.sql", &app.SqlAdminGetPermissionList, nil},
 
-		{"queries/admin-organization-venues.sql", &app.SqlAdminGetOrganizationVenues, nil},
+		{"queries/admin-get-organization-venues.sql", &app.SqlAdminGetOrganizationVenues, nil},
 
 		{"queries/insert-pluto-image.sql", &app.SqlInsertPlutoImage, nil},
 		{"queries/update-pluto-image-meta.sql", &app.SqlUpdatePlutoImageMeta, nil},

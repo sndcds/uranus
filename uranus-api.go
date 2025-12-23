@@ -146,7 +146,7 @@ func main() {
 
 	adminRoute.GET("/permission/list", app.JWTMiddleware, apiHandler.AdminGetPermissionList)
 
-	adminRoute.GET("/user/:userId/:contextName/:contextId/permissions", app.JWTMiddleware, apiHandler.AdminGetUserContextPermissions)
+	adminRoute.GET("/organization/:organizationId/member/:memberId/permissions", app.JWTMiddleware, apiHandler.AdminGetOrganizationMemberPermissions)
 	adminRoute.PUT("/organization/:organizationId/member/:memberId/permission", app.JWTMiddleware, apiHandler.AdminUpdateOrganizationMemberPermission)
 
 	adminRoute.GET("/user/event/notification", app.JWTMiddleware, apiHandler.AdminGetUserEventNotification)
@@ -164,7 +164,6 @@ func main() {
 	adminRoute.GET("/organization/dashboard", app.JWTMiddleware, apiHandler.AdminGetOrganizationDashboard)
 	adminRoute.GET("/organization/:organizationId/venues", app.JWTMiddleware, apiHandler.AdminGetOrganizationVenues)
 	adminRoute.GET("/organization/:organizationId/events", app.JWTMiddleware, apiHandler.AdminGetOrganizationEvents)
-	adminRoute.GET("/organization/:organizationId/event/permission", app.JWTMiddleware, apiHandler.AdminGetOrganizationAddEventPermission)
 
 	adminRoute.GET("/organization/:organizationId/team", app.JWTMiddleware, apiHandler.AdminGetOrganizationTeam)
 	adminRoute.POST("/organization/:organizationId/team/invite", app.JWTMiddleware, apiHandler.AdminOrganizationTeamInvite)

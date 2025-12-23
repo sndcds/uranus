@@ -6,31 +6,60 @@ type Permission uint64
 
 const (
 	// Organization permissions
-	PermEditOrganization          Permission = 1 << 0
-	PermDeleteOrganization        Permission = 1 << 1
-	PermChooseAsEventOrganization Permission = 1 << 2
-	PermChooseAsEventPartner      Permission = 1 << 3
-	PermReceiveOrganizationMsgs   Permission = 1 << 4
-	PermManagePermissions         Permission = 1 << 5
-	PermManageTeam                Permission = 1 << 6
+	PermBitEditOrganization          = 0
+	PermBitDeleteOrganization        = 1
+	PermBitChooseAsEventOrganization = 2
+	PermBitChooseAsEventPartner      = 3
+	PermBitReceiveOrganizationMsgs   = 4
+	PermBitManagePermissions         = 5
+	PermBitManageTeam                = 6
 
 	// Venue permissions
-	PermAddVenue    Permission = 1 << 8
-	PermEditVenue   Permission = 1 << 9
-	PermDeleteVenue Permission = 1 << 10
-	PermChooseVenue Permission = 1 << 11
+	PermBitAddVenue    = 8
+	PermBitEditVenue   = 9
+	PermBitDeleteVenue = 10
+	PermBitChooseVenue = 11
 
 	// Space permissions
-	PermAddSpace    Permission = 1 << 16
-	PermEditSpace   Permission = 1 << 17
-	PermDeleteSpace Permission = 1 << 18
+	PermBitAddSpace    = 16
+	PermBitEditSpace   = 17
+	PermBitDeleteSpace = 18
 
 	// Event permissions
-	PermAddEvent          Permission = 1 << 24
-	PermEditEvent         Permission = 1 << 25
-	PermDeleteEvent       Permission = 1 << 26
-	PermReleaseEvent      Permission = 1 << 27
-	PermViewEventInsights Permission = 1 << 28
+	PermBitAddEvent          = 24
+	PermBitEditEvent         = 25
+	PermBitDeleteEvent       = 26
+	PermBitReleaseEvent      = 27
+	PermBitViewEventInsights = 28
+)
+
+const (
+	// Organization permissions
+	PermEditOrganization          Permission = 1 << PermBitEditOrganization
+	PermDeleteOrganization        Permission = 1 << PermBitDeleteOrganization
+	PermChooseAsEventOrganization Permission = 1 << PermBitChooseAsEventOrganization
+	PermChooseAsEventPartner      Permission = 1 << PermBitChooseAsEventPartner
+	PermReceiveOrganizationMsgs   Permission = 1 << PermBitReceiveOrganizationMsgs
+	PermManagePermissions         Permission = 1 << PermBitManagePermissions
+	PermManageTeam                Permission = 1 << PermBitManageTeam
+
+	// Venue permissions
+	PermAddVenue    Permission = 1 << PermBitAddVenue
+	PermEditVenue   Permission = 1 << PermBitEditVenue
+	PermDeleteVenue Permission = 1 << PermBitDeleteVenue
+	PermChooseVenue Permission = 1 << PermBitChooseVenue
+
+	// Space permissions
+	PermAddSpace    Permission = 1 << PermBitAddSpace
+	PermEditSpace   Permission = 1 << PermBitEditSpace
+	PermDeleteSpace Permission = 1 << PermBitDeleteSpace
+
+	// Event permissions
+	PermAddEvent          Permission = 1 << PermBitAddEvent
+	PermEditEvent         Permission = 1 << PermBitEditEvent
+	PermDeleteEvent       Permission = 1 << PermBitDeleteEvent
+	PermReleaseEvent      Permission = 1 << PermBitReleaseEvent
+	PermViewEventInsights Permission = 1 << PermBitViewEventInsights
 
 	PermCombinationAdmin = 0b00011111000001110000111101111111
 )

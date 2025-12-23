@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/uranus/app"
 )
 
 // TODO: Review code
 
 func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
-	pool := h.DbPool
 	ctx := gc.Request.Context()
 	userId := gc.GetInt("user-id")
 	langStr := gc.DefaultQuery("lang", "en")
@@ -25,7 +25,7 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 		GenreName *string `json:"genre_name"`
 	}
 
-	type OrganizationEvent struct {
+	type Event struct {
 		EventId               int         `json:"event_id"`
 		EventDateId           int         `json:"event_date_id"`
 		EventTitle            string      `json:"event_title"`
@@ -60,74 +60,104 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 		return
 	}
 
-	fmt.Println("organizationId: ", organizationId)
+	var events []Event
+	var organizationPermissions app.Permission
 
-	startStr := gc.Query("start")
-	var err error
-	var startDate time.Time
-	if startStr != "" {
-		startDate, err = time.Parse("2006-01-02", startStr)
-		if err != nil {
+	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
+		var err error
+		startStr := gc.Query("start")
+		var startDate time.Time
+		if startStr != "" {
+			startDate, err = time.Parse("2006-01-02", startStr)
+			if err != nil {
+				startDate = time.Now()
+			}
+		} else {
 			startDate = time.Now()
 		}
-	} else {
-		startDate = time.Now()
-	}
 
-	rows, err := pool.Query(ctx, app.Singleton.SqlAdminGetOrganizationEvents, organizationId, startDate, langStr, userId)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		rows, err := tx.Query(ctx, app.Singleton.SqlAdminGetOrganizationEvents, organizationId, startDate, langStr, userId)
+		if err != nil {
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  fmt.Errorf("Transaction failed 1: %v", err),
+			}
+		}
+		defer rows.Close()
+
+		var eventTypesData []byte
+
+		for rows.Next() {
+			var e Event
+			err := rows.Scan(
+				&e.EventId,
+				&e.EventDateId,
+				&e.EventTitle,
+				&e.EventSubtitle,
+				&e.EventOrganizationId,
+				&e.EventOrganizationName,
+				&e.StartDate,
+				&e.StartTime,
+				&e.EndDate,
+				&e.EndTime,
+				&e.ReleaseStatusId,
+				&e.ReleaseStatusName,
+				&e.ReleaseDate,
+				&e.VenueId,
+				&e.VenueName,
+				&e.SpaceId,
+				&e.SpaceName,
+				&e.LocationId,
+				&e.LocationName,
+				&e.ImageId,
+				&eventTypesData,
+				&e.CanEditEvent,
+				&e.CanDeleteEvent,
+				&e.CanReleaseEvent,
+				&e.TimeSeriesIndex,
+				&e.TimeSeries,
+			)
+			if err != nil {
+				return &ApiTxError{
+					Code: http.StatusInternalServerError,
+					Err:  fmt.Errorf("Transaction failed 2: %v", err),
+				}
+			}
+			if len(eventTypesData) > 0 {
+				_ = json.Unmarshal(eventTypesData, &e.EventTypes)
+			}
+			events = append(events, e)
+		}
+
+		organizationPermissions, err = h.GetUserOrganizationPermissions(gc, tx, userId, organizationId)
+		if err != nil {
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  fmt.Errorf("Transaction failed 3: %v", err),
+			}
+		}
+
+		fmt.Print("organizationPermissions: ", organizationPermissions)
+
+		return nil
+	})
+	if txErr != nil {
+		gc.JSON(txErr.Code, gin.H{"error": txErr.Error()})
 		return
 	}
-	defer rows.Close()
 
-	var eventTypesData []byte
-	var events []OrganizationEvent
-	for rows.Next() {
-		fmt.Printf("....")
-		var e OrganizationEvent
-		err := rows.Scan(
-			&e.EventId,
-			&e.EventDateId,
-			&e.EventTitle,
-			&e.EventSubtitle,
-			&e.EventOrganizationId,
-			&e.EventOrganizationName,
-			&e.StartDate,
-			&e.StartTime,
-			&e.EndDate,
-			&e.EndTime,
-			&e.ReleaseStatusId,
-			&e.ReleaseStatusName,
-			&e.ReleaseDate,
-			&e.VenueId,
-			&e.VenueName,
-			&e.SpaceId,
-			&e.SpaceName,
-			&e.LocationId,
-			&e.LocationName,
-			&e.ImageId,
-			&eventTypesData,
-			&e.CanEditEvent,
-			&e.CanDeleteEvent,
-			&e.CanReleaseEvent,
-			&e.TimeSeriesIndex,
-			&e.TimeSeries,
-		)
-		if err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		if len(eventTypesData) > 0 {
-			_ = json.Unmarshal(eventTypesData, &e.EventTypes)
-		}
-		events = append(events, e)
-	}
+	canAddEvent := organizationPermissions.Has(app.PermAddEvent)
 
 	if len(events) == 0 {
-		gc.JSON(http.StatusNoContent, gin.H{"error": "no events found"})
+		gc.JSON(http.StatusOK, gin.H{
+			"can_add_event": canAddEvent,
+			"events":        []Event{},
+		})
 		return
 	}
 
-	gc.JSON(http.StatusOK, events)
+	gc.JSON(http.StatusOK, gin.H{
+		"can_add_event": canAddEvent,
+		"events":        events,
+	})
 }

@@ -143,7 +143,6 @@ WHERE event_id = $9 AND id = $10`,
 
 		return nil
 	})
-
 	if txErr != nil {
 		gc.JSON(txErr.Code, gin.H{"error": txErr.Error()})
 		return

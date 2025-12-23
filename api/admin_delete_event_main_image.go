@@ -81,7 +81,6 @@ WHERE eil.event_id = $1 AND eil.main_image = TRUE`,
 
 		return nil
 	})
-
 	if txErr != nil {
 		gc.JSON(txErr.Code, gin.H{"error": txErr.Error()})
 		return

@@ -1,23 +1,19 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/uranus/app"
+	"github.com/sndcds/uranus/model"
 )
-
-// TODO: Review code
 
 func (h *ApiHandler) AdminGetOrganizationTeam(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	pool := h.DbPool
 
 	organizationId, ok := ParamInt(gc, "organizationId")
 	if !ok {
@@ -27,89 +23,52 @@ func (h *ApiHandler) AdminGetOrganizationTeam(gc *gin.Context) {
 
 	langStr := gc.DefaultQuery("lang", "en")
 
-	// Start a transaction
-	tx, err := pool.BeginTx(ctx, pgx.TxOptions{})
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	defer tx.Rollback(ctx) // safe rollback if not committed
+	members := []model.OrganizationMember{}
+	var invitedMembers []model.InvitedOrganizationMember
+	memberRoles := []model.OrganizationMemberRole{}
 
-	// --- Fetch members ---
-	memberSql := fmt.Sprintf(`
-        SELECT
-            u.id AS user_id,
-            u.email_address AS email,
-            u.user_name,
-            COALESCE(
-				u.display_name,
-				u.first_name || ' ' || u.last_name,
-				u.email_address)
-				AS display_name,
-            u.modified_at AS last_active_at,
-            uml.created_at AS joined_at
-        FROM %s.organization_member_link uml
-        JOIN %s."user" u ON u.id = uml.user_id
-        WHERE uml.organization_id = $1 AND uml.has_joined = true
-        ORDER BY display_name`,
-		h.Config.DbSchema, h.Config.DbSchema)
+	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 
-	fmt.Println("memberSql:", memberSql)
-
-	memberRows, err := tx.Query(ctx, memberSql, organizationId)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	defer memberRows.Close()
-
-	type OrganizationMember struct {
-		UserId       int        `json:"user_id"`
-		Email        string     `json:"email"`
-		UserName     *string    `json:"user_name"`
-		DisplayName  *string    `json:"display_name"`
-		AvatarUrl    *string    `json:"avatar_url"`
-		LastActiveAt *time.Time `json:"last_active_at"`
-		JoinedAt     time.Time  `json:"joined_at"`
-	}
-
-	members := []OrganizationMember{}
-
-	for memberRows.Next() {
-		var m OrganizationMember
-		err := memberRows.Scan(
-			&m.UserId,
-			&m.Email,
-			&m.UserName,
-			&m.DisplayName,
-			&m.LastActiveAt,
-			&m.JoinedAt,
-		)
+		// --- Fetch members ---
+		memberRows, err := tx.Query(ctx, app.Singleton.SqlAdminGetOrganizationMembers, organizationId)
 		if err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  fmt.Errorf("Transaction failed: %s", err.Error()),
+			}
+		}
+		defer memberRows.Close()
+
+		for memberRows.Next() {
+			var m model.OrganizationMember
+			err := memberRows.Scan(
+				&m.MemberId,
+				&m.UserId,
+				&m.Email,
+				&m.UserName,
+				&m.DisplayName,
+				&m.LastActiveAt,
+				&m.JoinedAt,
+			)
+			if err != nil {
+				return &ApiTxError{
+					Code: http.StatusInternalServerError,
+					Err:  fmt.Errorf("Transaction failed: %s", err.Error()),
+				}
+			}
+
+			// Optional: add avatar URL if file exists
+			imageDir := app.Singleton.Config.ProfileImageDir
+			imagePath := filepath.Join(imageDir, fmt.Sprintf("profile_img_%d_64.webp", m.UserId))
+			if _, err := os.Stat(imagePath); err == nil {
+				avatarUrl := fmt.Sprintf(`%s/api/user/%d/avatar/64`, h.Config.BaseApiUrl, m.UserId)
+				m.AvatarUrl = &avatarUrl
+			}
+
+			members = append(members, m)
 		}
 
-		// Optional: add avatar URL if file exists
-		imageDir := app.Singleton.Config.ProfileImageDir
-		imagePath := filepath.Join(imageDir, fmt.Sprintf("profile_img_%d_64.webp", m.UserId))
-		if _, err := os.Stat(imagePath); err == nil {
-			avatarUrl := fmt.Sprintf(`%s/api/user/%d/avatar/64`, h.Config.BaseApiUrl, m.UserId)
-			m.AvatarUrl = &avatarUrl
-		}
-
-		members = append(members, m)
-	}
-
-	type InvitedMember struct {
-		UserID    int       `json:"user_id"`
-		InvitedBy string    `json:"invited_by"`
-		InvitedAt time.Time `json:"invited_at"`
-		Email     string    `json:"email"`
-		RoleID    int       `json:"role_id"`
-		RoleName  string    `json:"role_name"`
-	}
-	invitedMemberSql := fmt.Sprintf(`
+		invitedMemberQuery := fmt.Sprintf(`
 		SELECT
 			oml.user_id,
 			COALESCE(iu.display_name, iu.first_name || ' ' || iu.last_name) AS invited_by,
@@ -122,72 +81,68 @@ func (h *ApiHandler) AdminGetOrganizationTeam(gc *gin.Context) {
 		JOIN %s.user u ON u.id = oml.user_id
 		JOIN %s.team_member_role tmr ON tmr.type_id = oml.member_role_id AND tmr.iso_639_1 = $2
 		WHERE oml.organization_id = $1 AND has_joined = false`,
-		h.Config.DbSchema, h.Config.DbSchema, h.Config.DbSchema, h.Config.DbSchema)
-	rows, err := tx.Query(ctx, invitedMemberSql, organizationId, langStr)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch invited members" + err.Error()})
-		return
-	}
-	defer rows.Close()
-
-	var invitedMembers []InvitedMember
-	for rows.Next() {
-		var m InvitedMember
-		if err := rows.Scan(&m.UserID, &m.InvitedBy, &m.InvitedAt, &m.Email, &m.RoleID, &m.RoleName); err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to scan invited member"})
-			return
+			h.Config.DbSchema, h.Config.DbSchema, h.Config.DbSchema, h.Config.DbSchema)
+		rows, err := tx.Query(ctx, invitedMemberQuery, organizationId, langStr)
+		if err != nil {
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  fmt.Errorf("Failed to fetch invited members: %s", err.Error()),
+			}
 		}
-		invitedMembers = append(invitedMembers, m)
-	}
+		defer rows.Close()
 
-	// --- Fetch roles ---
-	rolesSQL := fmt.Sprintf(`
+		for rows.Next() {
+			var m model.InvitedOrganizationMember
+			err = rows.Scan(&m.UserID, &m.InvitedBy, &m.InvitedAt, &m.Email, &m.RoleID, &m.RoleName)
+			if err != nil {
+				return &ApiTxError{
+					Code: http.StatusInternalServerError,
+					Err:  fmt.Errorf("Failed to scan invited members: %s", err.Error()),
+				}
+			}
+			invitedMembers = append(invitedMembers, m)
+		}
+
+		// --- Fetch roles ---
+		rolesQuery := fmt.Sprintf(`
         SELECT type_id AS id, name, description
         FROM %s.team_member_role
         WHERE iso_639_1 = $1
         ORDER BY id;
     `, h.Config.DbSchema)
 
-	fmt.Println("rolesSQL: ", rolesSQL)
-	roleRows, err := tx.Query(ctx, rolesSQL, langStr)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	defer roleRows.Close()
-
-	type Role struct {
-		Id          int    `json:"id"`
-		Name        string `json:"name"`
-		Description string `json:"description"`
-	}
-
-	roles := []Role{}
-	for roleRows.Next() {
-		var role Role
-		if err := roleRows.Scan(&role.Id, &role.Name, &role.Description); err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
+		roleRows, err := tx.Query(ctx, rolesQuery, langStr)
+		if err != nil {
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  fmt.Errorf("Transaction failed: %s", err.Error()),
+			}
 		}
-		roles = append(roles, role)
-		fmt.Println(role)
-	}
+		defer roleRows.Close()
 
-	// Commit the transaction
-	if err := tx.Commit(ctx); err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		for roleRows.Next() {
+			var role model.OrganizationMemberRole
+			if err := roleRows.Scan(&role.Id, &role.Name, &role.Description); err != nil {
+				return &ApiTxError{
+					Code: http.StatusInternalServerError,
+					Err:  fmt.Errorf("Transaction failed: %s", err.Error()),
+				}
+			}
+			memberRoles = append(memberRoles, role)
+		}
+
+		return nil
+	})
+	if txErr != nil {
+		gc.JSON(txErr.Code, gin.H{"error": txErr.Error()})
 		return
 	}
 
-	// Return combined JSON
 	result := gin.H{
 		"members":     members,
 		"invitations": invitedMembers,
-		"roles":       roles,
+		"roles":       memberRoles,
 	}
-
-	b, _ := json.MarshalIndent(result, "", "  ")
-	fmt.Println(string(b)) // optional: print to console
 
 	gc.JSON(http.StatusOK, result)
 }

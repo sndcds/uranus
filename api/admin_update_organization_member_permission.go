@@ -1,3 +1,6 @@
+// File: admin_get_organization_member_permissions.go
+// Access by user-id checked, 2025-12-23, Roald
+
 package api
 
 import (
@@ -10,79 +13,169 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
+// AdminUpdateOrganizationMemberPermission updates a single permission bit
+// for a member of an organization.
+//
+// This endpoint allows an authorized organization administrator to enable
+// or disable a specific permission bit for a given organization member.
+// Permissions are stored as a 64-bit bitmask and updated using a bitwise
+// operation inside a database transaction.
+//
+// Authentication & Authorization:
+//   - Requires an authenticated user (user-id must be set in Gin context).
+//   - The authenticated user must have BOTH PermManagePermissions and
+//     PermManageTeam permissions for the target organization.
+//
+// URL Parameters:
+//   - organizationId (int): ID of the organization.
+//   - memberId (int): ID of the organization member whose permissions
+//     will be updated.
+//
+// Request Body (JSON):
+//
+//	{
+//	  "bit": <int>,       // Permission bit index (0–63)
+//	  "enabled": <bool>   // true to enable the bit, false to disable it
+//	}
+//
+// Behavior:
+//   - Validates input parameters and JSON payload.
+//   - Starts a database transaction.
+//   - Verifies the caller’s organization permissions.
+//   - Sets or clears the specified permission bit using a bitwise operation.
+//   - Commits the transaction on success.
+//
+// Responses:
+//   - 200 OK: Returns the updated permissions bitmask.
+//     {
+//     "permissions": <int64>
+//     }
+//   - 400 Bad Request: Missing or invalid parameters or payload.
+//   - 403 Forbidden: Caller lacks sufficient permissions.
+//   - 404 Not Found: Target member does not exist in the organization.
+//   - 500 Internal Server Error: Database or transaction failure.
 func (h *ApiHandler) AdminUpdateOrganizationMemberPermission(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := gc.GetInt("user-id")
 
 	organizationId, ok := ParamInt(gc, "organizationId")
 	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "organization Id is required"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "organizationId is required"})
 		return
 	}
 
 	memberId, ok := ParamInt(gc, "memberId")
 	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "memberID is required"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "memberId is required"})
 		return
 	}
 
-	var input struct {
+	fmt.Println("AdminUpdateOrganizationMemberPermission")
+	fmt.Println("userId:", userId)
+	fmt.Println("organizationId:", organizationId)
+	fmt.Println("memberId:", memberId)
+
+	var inputReq struct {
 		Bit     int  `json:"bit"`
 		Enabled bool `json:"enabled"`
 	}
-	if err := gc.ShouldBindJSON(&input); err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON"})
+	if err := gc.ShouldBindJSON(&inputReq); err != nil {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
 		return
 	}
-	if input.Bit < 0 || input.Bit > 63 {
+	if inputReq.Bit < 0 || inputReq.Bit > 63 {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "bit must be between 0 and 63"})
 		return
 	}
 
-	// Begin transaction
-	tx, err := h.DbPool.Begin(ctx)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to start transaction"})
-		return
-	}
-	defer func() { _ = tx.Rollback(ctx) }()
-
-	// Check if user can manage member permissions as the organization
-	organizationPermissions, err := h.GetUserOrganizationPermissions(gc, tx, userId, organizationId)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	if !organizationPermissions.HasAll(app.PermManagePermissions | app.PermManageTeam) {
-		gc.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})
-		return
-	}
-
-	// Perform the bitwise update
-	query := fmt.Sprintf(`
-		UPDATE %s.user_organization_link
-		SET permissions = CASE
-			WHEN $1 THEN permissions | (1::bigint << $2)
-			ELSE permissions & ~(1::bigint << $2)
-		END
-		WHERE user_id = $3 AND organization_id = $4
-		RETURNING permissions`,
-		h.Config.DbSchema)
-
 	var updatedPermissions int64
-	err = tx.QueryRow(ctx, query, input.Enabled, input.Bit, memberId, organizationId).
-		Scan(&updatedPermissions)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			gc.JSON(http.StatusNotFound, gin.H{"error": "member not found"})
-			return
-		}
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
 
-	if err = tx.Commit(ctx); err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to commit transaction: %v", err)})
+	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
+
+		// Check if user can manage member permissions as the organization
+		organizationPermissions, err := h.GetUserOrganizationPermissions(gc, tx, userId, organizationId)
+		if err != nil {
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  fmt.Errorf("Transaction failed: %s", err.Error()),
+			}
+		}
+		if !organizationPermissions.HasAll(app.PermManagePermissions) {
+			return &ApiTxError{
+				Code: http.StatusForbidden,
+				Err:  fmt.Errorf("Insufficient permissions"),
+			}
+		}
+
+		// Ckeck if member is the admin user
+		var isMember bool
+		var memberUserId int
+		err = tx.QueryRow(
+			ctx, app.Singleton.SqlAdminCheckOrganizationMember,
+			memberId, organizationId, userId).
+			Scan(&isMember, &memberUserId)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return &ApiTxError{
+					Code: http.StatusNoContent,
+					Err:  fmt.Errorf("Failed to check membership 1, %s", err.Error()),
+				}
+			} else {
+				return &ApiTxError{
+					Code: http.StatusInternalServerError,
+					Err:  fmt.Errorf("Failed to check membership 2, %s", err.Error()),
+				}
+			}
+		}
+
+		fmt.Println(app.Singleton.SqlAdminCheckOrganizationMember)
+		fmt.Println("memberId:", memberId)
+		fmt.Println("organizationId:", organizationId)
+		fmt.Println("userId:", userId)
+		fmt.Println("isMember:", isMember)
+		fmt.Println("memberUserId:", memberUserId)
+
+		// At this point, isMember is true if a row exists, false otherwise
+		if isMember && (inputReq.Bit == app.PermBitManagePermissions || inputReq.Bit == app.PermBitManageTeam) {
+			return &ApiTxError{
+				Code: http.StatusUnauthorized,
+				Err:  fmt.Errorf("Failed to check membership 3"),
+			}
+		} else {
+			// user is not a member
+		}
+
+		// Perform the bitwise update
+		bitUpdateQuery := fmt.Sprintf(`
+UPDATE %s.user_organization_link
+SET permissions = CASE
+	WHEN $1 THEN permissions | (1::bigint << $2)
+	ELSE permissions & ~(1::bigint << $2)
+END
+WHERE user_id = $3 AND organization_id = $4
+RETURNING permissions`,
+			h.Config.DbSchema)
+
+		err = tx.QueryRow(
+			ctx, bitUpdateQuery, inputReq.Enabled, inputReq.Bit, memberUserId, organizationId).
+			Scan(&updatedPermissions)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return &ApiTxError{
+					Code: http.StatusNotFound,
+					Err:  fmt.Errorf("Target member does not exist in the organization"),
+				}
+			}
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  fmt.Errorf("Transaction failed: %s", err.Error()),
+			}
+		}
+
+		return nil
+	})
+	if txErr != nil {
+		gc.JSON(txErr.Code, gin.H{"error": txErr.Error()})
 		return
 	}
 

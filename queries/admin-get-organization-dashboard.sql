@@ -1,12 +1,11 @@
 WITH upcoming_events AS (
     SELECT
         o.id AS organization_id,
-        COUNT(DISTINCT ed.id) AS total_upcoming_events
+        COUNT(ed.id) AS total_upcoming_events
     FROM {{schema}}.organization o
-    LEFT JOIN {{schema}}.venue v ON v.organization_id = o.id
-    LEFT JOIN {{schema}}.event e ON (e.venue_id = v.id OR e.organization_id = o.id)
+    LEFT JOIN {{schema}}.event e ON e.organization_id = o.id
     LEFT JOIN {{schema}}.event_date ed ON ed.event_id = e.id
-    WHERE ed.start_date > CURRENT_DATE
+    AND ed.start_date > CURRENT_DATE
     GROUP BY o.id
 ),
 organization_access AS (

@@ -174,7 +174,6 @@ VALUES ($1, $2, $3, $4, $5, ST_SetSRID(ST_MakePoint($6, $7), 4326)) RETURNING id
 
 		return nil
 	})
-
 	if txErr != nil {
 		gc.JSON(txErr.Code, gin.H{"error": txErr.Error()})
 		return
