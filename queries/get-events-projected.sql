@@ -71,5 +71,5 @@ JOIN {{schema}}.event_projection ep ON ep.event_id = edp.event_id
 WHERE ep.release_status_id >= 3
 AND {{date_conditions}}
 {{conditions}}
-ORDER BY edp.event_start_at
+ORDER BY edp.event_start_at ASC, edp.event_date_id ASC
 {{limit}}

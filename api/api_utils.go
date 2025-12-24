@@ -115,6 +115,44 @@ func GetContextParam(gc *gin.Context, name string) (string, bool) {
 	return "", false
 }
 
+// GetContextParamInt returns a pointer to an int if the parameter exists and is valid,
+// or nil if it doesn't exist or can't be parsed as an integer.
+func GetContextParamInt(gc *gin.Context, name string) (*int, bool) {
+	val, exists := gc.GetQuery(name)
+	if !exists {
+		val = gc.PostForm(name)
+		if val == "" {
+			return nil, false
+		}
+	}
+
+	i, err := strconv.Atoi(val)
+	if err != nil {
+		return nil, false
+	}
+
+	return &i, true
+}
+
+// GetContextParamIntDefault returns the int value of the parameter if it exists and is valid,
+// otherwise it returns the provided default value.
+func GetContextParamIntDefault(gc *gin.Context, name string, defaultVal int) int {
+	val, exists := gc.GetQuery(name)
+	if !exists {
+		val = gc.PostForm(name)
+		if val == "" {
+			return defaultVal
+		}
+	}
+
+	i, err := strconv.Atoi(val)
+	if err != nil {
+		return defaultVal
+	}
+
+	return i
+}
+
 // Get the Authorization header
 func UserIdFromAccessToken(gc *gin.Context) int {
 	authHeader := gc.GetHeader("Authorization")

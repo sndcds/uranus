@@ -85,6 +85,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 		"title": {}, "city": {}, "event_types": {}, "tags": {},
 		"accessibility": {}, "visitor_infos": {}, "age": {},
 		"lon": {}, "lat": {}, "radius": {}, "offset": {}, "limit": {},
+		"last_event_start_at": {}, "last_event_date_id": {},
 	}
 
 	validationErr := validateAllowedQueryParams(gc, allowed)
@@ -98,6 +99,8 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 	_, hasPast := GetContextParam(gc, "past")
 	startStr, _ := GetContextParam(gc, "start")
 	endStr, _ := GetContextParam(gc, "end")
+	lastEventStartAt, _ := GetContextParam(gc, "last_event_start_at")
+	lastEventDateId := GetContextParamIntDefault(gc, "last_event_date_id", 0)
 	timeStr, _ := GetContextParam(gc, "time")
 	searchStr, _ := GetContextParam(gc, "search")
 	eventIdsStr, _ := GetContextParam(gc, "events")
@@ -143,6 +146,15 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 		nextArgIndex++
 	} else if endStr != "" {
 		return "", "", "", nil, 0, fmt.Errorf("end %s has invalid format", endStr)
+	}
+
+	if lastEventStartAt != "" {
+		if dateConditionCount > 0 {
+			dateConditions += " AND "
+		}
+		dateConditions += "(edp.event_start_at, edp.event_date_id) > ($" + strconv.Itoa(nextArgIndex) + "::timestamptz, $" + strconv.Itoa(nextArgIndex+1) + "::int)"
+		args = append(args, lastEventStartAt, lastEventDateId)
+		nextArgIndex += 2
 	}
 
 	// --- other conditions ---
@@ -365,7 +377,15 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		return
 	}
 
-	gc.JSON(http.StatusOK, gin.H{"events": events})
+	lastEvent := events[len(events)-1]
+	lastEventStartAt := lastEvent.StartDate + "T" + lastEvent.StartTime
+	lastEventDateID := lastEvent.EventDateID
+
+	gc.JSON(http.StatusOK, gin.H{
+		"events":              events,
+		"last_event_start_at": lastEventStartAt,
+		"last_event_date_id":  lastEventDateID,
+	})
 }
 
 func (h *ApiHandler) GetEventTypeDateSummary(gc *gin.Context) {
