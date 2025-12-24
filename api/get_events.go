@@ -86,6 +86,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 		"accessibility": {}, "visitor_infos": {}, "age": {},
 		"lon": {}, "lat": {}, "radius": {}, "offset": {}, "limit": {},
 		"last_event_start_at": {}, "last_event_date_id": {},
+		"language": {},
 	}
 
 	validationErr := validateAllowedQueryParams(gc, allowed)
@@ -97,6 +98,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 	var conditions []string
 
 	_, hasPast := GetContextParam(gc, "past")
+	// languagesStr, _ := GetContextParam(gc, "language") // TODO: Implement language support!
 	startStr, _ := GetContextParam(gc, "start")
 	endStr, _ := GetContextParam(gc, "end")
 	lastEventStartAt, _ := GetContextParam(gc, "last_event_start_at")
