@@ -297,7 +297,8 @@ INSERT INTO %[1]s.event_date_projection (
     space_type_id, space_building_level, space_website_url,
     space_accessibility_summary, space_accessibility_flags,
     space_description,
-    start_date, start_time, end_date, end_time,
+    start_date, start_time,
+    end_date, end_time,
     entry_time, duration, all_day, status,
     visitor_info_flags, ticket_link, availability_status,
     accessibility_info, custom, created_at, modified_at

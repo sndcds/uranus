@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/uranus/app"
+	"github.com/sndcds/uranus/model"
 )
 
 // AdminUpdateOrganizationMemberPermission updates a single permission bit
@@ -91,7 +92,6 @@ func (h *ApiHandler) AdminUpdateOrganizationMemberPermission(gc *gin.Context) {
 	var updatedPermissions int64
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-
 		// Check if user can manage member permissions as the organization
 		organizationPermissions, err := h.GetUserOrganizationPermissions(gc, tx, userId, organizationId)
 		if err != nil {
@@ -100,7 +100,7 @@ func (h *ApiHandler) AdminUpdateOrganizationMemberPermission(gc *gin.Context) {
 				Err:  fmt.Errorf("Transaction failed: %s", err.Error()),
 			}
 		}
-		if !organizationPermissions.HasAll(app.PermManagePermissions) {
+		if !organizationPermissions.Has(app.PermManagePermissions) {
 			return &ApiTxError{
 				Code: http.StatusForbidden,
 				Err:  fmt.Errorf("Insufficient permissions"),
@@ -108,41 +108,49 @@ func (h *ApiHandler) AdminUpdateOrganizationMemberPermission(gc *gin.Context) {
 		}
 
 		// Ckeck if member is the admin user
-		var isMember bool
-		var memberUserId int
+
+		var orgMemberLink model.OrganizationMemberLink
+		orgMemberLink.Id = memberId
 		err = tx.QueryRow(
-			ctx, app.Singleton.SqlAdminCheckOrganizationMember,
-			memberId, organizationId, userId).
-			Scan(&isMember, &memberUserId)
+			ctx, app.Singleton.SqlAdminGetOrganizationMemberLink,
+			memberId).
+			Scan(
+				&orgMemberLink.OrganizationId,
+				&orgMemberLink.UserId,
+				&orgMemberLink.HasJoined,
+				&orgMemberLink.InvitedByUserId,
+				&orgMemberLink.InvitedAt,
+				&orgMemberLink.CreatedAt,
+				&orgMemberLink.ModifiedAt)
+		if err != nil {
+			return &ApiTxError{
+				Code: http.StatusUnauthorized,
+				Err:  fmt.Errorf("Failed to get organization member link, %v", err),
+			}
+		}
+
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return &ApiTxError{
 					Code: http.StatusNoContent,
-					Err:  fmt.Errorf("Failed to check membership 1, %s", err.Error()),
+					Err:  fmt.Errorf("Failed to check membership, %s", err.Error()),
 				}
 			} else {
 				return &ApiTxError{
 					Code: http.StatusInternalServerError,
-					Err:  fmt.Errorf("Failed to check membership 2, %s", err.Error()),
+					Err:  fmt.Errorf("Failed to check membership, %s", err.Error()),
 				}
 			}
 		}
 
-		fmt.Println(app.Singleton.SqlAdminCheckOrganizationMember)
-		fmt.Println("memberId:", memberId)
-		fmt.Println("organizationId:", organizationId)
-		fmt.Println("userId:", userId)
-		fmt.Println("isMember:", isMember)
-		fmt.Println("memberUserId:", memberUserId)
+		memberUserId := orgMemberLink.UserId
 
-		// At this point, isMember is true if a row exists, false otherwise
-		if isMember && (inputReq.Bit == app.PermBitManagePermissions || inputReq.Bit == app.PermBitManageTeam) {
+		// If the user is trying to set their own ManagePermissions or ManageTeam bit, block it
+		if memberUserId == userId && (inputReq.Bit == app.PermBitManagePermissions || inputReq.Bit == app.PermBitManageTeam) {
 			return &ApiTxError{
 				Code: http.StatusUnauthorized,
-				Err:  fmt.Errorf("Failed to check membership 3"),
+				Err:  fmt.Errorf("Bits %d protected", inputReq.Bit),
 			}
-		} else {
-			// user is not a member
 		}
 
 		// Perform the bitwise update

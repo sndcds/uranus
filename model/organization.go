@@ -27,3 +27,14 @@ type OrganizationMemberRole struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 }
+
+type OrganizationMemberLink struct {
+	Id              int        `json:"id"`
+	OrganizationId  int        `json:"organization_id"`
+	UserId          int        `json:"user_id"`
+	HasJoined       *bool      `json:"has_joined"`
+	InvitedByUserId *int       `json:"invited_by_user_id"`
+	InvitedAt       *time.Time `json:"invited_at"`
+	CreatedAt       *time.Time `json:"created_at"`
+	ModifiedAt      *time.Time `json:"modified_at"`
+}

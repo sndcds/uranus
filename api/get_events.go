@@ -77,6 +77,20 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 	nextArgIndex int,
 	err error,
 ) {
+
+	allowed := map[string]struct{}{
+		"past": {}, "start": {}, "end": {}, "time": {}, "search": {},
+		"events": {}, "venues": {}, "spaces": {}, "space_types": {},
+		"organizations": {}, "countries": {}, "postal_code": {},
+		"title": {}, "city": {}, "event_types": {}, "tags": {},
+		"accessibility": {}, "visitor_infos": {}, "age": {},
+		"lon": {}, "lat": {}, "radius": {}, "offset": {}, "limit": {},
+	}
+
+	validationErr := validateAllowedQueryParams(gc, allowed)
+	if validationErr != nil {
+		return "", "", "", nil, 0, fmt.Errorf(validationErr.Error())
+	}
 	args = []interface{}{}
 	nextArgIndex = 1
 	var conditions []string
@@ -109,14 +123,14 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 	// --- date conditions ---
 	dateConditionCount := 0
 	if app.IsValidDateStr(startStr) {
-		dateConditions += "edp.start_date >= $" + strconv.Itoa(nextArgIndex)
+		dateConditions += "edp.event_start_at >= $" + strconv.Itoa(nextArgIndex)
 		args = append(args, startStr)
 		nextArgIndex++
 		dateConditionCount++
 	} else if startStr != "" {
 		return "", "", "", nil, 0, fmt.Errorf("start %s has invalid format", startStr)
 	} else if !hasPast {
-		dateConditions += "edp.start_date >= CURRENT_DATE"
+		dateConditions += "edp.event_start_at >= CURRENT_DATE"
 		dateConditionCount++
 	}
 
@@ -124,7 +138,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 		if dateConditionCount > 0 {
 			dateConditions += " AND "
 		}
-		dateConditions += "(edp.end_date <= $" + strconv.Itoa(nextArgIndex) + " OR edp.start_date <= $" + strconv.Itoa(nextArgIndex) + ")"
+		dateConditions += "(edp.event_end_at <= $" + strconv.Itoa(nextArgIndex) + " OR edp.event_start_at <= $" + strconv.Itoa(nextArgIndex) + ")"
 		args = append(args, endStr)
 		nextArgIndex++
 	} else if endStr != "" {
@@ -260,58 +274,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		return
 	}
 
-	query := fmt.Sprintf(`
-WITH upcoming_dates AS (
-    SELECT *
-    FROM %s.event_date_projection edp
-    WHERE edp.start_date >= CURRENT_DATE
-)
-SELECT
-    edp.event_date_id,
-    edp.event_id,
-    ep.organization_id,
-    COALESCE(edp.venue_id, ep.venue_id) AS venue_id,
-    COALESCE(edp.space_id, ep.space_id) AS space_id,
-	TO_CHAR(edp.start_date, 'YYYY-MM-DD') AS start_date,
-    TO_CHAR(edp.start_time, 'HH24:MI') AS start_time,
-    TO_CHAR(edp.end_date, 'YYYY-MM-DD') AS end_date,
-    TO_CHAR(edp.end_time, 'HH24:MI') AS end_time,
-    TO_CHAR(edp.entry_time, 'HH24:MI') AS entry_time,
-    edp.duration,
-    edp.all_day,
-    edp.status,
-    edp.ticket_link,
-    ep.title,
-	ep.subtitle,
-	ep.description,
-	ep.types,
-	ep.languages,
-	ep.tags,
-    ep.organization_name,
-	ep.image_id,
-    COALESCE(edp.venue_name, ep.venue_name) AS venue_name,
-    COALESCE(edp.venue_city, ep.venue_city) AS venue_city,
-    COALESCE(edp.venue_street, ep.venue_street) AS venue_street,
-    COALESCE(edp.venue_house_number, ep.venue_house_number) AS venue_house_number,
-    COALESCE(edp.venue_postal_code, ep.venue_postal_code) AS venue_postal_code,
-    COALESCE(edp.venue_state_code, ep.venue_state_code) AS venue_state_code,
-    COALESCE(edp.venue_country_code, ep.venue_country_code) AS venue_country_code,
-    ST_Y(COALESCE(edp.venue_geo_pos, ep.venue_geo_pos)) AS venue_lat,
-    ST_X(COALESCE(edp.venue_geo_pos, ep.venue_geo_pos)) AS venue_lon,
-    COALESCE(edp.space_name, ep.space_name) AS space_name,
-    COALESCE(edp.space_accessibility_flags, ep.space_accessibility_flags) AS space_accessibility_flags,
-	ep.min_age,
-	ep.max_age,
-	edp.visitor_info_flags
-FROM upcoming_dates edp
-JOIN %s.event_projection ep ON ep.event_id = edp.event_id
-WHERE ep.release_status_id >= 3
-AND {{date_conditions}}
-{{conditions}}
-ORDER BY edp.start_date, edp.start_time
-{{limit}}
-`, h.DbSchema, h.DbSchema)
-
+	query := app.Singleton.SqlGetEventsProjected
 	query = strings.Replace(query, "{{date_conditions}}", dateConditions, 1)
 	query = strings.Replace(query, "{{conditions}}", conditionsStr, 1)
 	query = strings.Replace(query, "{{limit}}", limitClause, 1)
@@ -452,4 +415,13 @@ ORDER BY date_count DESC;
 	}
 
 	gc.JSON(http.StatusOK, gin.H{"summary": summary})
+}
+
+func validateAllowedQueryParams(c *gin.Context, allowed map[string]struct{}) error {
+	for key := range c.Request.URL.Query() {
+		if _, ok := allowed[key]; !ok {
+			return fmt.Errorf("unsupported query parameter: %s", key)
+		}
+	}
+	return nil
 }

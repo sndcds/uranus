@@ -137,8 +137,6 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 			}
 		}
 
-		fmt.Print("organizationPermissions: ", organizationPermissions)
-
 		return nil
 	})
 	if txErr != nil {

@@ -29,6 +29,7 @@ type Uranus struct {
 	SqlGetOrganization                      string
 	SqlGetEvent                             string
 	SqlGetEventDates                        string
+	SqlGetEventsProjected                   string
 	SqlGetEventsBasic                       string
 	SqlGetEventsExtended                    string
 	SqlGetEventsDetailed                    string
@@ -55,7 +56,7 @@ type Uranus struct {
 	SqlAdminGetOrganizationDashboard        string
 	SqlAdminGetOrganizationVenues           string
 	SqlAdminGetOrganizationEvents           string
-	SqlAdminCheckOrganizationMember         string
+	SqlAdminGetOrganizationMemberLink       string
 	SqlAdminGetOrganizationMembers          string
 	SqlAdminGetPermissionList               string
 	SqlQueryUserOrgEventsOverview           string
@@ -200,6 +201,7 @@ func (app *Uranus) PrepareSql() error {
 		// Public
 		{"queries/get-event.sql", &app.SqlGetEvent, nil},
 		{"queries/get-event-dates.sql", &app.SqlGetEventDates, nil},
+		{"queries/get-events-projected.sql", &app.SqlGetEventsProjected, nil},
 
 		{"queries/get-events.sql", &app.SqlGetEventsBasic, strPtr("queries/get-events-select-basic.sql")},
 		{"queries/get-events.sql", &app.SqlGetEventsExtended, strPtr("queries/get-events-select-extended.sql")},
@@ -249,7 +251,7 @@ func (app *Uranus) PrepareSql() error {
 		{"queries/admin-get-organization-dashboard.sql", &app.SqlAdminGetOrganizationDashboard, nil},
 		{"queries/admin-get-organization-events.sql", &app.SqlAdminGetOrganizationEvents, nil},
 
-		{"queries/admin-check-organization-member.sql", &app.SqlAdminCheckOrganizationMember, nil},
+		{"queries/admin-get-organization-member-link.sql", &app.SqlAdminGetOrganizationMemberLink, nil},
 		{"queries/admin-get-organization-members.sql", &app.SqlAdminGetOrganizationMembers, nil},
 		{"queries/admin-get-permission-list.sql", &app.SqlAdminGetPermissionList, nil},
 
