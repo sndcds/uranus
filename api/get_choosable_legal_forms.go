@@ -17,7 +17,12 @@ func (h *ApiHandler) GetChoosableLegalForms(gc *gin.Context) {
 	langStr := gc.DefaultQuery("lang", "en")
 
 	sql := fmt.Sprintf(
-		`SELECT legal_form_id, name FROM %s.legal_form WHERE iso_639_1 = $1 ORDER BY name`,
+		`SELECT legal_form_id, name
+FROM %s.legal_form
+WHERE iso_639_1 = $1
+ORDER BY
+CASE WHEN legal_form_id = 0 THEN 1 ELSE 0 END,
+LOWER(name)`,
 		app.Singleton.Config.DbSchema,
 	)
 
