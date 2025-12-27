@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-type participationInfoRequest struct {
+type participationInfoReq struct {
 	ParticipationInfo    *string  `json:"participation_info"`
 	MeetingPoint         *string  `json:"meeting_point"`
 	MinAge               *int     `json:"min_age"`
@@ -34,7 +34,7 @@ func (h *ApiHandler) AdminUpdateEventParticipationInfos(gc *gin.Context) {
 		return
 	}
 
-	var req participationInfoRequest
+	var req participationInfoReq
 	if err := gc.ShouldBindJSON(&req); err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -45,71 +45,57 @@ func (h *ApiHandler) AdminUpdateEventParticipationInfos(gc *gin.Context) {
 	args := []interface{}{eventId}
 	argIndex := 2
 
-	if req.ParticipationInfo != nil {
-		setClauses = append(setClauses, fmt.Sprintf("participation_info = $%d", argIndex))
-		args = append(args, *req.ParticipationInfo)
-		argIndex++
-	}
-	if req.MeetingPoint != nil {
-		setClauses = append(setClauses, fmt.Sprintf("meeting_point = $%d", argIndex))
-		args = append(args, *req.MeetingPoint)
-		argIndex++
-	}
-	if req.MinAge != nil {
-		setClauses = append(setClauses, fmt.Sprintf("min_age = $%d", argIndex))
-		args = append(args, *req.MinAge)
-		argIndex++
-	}
-	if req.MaxAge != nil {
-		setClauses = append(setClauses, fmt.Sprintf("max_age = $%d", argIndex))
-		args = append(args, *req.MaxAge)
-		argIndex++
-	}
-	if req.MaxAttendees != nil {
-		setClauses = append(setClauses, fmt.Sprintf("max_attendees = $%d", argIndex))
-		args = append(args, *req.MaxAttendees)
-		argIndex++
-	}
-	if req.PriceTypeID != nil {
-		setClauses = append(setClauses, fmt.Sprintf("price_type_id = $%d", argIndex))
-		args = append(args, *req.PriceTypeID)
-		argIndex++
-	}
-	if req.MinPrice != nil {
-		setClauses = append(setClauses, fmt.Sprintf("min_price = $%d", argIndex))
-		args = append(args, *req.MinPrice)
-		argIndex++
-	}
-	if req.MaxPrice != nil {
-		setClauses = append(setClauses, fmt.Sprintf("max_price = $%d", argIndex))
-		args = append(args, *req.MaxPrice)
-		argIndex++
-	}
-	if req.CurrencyCode != nil {
-		setClauses = append(setClauses, fmt.Sprintf("currency_code = $%d", argIndex))
-		args = append(args, *req.CurrencyCode)
-		argIndex++
-	}
-	if req.TicketAdvance != nil {
-		setClauses = append(setClauses, fmt.Sprintf("ticket_advance = $%d", argIndex))
-		args = append(args, *req.TicketAdvance)
-		argIndex++
-	}
-	if req.TicketRequired != nil {
-		setClauses = append(setClauses, fmt.Sprintf("ticket_required = $%d", argIndex))
-		args = append(args, *req.TicketRequired)
-		argIndex++
-	}
-	if req.RegistrationRequired != nil {
-		setClauses = append(setClauses, fmt.Sprintf("registration_required = $%d", argIndex))
-		args = append(args, *req.RegistrationRequired)
-		argIndex++
-	}
-	if req.OccasionTypeID != nil {
-		setClauses = append(setClauses, fmt.Sprintf("occasion_type_id = $%d", argIndex))
-		args = append(args, *req.OccasionTypeID)
-		argIndex++
-	}
+	setClauses = append(setClauses, fmt.Sprintf("participation_info = $%d", argIndex))
+	args = append(args, req.ParticipationInfo)
+	argIndex++
+
+	setClauses = append(setClauses, fmt.Sprintf("meeting_point = $%d", argIndex))
+	args = append(args, req.MeetingPoint)
+	argIndex++
+
+	setClauses = append(setClauses, fmt.Sprintf("min_age = $%d", argIndex))
+	args = append(args, req.MinAge)
+	argIndex++
+
+	setClauses = append(setClauses, fmt.Sprintf("max_age = $%d", argIndex))
+	args = append(args, req.MaxAge)
+	argIndex++
+
+	setClauses = append(setClauses, fmt.Sprintf("max_attendees = $%d", argIndex))
+	args = append(args, req.MaxAttendees)
+	argIndex++
+
+	setClauses = append(setClauses, fmt.Sprintf("price_type_id = $%d", argIndex))
+	args = append(args, req.PriceTypeID)
+	argIndex++
+
+	setClauses = append(setClauses, fmt.Sprintf("min_price = $%d", argIndex))
+	args = append(args, req.MinPrice)
+	argIndex++
+
+	setClauses = append(setClauses, fmt.Sprintf("max_price = $%d", argIndex))
+	args = append(args, req.MaxPrice)
+	argIndex++
+
+	setClauses = append(setClauses, fmt.Sprintf("currency_code = $%d", argIndex))
+	args = append(args, req.CurrencyCode)
+	argIndex++
+
+	setClauses = append(setClauses, fmt.Sprintf("ticket_advance = $%d", argIndex))
+	args = append(args, req.TicketAdvance)
+	argIndex++
+
+	setClauses = append(setClauses, fmt.Sprintf("ticket_required = $%d", argIndex))
+	args = append(args, req.TicketRequired)
+	argIndex++
+
+	setClauses = append(setClauses, fmt.Sprintf("registration_required = $%d", argIndex))
+	args = append(args, req.RegistrationRequired)
+	argIndex++
+
+	setClauses = append(setClauses, fmt.Sprintf("occasion_type_id = $%d", argIndex))
+	args = append(args, req.OccasionTypeID)
+	argIndex++
 
 	if len(setClauses) == 0 {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "no fields to update"})
@@ -121,6 +107,8 @@ func (h *ApiHandler) AdminUpdateEventParticipationInfos(gc *gin.Context) {
 			h.DbSchema,
 			strings.Join(setClauses, ", "),
 		)
+
+		fmt.Println("query:", query)
 
 		res, err := tx.Exec(ctx, query, args...)
 		if err != nil {
