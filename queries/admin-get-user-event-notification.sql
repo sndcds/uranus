@@ -9,7 +9,7 @@ SELECT
     ed_min.first_event_date::date AS earliest_event_date,
     ed_max.last_event_date::date AS latest_event_date,
     (e.release_date - CURRENT_DATE) AS days_until_release,
-    (ed_min.first_event_date::date - CURRENT_DATE) AS days_until_event
+    GREATEST(ed_min.first_event_date::date - CURRENT_DATE, 0) AS days_until_event
 FROM {{schema}}.event e
 LEFT JOIN LATERAL (
     SELECT MIN(ed.start_date) AS first_event_date
@@ -27,9 +27,9 @@ LEFT JOIN LATERAL (
     ON es.status_id = e.release_status_id
     AND es.iso_639_1 = $4
 WHERE ed_max.last_event_date >= NOW()
-  AND e.release_status_id < 3
-  AND uol.user_id = $1
-  AND (
+AND e.release_status_id < 3
+AND uol.user_id = $1
+AND (
     (e.release_date IS NOT NULL AND e.release_date <= CURRENT_DATE + $2::int)
-   OR (ed_min.first_event_date IS NOT NULL AND ed_min.first_event_date::date <= CURRENT_DATE + $3::int)
-    );
+    OR (ed_min.first_event_date IS NOT NULL AND ed_min.first_event_date::date <= CURRENT_DATE + $3::int)
+)
