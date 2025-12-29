@@ -20,7 +20,7 @@ func (h *ApiHandler) AdminGetTodos(gc *gin.Context) {
     	SELECT id, title, description, due_date, completed
     	FROM %s.todo
     	WHERE user_id = $1
-    	ORDER BY due_date IS NULL, due_date ASC, id ASC`,
+    	ORDER BY due_date IS NULL, due_date DESC, id DESC`,
 		h.DbSchema)
 	rows, err := h.DbPool.Query(ctx, query, userId)
 	if err != nil {
