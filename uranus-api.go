@@ -133,8 +133,7 @@ func main() {
 
 	adminRoute.GET("/todos", app.JWTMiddleware, apiHandler.AdminGetTodos)
 	adminRoute.GET("/todo/:todoId", app.JWTMiddleware, apiHandler.AdminGetTodo)
-	adminRoute.POST("/todo", app.JWTMiddleware, apiHandler.AdminCreateTodo)
-	adminRoute.PUT("/todo/:todoId", app.JWTMiddleware, apiHandler.AdminUpdateTodo)
+	adminRoute.PUT("/todo", app.JWTMiddleware, apiHandler.AdminUpsertTodo)
 	adminRoute.DELETE("/todo/:todoId", app.JWTMiddleware, apiHandler.AdminDeleteTodo)
 
 	adminRoute.GET("/user/me", app.JWTMiddleware, apiHandler.AdminGetUserProfile)
