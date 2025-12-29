@@ -125,7 +125,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 	offsetStr, _ := GetContextParam(gc, "offset")
 	limitStr, _ := GetContextParam(gc, "limit")
 
-	// --- date conditions ---
+	// Date conditions
 	dateConditionCount := 0
 	if app.IsValidDateStr(startStr) {
 		dateConditions += "edp.event_start_at >= $" + strconv.Itoa(nextArgIndex)
@@ -159,7 +159,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 		nextArgIndex += 2
 	}
 
-	// --- other conditions ---
+	// Other conditions
 	var errBuild error
 	nextArgIndex, errBuild = sql_utils.BuildTimeCondition(timeStr, "edp.start_time", "time", nextArgIndex, &conditions, &args)
 	if errBuild != nil {
@@ -265,12 +265,12 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 		}
 	}
 
-	// join all conditions
+	// Join all conditions
 	if len(conditions) > 0 {
 		conditionsStr = " AND " + strings.Join(conditions, " AND ")
 	}
 
-	// build limit/offset clause
+	// Build limit/offset clause
 	limitClause, nextArgIndex, errBuild = sql_utils.BuildLimitOffsetClause(limitStr, offsetStr, nextArgIndex, &args)
 	if errBuild != nil {
 		return "", "", "", nil, 0, errBuild
