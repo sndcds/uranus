@@ -59,7 +59,7 @@ type eventResponse struct {
 	MinAge                  *int        `json:"min_age"`
 	MaxAge                  *int        `json:"max_age"`
 	VisitorInfoFlags        *int64      `json:"visitor_info_flags,omitempty"`
-	// Add other fields as needed
+	ReleaseStatusId         *int        `json:"release_status_id,omitempty"`
 }
 
 // buildEventFilters parses all query parameters from the context
@@ -342,6 +342,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			&e.MinAge,
 			&e.MaxAge,
 			&e.VisitorInfoFlags,
+			&e.ReleaseStatusId,
 		)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("scan failed: %v", err)})

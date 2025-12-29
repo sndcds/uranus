@@ -65,7 +65,8 @@ SELECT
     COALESCE(edp.space_accessibility_flags, ep.space_accessibility_flags) AS space_accessibility_flags,
     ep.min_age,
     ep.max_age,
-    edp.visitor_info_flags
+    edp.visitor_info_flags,
+    ep.release_status_id
 FROM upcoming_dates edp
 JOIN {{schema}}.event_projection ep ON ep.event_id = edp.event_id
 WHERE ep.release_status_id >= 3
