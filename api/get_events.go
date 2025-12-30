@@ -391,30 +391,34 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	})
 }
 
-func (h *ApiHandler) GetEventTypeDateSummary(gc *gin.Context) {
+func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 	dateConditions, conditionsStr, _, args, _, err := h.buildEventFilters(gc)
 	if err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	conds := []string{"ep.release_status_id >= 3"}
+
+	if dateConditions != "" {
+		conds = append(conds, dateConditions)
+	}
+
+	if conditionsStr != "" {
+		conds = append(conds, conditionsStr)
+	}
+
 	query := fmt.Sprintf(`
-WITH upcoming_dates AS (
-    SELECT *
-    FROM %s.event_date_projection edp
-    WHERE %s
-)
 SELECT
     (elem->>0)::int AS type_id,
     COUNT(edp.event_date_id) AS date_count
-FROM upcoming_dates edp
+FROM %s.event_date_projection edp
 JOIN %s.event_projection ep ON ep.event_id = edp.event_id
 CROSS JOIN LATERAL jsonb_array_elements(ep.types) AS elem
-WHERE ep.release_status_id >= 3
-%s
+WHERE %s
 GROUP BY type_id
-ORDER BY date_count DESC;
-`, h.DbSchema, dateConditions, h.DbSchema, conditionsStr)
+ORDER BY date_count DESC`,
+		h.DbSchema, h.DbSchema, strings.Join(conds, " AND "))
 
 	rows, err := h.DbPool.Query(gc.Request.Context(), query, args...)
 	if err != nil {
@@ -438,6 +442,63 @@ ORDER BY date_count DESC;
 	}
 
 	gc.JSON(http.StatusOK, gin.H{"summary": summary})
+}
+
+func (h *ApiHandler) GetEventVenueSummary(gc *gin.Context) {
+	dateConditions, conditionsStr, _, args, _, err := h.buildEventFilters(gc)
+	if err != nil {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	conds := []string{"ep.release_status_id >= 3"}
+
+	if dateConditions != "" {
+		conds = append(conds, dateConditions)
+	}
+
+	if conditionsStr != "" {
+		conds = append(conds, conditionsStr)
+	}
+
+	query := fmt.Sprintf(`
+SELECT jsonb_agg(
+    jsonb_build_object(
+        'venue_id', venue_id,
+        'venue_name', venue_name,
+        'date_count', date_count
+    )
+    ORDER BY venue_name ASC
+) AS venues
+FROM (
+    SELECT
+        COALESCE(edp.venue_id, ep.venue_id) AS venue_id,
+        COALESCE(edp.venue_name, ep.venue_name) AS venue_name,
+        COUNT(edp.event_date_id) AS date_count
+    FROM %s.event_date_projection edp
+    JOIN %s.event_projection ep
+      ON ep.event_id = edp.event_id
+    WHERE %s
+    GROUP BY COALESCE(edp.venue_id, ep.venue_id),
+             COALESCE(edp.venue_name, ep.venue_name)
+) AS venue_counts`,
+		h.DbSchema, h.DbSchema, strings.Join(conds, " AND "))
+
+	var jsonResult []byte
+	err = h.DbPool.QueryRow(gc.Request.Context(), query, args...).Scan(&jsonResult)
+	if err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// jsonResult is already JSON; unmarshal to interface{} to let gin render it
+	var venues interface{}
+	if err := json.Unmarshal(jsonResult, &venues); err != nil {
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	gc.JSON(http.StatusOK, gin.H{"venue-summary": venues})
 }
 
 func validateAllowedQueryParams(c *gin.Context, allowed map[string]struct{}) error {

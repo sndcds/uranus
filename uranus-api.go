@@ -75,7 +75,8 @@ func main() {
 	publicRoute := router.Group("/api")
 
 	publicRoute.GET("/events", apiHandler.GetEvents)
-	publicRoute.GET("/events/summary", apiHandler.GetEventTypeDateSummary)
+	publicRoute.GET("/events/type-summary", apiHandler.GetEventTypeSummary)
+	publicRoute.GET("/events/venue-summary", apiHandler.GetEventVenueSummary)
 
 	publicRoute.GET("/event/:eventId", apiHandler.GetEvent)
 	publicRoute.GET("/event/:eventId/date/:dateId", apiHandler.GetEventByDateId)

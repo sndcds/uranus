@@ -34,7 +34,8 @@ SELECT
     s.total_capacity AS space_total_capacity,
     s.seating_capacity AS space_seating_capacity,
     s.building_level AS space_building_level,
-    s.website_url AS space_url
+    s.website_url AS space_url,
+    e.release_status_id
 
 FROM {{schema}}.event_date ed
 JOIN target_event e ON ed.event_id = e.id

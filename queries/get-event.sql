@@ -1,5 +1,6 @@
 SELECT
     e.id AS event_id,
+    e.release_status_id,
     e.title,
     e.subtitle,
     e.description,
