@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
@@ -83,20 +84,9 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := gc.GetInt("user-id")
 
-	// Read the raw body
-	bodyBytes, err := io.ReadAll(gc.Request.Body)
-	if err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "failed to read request body"})
-		return
-	}
-
-	// Reassign body so Gin can still bind it
-	gc.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
-
-	// Unmarschal JSON
 	body, err := io.ReadAll(gc.Request.Body)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read request body"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "failed to read request body"})
 		return
 	}
 
@@ -105,8 +95,56 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		return
 	}
 
-	var incomingEvent incomingEvent
-	err = json.Unmarshal(body, &incomingEvent)
+	decoder := json.NewDecoder(bytes.NewReader(body))
+	decoder.DisallowUnknownFields()
+
+	var payload incomingEvent
+	err = decoder.Decode(&payload)
+	if err != nil {
+		var syntaxErr *json.SyntaxError
+		var unmarshalTypeErr *json.UnmarshalTypeError
+
+		switch {
+		case errors.As(err, &syntaxErr):
+			gc.JSON(http.StatusBadRequest, gin.H{
+				"error": "invalid JSON syntax",
+			})
+			return
+
+		case errors.As(err, &unmarshalTypeErr):
+			gc.JSON(http.StatusBadRequest, gin.H{
+				"error": fmt.Sprintf(
+					"invalid type for field %q at offset %d",
+					unmarshalTypeErr.Field,
+					unmarshalTypeErr.Offset,
+				),
+			})
+			return
+
+		case strings.HasPrefix(err.Error(), "json: unknown field"):
+			gc.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+			return
+
+		default:
+			gc.JSON(http.StatusBadRequest, gin.H{
+				"error": "invalid request body",
+			})
+			return
+		}
+	}
+
+	if decoder.More() {
+		gc.JSON(http.StatusBadRequest, gin.H{
+			"error": "multiple JSON objects are not allowed",
+		})
+		return
+	}
+
+	// payload is now safe to use, valid JSON, correct types, no unknown fields, safe to use
+
+	err = json.Unmarshal(body, &payload)
 	if err != nil {
 		var unmarshalTypeError *json.UnmarshalTypeError
 		var syntaxErr *json.SyntaxError
@@ -141,14 +179,14 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	}
 
 	// Validation
-	validationErr := incomingEvent.Validate()
+	validationErr := payload.Validate()
 	if validationErr != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": validationErr.Error()})
 		return
 	}
 
-	if incomingEvent.OrganizationId == nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "organization Id is required"})
+	if payload.OrganizationId == nil {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "organizationId is required"})
 		return
 	}
 
@@ -156,7 +194,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		// Check if user can create an event with 'incomingEvent.OrganizationId' as the organization
-		organizationPermissions, err := h.GetUserOrganizationPermissions(gc, tx, userId, *incomingEvent.OrganizationId)
+		organizationPermissions, err := h.GetUserOrganizationPermissions(gc, tx, userId, *payload.OrganizationId)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
@@ -172,8 +210,8 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		}
 
 		// Check if user can create an event in 'incomingEvent.VenueId'
-		if incomingEvent.VenueId != nil {
-			venuePermissions, err := h.GetUserVenuePermissions(gc, tx, userId, *incomingEvent.VenueId)
+		if payload.VenueId != nil {
+			venuePermissions, err := h.GetUserVenuePermissions(gc, tx, userId, *payload.VenueId)
 			if err != nil {
 				return &ApiTxError{Code: http.StatusForbidden, Err: err}
 			}
@@ -186,7 +224,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		}
 
 		var locationId *int
-		if incomingEvent.hasLocation() {
+		if payload.hasLocation() {
 			// If JSON has a location field, insert the event location first
 			locationQuery := `
 			INSERT INTO {{schema}}.event_location (
@@ -206,16 +244,16 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			locationQuery = strings.Replace(locationQuery, "{{schema}}", h.Config.DbSchema, 1)
 			err = tx.QueryRow(
 				ctx, locationQuery,
-				incomingEvent.Location.Name,
-				incomingEvent.Location.Street,
-				incomingEvent.Location.HouseNumber,
-				incomingEvent.Location.PostalCode,
-				incomingEvent.Location.City,
-				incomingEvent.Location.CountryCode,
-				incomingEvent.Location.StateCode,
-				incomingEvent.Location.Longitude,
-				incomingEvent.Location.Latitude,
-				incomingEvent.Location.Description,
+				payload.Location.Name,
+				payload.Location.Street,
+				payload.Location.HouseNumber,
+				payload.Location.PostalCode,
+				payload.Location.City,
+				payload.Location.CountryCode,
+				payload.Location.StateCode,
+				payload.Location.Longitude,
+				payload.Location.Latitude,
+				payload.Location.Description,
 				userId,
 			).Scan(&locationId)
 			if err != nil {
@@ -227,33 +265,37 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		}
 
 		// Insert event Information
-		sqlEvent := `
+		insertEventQuery := `
 		INSERT INTO {{schema}}.event (
 			organization_id,
 			venue_id,
 			space_id,
 			location_id,
+			external_id,
+		  	release_status_id,
 			title,
 			subtitle,
 			description,
 			teaser_text,
 		  	languages,
 			created_by
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		RETURNING id`
-		sql := strings.Replace(sqlEvent, "{{schema}}", h.Config.DbSchema, 1)
+		query := strings.Replace(insertEventQuery, "{{schema}}", h.Config.DbSchema, 1)
 
 		err = tx.QueryRow(
-			ctx, sql,
-			incomingEvent.OrganizationId,
-			incomingEvent.VenueId,
-			incomingEvent.SpaceId,
+			ctx, query,
+			payload.OrganizationId,
+			payload.VenueId,
+			payload.SpaceId,
 			locationId,
-			incomingEvent.Title,
-			incomingEvent.Subtitle,
-			incomingEvent.Description,
-			incomingEvent.TeaserText,
-			incomingEvent.Languages,
+			payload.ExternalId,
+			payload.ReleaseStatusId,
+			payload.Title,
+			payload.Subtitle,
+			payload.Description,
+			payload.TeaserText,
+			payload.Languages,
 			userId,
 		).Scan(&newEventId)
 		if err != nil {
@@ -277,9 +319,9 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			all_day,
 			created_by
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
-		sql = strings.Replace(insertDateQuery, "{{schema}}", h.DbSchema, 1)
+		query = strings.Replace(insertDateQuery, "{{schema}}", h.DbSchema, 1)
 
-		for _, d := range incomingEvent.Dates {
+		for _, d := range payload.Dates {
 			if d.VenueId != nil {
 				// Check if user can create an event in 'd.VenueId'
 				venuePermissions, err := h.GetUserVenuePermissions(gc, tx, userId, *d.VenueId)
@@ -305,7 +347,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			}
 
 			_, err = tx.Exec(
-				ctx, sql,
+				ctx, query,
 				newEventId,
 				d.VenueId,
 				d.SpaceId,
@@ -328,9 +370,9 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		queryTemplate := `
 		INSERT INTO {{schema}}.event_type_link (event_id, type_id, genre_id)
 		VALUES ($1, $2, $3)`
-		query := strings.Replace(queryTemplate, "{{schema}}", h.Config.DbSchema, 1)
+		query = strings.Replace(queryTemplate, "{{schema}}", h.Config.DbSchema, 1)
 
-		for _, pair := range incomingEvent.TypeGenrePairs {
+		for _, pair := range payload.TypeGenrePairs {
 			_, err := tx.Exec(ctx, query, newEventId, pair.TypeId, pair.GenreId)
 			if err != nil {
 				return &ApiTxError{
@@ -505,17 +547,22 @@ func (e *incomingEvent) Validate() error {
 		errs = append(errs, "at least one date is required")
 	} else {
 		for i, date := range e.Dates {
-			// Required fields
+			// start_date
 			if strings.TrimSpace(date.StartDate) == "" {
 				errs = append(errs, fmt.Sprintf("dates[%d].start_date is required", i))
 			} else if err := app.ValidateOptionalDate(fmt.Sprintf("dates[%d].start_date", i), &date.StartDate); err != nil {
 				errs = append(errs, err.Error())
-			}
-
-			if strings.TrimSpace(date.StartTime) == "" {
-				errs = append(errs, fmt.Sprintf("dates[%d].start_time is required", i))
-			} else if err := app.ValidateOptionalTime(fmt.Sprintf("dates[%d].start_time", i), &date.StartTime); err != nil {
-				errs = append(errs, err.Error())
+			} else {
+				beforeToday, err := isBeforeToday(date.StartDate)
+				if err != nil {
+					errs = append(errs, fmt.Sprintf(
+						"dates[%d].start_date has invalid format", i,
+					))
+				} else if beforeToday {
+					errs = append(errs, fmt.Sprintf(
+						"dates[%d].start_date must not be in the past", i,
+					))
+				}
 			}
 
 			// Optional fields
@@ -528,6 +575,8 @@ func (e *incomingEvent) Validate() error {
 			if err := app.ValidateOptionalTime(fmt.Sprintf("dates[%d].entry_time", i), date.EntryTime); err != nil {
 				errs = append(errs, err.Error())
 			}
+
+			errs = append(errs, validateEventDate(date, i)...)
 		}
 	}
 
@@ -555,5 +604,134 @@ func (e *incomingEvent) hasVenue() bool {
 }
 
 func (e *incomingEvent) hasLocation() bool {
+
 	return e.Location != nil
+}
+
+func isBeforeToday(dateStr string) (bool, error) {
+	// Parse YYYY-MM-DD
+	d, err := time.Parse("2006-01-02", dateStr)
+	if err != nil {
+		return false, err
+	}
+
+	now := time.Now()
+	today := time.Date(
+		now.Year(), now.Month(), now.Day(),
+		0, 0, 0, 0,
+		now.Location(),
+	)
+
+	return d.Before(today), nil
+}
+
+func parseDate(dateStr string) (time.Time, error) {
+	return time.Parse("2006-01-02", dateStr)
+}
+
+func parseTime(timeStr string) (time.Time, error) {
+	return time.Parse("15:04", timeStr)
+}
+
+func validateEventDate(e incomingEventDate, index int) []string {
+	var errs []string
+
+	// Parse start date
+	startDate, err := time.Parse("2006-01-02", e.StartDate)
+	if err != nil {
+		return []string{
+			fmt.Sprintf("dates[%d].start_date has invalid format (expected YYYY-MM-DD)", index),
+		}
+	}
+
+	// Parse start time
+	startTime, err := time.Parse("15:04", e.StartTime)
+	if err != nil {
+		return []string{
+			fmt.Sprintf("dates[%d].start_time has invalid format (expected HH:MM)", index),
+		}
+	}
+
+	// Rule: start_date >= today
+	now := time.Now()
+	today := time.Date(
+		now.Year(), now.Month(), now.Day(),
+		0, 0, 0, 0,
+		now.Location(),
+	)
+
+	if startDate.Before(today) {
+		errs = append(errs,
+			fmt.Sprintf("dates[%d].start_date must be today or in the future", index),
+		)
+	}
+
+	// Parse optional end_date
+	var endDate time.Time
+	hasEndDate := false
+
+	if e.EndDate != nil {
+		endDate, err = time.Parse("2006-01-02", *e.EndDate)
+		if err != nil {
+			errs = append(errs,
+				fmt.Sprintf("dates[%d].end_date has invalid format (expected YYYY-MM-DD)", index),
+			)
+		} else {
+			hasEndDate = true
+		}
+	}
+
+	// Parse optional end_time
+	var endTime time.Time
+	hasEndTime := false
+
+	if e.EndTime != nil {
+		endTime, err = time.Parse("15:04", *e.EndTime)
+		if err != nil {
+			errs = append(errs,
+				fmt.Sprintf("dates[%d].end_time has invalid format (expected HH:MM)", index),
+			)
+		} else {
+			hasEndTime = true
+		}
+	}
+
+	// Rule: end_date > start_date
+	if hasEndDate && !endDate.After(startDate) {
+		errs = append(errs,
+			fmt.Sprintf("dates[%d].end_date must be after start_date", index),
+		)
+	}
+
+	// Rule: end_time validation
+	if hasEndTime {
+		// If no end_date, assume same day as start_date
+		compareDate := startDate
+		if hasEndDate {
+			compareDate = endDate
+		}
+
+		// Same-day check → end_time must be after start_time
+		if compareDate.Equal(startDate) && !endTime.After(startTime) {
+			errs = append(errs,
+				fmt.Sprintf("dates[%d].end_time must be after start_time", index),
+			)
+		}
+	}
+
+	// Rule: entry_time < start_time
+	if e.EntryTime != nil {
+		entryTime, err := time.Parse("15:04", *e.EntryTime)
+		if err != nil {
+			errs = append(errs,
+				fmt.Sprintf("dates[%d].entry_time has invalid format (expected HH:MM)", index),
+			)
+		} else if !entryTime.Before(startTime) {
+			errs = append(errs,
+				fmt.Sprintf("dates[%d].entry_time must be before start_time", index),
+			)
+		}
+	}
+
+	return errs
 }
