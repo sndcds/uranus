@@ -84,61 +84,50 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := gc.GetInt("user-id")
 
+	// --- Read the body ---
 	body, err := io.ReadAll(gc.Request.Body)
 	if err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "failed to read request body"})
 		return
 	}
-
 	if len(body) == 0 {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "empty request body"})
 		return
 	}
 
+	// --- Decode JSON with unknown field rejection ---
 	decoder := json.NewDecoder(bytes.NewReader(body))
 	decoder.DisallowUnknownFields()
 
 	var payload incomingEvent
-	err = decoder.Decode(&payload)
-	if err != nil {
+	if err := decoder.Decode(&payload); err != nil {
 		var syntaxErr *json.SyntaxError
-		var unmarshalTypeErr *json.UnmarshalTypeError
+		var typeErr *json.UnmarshalTypeError
 
 		switch {
 		case errors.As(err, &syntaxErr):
-			gc.JSON(http.StatusBadRequest, gin.H{
-				"error": "invalid JSON syntax",
-			})
-			return
-
-		case errors.As(err, &unmarshalTypeErr):
-			gc.JSON(http.StatusBadRequest, gin.H{
-				"error": fmt.Sprintf(
-					"invalid type for field %q at offset %d",
-					unmarshalTypeErr.Field,
-					unmarshalTypeErr.Offset,
-				),
-			})
-			return
-
+			gc.JSON(
+				http.StatusBadRequest,
+				gin.H{"error": fmt.Sprintf("invalid JSON syntax at offset %d", syntaxErr.Offset)},
+			)
+		case errors.As(err, &typeErr):
+			field := typeErr.Field
+			if field == "" {
+				field = "(unknown)"
+			}
+			gc.JSON(
+				http.StatusBadRequest,
+				gin.H{"error": fmt.Sprintf("invalid type for field %q", field)},
+			)
 		case strings.HasPrefix(err.Error(), "json: unknown field"):
-			gc.JSON(http.StatusBadRequest, gin.H{
-				"error": err.Error(),
-			})
-			return
-
+			gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		default:
-			gc.JSON(http.StatusBadRequest, gin.H{
-				"error": "invalid request body",
-			})
-			return
+			gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
+		return
 	}
-
 	if decoder.More() {
-		gc.JSON(http.StatusBadRequest, gin.H{
-			"error": "multiple JSON objects are not allowed",
-		})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "multiple JSON objects are not allowed"})
 		return
 	}
 
