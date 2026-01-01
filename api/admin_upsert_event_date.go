@@ -1,80 +1,80 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/sndcds/uranus/app"
+	"github.com/sndcds/uranus/model"
 )
-
-/*
-type EventDateLocationInput struct {
-	Name        *string  `json:"name"`
-	Street      *string  `json:"street"`
-	HouseNumber *string  `json:"house_number"`
-	PostalCode  *string  `json:"postal_code"`
-	City        *string  `json:"city"`
-	CountryCode *string  `json:"country_code"`
-	StateCode   *string  `json:"state_code"`
-	Latitude    *float64 `json:"lat"`
-	Longitude   *float64 `json:"lon"`
-	Description *string  `json:"description"`
-}
-*/
-
-type eventDateReq struct {
-	StartDate string  `json:"start_date" binding:"required"`
-	StartTime string  `json:"start_time" binding:"required"`
-	EndDate   *string `json:"end_date"`
-	EndTime   *string `json:"end_time"`
-	EntryTime *string `json:"entry_time"`
-	AllDay    bool    `json:"all_day"`
-	VenueId   *int    `json:"venue_id"`
-	SpaceId   *int    `json:"space_id"`
-}
 
 func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := gc.GetInt("user-id")
 
+	fmt.Println("userId", userId)
+
 	eventId, ok := ParamInt(gc, "eventId")
+	fmt.Println("eventId", eventId)
 	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "event Id is required"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "eventId is required"})
 		return
 	}
 
-	dateId, ok := ParamInt(gc, "dateId")
-	if !ok {
-		dateId = -1 // New event date must be inserted
-	}
-
-	// TODO: Check Permissions!
-
-	var req eventDateReq
+	var req model.EventDatePayload
 	if err := gc.ShouldBindJSON(&req); err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	// Convert the struct to JSON for debugging/logging
+	reqJson, err := json.MarshalIndent(req, "", "  ")
+	if err != nil {
+		fmt.Println("Failed to marshal req:", err)
+	} else {
+		fmt.Println(string(reqJson))
+	}
+
+	eventDateId := ParamIntDefault(gc, "dateId", -1)
 	newEventDateId := -1
 
-	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-		// Compute entry_time
-		var entryTime interface{}
-		if req.EntryTime != nil && *req.EntryTime != "" {
-			entryTime = *req.EntryTime
-		} else {
-			entryTime = nil
-		}
+	fmt.Println("eventDateId", eventDateId)
 
-		if dateId < 0 { // Insert new event date
+	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
+
+		if eventDateId < 0 {
+			// INSERT
+			fmt.Println("Insert new event date")
+
+			// Check permissions, we need an 'organizationId' first
+			organizationId, err := h.GetOrganizationIdByEvenId(gc, tx, eventId)
+			fmt.Println("organizationId", organizationId)
+			if err != nil {
+				return ApiErrInternal("%v", err)
+			}
+			if organizationId < 0 {
+				return ApiErrInternal("internal organizationId failed")
+			}
+
+			permissions, err := h.GetUserOrganizationPermissions(gc, tx, userId, organizationId)
+			fmt.Println("permissions", permissions)
+			if err != nil {
+				return ApiErrInternal("%v", err)
+			}
+			if !permissions.HasAny(app.PermAddEvent | app.PermEditEvent) {
+				return ApiErrForbidden("")
+			}
+
 			query := fmt.Sprintf(`
 INSERT INTO %s.event_date 
-(event_id, venue_id, space_id, start_date, start_time, end_date, end_time, entry_time, all_day, created_by)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
-				h.Config.DbSchema)
-			err := tx.QueryRow(ctx, query,
+(event_id, venue_id, space_id, start_date, start_time, end_date, end_time, entry_time, all_day, visitor_info_flags, ticket_link, availability_status_id, accessibility_info, custom, created_by)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+RETURNING id`, h.Config.DbSchema)
+
+			err = tx.QueryRow(ctx, query,
 				eventId,
 				req.VenueId,
 				req.SpaceId,
@@ -82,8 +82,13 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
 				req.StartTime,
 				req.EndDate,
 				req.EndTime,
-				entryTime,
+				req.EntryTime,
 				req.AllDay,
+				req.VisitorInfoFlags,
+				req.TicketLink,
+				req.AvailabilityStatusId,
+				req.AccessibilityInfo,
+				req.Custom,
 				userId,
 			).Scan(&newEventDateId)
 			if err != nil {
@@ -92,74 +97,78 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
 					Err:  fmt.Errorf("failed to insert event date: %v", err),
 				}
 			}
+		} else {
+			// UPDATE
+			fmt.Println("Update event date")
 
-			err = RefreshEventProjections(ctx, tx, "event_date", []int{newEventDateId})
-			if err != nil {
-				return &ApiTxError{
-					Code: http.StatusInternalServerError,
-					Err:  fmt.Errorf("refresh projection tables failed: %v", err),
-				}
-			}
-		} else { // Update existing event date
 			query := fmt.Sprintf(`
 UPDATE %s.event_date
-SET venue_id = $1, space_id = $2, start_date = $3, start_time = $4, end_date = $5, end_time = $6, entry_time = $7, all_day = $8
-WHERE event_id = $9 AND id = $10`,
-				h.Config.DbSchema)
-			cmdTag, err := tx.Exec(ctx, query,
+SET venue_id = $1,
+    space_id = $2,
+    start_date = $3,
+    start_time = $4,
+    end_date = $5,
+    end_time = $6,
+    entry_time = $7,
+    all_day = $8,
+    visitor_info_flags = $9,
+    ticket_link = $10,
+    availability_status_id = $11,
+    accessibility_info = $12,
+    custom = $13
+WHERE event_id = $14 AND id = $15
+RETURNING id`, h.Config.DbSchema)
+
+			err := tx.QueryRow(ctx, query,
 				req.VenueId,
 				req.SpaceId,
 				req.StartDate,
 				req.StartTime,
 				req.EndDate,
 				req.EndTime,
-				entryTime,
+				req.EntryTime,
 				req.AllDay,
+				req.VisitorInfoFlags,
+				req.TicketLink,
+				req.AvailabilityStatusId,
+				req.AccessibilityInfo,
+				req.Custom,
 				eventId,
-				dateId,
-			)
+				eventDateId,
+			).Scan(&newEventDateId)
 			if err != nil {
-				return &ApiTxError{
-					Code: http.StatusInternalServerError,
-					Err:  fmt.Errorf("failed to update event date: %v", err),
+				if err == pgx.ErrNoRows {
+					return &ApiTxError{
+						Code: http.StatusNotFound,
+						Err:  fmt.Errorf("event date not found"),
+					}
 				}
+				return ApiErrInternal("%v", err)
 			}
+		}
+		fmt.Println("newEventDateId", newEventDateId)
 
-			if cmdTag.RowsAffected() == 0 {
-				return &ApiTxError{
-					Code: http.StatusNotFound,
-					Err:  fmt.Errorf("event date not found"),
-				}
-			}
-
-			err = RefreshEventProjections(ctx, tx, "event_date", []int{dateId})
-			if err != nil {
-				return &ApiTxError{
-					Code: http.StatusInternalServerError,
-					Err:  fmt.Errorf("refresh projection tables failed: %v", err),
-				}
-			}
+		// Refresh projections
+		if err := RefreshEventProjections(ctx, tx, "event_date", []int{newEventDateId}); err != nil {
+			return ApiErrInternal("refresh projection tables failed: %v", err)
 		}
 
 		return nil
 	})
+
 	if txErr != nil {
 		gc.JSON(txErr.Code, gin.H{"error": txErr.Error()})
 		return
 	}
 
-	if newEventDateId >= 0 {
-		gc.JSON(http.StatusOK, gin.H{
-			"message":       "event date created successfully",
-			"event_id":      eventId,
-			"event_date_id": newEventDateId,
-		})
-		return
+	action := "updated"
+	if eventDateId < 0 {
+		action = "created"
 	}
 
 	gc.JSON(http.StatusOK, gin.H{
-		"message":       "event date updated successfully",
+		"message":       fmt.Sprintf("event date %s successfully", action),
 		"event_id":      eventId,
-		"event_date_id": dateId,
+		"event_date_id": newEventDateId,
 	})
 }

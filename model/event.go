@@ -133,3 +133,24 @@ type AdminEventDate struct {
 	SpaceBuildingLevel   *int    `json:"space_building_level"`
 	SpaceUrl             *string `json:"space_url"`
 }
+
+// EventDatePayload is used for creating and updating event dates.
+// StartDate and StartTime are required.
+// All other fields are optional and represented as pointers to distinguish
+// between "not provided" and zero values.
+type EventDatePayload struct {
+	StartDate            string  `json:"start_date" binding:"required"`
+	StartTime            string  `json:"start_time" binding:"required"`
+	EndDate              *string `json:"end_date"`
+	EndTime              *string `json:"end_time"`
+	EntryTime            *string `json:"entry_time"`
+	AllDay               *bool   `json:"all_day"`
+	Duration             *int    `json:"duration"`
+	VenueId              *int    `json:"venue_id"`
+	SpaceId              *int    `json:"space_id"`
+	VisitorInfoFlags     *int64  `json:"visitor_info_flags"`
+	TicketLink           *string `json:"ticket_link"`
+	AvailabilityStatusId *int    `json:"availability_status_id"`
+	AccessibilityInfo    *string `json:"accessibility_info"`
+	Custom               *string `json:"custom"`
+}

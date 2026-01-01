@@ -10,24 +10,18 @@ import (
 
 // TODO: Review code
 
-func (h *ApiHandler) GetEvent(gc *gin.Context) {
-	// TODO: Implement
-	// Must return an event with all its dates
-	gc.JSON(http.StatusBadRequest, gin.H{"error": "not implemented"})
-}
-
 func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 	ctx := gc.Request.Context()
 
 	eventId, ok := ParamInt(gc, "eventId")
 	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "event Id is required"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "eventId is required"})
 		return
 	}
 
 	dateId, ok := ParamInt(gc, "dateId")
 	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "date Id is required"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "dateId is required"})
 		return
 	}
 

@@ -48,3 +48,26 @@ func WithTransaction(ctx context.Context, db *pgxpool.Pool, fn func(tx pgx.Tx) *
 
 	return nil
 }
+
+func NewApiTxError(code int, msg string, args ...any) *ApiTxError {
+	return &ApiTxError{
+		Code: code,
+		Err:  fmt.Errorf(msg, args...),
+	}
+}
+
+// Specialized helpers
+func ApiErrForbidden(msg string, args ...any) *ApiTxError {
+	if msg == "" {
+		msg = "insufficient permissions"
+	}
+	return NewApiTxError(http.StatusForbidden, msg, args...)
+}
+
+func ApiErrInternal(msg string, args ...any) *ApiTxError {
+	return NewApiTxError(http.StatusInternalServerError, msg, args...)
+}
+
+func ApiErrNotFound(msg string, args ...any) *ApiTxError {
+	return NewApiTxError(http.StatusNotFound, msg, args...)
+}

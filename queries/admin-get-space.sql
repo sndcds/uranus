@@ -6,8 +6,7 @@ SELECT
     total_capacity,
     seating_capacity,
     website_url,
-    accessibility_flags,
+    accessibility_flags::text AS accessibility_flags,
     accessibility_summary
 FROM {{schema}}.space
 WHERE id = $1
-

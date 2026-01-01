@@ -30,12 +30,8 @@ type Uranus struct {
 	SqlGetEvent                             string
 	SqlGetEventDates                        string
 	SqlGetEventsProjected                   string
-	SqlGetEventsBasic                       string
-	SqlGetEventsExtended                    string
-	SqlGetEventsDetailed                    string
 	SqlGetEventsTypeSummary                 string
 	SqlGetUserOrganizationPermissions       string
-	SqlGetUserVenuePermissions              string
 	SqlGetUserEffectiveVenuePermissions     string
 	SqlGetAdminOrganization                 string
 	SqlInsertOrganization                   string
@@ -44,6 +40,7 @@ type Uranus struct {
 	SqlInsertVenue                          string
 	SqlUpdateVenue                          string
 	SqlAdminGetSpace                        string
+	SqlInsertSpace                          string
 	SqlUpdateSpace                          string
 	SqlAdminGetEvent                        string
 	SqlAdminGetEventDates                   string
@@ -203,9 +200,6 @@ func (app *Uranus) PrepareSql() error {
 		{"queries/get-event-dates.sql", &app.SqlGetEventDates, nil},
 		{"queries/get-events-projected.sql", &app.SqlGetEventsProjected, nil},
 
-		{"queries/get-events.sql", &app.SqlGetEventsBasic, strPtr("queries/get-events-select-basic.sql")},
-		{"queries/get-events.sql", &app.SqlGetEventsExtended, strPtr("queries/get-events-select-extended.sql")},
-		{"queries/get-events.sql", &app.SqlGetEventsDetailed, strPtr("queries/get-events-select-detailed.sql")},
 		{"queries/get-events-type-summary.sql", &app.SqlGetEventsTypeSummary, nil},
 
 		{"queries/choosable-event-types.sql", &app.SqlChoosableEventTypes, nil},
@@ -221,7 +215,6 @@ func (app *Uranus) PrepareSql() error {
 
 		{"queries/admin-get-user-organization-permissions.sql", &app.SqlGetUserOrganizationPermissions, nil},
 		{"queries/admin-get-user-effective-venue-permissions.sql", &app.SqlGetUserEffectiveVenuePermissions, nil},
-		{"queries/admin-get-user-venue-permissions.sql", &app.SqlGetUserVenuePermissions, nil},
 
 		{"queries/admin-get-organization.sql", &app.SqlGetAdminOrganization, nil},
 		{"queries/admin-insert-organization.sql", &app.SqlInsertOrganization, nil},
@@ -232,6 +225,7 @@ func (app *Uranus) PrepareSql() error {
 		{"queries/admin-update-venue.sql", &app.SqlUpdateVenue, nil},
 
 		{"queries/admin-get-space.sql", &app.SqlAdminGetSpace, nil},
+		{"queries/admin-insert-space.sql", &app.SqlInsertSpace, nil},
 		{"queries/admin-update-space.sql", &app.SqlUpdateSpace, nil},
 
 		{"queries/admin-get-event.sql", &app.SqlAdminGetEvent, nil},

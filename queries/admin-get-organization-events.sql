@@ -21,10 +21,10 @@ SELECT
     e.subtitle AS event_subtitle,
     e.organization_id AS event_organization_id,
     eo.name AS event_organization_name,
-    TO_CHAR(ed.start_date, 'YYYY-MM-DD') AS start_date,
-    TO_CHAR(ed.start_time, 'HH24:MI') AS start_time,
-    TO_CHAR(ed.end_date, 'YYYY-MM-DD') AS end_date,
-    TO_CHAR(ed.end_time, 'HH24:MI') AS end_time,
+    TO_CHAR(edt.start_date, 'YYYY-MM-DD') AS start_date,
+    TO_CHAR(edt.start_time, 'HH24:MI') AS start_time,
+    TO_CHAR(edt.end_date, 'YYYY-MM-DD') AS end_date,
+    TO_CHAR(edt.end_time, 'HH24:MI') AS end_time,
     e.release_status_id,
     est.name AS release_status_name,
     TO_CHAR(e.release_date, 'YYYY-MM-DD') AS release_date,
@@ -49,15 +49,15 @@ SELECT
         OR COALESCE((uvl.permissions & (1<<27)) <> 0, FALSE) AS can_release_event,
 
     ROW_NUMBER() OVER (
-            PARTITION BY ed.event_id
-            ORDER BY ed.start_date, ed.start_time
+            PARTITION BY edt.event_id
+            ORDER BY edt.start_date, edt.start_time
         ) AS time_series_index,
-    COUNT(ed.event_date_id) OVER (PARTITION BY ed.event_id) AS time_series
+    COUNT(edt.event_date_id) OVER (PARTITION BY edt.event_id) AS time_series
 
-FROM event_data ed
-LEFT JOIN {{schema}}.event e ON ed.event_id = e.id
-LEFT JOIN {{schema}}.venue v ON COALESCE(ed.venue_id, e.venue_id) = v.id
-LEFT JOIN {{schema}}.space s ON COALESCE(ed.space_id, e.space_id) = s.id
+FROM event_data edt
+LEFT JOIN {{schema}}.event e ON edt.event_id = e.id
+LEFT JOIN {{schema}}.venue v ON COALESCE(edt.venue_id, e.venue_id) = v.id
+LEFT JOIN {{schema}}.space s ON COALESCE(edt.space_id, e.space_id) = s.id
 LEFT JOIN {{schema}}.organization o ON v.organization_id = o.id
 LEFT JOIN {{schema}}.organization eo ON e.organization_id = eo.id
 LEFT JOIN {{schema}}.event_location el ON e.location_id = el.id
@@ -87,5 +87,5 @@ LEFT JOIN {{schema}}.user_organization_link uol ON uol.organization_id = e.organ
 LEFT JOIN {{schema}}.user_venue_link uvl ON uvl.venue_id = e.venue_id AND uvl.user_id = $4
 
 WHERE eo.id = $1
-AND (ed.start_date + COALESCE(ed.start_time, '00:00:00'::time)) >= $2::timestamp
-ORDER BY ed.start_date, ed.start_time
+AND edt.start_date >= $2::date
+ORDER BY edt.start_date, edt.start_time

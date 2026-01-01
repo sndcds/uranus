@@ -318,7 +318,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			&e.EntryTime,
 			&e.Duration,
 			&e.AllDay,
-			&e.Status,
+			&e.ReleaseStatusId,
 			&e.TicketLink,
 			&e.Title,
 			&e.Subtitle,
@@ -342,7 +342,6 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			&e.MinAge,
 			&e.MaxAge,
 			&e.VisitorInfoFlags,
-			&e.ReleaseStatusId,
 		)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("scan failed: %v", err)})
@@ -392,22 +391,14 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 }
 
 func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
+	// Build filters from query params (same as GetEvents)
 	dateConditions, conditionsStr, _, args, _, err := h.buildEventFilters(gc)
 	if err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	conds := []string{"ep.release_status_id >= 3"}
-
-	if dateConditions != "" {
-		conds = append(conds, dateConditions)
-	}
-
-	if conditionsStr != "" {
-		conds = append(conds, conditionsStr)
-	}
-
+	// Construct final SQL
 	query := fmt.Sprintf(`
 SELECT
     (elem->>0)::int AS type_id,
@@ -415,10 +406,18 @@ SELECT
 FROM %s.event_date_projection edp
 JOIN %s.event_projection ep ON ep.event_id = edp.event_id
 CROSS JOIN LATERAL jsonb_array_elements(ep.types) AS elem
-WHERE %s
+WHERE ep.release_status_id >= 3    
+AND {{date_conditions}}
+{{conditions}}
 GROUP BY type_id
 ORDER BY date_count DESC`,
-		h.DbSchema, h.DbSchema, strings.Join(conds, " AND "))
+		h.DbSchema, h.DbSchema)
+
+	query = strings.Replace(query, "{{date_conditions}}", dateConditions, 1)
+	query = strings.Replace(query, "{{conditions}}", conditionsStr, 1)
+	// query = strings.Replace(query, "{{limit}}", limitClause, 1)
+
+	fmt.Println("GetEventTypeSummary query:", query)
 
 	rows, err := h.DbPool.Query(gc.Request.Context(), query, args...)
 	if err != nil {
@@ -431,6 +430,7 @@ ORDER BY date_count DESC`,
 		TypeID    int `json:"type_id"`
 		DateCount int `json:"date_count"`
 	}
+
 	var summary []summaryEntry
 	for rows.Next() {
 		var s summaryEntry

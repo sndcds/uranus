@@ -78,7 +78,6 @@ func main() {
 	publicRoute.GET("/events/type-summary", apiHandler.GetEventTypeSummary)
 	publicRoute.GET("/events/venue-summary", apiHandler.GetEventVenueSummary)
 
-	publicRoute.GET("/event/:eventId", apiHandler.GetEvent)
 	publicRoute.GET("/event/:eventId/date/:dateId", apiHandler.GetEventByDateId)
 	publicRoute.GET("/event/:eventId/date/:dateId/ics", apiHandler.GetEventDateICS)
 
@@ -175,14 +174,17 @@ func main() {
 	adminRoute.PUT("/venue/:venueId", app.JWTMiddleware, apiHandler.AdminUpsertVenue)
 	adminRoute.DELETE("/venue/:venueId", app.JWTMiddleware, apiHandler.AdminDeleteVenue)
 
-	adminRoute.POST("/space/create", app.JWTMiddleware, apiHandler.AdminCreateSpace)
 	adminRoute.GET("/space/:spaceId", app.JWTMiddleware, apiHandler.AdminGetSpace)
-	adminRoute.PUT("/space/:spaceId", app.JWTMiddleware, apiHandler.AdminUpdateSpace)
+	adminRoute.PUT("/space", app.JWTMiddleware, apiHandler.AdminUpsertSpace)
+	adminRoute.PUT("/space/:spaceId", app.JWTMiddleware, apiHandler.AdminUpsertSpace)
 	adminRoute.DELETE("/space/:spaceId", app.JWTMiddleware, apiHandler.AdminDeleteSpace)
 
 	adminRoute.GET("/event/:eventId", app.JWTMiddleware, apiHandler.AdminGetEvent)
 	adminRoute.DELETE("/event/:eventId", app.JWTMiddleware, apiHandler.AdminDeleteEvent)
-	adminRoute.DELETE("/event/:eventId/date/:eventDateId", app.JWTMiddleware, apiHandler.AdminDeleteEventDate)
+
+	adminRoute.POST("/event/:eventId/date", app.JWTMiddleware, apiHandler.AdminUpsertEventDate)
+	adminRoute.PUT("/event/:eventId/date/:dateId", app.JWTMiddleware, apiHandler.AdminUpsertEventDate)
+	adminRoute.DELETE("/event/:eventId/date/:dateId", app.JWTMiddleware, apiHandler.AdminDeleteEventDate)
 
 	adminRoute.POST("/event/create", app.JWTMiddleware, apiHandler.AdminCreateEvent)
 	adminRoute.PUT("/event/:eventId/release-status", app.JWTMiddleware, apiHandler.AdminUpdateEventReleaseStatus)
@@ -196,10 +198,7 @@ func main() {
 	adminRoute.PUT("/event/:eventId/tags", app.JWTMiddleware, apiHandler.AdminUpdateEventTags)
 	adminRoute.PUT("/event/:eventId/languages", app.JWTMiddleware, apiHandler.AdminUpdateEventLanguages)
 	adminRoute.PUT("/event/:eventId/participation-infos", app.JWTMiddleware, apiHandler.AdminUpdateEventParticipationInfos)
-
-	adminRoute.POST("/event/:eventId/date", app.JWTMiddleware, apiHandler.AdminUpsertEventDate)
-	adminRoute.PUT("/event/:eventId/date/:dateId", app.JWTMiddleware, apiHandler.AdminUpsertEventDate)
-
+	
 	adminRoute.GET("/event/:eventId/image/:imageIndex/meta", app.JWTMiddleware, apiHandler.AdminGetImageMeta)
 	adminRoute.POST("/event/:eventId/image/:imageIndex", app.JWTMiddleware, apiHandler.AdminUpsertEventImage)
 	adminRoute.DELETE("/event/:eventId/image", app.JWTMiddleware, apiHandler.AdminDeleteEventMainImage)

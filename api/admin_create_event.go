@@ -192,23 +192,17 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		}
 
 		if !organizationPermissions.HasAll(app.PermChooseAsEventOrganization | app.PermAddEvent) {
-			return &ApiTxError{
-				Code: http.StatusForbidden,
-				Err:  fmt.Errorf("insufficient permissions"),
-			}
+			return ApiErrForbidden("")
 		}
 
 		// Check if user can create an event in 'incomingEvent.VenueId'
 		if payload.VenueId != nil {
-			venuePermissions, err := h.GetUserVenuePermissions(gc, tx, userId, *payload.VenueId)
+			venuePermissions, err := h.GetUserEffectiveVenuePermissions(gc, tx, userId, *payload.VenueId)
 			if err != nil {
 				return &ApiTxError{Code: http.StatusForbidden, Err: err}
 			}
 			if !venuePermissions.Has(app.PermChooseVenue) {
-				return &ApiTxError{
-					Code: http.StatusForbidden,
-					Err:  fmt.Errorf("insufficient permissions"),
-				}
+				return ApiErrForbidden("")
 			}
 		}
 
@@ -313,12 +307,12 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		for _, d := range payload.Dates {
 			if d.VenueId != nil {
 				// Check if user can create an event in 'd.VenueId'
-				venuePermissions, err := h.GetUserVenuePermissions(gc, tx, userId, *d.VenueId)
+				venuePermissions, err := h.GetUserEffectiveVenuePermissions(gc, tx, userId, *d.VenueId)
 				if err != nil {
 					return &ApiTxError{Code: http.StatusInternalServerError, Err: err}
 				}
 				if !venuePermissions.Has(app.PermChooseVenue) {
-					return &ApiTxError{Code: http.StatusForbidden, Err: fmt.Errorf("insufficient permissions")}
+					return ApiErrForbidden("")
 				}
 
 				if d.SpaceId != nil {
@@ -524,6 +518,9 @@ func (e *incomingEvent) Validate() error {
 		if *e.ReleaseStatusId < 1 || *e.ReleaseStatusId > 5 {
 			errs = append(errs, "release_status_id must be between 1 and 5 if provided")
 		}
+	} else {
+		defaultValue := 1
+		e.ReleaseStatusId = &defaultValue
 	}
 
 	// Validate ReleaseDate (optional)

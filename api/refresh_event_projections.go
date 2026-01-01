@@ -66,7 +66,7 @@ func RefreshEventProjections(
 		if err != nil {
 			return err
 		}
-		fmt.Println("RefreshEventProjections eventIds:", eventDateIds)
+		fmt.Println("RefreshEventProjections eventDateIds:", eventDateIds)
 		if len(eventDateIds) > 0 {
 			if err := upsertEventDateProjection(ctx, tx, eventDateIds); err != nil {
 				return err
@@ -95,7 +95,7 @@ func upsertEventDateProjection(ctx context.Context, tx pgx.Tx, eventDateIDs []in
 
 	initProjectionSQL()
 
-	fmt.Println("UpsertEventProjection eventDateProjectionUpsertSQL:", eventDateProjectionUpsertSQL)
+	// fmt.Println("UpsertEventProjection eventDateProjectionUpsertSQL:", eventDateProjectionUpsertSQL)
 
 	_, err := tx.Exec(ctx, eventDateProjectionUpsertSQL, eventDateIDs)
 	return err
@@ -299,8 +299,8 @@ INSERT INTO %[1]s.event_date_projection (
     space_description,
     start_date, start_time,
     end_date, end_time,
-    entry_time, duration, all_day, status,
-    visitor_info_flags, ticket_link, availability_status,
+    entry_time, duration, all_day,
+    visitor_info_flags, ticket_link, availability_status_id,
     accessibility_info, custom, created_at, modified_at
 )
 SELECT DISTINCT ON (ed.id)
@@ -333,10 +333,9 @@ SELECT DISTINCT ON (ed.id)
     ed.entry_time,
     ed.duration,
     ed.all_day,
-    ed.status,
     ed.visitor_info_flags,
     ed.ticket_link,
-    ed.availability_status,
+    ed.availability_status_id,
     ed.accessibility_info,
     ed.custom,
     NOW(),
@@ -374,10 +373,9 @@ ON CONFLICT (event_date_id) DO UPDATE SET
     entry_time = EXCLUDED.entry_time,
     duration = EXCLUDED.duration,
     all_day = EXCLUDED.all_day,
-    status = EXCLUDED.status,
     visitor_info_flags = EXCLUDED.visitor_info_flags,
     ticket_link = EXCLUDED.ticket_link,
-    availability_status = EXCLUDED.availability_status,
+    availability_status_id = EXCLUDED.availability_status_id,
     accessibility_info = EXCLUDED.accessibility_info,
     custom = EXCLUDED.custom,
     modified_at = NOW();

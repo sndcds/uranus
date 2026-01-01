@@ -35,6 +35,9 @@ SELECT
     s.seating_capacity AS space_seating_capacity,
     s.building_level AS space_building_level,
     s.website_url AS space_url,
+    s.accessibility_flags::text AS space_acc_flags,
+    s.accessibility_summary AS space_acc_summary,
+
     e.release_status_id
 
 FROM {{schema}}.event_date ed
