@@ -35,7 +35,7 @@ func JWTMiddleware(gc *gin.Context) {
 	// 3. Parse and validate
 	claims := &Claims{}
 	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
-		return Singleton.JwtKey, nil
+		return UranusInstance.JwtKey, nil
 	})
 	if err != nil || !token.Valid {
 		gc.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})

@@ -19,7 +19,7 @@ func (h *ApiHandler) AdminGetVenue(gc *gin.Context) {
 		return
 	}
 
-	query := app.Singleton.SqlGetAdminVenue
+	query := app.UranusInstance.SqlGetAdminVenue
 	rows, err := pool.Query(ctx, query, venueId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

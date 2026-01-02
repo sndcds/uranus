@@ -19,7 +19,7 @@ func (h *ApiHandler) GetOrganization(gc *gin.Context) {
 		return
 	}
 
-	query := app.Singleton.SqlGetOrganization
+	query := app.UranusInstance.SqlGetOrganization
 	rows, err := pool.Query(ctx, query, organizationId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

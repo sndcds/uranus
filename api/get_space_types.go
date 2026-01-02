@@ -11,7 +11,7 @@ import (
 // TODO: Review code
 
 func (h *ApiHandler) GetSpaceTypes(gc *gin.Context) {
-	pool := app.Singleton.MainDbPool
+	pool := app.UranusInstance.MainDbPool
 	ctx := gc.Request.Context()
 
 	// Get optional language from query param, default to "en"
@@ -27,7 +27,7 @@ func (h *ApiHandler) GetSpaceTypes(gc *gin.Context) {
 		WHERE iso_639_1 = $1
 		ORDER BY LOWER(name)
 	`
-	sqlQuery = strings.Replace(sqlQuery, "{{schema}}", app.Singleton.Config.DbSchema, 1)
+	sqlQuery = strings.Replace(sqlQuery, "{{schema}}", app.UranusInstance.Config.DbSchema, 1)
 
 	// Todo: Support language
 	rows, err := pool.Query(ctx, sqlQuery, lang)

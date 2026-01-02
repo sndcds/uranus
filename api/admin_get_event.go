@@ -21,7 +21,7 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 	lang := gc.DefaultQuery("lang", "en")
 
 	// Fetch event (single row) ---
-	row := h.DbPool.QueryRow(ctx, app.Singleton.SqlAdminGetEvent, eventId, lang)
+	row := h.DbPool.QueryRow(ctx, app.UranusInstance.SqlAdminGetEvent, eventId, lang)
 
 	var event model.AdminEvent
 	err := row.Scan(
@@ -99,7 +99,7 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 	}
 
 	// --- Fetch event dates ---
-	rows, err := h.DbPool.Query(ctx, app.Singleton.SqlAdminGetEventDates, eventId)
+	rows, err := h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventDates, eventId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

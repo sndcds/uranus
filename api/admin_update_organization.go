@@ -49,7 +49,7 @@ func (h *ApiHandler) AdminUpsertOrganization(gc *gin.Context) {
 		if organizationId < 0 {
 			err := tx.QueryRow(
 				ctx,
-				app.Singleton.SqlInsertOrganization,
+				app.UranusInstance.SqlInsertOrganization,
 				req.Name,
 				req.Description,
 				req.LegalFormID,
@@ -110,7 +110,7 @@ VALUES ($1, $2, $3, $4)`,
 		// Update
 		_, err := tx.Exec(
 			ctx,
-			app.Singleton.SqlUpdateOrganization,
+			app.UranusInstance.SqlUpdateOrganization,
 			organizationId,
 			req.Name,
 			req.Description,

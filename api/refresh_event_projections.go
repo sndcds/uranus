@@ -103,7 +103,7 @@ func upsertEventDateProjection(ctx context.Context, tx pgx.Tx, eventDateIDs []in
 
 func initQueries() {
 	queryOnce.Do(func() {
-		schema := app.Singleton.Config.DbSchema
+		schema := app.UranusInstance.Config.DbSchema
 		queries = map[string]affectedQueries{
 			"organization": {
 				EventIds: fmt.Sprintf(`
@@ -285,7 +285,7 @@ ON CONFLICT (event_id) DO UPDATE SET
     space_accessibility_flags = EXCLUDED.space_accessibility_flags,
     space_description = EXCLUDED.space_description,
     modified_at = NOW();
-`, app.Singleton.Config.DbSchema)
+`, app.UranusInstance.Config.DbSchema)
 
 		eventDateProjectionUpsertSQL = fmt.Sprintf(`
 INSERT INTO %[1]s.event_date_projection (
@@ -379,7 +379,7 @@ ON CONFLICT (event_date_id) DO UPDATE SET
     accessibility_info = EXCLUDED.accessibility_info,
     custom = EXCLUDED.custom,
     modified_at = NOW();
-`, app.Singleton.Config.DbSchema)
+`, app.UranusInstance.Config.DbSchema)
 	})
 }
 

@@ -21,25 +21,25 @@ func main() {
 	fmt.Println("Config file:", *configFileName)
 
 	var err error
-	app.Singleton, err = app.Initialize(*configFileName)
+	app.UranusInstance, err = app.Initialize(*configFileName)
 	if err != nil {
 		fmt.Println(err.Error())
 		panic(err)
 	}
 
 	if *verbose {
-		app.Singleton.Config.Verbose = true
+		app.UranusInstance.Config.Verbose = true
 	}
 
-	app.Singleton.Config.Print()
+	app.UranusInstance.Config.Print()
 
 	apiHandler := &api.ApiHandler{
-		Config:   &app.Singleton.Config,
-		DbPool:   app.Singleton.MainDbPool,
-		DbSchema: app.Singleton.Config.DbSchema,
+		Config:   &app.UranusInstance.Config,
+		DbPool:   app.UranusInstance.MainDbPool,
+		DbSchema: app.UranusInstance.Config.DbSchema,
 	}
 
-	_, err = pluto.Initialize(*configFileName, app.Singleton.MainDbPool, true)
+	_, err = pluto.Initialize(*configFileName, app.UranusInstance.MainDbPool, true)
 	if err != nil {
 		panic(err)
 	}
@@ -48,7 +48,7 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New() // Use `Default()` for built-in logging and recovery
 
-	if app.Singleton.Config.UseRouterMiddleware {
+	if app.UranusInstance.Config.UseRouterMiddleware {
 		router.Use(func(gc *gin.Context) {
 			origin := gc.GetHeader("Origin")
 			if origin != "" {
@@ -114,7 +114,7 @@ func main() {
 	publicRoute.GET("/organization/:organizationId", apiHandler.GetOrganization)
 
 	// Inject app middleware into Pluto's image routes
-	pluto.Singleton.RegisterRoutes(publicRoute, app.JWTMiddleware)
+	pluto.PlutoInstance.RegisterRoutes(publicRoute, app.JWTMiddleware)
 
 	// Authorized endpoints, user must be logged in
 	adminRoute := router.Group("/api/admin")
@@ -198,7 +198,7 @@ func main() {
 	adminRoute.PUT("/event/:eventId/tags", app.JWTMiddleware, apiHandler.AdminUpdateEventTags)
 	adminRoute.PUT("/event/:eventId/languages", app.JWTMiddleware, apiHandler.AdminUpdateEventLanguages)
 	adminRoute.PUT("/event/:eventId/participation-infos", app.JWTMiddleware, apiHandler.AdminUpdateEventParticipationInfos)
-	
+
 	adminRoute.GET("/event/:eventId/image/:imageIndex/meta", app.JWTMiddleware, apiHandler.AdminGetImageMeta)
 	adminRoute.POST("/event/:eventId/image/:imageIndex", app.JWTMiddleware, apiHandler.AdminUpsertEventImage)
 	adminRoute.DELETE("/event/:eventId/image", app.JWTMiddleware, apiHandler.AdminDeleteEventMainImage)
@@ -214,7 +214,7 @@ func main() {
 	}
 
 	// Start the server (Gin handles everything)
-	port := ":" + strconv.Itoa(app.Singleton.Config.Port)
+	port := ":" + strconv.Itoa(app.UranusInstance.Config.Port)
 	fmt.Printf("Uranus server is running on port %s\n", port)
 	err = router.Run(port)
 	if err != nil {

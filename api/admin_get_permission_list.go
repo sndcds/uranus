@@ -19,7 +19,7 @@ func (h *ApiHandler) AdminGetPermissionList(gc *gin.Context) {
 
 	var permissionsJSON []byte
 
-	err := pool.QueryRow(ctx, app.Singleton.SqlAdminGetPermissionList, langStr).Scan(&permissionsJSON)
+	err := pool.QueryRow(ctx, app.UranusInstance.SqlAdminGetPermissionList, langStr).Scan(&permissionsJSON)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			permissionsJSON = []byte("{}")

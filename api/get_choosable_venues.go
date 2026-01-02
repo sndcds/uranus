@@ -11,7 +11,7 @@ import (
 // TODO: Review code
 
 func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
-	db := app.Singleton.MainDbPool
+	db := app.UranusInstance.MainDbPool
 	ctx := gc.Request.Context()
 
 	sql := fmt.Sprintf("SELECT id, name FROM %s.venue ORDER BY LOWER(name)", h.Config.DbSchema)

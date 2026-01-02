@@ -431,7 +431,7 @@ func (e *incomingEvent) Validate() error {
 		errs = append(errs, err.Error())
 	}
 
-	// Validate OrganizationId (permissons to use this will be checked in the actual queries)
+	// Validate OrganizationId (permissons to use this will be checked in the actual sql)
 	if e.OrganizationId == nil {
 		errs = append(errs, "organization_id is required")
 	} else if *e.OrganizationId < 0 {

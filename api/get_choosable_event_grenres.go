@@ -12,8 +12,8 @@ import (
 
 func (h *ApiHandler) GetChoosableEventGenres(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	db := app.Singleton.MainDbPool
-	sql := app.Singleton.SqlChoosableEventGenres
+	db := app.UranusInstance.MainDbPool
+	sql := app.UranusInstance.SqlChoosableEventGenres
 
 	idStr := gc.Param("id")
 	eventTypeId, err := strconv.Atoi(idStr)

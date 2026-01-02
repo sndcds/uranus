@@ -48,7 +48,7 @@ func (h *ApiHandler) AdminUpsertSpace(gc *gin.Context) {
 			// Create
 			err := tx.QueryRow(
 				ctx,
-				app.Singleton.SqlInsertSpace,
+				app.UranusInstance.SqlInsertSpace,
 				req.VenueId,
 				req.Name,
 				req.Description,
@@ -74,7 +74,7 @@ func (h *ApiHandler) AdminUpsertSpace(gc *gin.Context) {
 
 			_, err := tx.Exec(
 				ctx,
-				app.Singleton.SqlUpdateSpace,
+				app.UranusInstance.SqlUpdateSpace,
 				spaceId,
 				req.Name,
 				req.Description,

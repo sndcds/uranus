@@ -26,7 +26,7 @@ func (h *ApiHandler) AdminChoosableUserEventOrganizations(gc *gin.Context) {
 		return
 	}
 
-	query := app.Singleton.SqlAdminChoosableUserEventOrganizations
+	query := app.UranusInstance.SqlAdminChoosableUserEventOrganizations
 	rows, err := h.DbPool.Query(ctx, query, userId, organizationId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

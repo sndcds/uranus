@@ -11,8 +11,8 @@ import (
 
 func (h *ApiHandler) GetChoosableEventTypes(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	db := app.Singleton.MainDbPool
-	sql := app.Singleton.SqlChoosableEventTypes
+	db := app.UranusInstance.MainDbPool
+	sql := app.UranusInstance.SqlChoosableEventTypes
 
 	langStr := gc.DefaultQuery("lang", "en")
 	rows, err := db.Query(ctx, sql, langStr)

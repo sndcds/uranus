@@ -11,7 +11,7 @@ import (
 // TODO: Review code
 
 func (h *ApiHandler) GetChoosableLegalForms(gc *gin.Context) {
-	db := app.Singleton.MainDbPool
+	db := app.UranusInstance.MainDbPool
 	ctx := gc.Request.Context()
 
 	langStr := gc.DefaultQuery("lang", "en")
@@ -23,7 +23,7 @@ WHERE iso_639_1 = $1
 ORDER BY
 CASE WHEN legal_form_id = 0 THEN 1 ELSE 0 END,
 LOWER(name)`,
-		app.Singleton.Config.DbSchema,
+		app.UranusInstance.Config.DbSchema,
 	)
 
 	rows, err := db.Query(ctx, sql, langStr)

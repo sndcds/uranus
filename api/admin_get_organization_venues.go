@@ -36,7 +36,7 @@ func (h *ApiHandler) AdminGetOrganizationVenues(gc *gin.Context) {
 	}
 
 	// Run query
-	row := h.DbPool.QueryRow(ctx, app.Singleton.SqlAdminGetOrganizationVenues, userId, organizationId, startDate)
+	row := h.DbPool.QueryRow(ctx, app.UranusInstance.SqlAdminGetOrganizationVenues, userId, organizationId, startDate)
 
 	var jsonResult []byte
 	if err := row.Scan(&jsonResult); err != nil {

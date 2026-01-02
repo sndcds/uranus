@@ -12,7 +12,7 @@ func (h *ApiHandler) AdminGetChoosableOrganizations(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := gc.GetInt("user-id")
 
-	query := app.Singleton.SqlAdminChoosableOrganizations
+	query := app.UranusInstance.SqlAdminChoosableOrganizations
 	rows, err := h.DbPool.Query(ctx, query, userId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

@@ -16,13 +16,10 @@ import (
 func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := gc.GetInt("user-id")
-	langStr := gc.DefaultQuery("lang", "en")
 
 	type EventType struct {
-		TypeID    int     `json:"type_id"`
-		TypeName  string  `json:"type_name"`
-		GenreID   int     `json:"genre_id"`
-		GenreName *string `json:"genre_name"`
+		TypeID  int `json:"type_id"`
+		GenreID int `json:"genre_id"`
 	}
 
 	type Event struct {
@@ -37,7 +34,6 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 		EndDate               *string     `json:"end_date"`
 		EndTime               *string     `json:"end_time"`
 		ReleaseStatusId       *int        `json:"release_status_id"`
-		ReleaseStatusName     *string     `json:"release_status_name"`
 		ReleaseDate           *string     `json:"release_date"`
 		VenueId               *int        `json:"venue_id"`
 		VenueName             *string     `json:"venue_name"`
@@ -76,7 +72,7 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 			startDate = time.Now()
 		}
 
-		rows, err := tx.Query(ctx, app.Singleton.SqlAdminGetOrganizationEvents, organizationId, startDate, langStr, userId)
+		rows, err := tx.Query(ctx, app.UranusInstance.SqlAdminGetOrganizationEvents, organizationId, startDate, userId)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
@@ -101,7 +97,6 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 				&e.EndDate,
 				&e.EndTime,
 				&e.ReleaseStatusId,
-				&e.ReleaseStatusName,
 				&e.ReleaseDate,
 				&e.VenueId,
 				&e.VenueName,

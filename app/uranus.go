@@ -70,7 +70,7 @@ type Uranus struct {
 	JwtKey                                  []byte `json:"jwt_secret"`
 }
 
-var Singleton *Uranus
+var UranusInstance *Uranus
 
 func Initialize(configFilePath string) (*Uranus, error) {
 	var uranus Uranus
@@ -111,7 +111,7 @@ func Initialize(configFilePath string) (*Uranus, error) {
 		return nil, fmt.Errorf("failed to prepare SQL statements: %w", err)
 	}
 
-	Singleton = &uranus // Optional: assign if everything succeeded
+	UranusInstance = &uranus // Optional: assign if everything succeeded
 	uranus.Log("succesfully initialized")
 
 	uranus.Log("connect to Pluto image service")
@@ -196,63 +196,63 @@ func strPtr(s string) *string {
 func (app *Uranus) PrepareSql() error {
 	queries := []SqlQueryItem{
 		// Public
-		{"queries/get-event.sql", &app.SqlGetEvent, nil},
-		{"queries/get-event-dates.sql", &app.SqlGetEventDates, nil},
-		{"queries/get-events-projected.sql", &app.SqlGetEventsProjected, nil},
+		{"sql/get-event.sql", &app.SqlGetEvent, nil},
+		{"sql/get-event-dates.sql", &app.SqlGetEventDates, nil},
+		{"sql/get-events-projected.sql", &app.SqlGetEventsProjected, nil},
 
-		{"queries/get-events-type-summary.sql", &app.SqlGetEventsTypeSummary, nil},
+		{"sql/get-events-type-summary.sql", &app.SqlGetEventsTypeSummary, nil},
 
-		{"queries/choosable-event-types.sql", &app.SqlChoosableEventTypes, nil},
-		{"queries/choosable-event-genres.sql", &app.SqlChoosableEventGenres, nil},
-		{"queries/get-geojson-venues.sql", &app.SqlGetGeojsonVenues, nil},
+		{"sql/choosable-event-types.sql", &app.SqlChoosableEventTypes, nil},
+		{"sql/choosable-event-genres.sql", &app.SqlChoosableEventGenres, nil},
+		{"sql/get-geojson-venues.sql", &app.SqlGetGeojsonVenues, nil},
 
-		{"queries/choosable-organization-venues.sql", &app.SqlChoosableOrganizationVenues, nil},
-		{"queries/choosable-venue-spaces.sql", &app.SqlChoosableVenueSpaces, nil},
+		{"sql/choosable-organization-venues.sql", &app.SqlChoosableOrganizationVenues, nil},
+		{"sql/choosable-venue-spaces.sql", &app.SqlChoosableVenueSpaces, nil},
 
-		{"queries/get-organization.sql", &app.SqlGetOrganization, nil},
+		{"sql/get-organization.sql", &app.SqlGetOrganization, nil},
 
 		// Admin
 
-		{"queries/admin-get-user-organization-permissions.sql", &app.SqlGetUserOrganizationPermissions, nil},
-		{"queries/admin-get-user-effective-venue-permissions.sql", &app.SqlGetUserEffectiveVenuePermissions, nil},
+		{"sql/admin-get-user-organization-permissions.sql", &app.SqlGetUserOrganizationPermissions, nil},
+		{"sql/admin-get-user-effective-venue-permissions.sql", &app.SqlGetUserEffectiveVenuePermissions, nil},
 
-		{"queries/admin-get-organization.sql", &app.SqlGetAdminOrganization, nil},
-		{"queries/admin-insert-organization.sql", &app.SqlInsertOrganization, nil},
-		{"queries/admin-update-organization.sql", &app.SqlUpdateOrganization, nil},
+		{"sql/admin-get-organization.sql", &app.SqlGetAdminOrganization, nil},
+		{"sql/admin-insert-organization.sql", &app.SqlInsertOrganization, nil},
+		{"sql/admin-update-organization.sql", &app.SqlUpdateOrganization, nil},
 
-		{"queries/admin-get-venue.sql", &app.SqlGetAdminVenue, nil},
-		{"queries/admin-insert-venue.sql", &app.SqlInsertVenue, nil},
-		{"queries/admin-update-venue.sql", &app.SqlUpdateVenue, nil},
+		{"sql/admin-get-venue.sql", &app.SqlGetAdminVenue, nil},
+		{"sql/admin-insert-venue.sql", &app.SqlInsertVenue, nil},
+		{"sql/admin-update-venue.sql", &app.SqlUpdateVenue, nil},
 
-		{"queries/admin-get-space.sql", &app.SqlAdminGetSpace, nil},
-		{"queries/admin-insert-space.sql", &app.SqlInsertSpace, nil},
-		{"queries/admin-update-space.sql", &app.SqlUpdateSpace, nil},
+		{"sql/admin-get-space.sql", &app.SqlAdminGetSpace, nil},
+		{"sql/admin-insert-space.sql", &app.SqlInsertSpace, nil},
+		{"sql/admin-update-space.sql", &app.SqlUpdateSpace, nil},
 
-		{"queries/admin-get-event.sql", &app.SqlAdminGetEvent, nil},
-		{"queries/admin-get-event-dates.sql", &app.SqlAdminGetEventDates, nil},
-		{"queries/admin-get-event-types.sql", &app.SqlAdminGetEventTypes, nil},
+		{"sql/admin-get-event.sql", &app.SqlAdminGetEvent, nil},
+		{"sql/admin-get-event-dates.sql", &app.SqlAdminGetEventDates, nil},
+		{"sql/admin-get-event-types.sql", &app.SqlAdminGetEventTypes, nil},
 
-		{"queries/admin-user-permissions.sql", &app.SqlAdminUserPermissions, nil},
-		{"queries/admin-get-user-event-notification.sql", &app.SqlAdminGetUserEventNotification, nil},
+		{"sql/admin-user-permissions.sql", &app.SqlAdminUserPermissions, nil},
+		{"sql/admin-get-user-event-notification.sql", &app.SqlAdminGetUserEventNotification, nil},
 
-		{"queries/admin-user-spaces-for-event.sql", &app.SqlAdminSpacesForEvent, nil},
+		{"sql/admin-user-spaces-for-event.sql", &app.SqlAdminSpacesForEvent, nil},
 
-		{"queries/admin-choosable-organizations.sql", &app.SqlAdminChoosableOrganizations, nil},
-		{"queries/admin-choosable-user-event-organizations.sql", &app.SqlAdminChoosableUserEventOrganizations, nil},
-		{"queries/admin-choosable-user-event-venues.sql", &app.SqlAdminChoosableUserEventVenues, nil},
-		{"queries/admin-choosable-user-venues-spaces.sql", &app.SqlAdminChoosableUserVenuesSpaces, nil},
+		{"sql/admin-choosable-organizations.sql", &app.SqlAdminChoosableOrganizations, nil},
+		{"sql/admin-choosable-user-event-organizations.sql", &app.SqlAdminChoosableUserEventOrganizations, nil},
+		{"sql/admin-choosable-user-event-venues.sql", &app.SqlAdminChoosableUserEventVenues, nil},
+		{"sql/admin-choosable-user-venues-spaces.sql", &app.SqlAdminChoosableUserVenuesSpaces, nil},
 
-		{"queries/admin-get-organization-dashboard.sql", &app.SqlAdminGetOrganizationDashboard, nil},
-		{"queries/admin-get-organization-events.sql", &app.SqlAdminGetOrganizationEvents, nil},
+		{"sql/admin-get-organization-dashboard.sql", &app.SqlAdminGetOrganizationDashboard, nil},
+		{"sql/admin-get-organization-events.sql", &app.SqlAdminGetOrganizationEvents, nil},
 
-		{"queries/admin-get-organization-member-link.sql", &app.SqlAdminGetOrganizationMemberLink, nil},
-		{"queries/admin-get-organization-members.sql", &app.SqlAdminGetOrganizationMembers, nil},
-		{"queries/admin-get-permission-list.sql", &app.SqlAdminGetPermissionList, nil},
+		{"sql/admin-get-organization-member-link.sql", &app.SqlAdminGetOrganizationMemberLink, nil},
+		{"sql/admin-get-organization-members.sql", &app.SqlAdminGetOrganizationMembers, nil},
+		{"sql/admin-get-permission-list.sql", &app.SqlAdminGetPermissionList, nil},
 
-		{"queries/admin-get-organization-venues.sql", &app.SqlAdminGetOrganizationVenues, nil},
+		{"sql/admin-get-organization-venues.sql", &app.SqlAdminGetOrganizationVenues, nil},
 
-		{"queries/insert-pluto-image.sql", &app.SqlInsertPlutoImage, nil},
-		{"queries/update-pluto-image-meta.sql", &app.SqlUpdatePlutoImageMeta, nil},
+		{"sql/insert-pluto-image.sql", &app.SqlInsertPlutoImage, nil},
+		{"sql/update-pluto-image-meta.sql", &app.SqlUpdatePlutoImageMeta, nil},
 	}
 
 	for i := range queries {

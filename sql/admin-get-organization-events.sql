@@ -26,7 +26,6 @@ SELECT
     TO_CHAR(edt.end_date, 'YYYY-MM-DD') AS end_date,
     TO_CHAR(edt.end_time, 'HH24:MI') AS end_time,
     e.release_status_id,
-    est.name AS release_status_name,
     TO_CHAR(e.release_date, 'YYYY-MM-DD') AS release_date,
     v.id AS venue_id,
     v.name AS venue_name,
@@ -62,29 +61,23 @@ LEFT JOIN {{schema}}.organization o ON v.organization_id = o.id
 LEFT JOIN {{schema}}.organization eo ON e.organization_id = eo.id
 LEFT JOIN {{schema}}.event_location el ON e.location_id = el.id
 
-LEFT JOIN {{schema}}.event_status est ON est.status_id = e.release_status_id AND est.iso_639_1 = $3
-
 LEFT JOIN LATERAL (
     SELECT jsonb_agg(
-        event_type ORDER BY event_type.type_name, event_type.genre_name
+        event_type ORDER BY event_type.type_id, event_type.genre_id
     ) AS event_types
     FROM (
         SELECT DISTINCT
             etl.type_id,
-            et.name AS type_name,
-            COALESCE(gt.type_id, 0) AS genre_id,
-            gt.name AS genre_name
+            etl.genre_id
         FROM {{schema}}.event_type_link etl
-        JOIN {{schema}}.event_type et ON et.type_id = etl.type_id AND et.iso_639_1 = $3
-        LEFT JOIN {{schema}}.genre_type gt ON gt.type_id = etl.genre_id AND gt.iso_639_1 = $3
         WHERE etl.event_id = e.id
     ) event_type
 ) et_data ON true
 
 -- User links with permissions bitmask
-LEFT JOIN {{schema}}.user_event_link uel ON uel.event_id = e.id AND uel.user_id = $4
-LEFT JOIN {{schema}}.user_organization_link uol ON uol.organization_id = e.organization_id AND uol.user_id = $4
-LEFT JOIN {{schema}}.user_venue_link uvl ON uvl.venue_id = e.venue_id AND uvl.user_id = $4
+LEFT JOIN {{schema}}.user_event_link uel ON uel.event_id = e.id AND uel.user_id = $3
+LEFT JOIN {{schema}}.user_organization_link uol ON uol.organization_id = e.organization_id AND uol.user_id = $3
+LEFT JOIN {{schema}}.user_venue_link uvl ON uvl.venue_id = e.venue_id AND uvl.user_id = $3
 
 WHERE eo.id = $1
 AND edt.start_date >= $2::date

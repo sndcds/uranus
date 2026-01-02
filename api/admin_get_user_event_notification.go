@@ -17,7 +17,6 @@ type EventNotification struct {
 	OrganizationName  *string    `json:"organization_name"`
 	ReleaseDate       *time.Time `json:"release_date,omitempty"`
 	ReleaseStatusId   int        `json:"release_status_id"`
-	ReleaseStatusName *string    `json:"release_status_name"`
 	EarliestEventDate *time.Time `json:"earliest_event_date,omitempty"`
 	LatestEventDate   *time.Time `json:"latest_event_date,omitempty"`
 	DaysUntilRelease  *int       `json:"days_until_release"`
@@ -28,11 +27,12 @@ func (h *ApiHandler) AdminGetUserEventNotification(gc *gin.Context) {
 	db := h.DbPool
 	ctx := gc.Request.Context()
 	userId := gc.GetInt("user-id")
-	langStr := gc.DefaultQuery("lang", "en")
 
-	sql := app.Singleton.SqlAdminGetUserEventNotification
+	releaseDateDaysLeft := 14
+	firstEventDateDaysLeft := 30
 
-	rows, err := db.Query(ctx, sql, userId, 14, 30, langStr)
+	query := app.UranusInstance.SqlAdminGetUserEventNotification
+	rows, err := db.Query(ctx, query, userId, releaseDateDaysLeft, firstEventDateDaysLeft)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -51,7 +51,6 @@ func (h *ApiHandler) AdminGetUserEventNotification(gc *gin.Context) {
 			&e.OrganizationName,
 			&e.ReleaseDate,
 			&e.ReleaseStatusId,
-			&e.ReleaseStatusName,
 			&e.EarliestEventDate,
 			&e.LatestEventDate,
 			&e.DaysUntilRelease,

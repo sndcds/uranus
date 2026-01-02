@@ -11,14 +11,14 @@ import (
 // TODO: Review code
 
 func (h *ApiHandler) GetChoosableLanguages(gc *gin.Context) {
-	db := app.Singleton.MainDbPool
+	db := app.UranusInstance.MainDbPool
 	ctx := gc.Request.Context()
 
 	lang := gc.DefaultQuery("lang", "en")
 
 	sql := fmt.Sprintf(
 		`SELECT code_iso_639_1, name FROM %s.language WHERE name_iso_639_1 = $1 ORDER BY name`,
-		app.Singleton.Config.DbSchema,
+		app.UranusInstance.Config.DbSchema,
 	)
 
 	rows, err := db.Query(ctx, sql, lang)

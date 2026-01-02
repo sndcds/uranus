@@ -11,7 +11,7 @@ func (h *ApiHandler) AdminChoosableUserVenuesSpaces(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := gc.GetInt("user-id")
 
-	query := app.Singleton.SqlAdminChoosableUserVenuesSpaces
+	query := app.UranusInstance.SqlAdminChoosableUserVenuesSpaces
 	rows, err := h.DbPool.Query(ctx, query, userId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

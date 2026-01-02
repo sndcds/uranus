@@ -74,7 +74,7 @@ func (h *ApiHandler) Login(gc *gin.Context) {
 		},
 	}
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
-	accessTokenStr, err := accessToken.SignedString(app.Singleton.JwtKey)
+	accessTokenStr, err := accessToken.SignedString(app.UranusInstance.JwtKey)
 	if err != nil {
 		log.Printf("Failed to sign access token for user=%d: %v", userId, err)
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
@@ -90,7 +90,7 @@ func (h *ApiHandler) Login(gc *gin.Context) {
 		},
 	}
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
-	refreshTokenStr, err := refreshToken.SignedString(app.Singleton.JwtKey)
+	refreshTokenStr, err := refreshToken.SignedString(app.UranusInstance.JwtKey)
 	if err != nil {
 		log.Printf("Failed to sign refresh token for user=%d: %v", userId, err)
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
@@ -130,7 +130,7 @@ func (h *ApiHandler) Refresh(gc *gin.Context) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return app.Singleton.JwtKey, nil
+		return app.UranusInstance.JwtKey, nil
 	})
 	if err != nil || !tkn.Valid {
 		log.Printf("Invalid refresh token: %v", err)
@@ -147,7 +147,7 @@ func (h *ApiHandler) Refresh(gc *gin.Context) {
 		},
 	}
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, newClaims)
-	accessTokenStr, err := accessToken.SignedString(app.Singleton.JwtKey)
+	accessTokenStr, err := accessToken.SignedString(app.UranusInstance.JwtKey)
 	if err != nil {
 		log.Printf("Failed to sign new access token for user=%d: %v", claims.UserId, err)
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})

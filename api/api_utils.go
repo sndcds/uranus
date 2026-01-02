@@ -170,7 +170,7 @@ func UserIdFromAccessToken(gc *gin.Context) int {
 	// Parse the token
 	claims := &app.Claims{}
 	token, err := jwt.ParseWithClaims(accessToken, claims, func(token *jwt.Token) (interface{}, error) {
-		return app.Singleton.JwtKey, nil
+		return app.UranusInstance.JwtKey, nil
 	})
 
 	if err != nil || !token.Valid {

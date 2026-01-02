@@ -35,7 +35,7 @@ func (h *ApiHandler) GetUserAvatar(gc *gin.Context) {
 		size = s
 	}
 
-	imageDir := app.Singleton.Config.ProfileImageDir
+	imageDir := app.UranusInstance.Config.ProfileImageDir
 	imagePath := filepath.Join(imageDir, fmt.Sprintf("profile_img_%d_%d.webp", userId, size))
 
 	file, err := os.Open(imagePath)

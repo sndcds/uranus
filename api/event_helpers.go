@@ -14,7 +14,7 @@ func allIDsExist(gc *gin.Context, tx pgx.Tx, table string, ids []int) (bool, err
 	if len(ids) == 0 {
 		return true, nil
 	}
-	schema := app.Singleton.Config.DbSchema
+	schema := app.UranusInstance.Config.DbSchema
 	var sql string
 
 	switch table {
@@ -41,7 +41,7 @@ func allIDsExist(gc *gin.Context, tx pgx.Tx, table string, ids []int) (bool, err
 // TODO: Check!
 func UserCanEditEvent(gc *gin.Context, tx pgx.Tx, eventId int) (bool, error) {
 	userId := gc.GetInt("user-id")
-	schema := app.Singleton.Config.DbSchema
+	schema := app.UranusInstance.Config.DbSchema
 
 	query := fmt.Sprintf(`
 		SELECT EXISTS (

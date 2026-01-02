@@ -33,7 +33,7 @@ func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 	langStr := gc.DefaultQuery("lang", "en")
 
 	// Fetch event + date info from DB
-	eventRow, err := pool.Query(ctx, app.Singleton.SqlGetEvent, eventId, gc.DefaultQuery("lang", "en"))
+	eventRow, err := pool.Query(ctx, app.UranusInstance.SqlGetEvent, eventId, gc.DefaultQuery("lang", "en"))
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -47,7 +47,7 @@ func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 
 	eventData := mapRowToMap(eventRow)
 
-	dateRows, err := pool.Query(ctx, app.Singleton.SqlGetEventDates, eventId)
+	dateRows, err := pool.Query(ctx, app.UranusInstance.SqlGetEventDates, eventId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

@@ -47,7 +47,7 @@ func (h *ApiHandler) AdminUpsertVenue(gc *gin.Context) {
 		if venueId < 0 {
 			err := tx.QueryRow(
 				ctx,
-				app.Singleton.SqlInsertVenue,
+				app.UranusInstance.SqlInsertVenue,
 				req.OrganizationId,
 				req.Name,
 				req.Description,
@@ -75,7 +75,7 @@ func (h *ApiHandler) AdminUpsertVenue(gc *gin.Context) {
 		} else {
 			_, err := tx.Exec(
 				ctx,
-				app.Singleton.SqlUpdateVenue,
+				app.UranusInstance.SqlUpdateVenue,
 				venueId,
 				req.Name,
 				req.Description,

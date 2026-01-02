@@ -20,7 +20,7 @@ type Organization struct {
 }
 
 func (h *ApiHandler) GetOrganizations(gc *gin.Context) {
-	pool := app.Singleton.MainDbPool
+	pool := app.UranusInstance.MainDbPool
 	ctx := gc.Request.Context()
 
 	searchStr := strings.TrimSpace(gc.Query("search"))

@@ -30,7 +30,7 @@ func (h *ApiHandler) AdminGetOrganizationTeam(gc *gin.Context) {
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 
 		// --- Fetch members ---
-		memberRows, err := tx.Query(ctx, app.Singleton.SqlAdminGetOrganizationMembers, organizationId)
+		memberRows, err := tx.Query(ctx, app.UranusInstance.SqlAdminGetOrganizationMembers, organizationId)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
@@ -58,7 +58,7 @@ func (h *ApiHandler) AdminGetOrganizationTeam(gc *gin.Context) {
 			}
 
 			// Optional: add avatar URL if file exists
-			imageDir := app.Singleton.Config.ProfileImageDir
+			imageDir := app.UranusInstance.Config.ProfileImageDir
 			imagePath := filepath.Join(imageDir, fmt.Sprintf("profile_img_%d_64.webp", m.UserId))
 			if _, err := os.Stat(imagePath); err == nil {
 				avatarUrl := fmt.Sprintf(`%s/api/user/%d/avatar/64`, h.Config.BaseApiUrl, m.UserId)

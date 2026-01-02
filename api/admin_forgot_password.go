@@ -178,11 +178,11 @@ func generateResetToken() (string, error) {
 }
 
 func sendEmail(to, subject string, htmlContent string) error {
-	from := app.Singleton.Config.AuthReplyEmailAddress
-	userName := app.Singleton.Config.AuthSmtpLogin
-	password := app.Singleton.Config.AuthSmtpPassword
-	smtpHost := app.Singleton.Config.AuthSmtpHost
-	smtpPort := app.Singleton.Config.AuthSmtpPort // int
+	from := app.UranusInstance.Config.AuthReplyEmailAddress
+	userName := app.UranusInstance.Config.AuthSmtpLogin
+	password := app.UranusInstance.Config.AuthSmtpPassword
+	smtpHost := app.UranusInstance.Config.AuthSmtpHost
+	smtpPort := app.UranusInstance.Config.AuthSmtpPort // int
 
 	asciiFrom, err := encodeEmailAddress(from)
 	if err != nil {

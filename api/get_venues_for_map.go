@@ -14,7 +14,7 @@ func (h *ApiHandler) GetGeojsonVenues(gc *gin.Context) {
 	db := h.DbPool
 	ctx := gc.Request.Context()
 
-	sql := app.Singleton.SqlGetGeojsonVenues
+	sql := app.UranusInstance.SqlGetGeojsonVenues
 	// TODO: languageStr, default "en"
 	rows, err := db.Query(ctx, sql, "en")
 	if err != nil {

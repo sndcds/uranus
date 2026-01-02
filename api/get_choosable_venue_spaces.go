@@ -12,7 +12,7 @@ import (
 // TODO: Review code
 
 func (h *ApiHandler) GetChoosableVenueSpaces(gc *gin.Context) {
-	db := app.Singleton.MainDbPool
+	db := app.UranusInstance.MainDbPool
 	ctx := gc.Request.Context()
 
 	venueIdStr := gc.Param("venueId")
@@ -22,7 +22,7 @@ func (h *ApiHandler) GetChoosableVenueSpaces(gc *gin.Context) {
 		return
 	}
 
-	sql := app.Singleton.SqlChoosableVenueSpaces
+	sql := app.UranusInstance.SqlChoosableVenueSpaces
 	rows, err := db.Query(ctx, sql, venueId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

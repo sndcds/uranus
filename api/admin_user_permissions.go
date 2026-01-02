@@ -14,7 +14,7 @@ func (h *ApiHandler) AdminUserPermissions(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := gc.GetInt("user-id")
 
-	sql := app.Singleton.SqlAdminUserPermissions
+	sql := app.UranusInstance.SqlAdminUserPermissions
 
 	rows, err := db.Query(ctx, sql, userId)
 	if err != nil {

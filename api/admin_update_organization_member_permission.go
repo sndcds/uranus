@@ -112,7 +112,7 @@ func (h *ApiHandler) AdminUpdateOrganizationMemberPermission(gc *gin.Context) {
 		var orgMemberLink model.OrganizationMemberLink
 		orgMemberLink.Id = memberId
 		err = tx.QueryRow(
-			ctx, app.Singleton.SqlAdminGetOrganizationMemberLink,
+			ctx, app.UranusInstance.SqlAdminGetOrganizationMemberLink,
 			memberId).
 			Scan(
 				&orgMemberLink.OrganizationId,

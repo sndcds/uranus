@@ -23,7 +23,7 @@ func (h *ApiHandler) GetUserEffectiveVenuePermissions(
 
 	err := tx.QueryRow(
 		ctx,
-		app.Singleton.SqlGetUserEffectiveVenuePermissions,
+		app.UranusInstance.SqlGetUserEffectiveVenuePermissions,
 		userId,
 		venueId,
 	).Scan(&result)
@@ -54,7 +54,7 @@ func (h *ApiHandler) GetUserOrganizationPermissions(
 	var result pgtype.Int8
 
 	err := tx.QueryRow(
-		ctx, app.Singleton.SqlGetUserOrganizationPermissions,
+		ctx, app.UranusInstance.SqlGetUserOrganizationPermissions,
 		userId, organizationId,
 	).Scan(&result)
 	if err != nil {

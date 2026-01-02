@@ -306,7 +306,7 @@ func BuildColumnInIntCondition(
 }
 
 // BuildInConditionForStringSlice builds an SQL IN/ANY condition for a comma-separated string list
-// and adds it as a single array argument for SQL queries.
+// and adds it as a single array argument for SQL sql.
 //
 // Parameters:
 //   - inputStr: A comma-separated string (e.g., "US, IN, CA").
@@ -460,7 +460,7 @@ func BuildLikeConditions(inputStr, field string, argIndex int, conditions *[]str
 }
 
 // SanitizeSearchPattern sanitizes a search pattern by handling wildcard characters and ensuring
-// that the pattern is safe for use in SQL queries.
+// that the pattern is safe for use in SQL sql.
 //
 // It processes the input string to:
 //   - Escape literal asterisks (`\*`), replacing them with a placeholder before converting.

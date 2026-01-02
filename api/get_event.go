@@ -28,7 +28,7 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 	langStr := gc.DefaultQuery("lang", "en")
 
 	// Query event-level data without event dates
-	eventRow, err := h.DbPool.Query(ctx, app.Singleton.SqlGetEvent, eventId, langStr)
+	eventRow, err := h.DbPool.Query(ctx, app.UranusInstance.SqlGetEvent, eventId, langStr)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -58,13 +58,13 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 
 	// Add image_path if image_id exists
 	if imageID, ok := eventData["image_id"]; ok && imageID != nil {
-		eventData["image_path"] = fmt.Sprintf("%s/api/image/%v", app.Singleton.Config.BaseApiUrl, imageID)
+		eventData["image_path"] = fmt.Sprintf("%s/api/image/%v", app.UranusInstance.Config.BaseApiUrl, imageID)
 	} else {
 		eventData["image_path"] = nil
 	}
 
 	// Query all event dates
-	datesQuery := app.Singleton.SqlGetEventDates
+	datesQuery := app.UranusInstance.SqlGetEventDates
 	dateRows, err := h.DbPool.Query(ctx, datesQuery, eventId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

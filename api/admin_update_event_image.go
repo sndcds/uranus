@@ -37,6 +37,7 @@ func (h *ApiHandler) AdminUpsertEventImage(gc *gin.Context) {
 	plutoDeleteCacheCount := int64(0)
 	plutoRemovedCacheFileCount := 0
 	plutoPrevFileName := ""
+	plutoDeleteCacheImageId := -1
 
 	eventId, ok := ParamInt(gc, "eventId")
 	if !ok {
@@ -75,7 +76,8 @@ func (h *ApiHandler) AdminUpsertEventImage(gc *gin.Context) {
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		file, err := gc.FormFile("image")
-		if file != nil { // Upload a new file
+		if file != nil {
+			// Upload a new file
 			// Read file into buffer for multiple uses
 			buf := new(bytes.Buffer)
 			src, err := file.Open()
@@ -136,7 +138,7 @@ func (h *ApiHandler) AdminUpsertEventImage(gc *gin.Context) {
 
 			generatedFileName = fmt.Sprintf("event_%d_%s", eventId, generatedFileName)
 			savePath := filepath.Join(saveDir, generatedFileName)
-			fmt.Println(savePath)
+			// Debug: fmt.Println(savePath)
 			if err = os.WriteFile(savePath, buf.Bytes(), 0644); err != nil {
 				return &ApiTxError{
 					Code: http.StatusInternalServerError,
@@ -148,13 +150,13 @@ func (h *ApiHandler) AdminUpsertEventImage(gc *gin.Context) {
 			if err != nil {
 				return &ApiTxError{
 					Code: http.StatusInternalServerError,
-					Err:  fmt.Errorf("failed to get previous image Id"),
+					Err:  fmt.Errorf("failed to get previous imageId"),
 				}
 			}
 
 			err = tx.QueryRow(
 				ctx,
-				app.Singleton.SqlInsertPlutoImage,
+				app.UranusInstance.SqlInsertPlutoImage,
 				originalFileName, generatedFileName,
 				cfg.Width, cfg.Height, mimeType, exifData,
 				altText, copyright, creatorName, licenseId, description,
@@ -174,19 +176,32 @@ func (h *ApiHandler) AdminUpsertEventImage(gc *gin.Context) {
 					Err:  err,
 				}
 			}
-		} else { // Update meta
-			var plutoImageIdErr error
-			plutoImageId, plutoImageIdErr = h.GetEventImageId(gc, tx, eventId, imageIndex)
-			if plutoImageIdErr != nil {
+		} else {
+			// Meta update only
+			plutoImageId, err = h.GetEventImageId(gc, tx, eventId, imageIndex)
+			if err != nil {
 				return &ApiTxError{
 					Code: http.StatusInternalServerError,
 					Err:  fmt.Errorf("No main image found for event"),
 				}
 			}
+			fmt.Println("plutoImageId:", plutoImageId)
+
+			prevFocusX, prevFocusY, err := pluto.GetImageFocusTx(ctx, tx, plutoImageId)
+			if err != nil {
+				return &ApiTxError{
+					Code: http.StatusInternalServerError,
+					Err:  fmt.Errorf("Get focus failed"),
+				}
+			}
+			if !pluto.FloatPtrEqual(focusX, prevFocusX) || !pluto.FloatPtrEqual(focusY, prevFocusY) {
+				plutoDeleteCacheImageId = plutoImageId
+				fmt.Println("plutoDeleteCacheImageId:", plutoDeleteCacheImageId)
+			}
 
 			_, err = tx.Exec(
 				ctx,
-				app.Singleton.SqlUpdatePlutoImageMeta,
+				app.UranusInstance.SqlUpdatePlutoImageMeta,
 				altText,
 				copyright,
 				creatorName,
@@ -203,51 +218,22 @@ func (h *ApiHandler) AdminUpsertEventImage(gc *gin.Context) {
 		}
 
 		if plutoRemoveImageId >= 0 {
-			// Delete all pluto_cache entries for 'plutoRemoveImageId'
-			query := fmt.Sprintf(`DELETE FROM %s.pluto_cache WHERE image_id = $1`, h.DbSchema)
-			cmdTag, err := tx.Exec(ctx, query, plutoRemoveImageId)
+			plutoPrevFileName, plutoDeleteCacheCount, err =
+				pluto.DeleteImageTx(ctx, tx, plutoRemoveImageId)
 			if err != nil {
 				return &ApiTxError{
 					Code: http.StatusBadRequest,
-					Err:  fmt.Errorf("failed to delete Pluto cache"),
+					Err:  err,
 				}
 			}
-			plutoDeleteCacheCount = cmdTag.RowsAffected()
-
-			// Delete pluto_image for 'plutoRemoveImageId'
-			query = fmt.Sprintf(`DELETE FROM %s.pluto_image WHERE id = $1 RETURNING gen_file_name`, h.DbSchema)
-			row := tx.QueryRow(ctx, query, plutoRemoveImageId)
-			err = row.Scan(&plutoPrevFileName)
+		} else if plutoDeleteCacheImageId >= 0 {
+			plutoDeleteCacheCount, err = pluto.DeleteCacheTx(ctx, tx, plutoDeleteCacheImageId)
 			if err != nil {
 				return &ApiTxError{
 					Code: http.StatusBadRequest,
-					Err:  fmt.Errorf("failed to delete Pluto image"),
+					Err:  err,
 				}
 			}
-		}
-
-		// Delete all related files
-		if plutoRemoveImageId >= 0 {
-			// TODO: Log errors
-			cacheFilePrefix := fmt.Sprintf("%x_", plutoRemoveImageId)
-			fmt.Println("DeleteFilesWithPrefix:", cacheFilePrefix)
-			plutoRemovedCacheFileCount, err = app.DeleteFilesWithPrefix(h.Config.PlutoCacheDir, cacheFilePrefix)
-			if err != nil {
-				// TODO: Log!
-				fmt.Printf(err.Error())
-			}
-
-			filePath := h.Config.PlutoImageDir + "/" + plutoPrevFileName
-
-			fmt.Println("RemoveFile:", filePath)
-			err = app.RemoveFile(filePath)
-			if err != nil {
-				// TODO: Log!
-				fmt.Printf(err.Error())
-			}
-
-			fmt.Printf("Deleted %d files in cache\n", plutoRemovedCacheFileCount)
-			fmt.Println("Deleted file:", plutoPrevFileName)
 		}
 
 		err = RefreshEventProjections(ctx, tx, "event", []int{eventId})
@@ -265,18 +251,35 @@ func (h *ApiHandler) AdminUpsertEventImage(gc *gin.Context) {
 		return
 	}
 
-	// Build JSON response
-	response := gin.H{
-		"message": "image updated successfully",
+	// Filesystem cleanup (post-commit)
+	if plutoRemoveImageId >= 0 {
+		cleanup, err := pluto.CleanupPlutoImageFiles(plutoRemoveImageId, plutoPrevFileName)
+		if err == nil {
+			plutoRemovedCacheFileCount = cleanup.CacheFilesRemoved
+		}
+		// TODO: Log errors
+	} else if plutoDeleteCacheImageId >= 0 {
+		cacheFilesRemoved, err := pluto.CleanupPlutoCache(plutoDeleteCacheImageId)
+		if err == nil {
+			plutoRemovedCacheFileCount = cacheFilesRemoved
+		}
+		// TODO: Log errors
 	}
+
+	// Response
+	response := gin.H{"message": "image updated successfully"}
 
 	if plutoImageId >= 0 {
 		response["image_id"] = plutoImageId
 	}
+
+	// Report replaced image first if there was an old image removed
 	if plutoRemoveImageId >= 0 {
 		response["replaced_image_id"] = plutoRemoveImageId
-	}
-	if plutoDeleteCacheCount > 0 {
+		response["cache_files"] = plutoDeleteCacheCount
+		response["removed_cache_files"] = plutoRemovedCacheFileCount
+	} else if plutoDeleteCacheImageId >= 0 {
+		// Metadata update triggered cache deletion
 		response["cache_files"] = plutoDeleteCacheCount
 		response["removed_cache_files"] = plutoRemovedCacheFileCount
 	}

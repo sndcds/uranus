@@ -14,10 +14,8 @@ import (
 
 // eventType represents a type-genre mapping (example)
 type eventType struct {
-	TypeID    int    `json:"type_id"`
-	TypeName  string `json:"type_name,omitempty"`
-	GenreID   int    `json:"genre_id"`
-	GenreName string `json:"genre_name,omitempty"`
+	TypeID  int `json:"type_id"`
+	GenreID int `json:"genre_id"`
 }
 
 // eventResponse is the JSON structure for each event
@@ -288,7 +286,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		return
 	}
 
-	query := app.Singleton.SqlGetEventsProjected
+	query := app.UranusInstance.SqlGetEventsProjected
 	query = strings.Replace(query, "{{date_conditions}}", dateConditions, 1)
 	query = strings.Replace(query, "{{conditions}}", conditionsStr, 1)
 	query = strings.Replace(query, "{{limit}}", limitClause, 1)
