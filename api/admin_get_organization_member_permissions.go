@@ -57,6 +57,12 @@ WHERE oml.organization_id = $1 AND oml.id = $2`,
 			h.DbSchema, h.DbSchema)
 		err = tx.QueryRow(ctx, userIdQuery, organizationId, memberId).Scan(&memberUserId, &memberUserDisplayName)
 		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return &ApiTxError{
+					Code: http.StatusNotFound,
+					Err:  fmt.Errorf("No member with id %d found in organization %d", memberId, organizationId),
+				}
+			}
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
 				Err:  fmt.Errorf("Transaction failed: %s", err.Error()),
@@ -75,7 +81,6 @@ WHERE oml.organization_id = $1 AND oml.id = $2`,
 					Err:  fmt.Errorf("No permissions found for user %d in organization %d", memberUserId, organizationId),
 				}
 			}
-
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
 				Err:  fmt.Errorf("Transaction failed: %s", err.Error()),
