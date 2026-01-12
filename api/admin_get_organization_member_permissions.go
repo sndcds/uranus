@@ -2,6 +2,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -11,6 +12,7 @@ import (
 )
 
 // Permission to use endpoint checked, 2025-12-23, Roald
+
 func (h *ApiHandler) AdminGetOrganizationMemberPermissions(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
@@ -29,7 +31,6 @@ func (h *ApiHandler) AdminGetOrganizationMemberPermissions(gc *gin.Context) {
 
 	var memberUserId int
 	var memberUserDisplayName *string
-
 	var permissions int64
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
@@ -68,6 +69,13 @@ WHERE oml.organization_id = $1 AND oml.id = $2`,
 
 		err = tx.QueryRow(ctx, query, memberUserId, organizationId).Scan(&permissions)
 		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return &ApiTxError{
+					Code: http.StatusNotFound,
+					Err:  fmt.Errorf("No permissions found for user %d in organization %d", memberUserId, organizationId),
+				}
+			}
+
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
 				Err:  fmt.Errorf("Transaction failed: %s", err.Error()),

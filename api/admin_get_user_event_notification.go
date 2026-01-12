@@ -2,26 +2,14 @@ package api
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sndcds/uranus/app"
+	"github.com/sndcds/uranus/model"
 )
 
-// TODO: Review code
-
-type EventNotification struct {
-	EventId           int        `json:"event_id"`
-	EventTitle        string     `json:"event_title"`
-	OrganizationId    int        `json:"organization_id"`
-	OrganizationName  *string    `json:"organization_name"`
-	ReleaseDate       *time.Time `json:"release_date,omitempty"`
-	ReleaseStatusId   int        `json:"release_status_id"`
-	EarliestEventDate *time.Time `json:"earliest_event_date,omitempty"`
-	LatestEventDate   *time.Time `json:"latest_event_date,omitempty"`
-	DaysUntilRelease  *int       `json:"days_until_release"`
-	DaysUntilEvent    *int       `json:"days_until_event"`
-}
+// PermissionNote: Only returns notifications for the authenticated user.
+// PermissionChecks: Unnecessary.
 
 func (h *ApiHandler) AdminGetUserEventNotification(gc *gin.Context) {
 	ctx := gc.Request.Context()
@@ -38,10 +26,10 @@ func (h *ApiHandler) AdminGetUserEventNotification(gc *gin.Context) {
 	}
 	defer rows.Close()
 
-	events := []EventNotification{}
+	events := []model.UserEventNotification{}
 
 	for rows.Next() {
-		var e EventNotification
+		var e model.UserEventNotification
 		// Scan all columns returned by your SQL query
 		err := rows.Scan(
 			&e.EventId,

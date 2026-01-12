@@ -1,54 +1,57 @@
 package model
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"time"
+)
 
 type AdminEvent struct {
 	// Core
 	EventId     int     `json:"event_id"`
 	Title       string  `json:"title"`
-	Subtitle    *string `json:"subtitle"`
-	Description *string `json:"description"`
-	Summary     *string `json:"summary"`
+	Subtitle    *string `json:"subtitle,omitempty"`
+	Description *string `json:"description,omitempty"`
+	Summary     *string `json:"summary,omitempty"`
 
 	// Participation / Info
-	ParticipationInfo *string `json:"participation_info"`
-	MeetingPoint      *string `json:"meeting_point"`
+	ParticipationInfo *string `json:"participation_info,omitempty"`
+	MeetingPoint      *string `json:"meeting_point,omitempty"`
 
-	MinAge               *int     `json:"min_age"`
-	MaxAge               *int     `json:"max_age"`
-	MaxAttendees         *int     `json:"max_attendees"`
-	PriceTypeId          *int     `json:"price_type_id"`
-	MinPrice             *float64 `json:"min_price"`
-	MaxPrice             *float64 `json:"max_price"`
-	TicketAdvance        *bool    `json:"ticket_advance"`
-	TicketRequired       *bool    `json:"ticket_required"`
-	RegistrationRequired *bool    `json:"registration_required"`
+	MinAge               *int     `json:"min_age,omitempty"`
+	MaxAge               *int     `json:"max_age,omitempty"`
+	MaxAttendees         *int     `json:"max_attendees,omitempty"`
+	PriceTypeId          *int     `json:"price_type_id,omitempty"`
+	MinPrice             *float64 `json:"min_price,omitempty"`
+	MaxPrice             *float64 `json:"max_price,omitempty"`
+	TicketAdvance        *bool    `json:"ticket_advance,omitempty"`
+	TicketRequired       *bool    `json:"ticket_required,omitempty"`
+	RegistrationRequired *bool    `json:"registration_required,omitempty"`
 
-	CurrencyCode *string `json:"currency_code"`
-	CurrencyName string  `json:"currency_name"`
+	CurrencyCode *string `json:"currency_code,omitempty"`
+	CurrencyName *string `json:"currency_name,omitempty"`
 
-	OccasionTypeId *int `json:"occasion_type_id"`
+	OccasionTypeId *int `json:"occasion_type_id,omitempty"`
 
 	// --- URLs ---
-	OnlineEventUrl *string `json:"online_event_url"`
-	SourceUrl      *string `json:"source_url"`
+	OnlineEventUrl *string `json:"online_event_url,omitempty"`
+	SourceUrl      *string `json:"source_url,omitempty"`
 
 	// Media
-	Image1Id         *int `json:"image1_id"`
-	Image2Id         *int `json:"image2_id"`
-	Image3Id         *int `json:"image3_id"`
-	Image4Id         *int `json:"image4_id"`
-	ImageSoMe16To9Id *int `json:"image_some_16_9_id"`
-	ImageSoMe4To5Id  *int `json:"image_some_4_5_id"`
-	ImageSoMe9To16Id *int `json:"image_some_9_16_id"`
-	ImageSoMe1To1Id  *int `json:"image_some_1_1_id"`
+	Image1Id         *int `json:"image1_id,omitempty"`
+	Image2Id         *int `json:"image2_id,omitempty"`
+	Image3Id         *int `json:"image3_id,omitempty"`
+	Image4Id         *int `json:"image4_id,omitempty"`
+	ImageSoMe16To9Id *int `json:"image_some_16_9_id,omitempty"`
+	ImageSoMe4To5Id  *int `json:"image_some_4_5_id,omitempty"`
+	ImageSoMe9To16Id *int `json:"image_some_9_16_id,omitempty"`
+	ImageSoMe1To1Id  *int `json:"image_some_1_1_id,omitempty"`
 
 	// Meta
-	Custom *string `json:"custom"`
-	Style  *string `json:"style"`
+	Custom *string `json:"custom,omitempty"`
+	Style  *string `json:"style,omitempty"`
 
 	ReleaseStatusId int     `json:"release_status_id"`
-	ReleaseDate     *string `json:"release_date"`
+	ReleaseDate     *string `json:"release_date,omitempty"`
 
 	Languages []string `json:"languages"`
 	Tags      []string `json:"tags"`
@@ -58,33 +61,33 @@ type AdminEvent struct {
 	OrganizationName string `json:"organization_name"`
 
 	// Venue (main)
-	VenueId          *int     `json:"venue_id"`
-	VenueName        *string  `json:"venue_name"`
-	VenueStreet      *string  `json:"venue_street"`
-	VenueHouseNumber *string  `json:"venue_house_number"`
-	VenuePostalCode  *string  `json:"venue_postal_code"`
-	VenueCity        *string  `json:"venue_city"`
-	VenueCountryCode *string  `json:"venue_country_code"`
-	VenueStateCode   *string  `json:"venue_state_code"`
-	VenueLon         *float64 `json:"venue_lon"`
-	VenueLat         *float64 `json:"venue_lat"`
+	VenueId          *int     `json:"venue_id,omitempty"`
+	VenueName        *string  `json:"venue_name,omitempty"`
+	VenueStreet      *string  `json:"venue_street,omitempty"`
+	VenueHouseNumber *string  `json:"venue_house_number,omitempty"`
+	VenuePostalCode  *string  `json:"venue_postal_code,omitempty"`
+	VenueCity        *string  `json:"venue_city,omitempty"`
+	VenueCountryCode *string  `json:"venue_country_code,omitempty"`
+	VenueStateCode   *string  `json:"venue_state_code,omitempty"`
+	VenueLon         *float64 `json:"venue_lon,omitempty"`
+	VenueLat         *float64 `json:"venue_lat,omitempty"`
 
 	// Space (main)
-	SpaceId              *int    `json:"space_id"`
-	SpaceName            *string `json:"space_name"`
-	SpaceTotalCapacity   *int    `json:"space_total_capacity"`
-	SpaceSeatingCapacity *int    `json:"space_seating_capacity"`
-	SpaceBuildingLevel   *int    `json:"space_building_level"`
-	SpaceUrl             *string `json:"space_url"`
+	SpaceId              *int    `json:"space_id,omitempty"`
+	SpaceName            *string `json:"space_name,omitempty"`
+	SpaceTotalCapacity   *int    `json:"space_total_capacity,omitempty"`
+	SpaceSeatingCapacity *int    `json:"space_seating_capacity,omitempty"`
+	SpaceBuildingLevel   *int    `json:"space_building_level,omitempty"`
+	SpaceUrl             *string `json:"space_url,omitempty"`
 
 	// Location (custom)
-	LocationName        *string `json:"location_name"`
-	LocationStreet      *string `json:"location_street"`
-	LocationHouseNumber *string `json:"location_house_number"`
-	LocationPostalCode  *string `json:"location_postal_code"`
-	LocationCity        *string `json:"location_city"`
-	LocationCountryCode *string `json:"location_country_code"`
-	LocationStateCode   *string `json:"location_state_code"`
+	LocationName        *string `json:"location_name,omitempty"`
+	LocationStreet      *string `json:"location_street,omitempty"`
+	LocationHouseNumber *string `json:"location_house_number,omitempty"`
+	LocationPostalCode  *string `json:"location_postal_code,omitempty"`
+	LocationCity        *string `json:"location_city,omitempty"`
+	LocationCountryCode *string `json:"location_country_code,omitempty"`
+	LocationStateCode   *string `json:"location_state_code,omitempty"`
 
 	// Aggregates
 	EventTypes json.RawMessage `json:"event_types"`
@@ -100,38 +103,38 @@ type AdminEventDate struct {
 	EventId     int `json:"event_id"`
 
 	// Dates & Times (already formatted in SQL)
-	StartDate *string `json:"start_date"`
-	StartTime *string `json:"start_time"`
-	EndDate   *string `json:"end_date"`
-	EndTime   *string `json:"end_time"`
-	EntryTime *string `json:"entry_time"`
+	StartDate *string `json:"start_date,omitempty"`
+	StartTime *string `json:"start_time,omitempty"`
+	EndDate   *string `json:"end_date,omitempty"`
+	EndTime   *string `json:"end_time,omitempty"`
+	EntryTime *string `json:"entry_time,omitempty"`
 
 	// Meta
-	Duration          *int64  `json:"duration"`
-	AccessibilityInfo *string `json:"accessibility_info"`
-	VisitorInfoFlags  *int64  `json:"visitor_info_flags"`
-	DateVenueId       *int    `json:"date_venue_id"`
+	Duration          *int64  `json:"duration,omitempty"`
+	AccessibilityInfo *string `json:"accessibility_info,omitempty"`
+	VisitorInfoFlags  *int64  `json:"visitor_info_flags,omitempty"`
+	DateVenueId       *int    `json:"date_venue_id,omitempty"`
 
 	// Venue (resolved per date)
-	VenueId          *int     `json:"venue_id"`
-	VenueName        *string  `json:"venue_name"`
-	VenueStreet      *string  `json:"venue_street"`
-	VenueHouseNumber *string  `json:"venue_house_number"`
-	VenuePostalCode  *string  `json:"venue_postal_code"`
-	VenueCity        *string  `json:"venue_city"`
-	VenueStateCode   *string  `json:"venue_state_code"`
-	VenueCountryCode *string  `json:"venue_country_code"`
-	VenueLon         *float64 `json:"venue_lon"`
-	VenueLat         *float64 `json:"venue_lat"`
-	VenueUrl         *string  `json:"venue_url"`
+	VenueId          *int     `json:"venue_id,omitempty"`
+	VenueName        *string  `json:"venue_name,omitempty"`
+	VenueStreet      *string  `json:"venue_street,omitempty"`
+	VenueHouseNumber *string  `json:"venue_house_number,omitempty"`
+	VenuePostalCode  *string  `json:"venue_postal_code,omitempty"`
+	VenueCity        *string  `json:"venue_city,omitempty"`
+	VenueStateCode   *string  `json:"venue_state_code,omitempty"`
+	VenueCountryCode *string  `json:"venue_country_code,omitempty"`
+	VenueLon         *float64 `json:"venue_lon,omitempty"`
+	VenueLat         *float64 `json:"venue_lat,omitempty"`
+	VenueUrl         *string  `json:"venue_url,omitempty"`
 
 	// Space (only if venue-bound)
-	SpaceId              *int    `json:"space_id"`
-	SpaceName            *string `json:"space_name"`
-	SpaceTotalCapacity   *int    `json:"space_total_capacity"`
-	SpaceSeatingCapacity *int    `json:"space_seating_capacity"`
-	SpaceBuildingLevel   *int    `json:"space_building_level"`
-	SpaceUrl             *string `json:"space_url"`
+	SpaceId              *int    `json:"space_id,omitempty"`
+	SpaceName            *string `json:"space_name,omitempty"`
+	SpaceTotalCapacity   *int    `json:"space_total_capacity,omitempty"`
+	SpaceSeatingCapacity *int    `json:"space_seating_capacity,omitempty"`
+	SpaceBuildingLevel   *int    `json:"space_building_level,omitempty"`
+	SpaceUrl             *string `json:"space_url,omitempty"`
 }
 
 // EventDatePayload is used for creating and updating event dates.
@@ -141,16 +144,30 @@ type AdminEventDate struct {
 type EventDatePayload struct {
 	StartDate            string  `json:"start_date" binding:"required"`
 	StartTime            string  `json:"start_time" binding:"required"`
-	EndDate              *string `json:"end_date"`
-	EndTime              *string `json:"end_time"`
-	EntryTime            *string `json:"entry_time"`
-	AllDay               *bool   `json:"all_day"`
-	Duration             *int    `json:"duration"`
-	VenueId              *int    `json:"venue_id"`
-	SpaceId              *int    `json:"space_id"`
-	VisitorInfoFlags     *int64  `json:"visitor_info_flags"`
-	TicketLink           *string `json:"ticket_link"`
-	AvailabilityStatusId *int    `json:"availability_status_id"`
-	AccessibilityInfo    *string `json:"accessibility_info"`
-	Custom               *string `json:"custom"`
+	EndDate              *string `json:"end_date,omitempty"`
+	EndTime              *string `json:"end_time,omitempty"`
+	EntryTime            *string `json:"entry_time,omitempty"`
+	AllDay               *bool   `json:"all_day,omitempty"`
+	Duration             *int    `json:"duration,omitempty"`
+	VenueId              *int    `json:"venue_id,omitempty"`
+	SpaceId              *int    `json:"space_id,omitempty"`
+	VisitorInfoFlags     *int64  `json:"visitor_info_flags,omitempty"`
+	TicketLink           *string `json:"ticket_link,omitempty"`
+	AvailabilityStatusId *int    `json:"availability_status_id,omitempty"`
+	AccessibilityInfo    *string `json:"accessibility_info,omitempty"`
+	Custom               *string `json:"custom,omitempty"`
+}
+
+// UserEventNotification contains a single event notification
+type UserEventNotification struct {
+	EventId           int        `json:"event_id"`
+	EventTitle        string     `json:"event_title"`
+	OrganizationId    int        `json:"organization_id"`
+	OrganizationName  *string    `json:"organization_name,omitempty"`
+	ReleaseDate       *time.Time `json:"release_date,omitempty"`
+	ReleaseStatusId   int        `json:"release_status_id"`
+	EarliestEventDate *time.Time `json:"earliest_event_date,omitempty"`
+	LatestEventDate   *time.Time `json:"latest_event_date,omitempty"`
+	DaysUntilRelease  *int       `json:"days_until_release,omitempty"`
+	DaysUntilEvent    *int       `json:"days_until_event,omitempty"`
 }

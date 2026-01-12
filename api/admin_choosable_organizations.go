@@ -8,6 +8,9 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
+// PermissionNote: Only returns choosable organizations for the authenticated user.
+// PermissionChecks: Unnecessary.
+
 func (h *ApiHandler) AdminGetChoosableOrganizations(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)

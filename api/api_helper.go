@@ -81,7 +81,7 @@ func (h *ApiHandler) IsSpaceInVenue(
 
 	var result bool
 	query := fmt.Sprintf(
-		`SELECT EXISTS (SELECT 1 FROM uranus.space WHERE id = $1 AND venue_id = $2) AS space_exist`,
+		`SELECT EXISTS (SELECT 1 FROM %s.space WHERE id = $1 AND venue_id = $2) AS space_exist`,
 		h.DbSchema)
 	err := tx.QueryRow(ctx, query, spaceId, venueId).Scan(&result)
 	if err != nil {

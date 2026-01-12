@@ -134,7 +134,12 @@ func main() {
 
 	adminRoute.POST("/refresh", apiHandler.Refresh)
 
-	adminRoute.GET("/user/:userId", apiHandler.AdminGetUser)
+	adminRoute.GET("/user/me", apiHandler.AdminGetUserProfile)
+	adminRoute.PUT("/user/me", apiHandler.AdminUpdateUserProfile)
+	adminRoute.PUT("/user/me/settings", apiHandler.AdminUpdateUserProfileSettings)
+	adminRoute.POST("/user/me/avatar", apiHandler.AdminUploadUserAvatar)
+	adminRoute.DELETE("/user/me/avatar", apiHandler.AdminDeleteUserAvatar)
+	adminRoute.GET("/user/me/permissions", apiHandler.AdminUserPermissions)
 
 	adminRoute.POST("/send-message", apiHandler.AdminSendMessage)
 	adminRoute.GET("/messages", apiHandler.AdminGetMessages)
@@ -144,13 +149,6 @@ func main() {
 	adminRoute.PUT("/todo", apiHandler.AdminUpsertTodo)
 	adminRoute.DELETE("/todo/:todoId", apiHandler.AdminDeleteTodo)
 
-	adminRoute.GET("/user/me", apiHandler.AdminGetUserProfile)
-	adminRoute.PUT("/user/me", apiHandler.AdminUpdateUserProfile)
-	adminRoute.PUT("/user/me/settings", apiHandler.AdminUpdateUserProfileSettings)
-	adminRoute.POST("/user/me/avatar", apiHandler.AdminUploadUserAvatar)
-	adminRoute.DELETE("/user/me/avatar", apiHandler.AdminDeleteUserAvatar)
-
-	adminRoute.GET("/user/me/permissions", apiHandler.AdminUserPermissions)
 	adminRoute.GET("/permission/list", apiHandler.AdminGetPermissionList)
 
 	adminRoute.GET("/organization/:organizationId/member/:memberId/permissions", apiHandler.AdminGetOrganizationMemberPermissions)
