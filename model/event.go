@@ -5,6 +5,11 @@ import (
 	"time"
 )
 
+type EventType struct {
+	TypeID  int `json:"type_id"`
+	GenreID int `json:"genre_id"`
+}
+
 type AdminEvent struct {
 	// Core
 	EventId     int     `json:"event_id"`
@@ -156,6 +161,34 @@ type EventDatePayload struct {
 	AvailabilityStatusId *int    `json:"availability_status_id,omitempty"`
 	AccessibilityInfo    *string `json:"accessibility_info,omitempty"`
 	Custom               *string `json:"custom,omitempty"`
+}
+
+type EventDahboardEntry struct {
+	EventId               int         `json:"event_id"`
+	EventDateId           int         `json:"event_date_id"`
+	EventTitle            string      `json:"event_title"`
+	EventSubtitle         *string     `json:"event_subtitle"`
+	EventOrganizationId   int         `json:"event_organization_id"`
+	EventOrganizationName *string     `json:"event_organization_name"`
+	StartDate             *string     `json:"start_date"`
+	StartTime             *string     `json:"start_time"`
+	EndDate               *string     `json:"end_date"`
+	EndTime               *string     `json:"end_time"`
+	ReleaseStatusId       *int        `json:"release_status_id"`
+	ReleaseDate           *string     `json:"release_date"`
+	VenueId               *int        `json:"venue_id"`
+	VenueName             *string     `json:"venue_name"`
+	SpaceId               *int        `json:"space_id,omitempty"`
+	SpaceName             *string     `json:"space_name,omitempty"`
+	LocationId            *int        `json:"location_id"`
+	LocationName          *string     `json:"location_name"`
+	ImageId               *int        `json:"image_id"`
+	EventTypes            []EventType `json:"event_types"`
+	CanEditEvent          bool        `json:"can_edit_event"`
+	CanDeleteEvent        bool        `json:"can_delete_event"`
+	CanReleaseEvent       bool        `json:"can_release_event"`
+	TimeSeriesIndex       int         `json:"time_series_index"`
+	TimeSeries            int         `json:"time_series"`
 }
 
 // UserEventNotification contains a single event notification

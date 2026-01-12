@@ -4,6 +4,7 @@ package api
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
@@ -132,18 +133,54 @@ func (h *ApiHandler) GetOrganizationIdByEventDateId(
 	return orgId, nil
 }
 
-func (h *ApiHandler) HasUserAllPersmissions(
+// CheckOrganizationPermission verifies if a user has a specific permission
+// in the given organization. Returns an ApiTxError if the check fails.
+func (h *ApiHandler) CheckOrganizationPermission(
 	gc *gin.Context,
 	tx pgx.Tx,
-	userId int,
-	organizationId int,
-	permissionMask app.Permission,
-) (bool, error) {
-
+	userId, organizationId int,
+	perm app.Permission,
+) *ApiTxError {
 	organizationPermissions, err := h.GetUserOrganizationPermissions(gc, tx, userId, organizationId)
 	if err != nil {
-		return false, err
+		return &ApiTxError{
+			Code: http.StatusInternalServerError,
+			Err:  fmt.Errorf("Transaction failed: %s", err.Error()),
+		}
 	}
 
-	return organizationPermissions.HasAll(permissionMask), nil
+	if !organizationPermissions.Has(perm) {
+		return &ApiTxError{
+			Code: http.StatusForbidden,
+			Err:  fmt.Errorf("Insufficient permissions"),
+		}
+	}
+
+	return nil
+}
+
+// CheckOrganizationAllPermissions verifies if a user has all of the specified
+// permissions in the given organization. Returns an ApiTxError if the check fails.
+func (h *ApiHandler) CheckOrganizationAllPermissions(
+	gc *gin.Context,
+	tx pgx.Tx,
+	userId, organizationId int,
+	permMask app.Permission,
+) *ApiTxError {
+	organizationPermissions, err := h.GetUserOrganizationPermissions(gc, tx, userId, organizationId)
+	if err != nil {
+		return &ApiTxError{
+			Code: http.StatusInternalServerError,
+			Err:  fmt.Errorf("Transaction failed: %s", err.Error()),
+		}
+	}
+
+	if !organizationPermissions.HasAll(permMask) {
+		return &ApiTxError{
+			Code: http.StatusForbidden,
+			Err:  fmt.Errorf("Insufficient permissions"),
+		}
+	}
+
+	return nil
 }

@@ -157,7 +157,6 @@ func main() {
 	adminRoute.GET("/user/event/notification", apiHandler.AdminGetUserEventNotification)
 
 	adminRoute.GET("/choosable-organizations", apiHandler.AdminGetChoosableOrganizations)
-	adminRoute.GET("/user/choosable-event-organizations/organization/:organizationId", apiHandler.AdminChoosableUserEventOrganizations)
 	adminRoute.GET("/user/choosable-venues-spaces", apiHandler.AdminChoosableUserVenuesSpaces)
 
 	adminRoute.GET("/organization/:organizationId", apiHandler.AdminGetOrganization)
@@ -184,7 +183,7 @@ func main() {
 	adminRoute.PUT("/space/:spaceId", apiHandler.AdminUpsertSpace)
 	adminRoute.DELETE("/space/:spaceId", apiHandler.AdminDeleteSpace)
 
-	adminRoute.GET("/event/:eventId", apiHandler.AdminGetEvent)
+	adminRoute.GET("/event/:eventId", apiHandler.AdminGetEvent) // .....
 	adminRoute.DELETE("/event/:eventId", apiHandler.AdminDeleteEvent)
 
 	adminRoute.POST("/event/:eventId/date", apiHandler.AdminUpsertEventDate)

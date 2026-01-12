@@ -1,6 +1,3 @@
-// File: admin_get_organization_member_permissions.go
-// Access by user-id checked, 2025-12-23, Roald
-
 package api
 
 import (
@@ -13,6 +10,16 @@ import (
 	"github.com/sndcds/uranus/app"
 	"github.com/sndcds/uranus/model"
 )
+
+// Permission note:
+// - Caller must be authenticated
+// - Caller must have PermManagePermissions for the organization
+// - Allows updating permission bits of organization members
+// - Caller cannot modify their own ManagePermissions or ManageTeam bits
+//
+// Permission checks enforced via GetUserOrganizationPermissions.
+// Safeguards against self-escalation are applied.
+// Verified: 2026-01-11, Roald
 
 // AdminUpdateOrganizationMemberPermission updates a single permission bit
 // for a member of an organization.
@@ -71,11 +78,6 @@ func (h *ApiHandler) AdminUpdateOrganizationMemberPermission(gc *gin.Context) {
 		return
 	}
 
-	fmt.Println("AdminUpdateOrganizationMemberPermission")
-	fmt.Println("userId:", userId)
-	fmt.Println("organizationId:", organizationId)
-	fmt.Println("memberId:", memberId)
-
 	var inputReq struct {
 		Bit     int  `json:"bit"`
 		Enabled bool `json:"enabled"`
@@ -92,25 +94,16 @@ func (h *ApiHandler) AdminUpdateOrganizationMemberPermission(gc *gin.Context) {
 	var updatedPermissions int64
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-		// Check if user can manage member permissions as the organization
-		organizationPermissions, err := h.GetUserOrganizationPermissions(gc, tx, userId, organizationId)
-		if err != nil {
-			return &ApiTxError{
-				Code: http.StatusInternalServerError,
-				Err:  fmt.Errorf("Transaction failed: %s", err.Error()),
-			}
-		}
-		if !organizationPermissions.Has(app.PermManagePermissions) {
-			return &ApiTxError{
-				Code: http.StatusForbidden,
-				Err:  fmt.Errorf("Insufficient permissions"),
-			}
+
+		txErr := h.CheckOrganizationPermission(gc, tx, userId, organizationId, app.PermManagePermissions)
+		if txErr != nil {
+			return txErr
 		}
 
 		// Ckeck if member is the admin user
 		var orgMemberLink model.OrganizationMemberLink
 		orgMemberLink.Id = memberId
-		err = tx.QueryRow(
+		err := tx.QueryRow(
 			ctx, app.UranusInstance.SqlAdminGetOrganizationMemberLink,
 			memberId).
 			Scan(

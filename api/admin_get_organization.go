@@ -7,11 +7,16 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-// TODO: Review code
+// PermissionNote: User must be authenticated.
+// The endpoint only returns the organization if the authenticated user
+// is linked to it via the user_organization_link table.
+// Purpose: Retrieves details of a specific organization for authorized users.
+// PermissionChecks: Unnecessary.
+// Verified: 2026-01-12, Roald
 
 func (h *ApiHandler) AdminGetOrganization(gc *gin.Context) {
-	pool := h.DbPool
 	ctx := gc.Request.Context()
+	userId := h.userId(gc)
 
 	organizationId := gc.Param("organizationId")
 	if organizationId == "" {
@@ -20,7 +25,7 @@ func (h *ApiHandler) AdminGetOrganization(gc *gin.Context) {
 	}
 
 	query := app.UranusInstance.SqlGetAdminOrganization
-	rows, err := pool.Query(ctx, query, organizationId)
+	rows, err := h.DbPool.Query(ctx, query, organizationId, userId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

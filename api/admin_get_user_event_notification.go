@@ -10,6 +10,7 @@ import (
 
 // PermissionNote: Only returns notifications for the authenticated user.
 // PermissionChecks: Unnecessary.
+// Verified: 2026-01-12, Roald
 
 func (h *ApiHandler) AdminGetUserEventNotification(gc *gin.Context) {
 	ctx := gc.Request.Context()

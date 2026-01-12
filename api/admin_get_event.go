@@ -11,6 +11,7 @@ import (
 
 func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 	ctx := gc.Request.Context()
+	userId := h.userId(gc)
 
 	eventId := gc.Param("eventId")
 	if eventId == "" {
@@ -20,8 +21,7 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 
 	lang := gc.DefaultQuery("lang", "en")
 
-	// Fetch event (single row) ---
-	row := h.DbPool.QueryRow(ctx, app.UranusInstance.SqlAdminGetEvent, eventId, lang)
+	row := h.DbPool.QueryRow(ctx, app.UranusInstance.SqlAdminGetEvent, eventId, lang, userId)
 
 	var event model.AdminEvent
 	err := row.Scan(

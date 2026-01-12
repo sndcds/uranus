@@ -182,19 +182,13 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	var newEventId int
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-		// Check if user can create an event with 'incomingEvent.OrganizationId' as the organization
-		organizationPermissions, err := h.GetUserOrganizationPermissions(gc, tx, userId, *payload.OrganizationId)
-		if err != nil {
-			return &ApiTxError{
-				Code: http.StatusInternalServerError,
-				Err:  err,
-			}
-		}
 
-		if !organizationPermissions.HasAll(app.PermChooseAsEventOrganization | app.PermAddEvent) {
-			return ApiErrForbidden("")
+		txErr := h.CheckOrganizationAllPermissions(
+			gc, tx, userId, *payload.OrganizationId, app.PermChooseAsEventOrganization|app.PermAddEvent)
+		if txErr != nil {
+			return txErr
 		}
-
+		
 		// Check if user can create an event in 'incomingEvent.VenueId'
 		if payload.VenueId != nil {
 			venuePermissions, err := h.GetUserEffectiveVenuePermissions(gc, tx, userId, *payload.VenueId)

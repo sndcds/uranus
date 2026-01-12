@@ -1,12 +1,15 @@
 SELECT
-    name,
-    description,
-    space_type_id,
-    building_level,
-    total_capacity,
-    seating_capacity,
-    website_url,
-    accessibility_flags::text AS accessibility_flags,
-    accessibility_summary
-FROM {{schema}}.space
-WHERE id = $1
+    s.name,
+    s.description,
+    s.space_type_id,
+    s.building_level,
+    s.total_capacity,
+    s.seating_capacity,
+    s.website_url,
+    s.accessibility_flags::text AS accessibility_flags,
+    s.accessibility_summary
+FROM {{schema}}.space s
+JOIN {{schema}}.venue v ON v.id = s.venue_id
+JOIN {{schema}}.organization o ON o.id = v.organization_id
+JOIN {{schema}}.user_organization_link uol ON uol.organization_id = o.id AND uol.user_id = $2
+WHERE s.id = $1

@@ -11,7 +11,11 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-// TODO: Review code
+// PermissionNote: User must be authenticated.
+// Only returns venues for the organization if the authenticated user is linked via `user_organization_link`.
+// If the user is not linked, returns HTTP 403 Forbidden.
+// PermissionChecks: Already enforced in SQL.
+// Verified: 2026-01-12, Roald
 
 func (h *ApiHandler) AdminGetOrganizationVenues(gc *gin.Context) {
 	ctx := gc.Request.Context()
@@ -41,10 +45,15 @@ func (h *ApiHandler) AdminGetOrganizationVenues(gc *gin.Context) {
 	var jsonResult []byte
 	if err := row.Scan(&jsonResult); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			gc.JSON(http.StatusNoContent, gin.H{"error": err.Error()})
+			gc.JSON(http.StatusForbidden, gin.H{"error": "user not linked to organization"})
 			return
 		}
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if len(jsonResult) == 0 || string(jsonResult) == "[]" {
+		gc.JSON(http.StatusForbidden, gin.H{"error": "user not linked to organization"})
 		return
 	}
 
@@ -56,7 +65,7 @@ func (h *ApiHandler) AdminGetOrganizationVenues(gc *gin.Context) {
 	}
 
 	if len(organizations) == 0 {
-		gc.JSON(http.StatusNoContent, gin.H{"error": "organization not found"})
+		gc.JSON(http.StatusForbidden, gin.H{"error": "user not linked to organization"})
 		return
 	}
 

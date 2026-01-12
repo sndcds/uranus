@@ -5,26 +5,21 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sndcds/uranus/app"
+	"github.com/sndcds/uranus/model"
 )
 
 // TODO: Review code
 
-type organizationDashboardEntry struct {
-	OrganizationId          int64   `json:"organization_id"`
-	OrganizationName        string  `json:"organization_name"`
-	OrganizationCity        *string `json:"organization_city"`
-	OrganizationCountryCode *string `json:"organization_country_code"`
-	TotalUpcomingEvents     int64   `json:"total_upcoming_events"`
-	VenueCount              int64   `json:"venue_count"`
-	SpaceCount              int64   `json:"space_count"`
-	CanEditOrganization     bool    `json:"can_edit_organization"`
-	CanDeleteOrganization   bool    `json:"can_delete_organization"`
-	CanManageTeam           bool    `json:"can_manage_team"`
+type organizationDashboardResponse struct {
+	Organizations []model.OrganizationDashboardEntry `json:"organizations"`
 }
 
-type organizationDashboardResponse struct {
-	Organizations []organizationDashboardEntry `json:"organizations"`
-}
+// PermissionNote: User must be authenticated.
+// The endpoint returns only organizations for which the authenticated user
+// has a link in user_organization_link. The response includes the user’s
+// permissions for each organization (edit, delete, manage team).
+// PermissionChecks: Handled in SQL query; no additional checks needed here.
+// Verified: 2026-01-12, Roald
 
 func (h *ApiHandler) AdminGetOrganizationDashboard(gc *gin.Context) {
 	ctx := gc.Request.Context()
@@ -40,7 +35,7 @@ func (h *ApiHandler) AdminGetOrganizationDashboard(gc *gin.Context) {
 	var result organizationDashboardResponse
 	var userPermissions app.Permission
 	for rows.Next() {
-		var e organizationDashboardEntry
+		var e model.OrganizationDashboardEntry
 		if err := rows.Scan(
 			&e.OrganizationId,
 			&e.OrganizationName,

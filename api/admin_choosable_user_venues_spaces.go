@@ -7,6 +7,15 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
+// Permission note:
+// - Caller must be authenticated
+// - No explicit permission checks are performed in the handler
+// - Authorization is enforced in the SQL query by filtering results using userId
+//
+// The query ensures that only venues and spaces accessible to the authenticated
+// user are returned.
+// Verified: 2026-01-11, Roald
+
 func (h *ApiHandler) AdminChoosableUserVenuesSpaces(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)

@@ -11,7 +11,13 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-// Permission to use endpoint checked, 2025-12-23, Roald
+// Permission note:
+// - Caller must be authenticated
+// - Caller must have PermManagePermissions for the given organization
+// - Endpoint returns the permission bitmask of an organization member
+//
+// Permission check enforced via GetUserOrganizationPermissions.
+// Verified: 2026-01-11, Roald
 
 func (h *ApiHandler) AdminGetOrganizationMemberPermissions(gc *gin.Context) {
 	ctx := gc.Request.Context()
@@ -34,19 +40,10 @@ func (h *ApiHandler) AdminGetOrganizationMemberPermissions(gc *gin.Context) {
 	var permissions int64
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-		// Check if user can manage member permissions as the organization
-		organizationPermissions, err := h.GetUserOrganizationPermissions(gc, tx, userId, organizationId)
-		if err != nil {
-			return &ApiTxError{
-				Code: http.StatusInternalServerError,
-				Err:  fmt.Errorf("Transaction failed: %s", err.Error()),
-			}
-		}
-		if !organizationPermissions.Has(app.PermManagePermissions) {
-			return &ApiTxError{
-				Code: http.StatusForbidden,
-				Err:  fmt.Errorf("Insufficient permissions"),
-			}
+
+		txErr := h.CheckOrganizationPermission(gc, tx, userId, organizationId, app.PermManagePermissions)
+		if txErr != nil {
+			return txErr
 		}
 
 		userIdQuery := fmt.Sprintf(`
@@ -55,7 +52,7 @@ FROM %s.organization_member_link oml
 JOIN %s.user u ON u.id = oml.user_id
 WHERE oml.organization_id = $1 AND oml.id = $2`,
 			h.DbSchema, h.DbSchema)
-		err = tx.QueryRow(ctx, userIdQuery, organizationId, memberId).Scan(&memberUserId, &memberUserDisplayName)
+		err := tx.QueryRow(ctx, userIdQuery, organizationId, memberId).Scan(&memberUserId, &memberUserDisplayName)
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return &ApiTxError{
@@ -97,8 +94,8 @@ WHERE oml.organization_id = $1 AND oml.id = $2`,
 	gc.JSON(
 		http.StatusOK,
 		gin.H{
-			"permissions":       permissions,
 			"user_id":           memberUserId,
 			"user_display_name": memberUserDisplayName,
+			"permissions":       permissions,
 		})
 }

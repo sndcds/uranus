@@ -14,6 +14,7 @@ import (
 
 func (h *ApiHandler) AdminGetOrganizationTeam(gc *gin.Context) {
 	ctx := gc.Request.Context()
+	userId := h.userId(gc)
 
 	organizationId, ok := ParamInt(gc, "organizationId")
 	if !ok {
@@ -24,12 +25,16 @@ func (h *ApiHandler) AdminGetOrganizationTeam(gc *gin.Context) {
 	langStr := gc.DefaultQuery("lang", "en")
 
 	members := []model.OrganizationMember{}
-	var invitedMembers []model.InvitedOrganizationMember
-	memberRoles := []model.OrganizationMemberRole{}
+	invitedMembers := []model.InvitedOrganizationMember{}
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 
-		// --- Fetch members ---
+		txErr := h.CheckOrganizationPermission(gc, tx, userId, organizationId, app.PermManageTeam)
+		if txErr != nil {
+			return txErr
+		}
+
+		// Fetch members
 		memberRows, err := tx.Query(ctx, app.UranusInstance.SqlAdminGetOrganizationMembers, organizationId)
 		if err != nil {
 			return &ApiTxError{
@@ -57,7 +62,7 @@ func (h *ApiHandler) AdminGetOrganizationTeam(gc *gin.Context) {
 				}
 			}
 
-			// Optional: add avatar URL if file exists
+			// Optional: Add avatar URL if file exists
 			imageDir := app.UranusInstance.Config.ProfileImageDir
 			imagePath := filepath.Join(imageDir, fmt.Sprintf("profile_img_%d_64.webp", m.UserId))
 			if _, err := os.Stat(imagePath); err == nil {
@@ -103,34 +108,6 @@ func (h *ApiHandler) AdminGetOrganizationTeam(gc *gin.Context) {
 			invitedMembers = append(invitedMembers, m)
 		}
 
-		// --- Fetch roles ---
-		rolesQuery := fmt.Sprintf(`
-        SELECT type_id AS id, name, description
-        FROM %s.team_member_role
-        WHERE iso_639_1 = $1
-        ORDER BY id;
-    `, h.Config.DbSchema)
-
-		roleRows, err := tx.Query(ctx, rolesQuery, langStr)
-		if err != nil {
-			return &ApiTxError{
-				Code: http.StatusInternalServerError,
-				Err:  fmt.Errorf("Transaction failed: %s", err.Error()),
-			}
-		}
-		defer roleRows.Close()
-
-		for roleRows.Next() {
-			var role model.OrganizationMemberRole
-			if err := roleRows.Scan(&role.Id, &role.Name, &role.Description); err != nil {
-				return &ApiTxError{
-					Code: http.StatusInternalServerError,
-					Err:  fmt.Errorf("Transaction failed: %s", err.Error()),
-				}
-			}
-			memberRoles = append(memberRoles, role)
-		}
-
 		return nil
 	})
 	if txErr != nil {
@@ -141,7 +118,6 @@ func (h *ApiHandler) AdminGetOrganizationTeam(gc *gin.Context) {
 	result := gin.H{
 		"members":     members,
 		"invitations": invitedMembers,
-		"roles":       memberRoles,
 	}
 
 	gc.JSON(http.StatusOK, result)

@@ -7,11 +7,15 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-// TODO: Review code
+// PermissionNote: User must be authenticated.
+// The endpoint returns venue details only if the authenticated user
+// is linked to the venue (via the SQL query).
+// PermissionChecks: Already enforced in SQL; no additional checks needed in Go.
+// Verified: 2026-01-12, Roald
 
 func (h *ApiHandler) AdminGetVenue(gc *gin.Context) {
-	pool := h.DbPool
 	ctx := gc.Request.Context()
+	userId := h.userId(gc)
 
 	venueId := gc.Param("venueId")
 	if venueId == "" {
@@ -20,7 +24,7 @@ func (h *ApiHandler) AdminGetVenue(gc *gin.Context) {
 	}
 
 	query := app.UranusInstance.SqlGetAdminVenue
-	rows, err := pool.Query(ctx, query, venueId)
+	rows, err := h.DbPool.Query(ctx, query, venueId, userId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

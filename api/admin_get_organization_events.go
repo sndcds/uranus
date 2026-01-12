@@ -9,46 +9,20 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/uranus/app"
+	"github.com/sndcds/uranus/model"
 )
 
-// TODO: Review code
+// PermissionNote: User must be authenticated.
+// The SQL query already filters events so that only events belonging to organizations
+// the authenticated user is linked to via `user_organization_link` are returned.
+// No additional permission checks are required in Go for access to the event list.
+// Purpose: Returns the dashboard list of events for a given organization.
+// PermissionChecks: Handled entirely by the SQL query.
+// Verified: 2026-01-12, Roald
 
 func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
-
-	type EventType struct {
-		TypeID  int `json:"type_id"`
-		GenreID int `json:"genre_id"`
-	}
-
-	type Event struct {
-		EventId               int         `json:"event_id"`
-		EventDateId           int         `json:"event_date_id"`
-		EventTitle            string      `json:"event_title"`
-		EventSubtitle         *string     `json:"event_subtitle"`
-		EventOrganizationId   int         `json:"event_organization_id"`
-		EventOrganizationName *string     `json:"event_organization_name"`
-		StartDate             *string     `json:"start_date"`
-		StartTime             *string     `json:"start_time"`
-		EndDate               *string     `json:"end_date"`
-		EndTime               *string     `json:"end_time"`
-		ReleaseStatusId       *int        `json:"release_status_id"`
-		ReleaseDate           *string     `json:"release_date"`
-		VenueId               *int        `json:"venue_id"`
-		VenueName             *string     `json:"venue_name"`
-		SpaceId               *int        `json:"space_id,omitempty"`
-		SpaceName             *string     `json:"space_name,omitempty"`
-		LocationId            *int        `json:"location_id"`
-		LocationName          *string     `json:"location_name"`
-		ImageId               *int        `json:"image_id"`
-		EventTypes            []EventType `json:"event_types"`
-		CanEditEvent          bool        `json:"can_edit_event"`
-		CanDeleteEvent        bool        `json:"can_delete_event"`
-		CanReleaseEvent       bool        `json:"can_release_event"`
-		TimeSeriesIndex       int         `json:"time_series_index"`
-		TimeSeries            int         `json:"time_series"`
-	}
 
 	organizationId, ok := ParamInt(gc, "organizationId")
 	if !ok {
@@ -56,7 +30,7 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 		return
 	}
 
-	var events []Event
+	var events []model.EventDahboardEntry
 	var organizationPermissions app.Permission
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
@@ -76,7 +50,7 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
-				Err:  fmt.Errorf("Transaction failed 1: %v", err),
+				Err:  fmt.Errorf("Internal server error: %v", err),
 			}
 		}
 		defer rows.Close()
@@ -84,7 +58,7 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 		var eventTypesData []byte
 
 		for rows.Next() {
-			var e Event
+			var e model.EventDahboardEntry
 			err := rows.Scan(
 				&e.EventId,
 				&e.EventDateId,
@@ -115,7 +89,7 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 			if err != nil {
 				return &ApiTxError{
 					Code: http.StatusInternalServerError,
-					Err:  fmt.Errorf("Transaction failed 2: %v", err),
+					Err:  fmt.Errorf("Internal server error: %v", err),
 				}
 			}
 			if len(eventTypesData) > 0 {
@@ -128,7 +102,7 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
-				Err:  fmt.Errorf("Transaction failed 3: %v", err),
+				Err:  fmt.Errorf("Internal server error: %v", err),
 			}
 		}
 
@@ -144,7 +118,7 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 	if len(events) == 0 {
 		gc.JSON(http.StatusOK, gin.H{
 			"can_add_event": canAddEvent,
-			"events":        []Event{},
+			"events":        []model.EventDahboardEntry{},
 		})
 		return
 	}
