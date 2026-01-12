@@ -30,7 +30,7 @@ func fetchTableView(gc *gin.Context) {
 	/*
 		db := app.Singleton.MainDbPool
 		ctx := gc.Request.Context()
-		userId := gc.GetInt("user-id")
+		userId := h.userId(gc);
 
 		orgID, ok := GetContextParameterAsInt(gc, "org-id")
 		if !ok {

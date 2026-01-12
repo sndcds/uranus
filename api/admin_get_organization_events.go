@@ -15,7 +15,7 @@ import (
 
 func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := gc.GetInt("user-id")
+	userId := h.userId(gc)
 
 	type EventType struct {
 		TypeID  int `json:"type_id"`

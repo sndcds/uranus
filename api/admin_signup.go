@@ -16,9 +16,8 @@ import (
 
 // TODO: Review code
 
+// Permission to use endpoint checked, 2026-01-11, Roald
 func (h *ApiHandler) Signup(gc *gin.Context) {
-	pool := h.DbPool
-
 	langStr := gc.DefaultQuery("lang", "en")
 
 	// Parse incoming JSON
@@ -49,7 +48,7 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 	checkQuery := fmt.Sprintf(
 		"SELECT EXISTS(SELECT 1 FROM %s.user WHERE email_address = $1)",
 		h.Config.DbSchema)
-	err = pool.QueryRow(gc, checkQuery, req.Email).Scan(&exists)
+	err = h.DbPool.QueryRow(gc, checkQuery, req.Email).Scan(&exists)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
 		return
@@ -67,7 +66,7 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 		RETURNING id`,
 		h.Config.DbSchema)
 
-	err = pool.QueryRow(gc, insertQuery, req.Email, passwordHash).Scan(&newUserId)
+	err = h.DbPool.QueryRow(gc, insertQuery, req.Email, passwordHash).Scan(&newUserId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create user"})
 		return
@@ -90,21 +89,21 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 	}
 
 	updateQuery := fmt.Sprintf(`UPDATE %s.user SET activate_token = $1 WHERE id = $2`, h.Config.DbSchema)
-	_, err = pool.Exec(gc, updateQuery, signupTokenString, newUserId)
+	_, err = h.DbPool.Exec(gc, updateQuery, signupTokenString, newUserId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create user"})
 		return
 	}
 
 	messageQuery := fmt.Sprintf(`SELECT subject, template FROM %s.system_email_template WHERE context = 'activate-email' AND iso_639_1 = $1`, h.Config.DbSchema)
-	_, err = pool.Exec(gc, messageQuery, langStr)
+	_, err = h.DbPool.Exec(gc, messageQuery, langStr)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create user"})
 		return
 	}
 	var subject string
 	var template string
-	err = pool.QueryRow(gc, messageQuery, langStr).Scan(&subject, &template)
+	err = h.DbPool.QueryRow(gc, messageQuery, langStr).Scan(&subject, &template)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			gc.JSON(http.StatusNotFound, gin.H{"error": "email template not found"})
@@ -133,9 +132,8 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 	})
 }
 
+// Permission to use endpoint checked, 2026-01-11, Roald
 func (h *ApiHandler) Activate(gc *gin.Context) {
-	pool := h.DbPool
-
 	var req struct {
 		Token string `json:"token"`
 	}
@@ -168,7 +166,7 @@ func (h *ApiHandler) Activate(gc *gin.Context) {
 	// Query stored activation token
 	var storedToken string
 	query := fmt.Sprintf(`SELECT activate_token FROM %s.user WHERE id = $1`, h.Config.DbSchema)
-	err = pool.QueryRow(gc, query, userId).Scan(&storedToken)
+	err = h.DbPool.QueryRow(gc, query, userId).Scan(&storedToken)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			gc.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
@@ -186,7 +184,7 @@ func (h *ApiHandler) Activate(gc *gin.Context) {
 
 	// Activate account
 	updateQuery := fmt.Sprintf(`UPDATE %s.user SET is_active = true, activate_token = NULL WHERE id = $1`, h.Config.DbSchema)
-	if _, err := pool.Exec(gc, updateQuery, userId); err != nil {
+	if _, err := h.DbPool.Exec(gc, updateQuery, userId); err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to activate user"})
 		return
 	}

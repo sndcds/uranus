@@ -61,7 +61,6 @@ type Uranus struct {
 	SqlAdminGetUserEventNotification        string
 	SqlAdminChoosableOrganizations          string
 	SqlAdminChoosableUserEventOrganizations string
-	SqlAdminChoosableUserEventVenues        string
 	SqlAdminChoosableUserVenuesSpaces       string
 	SqlAdminEvent                           string
 	SqlAdminSpacesForEvent                  string
@@ -239,7 +238,6 @@ func (app *Uranus) PrepareSql() error {
 
 		{"sql/admin-choosable-organizations.sql", &app.SqlAdminChoosableOrganizations, nil},
 		{"sql/admin-choosable-user-event-organizations.sql", &app.SqlAdminChoosableUserEventOrganizations, nil},
-		{"sql/admin-choosable-user-event-venues.sql", &app.SqlAdminChoosableUserEventVenues, nil},
 		{"sql/admin-choosable-user-venues-spaces.sql", &app.SqlAdminChoosableUserVenuesSpaces, nil},
 
 		{"sql/admin-get-organization-dashboard.sql", &app.SqlAdminGetOrganizationDashboard, nil},

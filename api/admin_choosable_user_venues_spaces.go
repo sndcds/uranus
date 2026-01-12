@@ -9,7 +9,7 @@ import (
 
 func (h *ApiHandler) AdminChoosableUserVenuesSpaces(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := gc.GetInt("user-id")
+	userId := h.userId(gc)
 
 	query := app.UranusInstance.SqlAdminChoosableUserVenuesSpaces
 	rows, err := h.DbPool.Query(ctx, query, userId)

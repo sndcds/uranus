@@ -9,14 +9,13 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-// TODO: Review code
+// TODO: Code review
 
 func (h *ApiHandler) AdminSendMessage(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	pool := h.DbPool
+	fromUserId := h.userId(gc)
 
-	fromuserId := gc.GetInt("user-id")
-	if fromuserId <= 0 {
+	if fromUserId <= 0 {
 		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user"})
 		return
 	}
@@ -34,7 +33,7 @@ func (h *ApiHandler) AdminSendMessage(gc *gin.Context) {
 		return
 	}
 
-	tx, err := pool.Begin(ctx)
+	tx, err := h.DbPool.Begin(ctx)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to start transaction"})
 		return
@@ -43,16 +42,16 @@ func (h *ApiHandler) AdminSendMessage(gc *gin.Context) {
 
 	if req.Context == "organization" {
 		organizationId := req.ContextId
-		sql := strings.Replace(
+		query := strings.Replace(
 			`SELECT u.id, u.display_name
 			FROM {{schema}}.user_organization_link ol
 			JOIN {{schema}}.user u ON u.id = ol.user_id
 			WHERE ol.organization_id = $1 AND (ol.permissions & $2) != 0`,
 			"{{schema}}", h.Config.DbSchema, -1)
 
-		fmt.Println(sql)
+		fmt.Println(query)
 		fmt.Println("organizationId:", organizationId)
-		rows, err := tx.Query(ctx, sql, organizationId, app.PermReceiveOrganizationMsgs)
+		rows, err := tx.Query(ctx, query, organizationId, app.PermReceiveOrganizationMsgs)
 		if err != nil {
 			gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("database query failed: %v", err)})
 			return
@@ -78,15 +77,15 @@ func (h *ApiHandler) AdminSendMessage(gc *gin.Context) {
 			return
 		}
 
-		fmt.Println(fromuserId)
+		fmt.Println(fromUserId)
 
 		for _, toUserId := range userIds {
-			insertSQL := fmt.Sprintf(
+			insertQuery := fmt.Sprintf(
 				`INSERT INTO %s.message (to_user_id, from_user_id, subject, message)
              VALUES ($1, $2, $3, $4)`,
 				h.Config.DbSchema,
 			)
-			_, err := tx.Exec(ctx, insertSQL, toUserId, fromuserId, req.Subject, req.Message)
+			_, err := tx.Exec(ctx, insertQuery, toUserId, fromUserId, req.Subject, req.Message)
 			if err != nil {
 				gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to insert message: %v", err)})
 				return

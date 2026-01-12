@@ -28,7 +28,7 @@ type organizationDashboardResponse struct {
 
 func (h *ApiHandler) AdminGetOrganizationDashboard(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := gc.GetInt("user-id")
+	userId := h.userId(gc)
 
 	rows, err := h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetOrganizationDashboard, userId)
 	if err != nil {

@@ -30,7 +30,7 @@ type venueReq struct {
 
 func (h *ApiHandler) AdminUpsertVenue(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := gc.GetInt("user-id")
+	userId := h.userId(gc)
 
 	venueId := ParamIntDefault(gc, "venueId", -1)
 

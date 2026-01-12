@@ -30,7 +30,7 @@ func (w *exifWalker) Walk(name exif.FieldName, tag *tiff.Tag) error {
 
 func (h *ApiHandler) AdminUpsertEventImage(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := gc.GetInt("user-id")
+	userId := h.userId(gc)
 
 	plutoImageId := -1
 	plutoRemoveImageId := -1

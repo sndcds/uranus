@@ -9,23 +9,23 @@ import (
 
 func (h *ApiHandler) AdminDeleteEventDate(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := gc.GetInt("user-id")
+	userId := h.userId(gc)
 
-	fmt.Println("userId:", userId)
+	if !h.VerifyUserPassword(gc, userId) {
+		return
+	}
 
 	eventId, ok := ParamInt(gc, "eventId")
 	if !ok {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "eventId is required"})
 		return
 	}
-	fmt.Println("eventId:", eventId)
 
 	eventDateId, ok := ParamInt(gc, "dateId")
 	if !ok {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "dateId is required"})
 		return
 	}
-	fmt.Println("eventDateId:", eventDateId)
 
 	query := fmt.Sprintf(`DELETE FROM %s.event_date WHERE id = $1`, h.Config.DbSchema)
 	cmdTag, err := h.DbPool.Exec(ctx, query, eventDateId)

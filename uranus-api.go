@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/sndcds/pluto"
 	"github.com/sndcds/uranus/api"
@@ -47,6 +48,12 @@ func main() {
 	// Create a Gin router
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New() // Use `Default()` for built-in logging and recovery
+
+	// Enable gzip compression (recommended level), exclude images and already-compressed data
+	router.Use(gzip.Gzip(
+		gzip.DefaultCompression,
+		gzip.WithExcludedExtensions([]string{".png", ".jpg", ".jpeg", ".webp"}),
+	))
 
 	if app.UranusInstance.Config.UseRouterMiddleware {
 		router.Use(func(gc *gin.Context) {
@@ -116,94 +123,94 @@ func main() {
 	// Inject app middleware into Pluto's image routes
 	pluto.PlutoInstance.RegisterRoutes(publicRoute, app.JWTMiddleware)
 
+	publicRoute.POST("/signup", apiHandler.Signup)
+	publicRoute.POST("/activate", apiHandler.Activate)
+	publicRoute.POST("/login", apiHandler.Login)
+	publicRoute.POST("/forgot-password", apiHandler.ForgotPassword)
+	publicRoute.POST("/reset-password", apiHandler.ResetPassword)
+
 	// Authorized endpoints, user must be logged in
-	adminRoute := router.Group("/api/admin")
+	adminRoute := router.Group("/api/admin", app.JWTMiddleware)
 
-	adminRoute.POST("/signup", apiHandler.Signup)
-	adminRoute.POST("/activate", apiHandler.Activate)
-	adminRoute.POST("/login", apiHandler.Login)
 	adminRoute.POST("/refresh", apiHandler.Refresh)
-	adminRoute.POST("/forgot-password", apiHandler.ForgotPassword)
-	adminRoute.POST("/reset-password", apiHandler.ResetPassword)
 
-	adminRoute.GET("/user/:userId", app.JWTMiddleware, apiHandler.AdminGetUser)
+	adminRoute.GET("/user/:userId", apiHandler.AdminGetUser)
 
-	adminRoute.POST("/send-message", app.JWTMiddleware, apiHandler.AdminSendMessage)
-	adminRoute.GET("/messages", app.JWTMiddleware, apiHandler.AdminGetMessages)
+	adminRoute.POST("/send-message", apiHandler.AdminSendMessage)
+	adminRoute.GET("/messages", apiHandler.AdminGetMessages)
 
-	adminRoute.GET("/todos", app.JWTMiddleware, apiHandler.AdminGetTodos)
-	adminRoute.GET("/todo/:todoId", app.JWTMiddleware, apiHandler.AdminGetTodo)
-	adminRoute.PUT("/todo", app.JWTMiddleware, apiHandler.AdminUpsertTodo)
-	adminRoute.DELETE("/todo/:todoId", app.JWTMiddleware, apiHandler.AdminDeleteTodo)
+	adminRoute.GET("/todos", apiHandler.AdminGetTodos)
+	adminRoute.GET("/todo/:todoId", apiHandler.AdminGetTodo)
+	adminRoute.PUT("/todo", apiHandler.AdminUpsertTodo)
+	adminRoute.DELETE("/todo/:todoId", apiHandler.AdminDeleteTodo)
 
-	adminRoute.GET("/user/me", app.JWTMiddleware, apiHandler.AdminGetUserProfile)
-	adminRoute.PUT("/user/me", app.JWTMiddleware, apiHandler.AdminUpdateUserProfile)
-	adminRoute.PUT("/user/me/settings", app.JWTMiddleware, apiHandler.AdminUpdateUserProfileSettings)
-	adminRoute.POST("/user/me/avatar", app.JWTMiddleware, apiHandler.AdminUploadUserAvatar)
-	adminRoute.DELETE("/user/me/avatar", app.JWTMiddleware, apiHandler.AdminDeleteUserAvatar)
-	adminRoute.GET("/user/me/permissions", app.JWTMiddleware, apiHandler.AdminUserPermissions)
+	adminRoute.GET("/user/me", apiHandler.AdminGetUserProfile)
+	adminRoute.PUT("/user/me", apiHandler.AdminUpdateUserProfile)
+	adminRoute.PUT("/user/me/settings", apiHandler.AdminUpdateUserProfileSettings)
+	adminRoute.POST("/user/me/avatar", apiHandler.AdminUploadUserAvatar)
+	adminRoute.DELETE("/user/me/avatar", apiHandler.AdminDeleteUserAvatar)
 
-	adminRoute.GET("/permission/list", app.JWTMiddleware, apiHandler.AdminGetPermissionList)
+	adminRoute.GET("/user/me/permissions", apiHandler.AdminUserPermissions)
+	adminRoute.GET("/permission/list", apiHandler.AdminGetPermissionList)
 
-	adminRoute.GET("/organization/:organizationId/member/:memberId/permissions", app.JWTMiddleware, apiHandler.AdminGetOrganizationMemberPermissions)
-	adminRoute.PUT("/organization/:organizationId/member/:memberId/permission", app.JWTMiddleware, apiHandler.AdminUpdateOrganizationMemberPermission)
+	adminRoute.GET("/organization/:organizationId/member/:memberId/permissions", apiHandler.AdminGetOrganizationMemberPermissions)
+	adminRoute.PUT("/organization/:organizationId/member/:memberId/permission", apiHandler.AdminUpdateOrganizationMemberPermission)
 
-	adminRoute.GET("/user/event/notification", app.JWTMiddleware, apiHandler.AdminGetUserEventNotification)
+	adminRoute.GET("/user/event/notification", apiHandler.AdminGetUserEventNotification)
 
-	adminRoute.GET("/choosable-organizations", app.JWTMiddleware, apiHandler.AdminGetChoosableOrganizations)
-	adminRoute.GET("/user/choosable-event-organizations/organiationr/:organizationId", app.JWTMiddleware, apiHandler.AdminChoosableUserEventOrganizations)
-	adminRoute.GET("/user/choosable-venues-spaces", app.JWTMiddleware, apiHandler.AdminChoosableUserVenuesSpaces)
-	adminRoute.GET("/user/choosable-event-venues", app.JWTMiddleware, apiHandler.AdminChoosableUserEventVenues) // TODO: Remove!
+	adminRoute.GET("/choosable-organizations", apiHandler.AdminGetChoosableOrganizations)
+	adminRoute.GET("/user/choosable-event-organizations/organization/:organizationId", apiHandler.AdminChoosableUserEventOrganizations)
+	adminRoute.GET("/user/choosable-venues-spaces", apiHandler.AdminChoosableUserVenuesSpaces)
 
-	adminRoute.GET("/organization/:organizationId", app.JWTMiddleware, apiHandler.AdminGetOrganization)
-	adminRoute.PUT("/organization", app.JWTMiddleware, apiHandler.AdminUpsertOrganization)
-	adminRoute.PUT("/organization/:organizationId", app.JWTMiddleware, apiHandler.AdminUpsertOrganization)
-	adminRoute.DELETE("/organization/:organizationId", app.JWTMiddleware, apiHandler.AdminDeleteOrganization)
+	adminRoute.GET("/organization/:organizationId", apiHandler.AdminGetOrganization)
+	adminRoute.PUT("/organization", apiHandler.AdminUpsertOrganization)
+	adminRoute.PUT("/organization/:organizationId", apiHandler.AdminUpsertOrganization)
+	adminRoute.DELETE("/organization/:organizationId", apiHandler.AdminDeleteOrganization)
 
-	adminRoute.GET("/organization/dashboard", app.JWTMiddleware, apiHandler.AdminGetOrganizationDashboard)
-	adminRoute.GET("/organization/:organizationId/venues", app.JWTMiddleware, apiHandler.AdminGetOrganizationVenues)
-	adminRoute.GET("/organization/:organizationId/events", app.JWTMiddleware, apiHandler.AdminGetOrganizationEvents)
+	adminRoute.GET("/organization/dashboard", apiHandler.AdminGetOrganizationDashboard)
+	adminRoute.GET("/organization/:organizationId/venues", apiHandler.AdminGetOrganizationVenues)
+	adminRoute.GET("/organization/:organizationId/events", apiHandler.AdminGetOrganizationEvents)
 
-	adminRoute.GET("/organization/:organizationId/team", app.JWTMiddleware, apiHandler.AdminGetOrganizationTeam)
-	adminRoute.POST("/organization/:organizationId/team/invite", app.JWTMiddleware, apiHandler.AdminOrganizationTeamInvite)
-	adminRoute.DELETE("/organization/:organizationId/team/member/:memberId", app.JWTMiddleware, apiHandler.AdminDeleteOrganizationTeamMember)
+	adminRoute.GET("/organization/:organizationId/team", apiHandler.AdminGetOrganizationTeam)
+	adminRoute.POST("/organization/:organizationId/team/invite", apiHandler.AdminOrganizationTeamInvite)
+	adminRoute.DELETE("/organization/:organizationId/team/member/:memberId", apiHandler.AdminDeleteOrganizationTeamMember)
 	adminRoute.POST("/organization/team/invite/accept", apiHandler.AdminOrganizationTeamInviteAccept)
 
-	adminRoute.GET("/venue/:venueId", app.JWTMiddleware, apiHandler.AdminGetVenue)
-	adminRoute.PUT("/venue", app.JWTMiddleware, apiHandler.AdminUpsertVenue)
-	adminRoute.PUT("/venue/:venueId", app.JWTMiddleware, apiHandler.AdminUpsertVenue)
-	adminRoute.DELETE("/venue/:venueId", app.JWTMiddleware, apiHandler.AdminDeleteVenue)
+	adminRoute.GET("/venue/:venueId", apiHandler.AdminGetVenue)
+	adminRoute.PUT("/venue", apiHandler.AdminUpsertVenue)
+	adminRoute.PUT("/venue/:venueId", apiHandler.AdminUpsertVenue)
+	adminRoute.DELETE("/venue/:venueId", apiHandler.AdminDeleteVenue)
 
-	adminRoute.GET("/space/:spaceId", app.JWTMiddleware, apiHandler.AdminGetSpace)
-	adminRoute.PUT("/space", app.JWTMiddleware, apiHandler.AdminUpsertSpace)
-	adminRoute.PUT("/space/:spaceId", app.JWTMiddleware, apiHandler.AdminUpsertSpace)
-	adminRoute.DELETE("/space/:spaceId", app.JWTMiddleware, apiHandler.AdminDeleteSpace)
+	adminRoute.GET("/space/:spaceId", apiHandler.AdminGetSpace)
+	adminRoute.PUT("/space", apiHandler.AdminUpsertSpace)
+	adminRoute.PUT("/space/:spaceId", apiHandler.AdminUpsertSpace)
+	adminRoute.DELETE("/space/:spaceId", apiHandler.AdminDeleteSpace)
 
-	adminRoute.GET("/event/:eventId", app.JWTMiddleware, apiHandler.AdminGetEvent)
-	adminRoute.DELETE("/event/:eventId", app.JWTMiddleware, apiHandler.AdminDeleteEvent)
+	adminRoute.GET("/event/:eventId", apiHandler.AdminGetEvent)
+	adminRoute.DELETE("/event/:eventId", apiHandler.AdminDeleteEvent)
 
-	adminRoute.POST("/event/:eventId/date", app.JWTMiddleware, apiHandler.AdminUpsertEventDate)
-	adminRoute.PUT("/event/:eventId/date/:dateId", app.JWTMiddleware, apiHandler.AdminUpsertEventDate)
-	adminRoute.DELETE("/event/:eventId/date/:dateId", app.JWTMiddleware, apiHandler.AdminDeleteEventDate)
+	adminRoute.POST("/event/:eventId/date", apiHandler.AdminUpsertEventDate)
+	adminRoute.PUT("/event/:eventId/date/:dateId", apiHandler.AdminUpsertEventDate)
+	adminRoute.DELETE("/event/:eventId/date/:dateId", apiHandler.AdminDeleteEventDate)
 
-	adminRoute.POST("/event/create", app.JWTMiddleware, apiHandler.AdminCreateEvent)
-	adminRoute.PUT("/event/:eventId/release-status", app.JWTMiddleware, apiHandler.AdminUpdateEventReleaseStatus)
-	adminRoute.PUT("/event/:eventId/header", app.JWTMiddleware, apiHandler.AdminUpdateEventHeader)
-	adminRoute.PUT("/event/:eventId/description", app.JWTMiddleware, apiHandler.AdminUpdateEventDescription)
-	adminRoute.PUT("/event/:eventId/teaser", app.JWTMiddleware, apiHandler.AdminUpdateEventTeaser)
-	adminRoute.PUT("/event/:eventId/types", app.JWTMiddleware, apiHandler.AdminUpdateEventTypes)
-	adminRoute.PUT("/event/:eventId/place", app.JWTMiddleware, apiHandler.AdminUpdateEventPlace)
-	adminRoute.PUT("/event/:eventId/link", app.JWTMiddleware, apiHandler.AdminUpsertEventLink)
-	adminRoute.PUT("/event/:eventId/link/:linkId", app.JWTMiddleware, apiHandler.AdminUpsertEventLink)
-	adminRoute.PUT("/event/:eventId/tags", app.JWTMiddleware, apiHandler.AdminUpdateEventTags)
-	adminRoute.PUT("/event/:eventId/languages", app.JWTMiddleware, apiHandler.AdminUpdateEventLanguages)
-	adminRoute.PUT("/event/:eventId/participation-infos", app.JWTMiddleware, apiHandler.AdminUpdateEventParticipationInfos)
+	adminRoute.POST("/event/create", apiHandler.AdminCreateEvent)
+	adminRoute.PUT("/event/:eventId/release-status", apiHandler.AdminUpdateEventReleaseStatus)
+	adminRoute.PUT("/event/:eventId/header", apiHandler.AdminUpdateEventHeader)
+	adminRoute.PUT("/event/:eventId/description", apiHandler.AdminUpdateEventDescription)
+	adminRoute.PUT("/event/:eventId/summary", apiHandler.AdminUpdateEventSummary)
+	adminRoute.PUT("/event/:eventId/types", apiHandler.AdminUpdateEventTypes)
+	adminRoute.PUT("/event/:eventId/place", apiHandler.AdminUpdateEventPlace)
+	adminRoute.PUT("/event/:eventId/link", apiHandler.AdminUpsertEventLink)
+	adminRoute.PUT("/event/:eventId/link/:linkId", apiHandler.AdminUpsertEventLink)
+	adminRoute.PUT("/event/:eventId/tags", apiHandler.AdminUpdateEventTags)
+	adminRoute.PUT("/event/:eventId/languages", apiHandler.AdminUpdateEventLanguages)
+	adminRoute.PUT("/event/:eventId/participation-infos", apiHandler.AdminUpdateEventParticipationInfos)
 
-	adminRoute.GET("/event/:eventId/image/:imageIndex/meta", app.JWTMiddleware, apiHandler.AdminGetImageMeta)
-	adminRoute.POST("/event/:eventId/image/:imageIndex", app.JWTMiddleware, apiHandler.AdminUpsertEventImage)
-	adminRoute.DELETE("/event/:eventId/image", app.JWTMiddleware, apiHandler.AdminDeleteEventMainImage)
+	adminRoute.GET("/event/:eventId/image/:imageIndex/meta", apiHandler.AdminGetImageMeta)
+	adminRoute.POST("/event/:eventId/image/:imageIndex", apiHandler.AdminUpsertEventImage)
+	adminRoute.DELETE("/event/:eventId/image", apiHandler.AdminDeleteEventMainImage)
 
-	adminRoute.POST("/event/:eventId/teaser/image", app.JWTMiddleware, apiHandler.AdminUpdateEventTeaserImage)
+	adminRoute.POST("/event/:eventId/teaser/image", apiHandler.AdminUpdateEventTeaserImage)
 
 	fmt.Println("Gin mode:", gin.Mode())
 	fmt.Println("Total routes:", len(router.Routes()))

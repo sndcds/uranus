@@ -7,16 +7,15 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-// TODO: Review code
+// TODO: Code review
 
 func (h *ApiHandler) AdminUserPermissions(gc *gin.Context) {
-	db := h.DbPool
 	ctx := gc.Request.Context()
-	userId := gc.GetInt("user-id")
+	userId := h.userId(gc)
 
-	sql := app.UranusInstance.SqlAdminUserPermissions
+	query := app.UranusInstance.SqlAdminUserPermissions
 
-	rows, err := db.Query(ctx, sql, userId)
+	rows, err := h.DbPool.Query(ctx, query, userId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

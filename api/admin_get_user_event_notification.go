@@ -24,15 +24,14 @@ type EventNotification struct {
 }
 
 func (h *ApiHandler) AdminGetUserEventNotification(gc *gin.Context) {
-	db := h.DbPool
 	ctx := gc.Request.Context()
-	userId := gc.GetInt("user-id")
+	userId := h.userId(gc)
 
 	releaseDateDaysLeft := 14
 	firstEventDateDaysLeft := 30
 
 	query := app.UranusInstance.SqlAdminGetUserEventNotification
-	rows, err := db.Query(ctx, query, userId, releaseDateDaysLeft, firstEventDateDaysLeft)
+	rows, err := h.DbPool.Query(ctx, query, userId, releaseDateDaysLeft, firstEventDateDaysLeft)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

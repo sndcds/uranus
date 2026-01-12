@@ -19,16 +19,13 @@ import (
 
 func (h *ApiHandler) AdminUpdateEventTeaserImage(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	pool := h.DbPool
-	dbSchema := h.Config.DbSchema
+	userId := h.userId(gc)
 
 	eventId := gc.Param("eventId")
 	if eventId == "" {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "event Id is required"})
 		return
 	}
-
-	userId := gc.GetInt("user-id")
 
 	altText := gc.PostForm("alt_text")
 	copyright := gc.PostForm("copyright")
@@ -97,7 +94,7 @@ func (h *ApiHandler) AdminUpdateEventTeaserImage(gc *gin.Context) {
 	}
 
 	// Begin DB transaction
-	tx, err := pool.Begin(ctx)
+	tx, err := h.DbPool.Begin(ctx)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -106,7 +103,7 @@ func (h *ApiHandler) AdminUpdateEventTeaserImage(gc *gin.Context) {
 
 	sql := strings.Replace(`
         INSERT INTO {{schema}}.pluto_image (file_name, gen_file_name, width, height, mime_type, exif, alt_text, creator_name, copyright, user_id)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`, "{{schema}}", dbSchema, 1)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`, "{{schema}}", h.DbSchema, 1)
 	var plutoImageId int64
 	err = tx.QueryRow(
 		ctx,
@@ -126,7 +123,7 @@ func (h *ApiHandler) AdminUpdateEventTeaserImage(gc *gin.Context) {
 	}
 
 	sql = strings.Replace(`INSERT INTO {{schema}}.event_image_link (event_id, pluto_image_id, main_image, sort_index)
-	VALUES ($1, $2, $3, $4)`, "{{schema}}", dbSchema, 1)
+	VALUES ($1, $2, $3, $4)`, "{{schema}}", h.DbSchema, 1)
 
 	_, err = tx.Exec(ctx, sql, eventId, plutoImageId, true, 0)
 	if err != nil {

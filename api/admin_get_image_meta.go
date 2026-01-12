@@ -11,7 +11,6 @@ import (
 
 func (h *ApiHandler) AdminGetImageMeta(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	// userId := gc.GetInt("user-id")
 
 	eventId, ok := ParamInt(gc, "eventId")
 	if !ok {

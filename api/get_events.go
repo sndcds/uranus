@@ -24,7 +24,6 @@ type eventResponse struct {
 	ID                      int         `json:"id"` // event_id
 	Title                   string      `json:"title"`
 	Subtitle                *string     `json:"subtitle"`
-	Description             *string     `json:"description"`
 	StartDate               string      `json:"start_date"`
 	StartTime               string      `json:"start_time,omitempty"`
 	EndDate                 *string     `json:"end_date,omitempty"`
@@ -237,7 +236,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 	}
 
 	if eventTypesStr != "" {
-		nextArgIndex, errBuild = sql_utils.BuildJsonbArrayIntCondition(
+		nextArgIndex, errBuild = sql_utils.BuildJSONArrayIntCondition(
 			eventTypesStr,
 			"types",
 			0, // index 0 = event_type_id
@@ -320,7 +319,6 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			&e.TicketLink,
 			&e.Title,
 			&e.Subtitle,
-			&e.Description,
 			&typesJSON,
 			&e.Languages,
 			&e.Tags,

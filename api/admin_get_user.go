@@ -33,6 +33,7 @@ SELECT row_to_json(u) AS user FROM (
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			gc.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+			return
 		} else {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

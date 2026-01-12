@@ -8,11 +8,11 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-type teaserRequest struct {
-	TeaserText string `json:"teaser_text" binding:"required"`
+type summaryRequest struct {
+	Summary string `json:"summary" binding:"required"`
 }
 
-func (h *ApiHandler) AdminUpdateEventTeaser(gc *gin.Context) {
+func (h *ApiHandler) AdminUpdateEventSummary(gc *gin.Context) {
 	ctx := gc.Request.Context()
 
 	eventId, ok := ParamInt(gc, "eventId")
@@ -21,16 +21,16 @@ func (h *ApiHandler) AdminUpdateEventTeaser(gc *gin.Context) {
 		return
 	}
 
-	var req teaserRequest
+	var req summaryRequest
 	if err := gc.ShouldBindJSON(&req); err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-		query := fmt.Sprintf(`UPDATE %s.event SET teaser_text = $2 WHERE id = $1`, h.DbSchema)
+		query := fmt.Sprintf(`UPDATE %s.event SET summary = $2 WHERE id = $1`, h.DbSchema)
 
-		res, err := tx.Exec(ctx, query, eventId, req.TeaserText)
+		res, err := tx.Exec(ctx, query, eventId, req.Summary)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
@@ -63,6 +63,6 @@ func (h *ApiHandler) AdminUpdateEventTeaser(gc *gin.Context) {
 
 	gc.JSON(http.StatusOK, gin.H{
 		"event_id": eventId,
-		"message":  "event teaser updated successfully",
+		"message":  "event summary updated successfully",
 	})
 }

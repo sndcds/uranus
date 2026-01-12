@@ -9,17 +9,15 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-// TODO: Review code
+// TODO: Code review
 
 func (h *ApiHandler) AdminGetPermissionList(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	pool := h.DbPool
-
 	langStr := gc.DefaultQuery("lang", "en")
 
 	var permissionsJSON []byte
 
-	err := pool.QueryRow(ctx, app.UranusInstance.SqlAdminGetPermissionList, langStr).Scan(&permissionsJSON)
+	err := h.DbPool.QueryRow(ctx, app.UranusInstance.SqlAdminGetPermissionList, langStr).Scan(&permissionsJSON)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			permissionsJSON = []byte("{}")

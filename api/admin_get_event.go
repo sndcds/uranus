@@ -29,7 +29,7 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 		&event.Title,
 		&event.Subtitle,
 		&event.Description,
-		&event.TeaserText,
+		&event.Summary,
 		&event.ParticipationInfo,
 		&event.Languages,
 		&event.Tags,

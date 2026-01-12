@@ -3,7 +3,6 @@ package api
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -12,9 +11,11 @@ import (
 	"github.com/sndcds/uranus/model"
 )
 
+// TODO: Code review
+
 func (h *ApiHandler) AdminGetTodos(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := gc.GetInt("user-id")
+	userId := h.userId(gc)
 
 	query := fmt.Sprintf(`
     	SELECT id, title, description, due_date, completed
@@ -58,19 +59,11 @@ func (h *ApiHandler) AdminGetTodos(gc *gin.Context) {
 
 func (h *ApiHandler) AdminGetTodo(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	pool := h.DbPool
+	userId := h.userId(gc)
 
-	userId := gc.GetInt("user-id")
-
-	todoIdStr := gc.Param("todoId")
-	if todoIdStr == "" {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "todoId is required"})
-		return
-	}
-
-	todoId, err := strconv.Atoi(todoIdStr)
-	if err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "todoId must be a number"})
+	todoId, ok := ParamInt(gc, "todoId")
+	if !ok {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "tidiId is required"})
 		return
 	}
 
@@ -81,7 +74,7 @@ func (h *ApiHandler) AdminGetTodo(gc *gin.Context) {
 		h.Config.DbSchema)
 
 	var todo model.Todo
-	err = pool.QueryRow(ctx, query, userId, todoId).Scan(
+	err := h.DbPool.QueryRow(ctx, query, userId, todoId).Scan(
 		&todo.Id,
 		&todo.Title,
 		&todo.Description,
@@ -101,7 +94,7 @@ func (h *ApiHandler) AdminGetTodo(gc *gin.Context) {
 
 func (h *ApiHandler) AdminUpsertTodo(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := gc.GetInt("user-id")
+	userId := h.userId(gc)
 
 	type Incoming struct {
 		Id          int     `json:"id"`
@@ -111,16 +104,16 @@ func (h *ApiHandler) AdminUpsertTodo(gc *gin.Context) {
 		DueDate     *string `json:"due_date"`
 	}
 
-	var req Incoming
-	if err := gc.ShouldBindJSON(&req); err != nil {
+	var payload Incoming
+	if err := gc.ShouldBindJSON(&payload); err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	// Parse due_date
 	var duePtr *time.Time
-	if req.DueDate != nil && *req.DueDate != "" {
-		t, err := time.Parse("2006-01-02", *req.DueDate)
+	if payload.DueDate != nil && *payload.DueDate != "" {
+		t, err := time.Parse("2006-01-02", *payload.DueDate)
 		if err != nil {
 			gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid due_date format (YYYY-MM-DD)"})
 			return
@@ -129,7 +122,7 @@ func (h *ApiHandler) AdminUpsertTodo(gc *gin.Context) {
 	}
 
 	// Insert a new entry
-	if req.Id < 0 {
+	if payload.Id < 0 {
 		query := fmt.Sprintf(`
 			INSERT INTO %s.todo
 				(user_id, title, description, due_date, completed)
@@ -142,10 +135,10 @@ func (h *ApiHandler) AdminUpsertTodo(gc *gin.Context) {
 			ctx,
 			query,
 			userId,
-			req.Title,
-			req.Description,
+			payload.Title,
+			payload.Description,
 			duePtr,
-			req.Completed,
+			payload.Completed,
 		).Scan(&newId)
 
 		if err != nil {
@@ -165,25 +158,25 @@ func (h *ApiHandler) AdminUpsertTodo(gc *gin.Context) {
 	args := []interface{}{}
 	argIdx := 1
 
-	if req.Completed != nil {
+	if payload.Completed != nil {
 		setClauses = append(setClauses, fmt.Sprintf("completed = $%d", argIdx))
-		args = append(args, *req.Completed)
+		args = append(args, *payload.Completed)
 		argIdx++
 	}
 
-	if req.Title != nil {
+	if payload.Title != nil {
 		setClauses = append(setClauses, fmt.Sprintf("title = $%d", argIdx))
-		args = append(args, *req.Title)
+		args = append(args, *payload.Title)
 		argIdx++
 	}
 
-	if req.Description != nil {
+	if payload.Description != nil {
 		setClauses = append(setClauses, fmt.Sprintf("description = $%d", argIdx))
-		args = append(args, *req.Description)
+		args = append(args, *payload.Description)
 		argIdx++
 	}
 
-	if req.DueDate != nil {
+	if payload.DueDate != nil {
 		setClauses = append(setClauses, fmt.Sprintf("due_date = $%d", argIdx))
 		args = append(args, duePtr)
 		argIdx++
@@ -200,7 +193,7 @@ func (h *ApiHandler) AdminUpsertTodo(gc *gin.Context) {
 		WHERE user_id = $%d AND id = $%d
 	`, h.Config.DbSchema, strings.Join(setClauses, ", "), argIdx, argIdx+1)
 
-	args = append(args, userId, req.Id)
+	args = append(args, userId, payload.Id)
 
 	res, err := h.DbPool.Exec(ctx, query, args...)
 	if err != nil {
@@ -214,32 +207,23 @@ func (h *ApiHandler) AdminUpsertTodo(gc *gin.Context) {
 	}
 
 	gc.JSON(http.StatusOK, gin.H{
-		"id":      req.Id,
+		"id":      payload.Id,
 		"message": "Todo updated successfully",
 	})
 }
 
 func (h *ApiHandler) AdminDeleteTodo(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	pool := h.DbPool
-	dbSchema := h.Config.DbSchema
+	userId := h.userId(gc)
 
-	userId := gc.GetInt("user-id")
-
-	todoIdStr := gc.Param("todoId")
-	if todoIdStr == "" {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "todoId is required"})
+	todoId, ok := ParamInt(gc, "todoId")
+	if !ok {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "tidiId is required"})
 		return
 	}
 
-	todoId, err := strconv.Atoi(todoIdStr)
-	if err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "todoId must be a number"})
-		return
-	}
-
-	query := fmt.Sprintf(`DELETE FROM %s.todo WHERE user_id = $1 AND id = $2`, dbSchema)
-	res, err := pool.Exec(ctx, query, userId, todoId)
+	query := fmt.Sprintf(`DELETE FROM %s.todo WHERE user_id = $1 AND id = $2`, h.DbSchema)
+	res, err := h.DbPool.Exec(ctx, query, userId, todoId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("delete failed: %v", err)})
 		return

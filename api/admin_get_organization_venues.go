@@ -15,7 +15,7 @@ import (
 
 func (h *ApiHandler) AdminGetOrganizationVenues(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := gc.GetInt("user-id")
+	userId := h.userId(gc)
 
 	organizationId, ok := ParamInt(gc, "organizationId")
 	if !ok {

@@ -10,7 +10,7 @@ import (
 
 func (h *ApiHandler) AdminGetChoosableOrganizations(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := gc.GetInt("user-id")
+	userId := h.userId(gc)
 
 	query := app.UranusInstance.SqlAdminChoosableOrganizations
 	rows, err := h.DbPool.Query(ctx, query, userId)

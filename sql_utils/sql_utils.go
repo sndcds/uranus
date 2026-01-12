@@ -598,7 +598,7 @@ func BuildGeoRadiusCondition(
 	return startIndex + 3, nil
 }
 
-func BuildJsonbArrayIntCondition(
+func BuildJSONArrayIntCondition(
 	input string,
 	jsonbColumn string, // e.g. "ep.types"
 	jsonIndex int, // 0 = type_id, 1 = genre_id

@@ -12,7 +12,7 @@ import (
 // TODO: Review code
 
 func (h *ApiHandler) AdminDeleteUserAvatar(gc *gin.Context) {
-	userId := gc.GetInt("user-id")
+	userId := h.userId(gc)
 
 	profileImageDir := h.Config.ProfileImageDir
 	info, err := os.Stat(profileImageDir)

@@ -3,7 +3,7 @@ SELECT
     e.title,
     e.subtitle,
     e.description,
-    e.teaser_text,
+    e.summary,
     e.participation_info,
     e.languages,
     e.tags,

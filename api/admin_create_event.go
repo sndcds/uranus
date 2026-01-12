@@ -50,7 +50,7 @@ type incomingEvent struct {
 	Title                string   `json:"title" binding:"required"`
 	Description          string   `json:"description" binding:"required"`
 	Subtitle             *string  `json:"subtitle"`
-	TeaserText           *string  `json:"teaser_text"`
+	Summary              *string  `json:"summary"`
 	Tags                 []string `json:"tags"`
 	SourceUrl            *string  `json:"source_url"`
 	OnlineEventUrl       *string  `json:"online_event_url"`
@@ -82,7 +82,7 @@ type incomingEvent struct {
 
 func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := gc.GetInt("user-id")
+	userId := h.userId(gc)
 
 	// --- Read the body ---
 	body, err := io.ReadAll(gc.Request.Body)
@@ -259,7 +259,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			title,
 			subtitle,
 			description,
-			teaser_text,
+			summary,
 		  	languages,
 			created_by
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
@@ -277,7 +277,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			payload.Title,
 			payload.Subtitle,
 			payload.Description,
-			payload.TeaserText,
+			payload.Summary,
 			payload.Languages,
 			userId,
 		).Scan(&newEventId)
@@ -406,8 +406,8 @@ func (e *incomingEvent) Validate() error {
 		errs = append(errs, err.Error())
 	}
 
-	// Validate TeaserText
-	err = app.ValidateOptionalNonEmptyString("teaser_text", e.TeaserText)
+	// Validate Summary
+	err = app.ValidateOptionalNonEmptyString("summary", e.Summary)
 	if err != nil {
 		errs = append(errs, err.Error())
 	}

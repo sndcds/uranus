@@ -9,14 +9,14 @@ import (
 )
 
 // AdminChoosableUserEventOrganizations returns a list of event organizations
-// that can be selected (choosable) by an admin user. It responds with a JSON
+// that can be selected (choosable) by a user. It responds with a JSON
 // array of items.
 //
 // This endpoint is intended for administrative use only and may require
 // authentication or specific permissions.
 func (h *ApiHandler) AdminChoosableUserEventOrganizations(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := gc.GetInt("user-id")
+	userId := h.userId(gc)
 
 	// Parse organization Id from path param
 	organizationIdStr := gc.Param("organizationId")

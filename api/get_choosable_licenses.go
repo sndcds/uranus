@@ -11,7 +11,7 @@ import (
 
 func (h *ApiHandler) GetChoosableLicenses(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	// userId := gc.GetInt("user-id")
+	// userId := h.userId(gc);
 
 	langStr := gc.DefaultQuery("lang", "en")
 	useLongName := gc.DefaultQuery("long", "false") == "true"

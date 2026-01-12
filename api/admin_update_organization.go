@@ -32,7 +32,7 @@ type organizationReq struct {
 
 func (h *ApiHandler) AdminUpsertOrganization(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := gc.GetInt("user-id")
+	userId := h.userId(gc)
 
 	organizationId := ParamIntDefault(gc, "organizationId", -1)
 

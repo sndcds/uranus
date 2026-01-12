@@ -24,8 +24,7 @@ type TeamInviteClaims struct {
 
 func (h *ApiHandler) AdminOrganizationTeamInvite(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	pool := h.DbPool
-	userId := gc.GetInt("user-id")
+	userId := h.userId(gc)
 	langStr := gc.DefaultQuery("lang", "en")
 
 	organizationIdStr := gc.Param("organizationId")
@@ -47,7 +46,7 @@ func (h *ApiHandler) AdminOrganizationTeamInvite(gc *gin.Context) {
 
 	// TODO: validate email
 
-	tx, err := pool.Begin(ctx)
+	tx, err := h.DbPool.Begin(ctx)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to start transaction"})
 		return
@@ -110,7 +109,7 @@ func (h *ApiHandler) AdminOrganizationTeamInvite(gc *gin.Context) {
 	}
 
 	messageQuery := fmt.Sprintf(`SELECT subject, template FROM %s.system_email_template WHERE context = 'team-invite-email' AND iso_639_1 = $1`, h.Config.DbSchema)
-	_, err = pool.Exec(gc, messageQuery, langStr)
+	_, err = h.DbPool.Exec(gc, messageQuery, langStr)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get message template"})
 		return
@@ -131,7 +130,7 @@ func (h *ApiHandler) AdminOrganizationTeamInvite(gc *gin.Context) {
 	           INSERT INTO %s.organization_member_link (organization_id, user_id, member_role_id, accept_token, invited_at, invited_by_user_id)
 	           VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, $5)`,
 		h.Config.DbSchema)
-	_, err = pool.Exec(ctx, insertSql, organizationId, memberUserId, payload.RoleId, tokenString, userId)
+	_, err = h.DbPool.Exec(ctx, insertSql, organizationId, memberUserId, payload.RoleId, tokenString, userId)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {

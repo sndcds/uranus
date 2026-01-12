@@ -189,14 +189,14 @@ func initProjectionSQL() {
 		eventProjectionUpsertSQL = fmt.Sprintf(`
 INSERT INTO %[1]s.event_projection (
     event_id, organization_id, venue_id, space_id, location_id, release_status_id,
-    title, subtitle, description, teaser_text, image_id, languages, tags, types,
+    title, subtitle, description, summary, image_id, languages, tags, types,
     source_url, online_event_url, occasion_type_id, max_attendees, min_age, max_age,
     participation_info, meeting_point, ticket_advance, ticket_required,
     registration_required, price_type_id, currency_code, min_price, max_price,
     external_id, custom, style, search_text,
     organization_name, organization_contact_email, organization_contact_phone, organization_website_url,
-    venue_name, venue_street, venue_house_number, venue_postal_code, venue_city,
-    venue_country_code, venue_state_code, venue_geo_pos, venue_website_url,
+	venue_name, venue_street, venue_house_number, venue_postal_code, venue_city,
+	venue_country_code, venue_state_code, venue_geo_pos, venue_website_url,
     space_name, space_total_capacity, space_seating_capacity, space_type_id,
     space_building_level, space_website_url, space_accessibility_summary,
     space_accessibility_flags, space_description,
@@ -204,7 +204,7 @@ INSERT INTO %[1]s.event_projection (
 )
 SELECT DISTINCT ON (e.id)
     e.id, e.organization_id, e.venue_id, e.space_id, e.location_id, e.release_status_id,
-    e.title, e.subtitle, e.description, e.teaser_text, e.image1_id, e.languages, e.tags,
+    e.title, e.subtitle, e.description, e.summary, e.image1_id, e.languages, e.tags,
     COALESCE(
         (SELECT jsonb_agg(jsonb_build_array(type_id, genre_id))
          FROM %[1]s.event_type_link etl WHERE etl.event_id = e.id),
@@ -216,8 +216,15 @@ SELECT DISTINCT ON (e.id)
     e.price_type_id, e.currency_code, e.min_price, e.max_price,
     e.external_id, e.custom, e.style, e.search_text,
     o.name, o.contact_email, o.contact_phone, o.website_url,
-    v.name, v.street, v.house_number, v.postal_code, v.city,
-    v.country_code, v.state_code, v.wkb_pos, v.website_url,
+	COALESCE(v.name, el.name) AS venue_name,
+    COALESCE(v.street, el.street) AS venue_street,
+    COALESCE(v.house_number, el.house_number) AS venue_house_number,
+    COALESCE(v.postal_code, el.postal_code) AS venue_postal_code,
+    COALESCE(v.city, el.city) AS venue_city,
+    COALESCE(v.country_code, el.country_code) AS venue_country_code,
+    COALESCE(v.state_code, el.state_code) AS venue_state_code,
+    COALESCE(v.wkb_pos, el.wkb_pos) AS venue_geo_pos,
+    v.website_url AS venue_website_url,
     s.name, s.total_capacity, s.seating_capacity, s.space_type_id,
     s.building_level, s.website_url, s.accessibility_summary,
     s.accessibility_flags, s.description,
@@ -226,6 +233,7 @@ FROM %[1]s.event e
 LEFT JOIN %[1]s.organization o ON o.id = e.organization_id
 LEFT JOIN %[1]s.venue v ON v.id = e.venue_id
 LEFT JOIN %[1]s.space s ON s.id = e.space_id
+LEFT JOIN %[1]s.event_location el ON el.id = e.location_id
 JOIN %[1]s.event_date ed ON ed.event_id = e.id
 WHERE e.id = ANY($1)
 AND ed.start_date >= CURRENT_DATE
@@ -238,7 +246,7 @@ ON CONFLICT (event_id) DO UPDATE SET
     title = EXCLUDED.title,
     subtitle = EXCLUDED.subtitle,
     description = EXCLUDED.description,
-    teaser_text = EXCLUDED.teaser_text,
+    summary = EXCLUDED.summary,
     image_id = EXCLUDED.image_id,
     languages = EXCLUDED.languages,
     tags = EXCLUDED.tags,

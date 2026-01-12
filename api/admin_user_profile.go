@@ -11,22 +11,19 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// TODO: Review code
+// TODO: Code review
 
 func (h *ApiHandler) AdminGetUserProfile(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	pool := h.DbPool
-
-	userId := gc.GetInt("user-id")
+	userId := h.userId(gc)
 
 	// Query the user table
-	sql := strings.Replace(`
+	query := strings.Replace(`
         SELECT id, email_address, display_name, first_name, last_name, locale, theme
         FROM {{schema}}.user
         WHERE id = $1`,
 		"{{schema}}", h.Config.DbSchema, 1)
 
-	var userID int
 	var email string
 	var displayName *string
 	var firstName *string
@@ -34,8 +31,8 @@ func (h *ApiHandler) AdminGetUserProfile(gc *gin.Context) {
 	var locale *string
 	var theme *string
 
-	row := pool.QueryRow(ctx, sql, userId)
-	err := row.Scan(&userID, &email, &displayName, &firstName, &lastName, &locale, &theme)
+	row := h.DbPool.QueryRow(ctx, query, userId)
+	err := row.Scan(&userId, &email, &displayName, &firstName, &lastName, &locale, &theme)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			gc.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
@@ -54,7 +51,7 @@ func (h *ApiHandler) AdminGetUserProfile(gc *gin.Context) {
 	}
 
 	gc.JSON(http.StatusOK, gin.H{
-		"user_id":       userID,
+		"user_id":       userId,
 		"email_address": email,
 		"display_name":  displayName,
 		"first_name":    firstName,
@@ -67,11 +64,9 @@ func (h *ApiHandler) AdminGetUserProfile(gc *gin.Context) {
 
 func (h *ApiHandler) AdminUpdateUserProfile(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	pool := h.DbPool
+	userId := h.userId(gc)
 
-	userId := gc.GetInt("user-id")
-
-	// --- Parse JSON body ---
+	// Parse JSON body
 	var req struct {
 		DisplayName  string `json:"display_name"`
 		FirstName    string `json:"first_name"`
@@ -86,14 +81,14 @@ func (h *ApiHandler) AdminUpdateUserProfile(gc *gin.Context) {
 		return
 	}
 
-	// --- Basic validation ---
+	// Basic validation
 	if !strings.Contains(req.EmailAddress, "@") {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid email address"})
 		return
 	}
 
-	// --- Begin transaction ---
-	tx, err := pool.Begin(ctx)
+	// Begin transaction
+	tx, err := h.DbPool.Begin(ctx)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -101,22 +96,22 @@ func (h *ApiHandler) AdminUpdateUserProfile(gc *gin.Context) {
 	defer func() { _ = tx.Rollback(ctx) }()
 
 	// --- Check for existing email ---
-	checkSQL := fmt.Sprintf(`SELECT id FROM %s.user WHERE email_address = $1`, h.Config.DbSchema)
-	var existingUserID int
-	err = tx.QueryRow(ctx, checkSQL, req.EmailAddress).Scan(&existingUserID)
+	checkQuery := fmt.Sprintf(`SELECT id FROM %s.user WHERE email_address = $1`, h.Config.DbSchema)
+	var existingUserId int
+	err = tx.QueryRow(ctx, checkQuery, req.EmailAddress).Scan(&existingUserId)
 
 	if err != nil && err != pgx.ErrNoRows {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("failed to check existing email: %v", err)})
 		return
 	}
 
-	if err == nil && existingUserID != userId {
+	if err == nil && existingUserId != userId {
 		gc.JSON(http.StatusConflict, gin.H{"error": "email address already exists"})
 		return
 	}
 
 	// --- Update record ---
-	updateSQL := fmt.Sprintf(`
+	updateQuery := fmt.Sprintf(`
         UPDATE %s.user
         SET display_name = $1,
             first_name = $2,
@@ -129,7 +124,7 @@ func (h *ApiHandler) AdminUpdateUserProfile(gc *gin.Context) {
 
 	_, err = tx.Exec(
 		ctx,
-		updateSQL,
+		updateQuery,
 		req.DisplayName,
 		req.FirstName,
 		req.LastName,
@@ -156,8 +151,7 @@ func (h *ApiHandler) AdminUpdateUserProfile(gc *gin.Context) {
 
 func (h *ApiHandler) AdminUpdateUserProfileSettings(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	pool := h.DbPool
-	userId := gc.GetInt("user-id")
+	userId := h.userId(gc)
 
 	var req struct {
 		Locale string `json:"locale"`
@@ -169,18 +163,18 @@ func (h *ApiHandler) AdminUpdateUserProfileSettings(gc *gin.Context) {
 		return
 	}
 
-	tx, err := pool.Begin(ctx)
+	tx, err := h.DbPool.Begin(ctx)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	sql := fmt.Sprintf(`UPDATE %s.user SET locale = $1, theme = $2 WHERE id = $3`, h.Config.DbSchema)
+	query := fmt.Sprintf(`UPDATE %s.user SET locale = $1, theme = $2 WHERE id = $3`, h.Config.DbSchema)
 
 	_, err = tx.Exec(
 		ctx,
-		sql,
+		query,
 		req.Locale,
 		req.Theme,
 		userId,

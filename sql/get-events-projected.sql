@@ -45,7 +45,6 @@ SELECT
     edp.ticket_link,
     ep.title,
     ep.subtitle,
-    ep.description,
     ep.types,
     ep.languages,
     ep.tags,

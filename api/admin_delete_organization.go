@@ -3,67 +3,28 @@ package api
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sndcds/uranus/app"
 )
 
 // TODO: Review code
 
 func (h *ApiHandler) AdminDeleteOrganization(gc *gin.Context) {
-	pool := h.DbPool
 	ctx := gc.Request.Context()
-	userId := gc.GetInt("user-id")
+	userId := h.userId(gc)
 
-	// 1. Get organization Id
-	organizationIdStr := gc.Param("organizationId")
-	if organizationIdStr == "" {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Organization Id is required"})
+	if !h.VerifyUserPassword(gc, userId) {
 		return
 	}
 
-	organizationId, err := strconv.Atoi(organizationIdStr)
-	if err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid organization Id"})
+	organizationId, ok := ParamInt(gc, "organizationId")
+	if !ok {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid organizationId"})
 		return
 	}
 
-	// 2. Parse password from JSON body
-	var body struct {
-		Password string `json:"password"`
-	}
-
-	if err := gc.ShouldBindJSON(&body); err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body", "details": err.Error()})
-		return
-	}
-
-	if body.Password == "" {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Password is required"})
-		return
-	}
-
-	var passwordHash string
-	sql := fmt.Sprintf(`SELECT password_hash FROM %s.user WHERE id = $1`, h.Config.DbSchema)
-	err = pool.QueryRow(ctx, sql, userId).Scan(&passwordHash)
-	if err != nil {
-		if err.Error() == "no rows in result set" {
-			gc.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
-			return
-		}
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user", "details": err.Error()})
-		return
-	}
-
-	if app.ComparePasswords(passwordHash, body.Password) != nil {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid password"})
-		return
-	}
-
-	// 6. Delete organization
 	query := fmt.Sprintf(`DELETE FROM %s.organization WHERE id = $1`, h.Config.DbSchema)
-	cmdTag, err := pool.Exec(ctx, query, organizationId)
+	cmdTag, err := h.DbPool.Exec(ctx, query, organizationId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete organization", "details": err.Error()})
 		return
@@ -74,6 +35,5 @@ func (h *ApiHandler) AdminDeleteOrganization(gc *gin.Context) {
 		return
 	}
 
-	// 7. Success
 	gc.JSON(http.StatusOK, gin.H{"message": "Organization deleted successfully", "id": organizationId})
 }

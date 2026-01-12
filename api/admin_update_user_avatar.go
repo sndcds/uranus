@@ -13,10 +13,10 @@ import (
 	"github.com/nfnt/resize"
 )
 
-// TODO: Review code
+// TODO: Code review
 
 func (h *ApiHandler) AdminUploadUserAvatar(gc *gin.Context) {
-	userId := gc.GetInt("user-id")
+	userId := h.userId(gc)
 
 	profileImageDir := h.Config.ProfileImageDir
 	info, err := os.Stat(profileImageDir)

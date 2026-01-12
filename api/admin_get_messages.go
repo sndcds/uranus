@@ -8,22 +8,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// TODO: Review code
+// TODO: Code review
 
 func (h *ApiHandler) AdminGetMessages(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	pool := h.DbPool
+	userId := h.userId(gc)
 
-	userId := gc.GetInt("user-id")
-
-	sql := fmt.Sprintf(`
+	query := fmt.Sprintf(`
 		SELECT id, from_user_id, created_at, is_read, subject, message
 		FROM %s.message
 		WHERE to_user_id = $1
 		ORDER BY created_at DESC
 	`, h.Config.DbSchema)
 
-	rows, err := pool.Query(ctx, sql, userId)
+	rows, err := h.DbPool.Query(ctx, query, userId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("query failed: %v", err)})
 		return

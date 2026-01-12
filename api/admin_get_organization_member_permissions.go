@@ -1,5 +1,4 @@
 // File: admin_get_organization_member_permissions.go
-// Access by user-id checked, 2025-12-23, Roald
 package api
 
 import (
@@ -11,9 +10,10 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
+// Permission to use endpoint checked, 2025-12-23, Roald
 func (h *ApiHandler) AdminGetOrganizationMemberPermissions(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := gc.GetInt("user-id") // ID of the admin user making the request
+	userId := h.userId(gc)
 
 	memberId, ok := ParamInt(gc, "memberId") // ID of the user whose permissions are being requested
 	if !ok {
@@ -48,8 +48,8 @@ func (h *ApiHandler) AdminGetOrganizationMemberPermissions(gc *gin.Context) {
 			}
 		}
 
-		userIdQuery := fmt.Sprintf(
-			`SELECT oml.user_id, u.display_name
+		userIdQuery := fmt.Sprintf(`
+SELECT oml.user_id, u.display_name
 FROM %s.organization_member_link oml
 JOIN %s.user u ON u.id = oml.user_id
 WHERE oml.organization_id = $1 AND oml.id = $2`,
@@ -88,13 +88,4 @@ WHERE oml.organization_id = $1 AND oml.id = $2`,
 			"user_id":           memberUserId,
 			"user_display_name": memberUserDisplayName,
 		})
-}
-
-func isValidContext(name string) bool {
-	switch name {
-	case "organization":
-		return true
-	default:
-		return false
-	}
 }

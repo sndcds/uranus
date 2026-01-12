@@ -8,7 +8,7 @@ type AdminEvent struct {
 	Title       string  `json:"title"`
 	Subtitle    *string `json:"subtitle"`
 	Description *string `json:"description"`
-	TeaserText  *string `json:"teaser_text"`
+	Summary     *string `json:"summary"`
 
 	// Participation / Info
 	ParticipationInfo *string `json:"participation_info"`

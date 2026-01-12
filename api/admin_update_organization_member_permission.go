@@ -57,7 +57,7 @@ import (
 //   - 500 Internal Server Error: Database or transaction failure.
 func (h *ApiHandler) AdminUpdateOrganizationMemberPermission(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := gc.GetInt("user-id")
+	userId := h.userId(gc)
 
 	organizationId, ok := ParamInt(gc, "organizationId")
 	if !ok {
@@ -108,7 +108,6 @@ func (h *ApiHandler) AdminUpdateOrganizationMemberPermission(gc *gin.Context) {
 		}
 
 		// Ckeck if member is the admin user
-
 		var orgMemberLink model.OrganizationMemberLink
 		orgMemberLink.Id = memberId
 		err = tx.QueryRow(

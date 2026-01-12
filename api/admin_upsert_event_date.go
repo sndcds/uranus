@@ -13,7 +13,7 @@ import (
 
 func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := gc.GetInt("user-id")
+	userId := h.userId(gc)
 
 	fmt.Println("userId", userId)
 
@@ -31,11 +31,11 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 	}
 
 	// Convert the struct to JSON for debugging/logging
-	reqJson, err := json.MarshalIndent(req, "", "  ")
+	reqJSON, err := json.MarshalIndent(req, "", "  ")
 	if err != nil {
 		fmt.Println("Failed to marshal req:", err)
 	} else {
-		fmt.Println(string(reqJson))
+		fmt.Println(string(reqJSON))
 	}
 
 	eventDateId := ParamIntDefault(gc, "dateId", -1)

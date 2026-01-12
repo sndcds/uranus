@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 	"sync"
@@ -22,6 +23,10 @@ var (
 	onceCurrencies             sync.Once
 	onceEventOccasions         sync.Once
 )
+
+func (h *ApiHandler) userId(gc *gin.Context) int {
+	return gc.GetInt("user-id")
+}
 
 // ParamInt extracts a URL path parameter as an integer.
 // If conversion fails, returns (0, false).
@@ -178,4 +183,41 @@ func UserIdFromAccessToken(gc *gin.Context) int {
 	}
 
 	return claims.UserId
+}
+
+// VerifyUserPassword reads password from request body, validates it against user ID.
+// Returns true if password is valid, or writes JSON error response to context and returns false.
+func (h *ApiHandler) VerifyUserPassword(gc *gin.Context, userId int) bool {
+	var body struct {
+		Password string `json:"password"`
+	}
+
+	if err := gc.ShouldBindJSON(&body); err != nil {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body", "details": err.Error()})
+		return false
+	}
+
+	if body.Password == "" {
+		gc.JSON(http.StatusUnauthorized, gin.H{"error": "Password is required"})
+		return false
+	}
+
+	var passwordHash string
+	sql := fmt.Sprintf(`SELECT password_hash FROM %s.user WHERE id = $1`, h.Config.DbSchema)
+	err := h.DbPool.QueryRow(gc.Request.Context(), sql, userId).Scan(&passwordHash)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			gc.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+			return false
+		}
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user", "details": err.Error()})
+		return false
+	}
+
+	if app.ComparePasswords(passwordHash, body.Password) != nil {
+		gc.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid password"})
+		return false
+	}
+
+	return true
 }
