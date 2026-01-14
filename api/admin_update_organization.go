@@ -92,11 +92,9 @@ VALUES ($1, $2, $3)
 
 			// Insert organization_member_link
 			insertMemberQuery := fmt.Sprintf(`
-INSERT INTO %s.organization_member_link
-(organization_id, user_id, has_joined, member_role_id)
-VALUES ($1, $2, $3, $4)`,
+INSERT INTO %s.organization_member_link (organization_id, user_id, has_joined) VALUES ($1, $2, $3)`,
 				h.Config.DbSchema)
-			_, err = tx.Exec(gc, insertMemberQuery, newOrganizationId, userId, true, 1)
+			_, err = tx.Exec(gc, insertMemberQuery, newOrganizationId, userId, true)
 			if err != nil {
 				return &ApiTxError{
 					Code: http.StatusInternalServerError,

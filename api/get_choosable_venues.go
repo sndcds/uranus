@@ -5,17 +5,15 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sndcds/uranus/app"
 )
 
 // TODO: Review code
 
 func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
-	db := app.UranusInstance.MainDbPool
 	ctx := gc.Request.Context()
 
-	sql := fmt.Sprintf("SELECT id, name FROM %s.venue ORDER BY LOWER(name)", h.Config.DbSchema)
-	rows, err := db.Query(ctx, sql)
+	query := fmt.Sprintf("SELECT id, name FROM %s.venue ORDER BY LOWER(name)", h.Config.DbSchema)
+	rows, err := h.DbPool.Query(ctx, query)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

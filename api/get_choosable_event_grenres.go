@@ -12,8 +12,7 @@ import (
 
 func (h *ApiHandler) GetChoosableEventGenres(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	db := app.UranusInstance.MainDbPool
-	sql := app.UranusInstance.SqlChoosableEventGenres
+	query := app.UranusInstance.SqlChoosableEventGenres
 
 	idStr := gc.Param("id")
 	eventTypeId, err := strconv.Atoi(idStr)
@@ -22,8 +21,8 @@ func (h *ApiHandler) GetChoosableEventGenres(gc *gin.Context) {
 		return
 	}
 
-	langStr := gc.DefaultQuery("lang", "en")
-	rows, err := db.Query(ctx, sql, eventTypeId, langStr)
+	lang := gc.DefaultQuery("lang", "en")
+	rows, err := h.DbPool.Query(ctx, query, eventTypeId, lang)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

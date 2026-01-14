@@ -107,7 +107,14 @@ LEFT JOIN {{schema}}.organization o ON e.organization_id = o.id
 LEFT JOIN {{schema}}.venue v ON v.id = e.venue_id
 LEFT JOIN {{schema}}.event_location el ON e.location_id = el.id
 LEFT JOIN {{schema}}.currency cu ON cu.code = e.currency_code AND cu.iso_639_1 = $2
-JOIN {{schema}}.user_organization_link uol ON uol.organization_id = o.id AND uol.user_id = $3
+
+LEFT JOIN {{schema}}.user_organization_link uol
+ON uol.organization_id = o.id
+AND uol.user_id = $3
+
+LEFT JOIN {{schema}}.user_event_link uel
+ON uel.event_id = e.id
+AND uel.user_id = $3
 
 -- LATERAL join for space
 LEFT JOIN LATERAL (
@@ -130,5 +137,6 @@ LEFT JOIN LATERAL (
     FROM {{schema}}.pluto_image pi WHERE pi.id = e.image1_id
 ) image_data ON TRUE
 
-WHERE e.id = $1
+WHERE ((uol.permissions & $4) <> 0 OR (uel.permissions & $4) <> 0)
+AND e.id = $1
 LIMIT 1

@@ -10,17 +10,16 @@ import (
 // TODO: Review code
 
 func (h *ApiHandler) GetChoosableEventUrlTypes(gc *gin.Context) {
-	db := h.DbPool
 	ctx := gc.Request.Context()
 
 	lang := gc.DefaultQuery("lang", "en")
 
-	sql := fmt.Sprintf(
+	query := fmt.Sprintf(
 		`SELECT type_id, type_name FROM %s.url_type WHERE context = 'event' AND iso_639_1 = $1 ORDER BY LOWER(type_name)`,
 		h.Config.DbSchema,
 	)
 
-	rows, err := db.Query(ctx, sql, lang)
+	rows, err := h.DbPool.Query(ctx, query, lang)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

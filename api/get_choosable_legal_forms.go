@@ -11,12 +11,11 @@ import (
 // TODO: Review code
 
 func (h *ApiHandler) GetChoosableLegalForms(gc *gin.Context) {
-	db := app.UranusInstance.MainDbPool
 	ctx := gc.Request.Context()
 
-	langStr := gc.DefaultQuery("lang", "en")
+	lang := gc.DefaultQuery("lang", "en")
 
-	sql := fmt.Sprintf(
+	query := fmt.Sprintf(
 		`SELECT legal_form_id, name
 FROM %s.legal_form
 WHERE iso_639_1 = $1
@@ -26,7 +25,7 @@ LOWER(name)`,
 		app.UranusInstance.Config.DbSchema,
 	)
 
-	rows, err := db.Query(ctx, sql, langStr)
+	rows, err := h.DbPool.Query(ctx, query, lang)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

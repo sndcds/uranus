@@ -14,7 +14,6 @@ import (
 // TODO: Review code
 
 func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
-	pool := h.DbPool
 	ctx := gc.Request.Context()
 
 	// Parse parameters
@@ -30,10 +29,10 @@ func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 		return
 	}
 
-	langStr := gc.DefaultQuery("lang", "en")
+	lang := gc.DefaultQuery("lang", "en")
 
 	// Fetch event + date info from DB
-	eventRow, err := pool.Query(ctx, app.UranusInstance.SqlGetEvent, eventId, gc.DefaultQuery("lang", "en"))
+	eventRow, err := h.DbPool.Query(ctx, app.UranusInstance.SqlGetEvent, eventId, gc.DefaultQuery("lang", "en"))
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -47,7 +46,7 @@ func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 
 	eventData := mapRowToMap(eventRow)
 
-	dateRows, err := pool.Query(ctx, app.UranusInstance.SqlGetEventDates, eventId)
+	dateRows, err := h.DbPool.Query(ctx, app.UranusInstance.SqlGetEventDates, eventId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -99,7 +98,7 @@ func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 	uid := fmt.Sprintf("%d-%d@%s", eventId, dateId, h.Config.ICSDomain)
 	dtStamp := time.Now().UTC().Format("20060102T150405Z")
 
-	prodId := fmt.Sprintf("-//Uranus//%s", strings.ToUpper(langStr))
+	prodId := fmt.Sprintf("-//Uranus//%s", strings.ToUpper(lang))
 
 	ics := strings.Join([]string{
 		"BEGIN:VCALENDAR",

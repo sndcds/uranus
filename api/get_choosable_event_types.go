@@ -11,11 +11,10 @@ import (
 
 func (h *ApiHandler) GetChoosableEventTypes(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	db := app.UranusInstance.MainDbPool
-	sql := app.UranusInstance.SqlChoosableEventTypes
+	query := app.UranusInstance.SqlChoosableEventTypes
 
-	langStr := gc.DefaultQuery("lang", "en")
-	rows, err := db.Query(ctx, sql, langStr)
+	lang := gc.DefaultQuery("lang", "en")
+	rows, err := h.DbPool.Query(ctx, query, lang)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

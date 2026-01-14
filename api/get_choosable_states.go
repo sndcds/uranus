@@ -11,17 +11,16 @@ import (
 // TODO: Review code
 
 func (h *ApiHandler) GetChoosableStates(gc *gin.Context) {
-	db := app.UranusInstance.MainDbPool
 	ctx := gc.Request.Context()
 
 	countryCode := gc.DefaultQuery("country-code", "")
 
-	sql := fmt.Sprintf(
+	query := fmt.Sprintf(
 		`SELECT code, name FROM %s.state WHERE country_code = $1 ORDER BY name`,
 		app.UranusInstance.Config.DbSchema,
 	)
 
-	rows, err := db.Query(ctx, sql, countryCode)
+	rows, err := h.DbPool.Query(ctx, query, countryCode)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

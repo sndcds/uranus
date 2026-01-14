@@ -15,7 +15,6 @@ import (
 // TODO: Review code
 
 func (h *ApiHandler) Login(gc *gin.Context) {
-	pool := h.DbPool
 	var credentials struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -40,11 +39,11 @@ func (h *ApiHandler) Login(gc *gin.Context) {
 	var theme *string
 	var isActive bool
 
-	sql := fmt.Sprintf(
+	query := fmt.Sprintf(
 		`SELECT id, email_address, password_hash, first_name, last_name, display_name, locale, theme, is_active
 		FROM %s.user WHERE email_address = $1`,
 		h.Config.DbSchema)
-	err := pool.QueryRow(gc, sql, credentials.Email).Scan(
+	err := h.DbPool.QueryRow(gc, query, credentials.Email).Scan(
 		&userId,
 		&emailAddress,
 		&passwordHash,

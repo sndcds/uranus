@@ -28,7 +28,6 @@ func AdminEventsHandler(gc *gin.Context) {
 
 func fetchTableView(gc *gin.Context) {
 	/*
-		db := app.Singleton.MainDbPool
 		ctx := gc.Request.Context()
 		userId := h.userId(gc)
 
@@ -39,7 +38,7 @@ func fetchTableView(gc *gin.Context) {
 		}
 
 		sql_utils := app.Singleton.SqlQueryUserOrgEventsOverview
-		rows, err := db.Query(ctx, sql_utils, userId, orgID, "2020-01-01", "3000-01-01")
+		rows, err := h.DbPool.Query(ctx, sql_utils, userId, orgID, "2020-01-01", "3000-01-01")
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, err)
 			return

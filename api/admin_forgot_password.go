@@ -28,9 +28,8 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 		return
 	}
 
-	pool := h.DbPool
 	ctx := gc.Request.Context()
-	langStr := gc.DefaultQuery("lang", "en")
+	lang := gc.DefaultQuery("lang", "en")
 
 	// Look up user
 	query := fmt.Sprintf(
@@ -39,7 +38,7 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 	)
 
 	var userID int
-	err := pool.QueryRow(ctx, query, req.EmailAddress).Scan(&userID)
+	err := h.DbPool.QueryRow(ctx, query, req.EmailAddress).Scan(&userID)
 	if err != nil {
 		// Always respond the same way to avoid leaking info
 		gc.JSON(http.StatusOK, gin.H{"message": "If an account exists, a reset link has been sent."})
@@ -60,7 +59,7 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 		h.Config.DbSchema)
 
 	expiryHour := 1
-	_, err = pool.Exec(ctx, query, userID, token, time.Now().Add(time.Duration(expiryHour)*time.Hour))
+	_, err = h.DbPool.Exec(ctx, query, userID, token, time.Now().Add(time.Duration(expiryHour)*time.Hour))
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save token"})
 		return
@@ -69,14 +68,14 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 	resetUrl := gc.Request.Referer() + "app/reset-password?token=" + token
 
 	messageQuery := fmt.Sprintf(`SELECT subject, template FROM %s.system_email_template WHERE context = 'reset-email' AND iso_639_1 = $1`, h.Config.DbSchema)
-	_, err = pool.Exec(gc, messageQuery, langStr)
+	_, err = h.DbPool.Exec(gc, messageQuery, lang)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate email"})
 		return
 	}
 	var subject string
 	var template string
-	err = pool.QueryRow(gc, messageQuery, langStr).Scan(&subject, &template)
+	err = h.DbPool.QueryRow(gc, messageQuery, lang).Scan(&subject, &template)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			gc.JSON(http.StatusNotFound, gin.H{"error": "email template not found"})
@@ -112,7 +111,6 @@ func (h *ApiHandler) ResetPassword(gc *gin.Context) {
 		return
 	}
 
-	db := h.DbPool
 	ctx := gc.Request.Context()
 
 	var userId int
@@ -121,7 +119,7 @@ func (h *ApiHandler) ResetPassword(gc *gin.Context) {
 
 	query := fmt.Sprintf(`SELECT user_id, expires_at, used FROM %s.password_reset WHERE token = $1`,
 		h.Config.DbSchema)
-	err := db.QueryRow(
+	err := h.DbPool.QueryRow(
 		ctx,
 		query,
 		req.Token).Scan(&userId, &expiresAt, &used)
@@ -139,7 +137,7 @@ func (h *ApiHandler) ResetPassword(gc *gin.Context) {
 	}
 
 	// Update user password and mark token used
-	tx, _ := db.Begin(ctx)
+	tx, _ := h.DbPool.Begin(ctx)
 	defer func() { _ = tx.Rollback(ctx) }()
 
 	// Update user's password

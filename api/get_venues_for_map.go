@@ -11,12 +11,11 @@ import (
 // TODO: Add url parameter
 
 func (h *ApiHandler) GetGeojsonVenues(gc *gin.Context) {
-	db := h.DbPool
 	ctx := gc.Request.Context()
 
-	sql := app.UranusInstance.SqlGetGeojsonVenues
+	query := app.UranusInstance.SqlGetGeojsonVenues
 	// TODO: languageStr, default "en"
-	rows, err := db.Query(ctx, sql, "en")
+	rows, err := h.DbPool.Query(ctx, query, "en")
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

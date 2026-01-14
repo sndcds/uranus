@@ -203,8 +203,8 @@ func (h *ApiHandler) VerifyUserPassword(gc *gin.Context, userId int) bool {
 	}
 
 	var passwordHash string
-	sql := fmt.Sprintf(`SELECT password_hash FROM %s.user WHERE id = $1`, h.Config.DbSchema)
-	err := h.DbPool.QueryRow(gc.Request.Context(), sql, userId).Scan(&passwordHash)
+	query := fmt.Sprintf(`SELECT password_hash FROM %s.user WHERE id = $1`, h.Config.DbSchema)
+	err := h.DbPool.QueryRow(gc.Request.Context(), query, userId).Scan(&passwordHash)
 	if err != nil {
 		if err.Error() == "no rows in result set" {
 			gc.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})

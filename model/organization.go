@@ -18,8 +18,6 @@ type InvitedOrganizationMember struct {
 	InvitedBy string    `json:"invited_by"`
 	InvitedAt time.Time `json:"invited_at"`
 	Email     string    `json:"email"`
-	RoleID    int       `json:"role_id"`
-	RoleName  string    `json:"role_name"`
 }
 
 type OrganizationMemberRole struct {

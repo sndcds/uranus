@@ -40,15 +40,15 @@ func (h *ApiHandler) AdminDeleteOrganizationTeamMember(gc *gin.Context) {
 		}
 	}()
 
-	sql := fmt.Sprintf(`DELETE FROM %s.organization_member_link WHERE organization_id = $1 AND user_id = $2`, h.Config.DbSchema)
-	_, err = tx.Exec(ctx, sql, organizationId, memberUserId)
+	query := fmt.Sprintf(`DELETE FROM %s.organization_member_link WHERE organization_id = $1 AND user_id = $2`, h.Config.DbSchema)
+	_, err = tx.Exec(ctx, query, organizationId, memberUserId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete team member: " + err.Error()})
 		return
 	}
 
-	sql = fmt.Sprintf(`DELETE FROM %s.user_organization_link WHERE organization_id = $1 AND user_id = $2`, h.Config.DbSchema)
-	_, err = tx.Exec(ctx, sql, organizationId, memberUserId)
+	query = fmt.Sprintf(`DELETE FROM %s.user_organization_link WHERE organization_id = $1 AND user_id = $2`, h.Config.DbSchema)
+	_, err = tx.Exec(ctx, query, organizationId, memberUserId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete team member: " + err.Error()})
 		return

@@ -10,6 +10,15 @@ type EventType struct {
 	GenreID int `json:"genre_id"`
 }
 
+type EventPlace struct {
+	VenueId     int64   `json:"venue_id"`
+	VenueName   *string `json:"venue_name"`
+	SpaceId     *int64  `json:"space_id"`
+	SpaceName   *string `json:"space_name"`
+	City        *string `json:"city"`
+	CountryCode *string `json:"country_code"`
+}
+
 type AdminEvent struct {
 	// Core
 	EventId     int     `json:"event_id"`

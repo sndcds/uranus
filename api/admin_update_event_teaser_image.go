@@ -101,13 +101,13 @@ func (h *ApiHandler) AdminUpdateEventTeaserImage(gc *gin.Context) {
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	sql := strings.Replace(`
+	query := strings.Replace(`
         INSERT INTO {{schema}}.pluto_image (file_name, gen_file_name, width, height, mime_type, exif, alt_text, creator_name, copyright, user_id)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`, "{{schema}}", h.DbSchema, 1)
 	var plutoImageId int64
 	err = tx.QueryRow(
 		ctx,
-		sql,
+		query,
 		originalFileName,
 		generatedFileName,
 		cfg.Width, cfg.Height,
@@ -122,10 +122,10 @@ func (h *ApiHandler) AdminUpdateEventTeaserImage(gc *gin.Context) {
 		return
 	}
 
-	sql = strings.Replace(`INSERT INTO {{schema}}.event_image_link (event_id, pluto_image_id, main_image, sort_index)
+	query = strings.Replace(`INSERT INTO {{schema}}.event_image_link (event_id, pluto_image_id, main_image, sort_index)
 	VALUES ($1, $2, $3, $4)`, "{{schema}}", h.DbSchema, 1)
 
-	_, err = tx.Exec(ctx, sql, eventId, plutoImageId, true, 0)
+	_, err = tx.Exec(ctx, query, eventId, plutoImageId, true, 0)
 	if err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("insert event image failed: %v", err)})
 		return
@@ -137,7 +137,6 @@ func (h *ApiHandler) AdminUpdateEventTeaserImage(gc *gin.Context) {
 		return
 	}
 
-	// Return success
 	gc.JSON(http.StatusOK, gin.H{
 		"message":           "image updated successfully",
 		"filename":          generatedFileName,

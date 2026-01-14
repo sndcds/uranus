@@ -11,7 +11,6 @@ import (
 // TODO: Review code
 
 func (h *ApiHandler) AdminCreateSpace(gc *gin.Context) {
-	pool := h.DbPool
 	ctx := gc.Request.Context()
 
 	type UpdateRequest struct {
@@ -36,7 +35,7 @@ func (h *ApiHandler) AdminCreateSpace(gc *gin.Context) {
 	}
 
 	// Begin transaction
-	tx, err := pool.Begin(gc)
+	tx, err := h.DbPool.Begin(gc)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to start transaction"})
 		return

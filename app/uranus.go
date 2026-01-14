@@ -57,10 +57,9 @@ type Uranus struct {
 	SqlAdminGetOrganizationMembers      string
 	SqlAdminGetPermissionList           string
 	SqlQueryUserOrgEventsOverview       string
-	SqlAdminUserPermissions             string
-	SqlAdminGetUserEventNotification    string
+	SqlAdminGetUserEventNotifications   string
 	SqlAdminChoosableOrganizations      string
-	SqlAdminChoosableUserVenuesSpaces   string
+	SqlAdminGetChoosableUserEventPlaces string
 	SqlAdminEvent                       string
 	SqlAdminSpacesForEvent              string
 	SqlInsertPlutoImage                 string
@@ -230,13 +229,12 @@ func (app *Uranus) PrepareSql() error {
 		{"sql/admin-get-event-dates.sql", &app.SqlAdminGetEventDates, nil},
 		{"sql/admin-get-event-types.sql", &app.SqlAdminGetEventTypes, nil},
 
-		{"sql/admin-user-permissions.sql", &app.SqlAdminUserPermissions, nil},
-		{"sql/admin-get-user-event-notification.sql", &app.SqlAdminGetUserEventNotification, nil},
+		{"sql/admin-get-user-event-notifications.sql", &app.SqlAdminGetUserEventNotifications, nil},
 
 		{"sql/admin-user-spaces-for-event.sql", &app.SqlAdminSpacesForEvent, nil},
 
 		{"sql/admin-choosable-organizations.sql", &app.SqlAdminChoosableOrganizations, nil},
-		{"sql/admin-choosable-user-venues-spaces.sql", &app.SqlAdminChoosableUserVenuesSpaces, nil},
+		{"sql/admin-get-choosable-user-event-places.sql", &app.SqlAdminGetChoosableUserEventPlaces, nil},
 
 		{"sql/admin-get-organization-dashboard.sql", &app.SqlAdminGetOrganizationDashboard, nil},
 		{"sql/admin-get-organization-events.sql", &app.SqlAdminGetOrganizationEvents, nil},

@@ -25,10 +25,10 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 		return
 	}
 
-	langStr := gc.DefaultQuery("lang", "en")
+	lang := gc.DefaultQuery("lang", "en")
 
 	// Query event-level data without event dates
-	eventRow, err := h.DbPool.Query(ctx, app.UranusInstance.SqlGetEvent, eventId, langStr)
+	eventRow, err := h.DbPool.Query(ctx, app.UranusInstance.SqlGetEvent, eventId, lang)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

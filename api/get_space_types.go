@@ -1,36 +1,26 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sndcds/uranus/app"
 )
 
-// TODO: Review code
-
-func (h *ApiHandler) GetSpaceTypes(gc *gin.Context) {
-	pool := app.UranusInstance.MainDbPool
+func (h *ApiHandler) GetChoosableSpaceTypes(gc *gin.Context) {
 	ctx := gc.Request.Context()
 
-	// Get optional language from query param, default to "en"
-	lang := gc.Query("lang")
-	if lang == "" {
-		lang = "en"
-	}
+	lang := gc.DefaultQuery("lang", "en")
 
 	// SQL query
-	sqlQuery := `
-		SELECT id, name 
-		FROM {{schema}}.space_type 
+	query := fmt.Sprintf(`
+		SELECT type_id, name 
+		FROM %s.space_type 
 		WHERE iso_639_1 = $1
-		ORDER BY LOWER(name)
-	`
-	sqlQuery = strings.Replace(sqlQuery, "{{schema}}", app.UranusInstance.Config.DbSchema, 1)
-
-	// Todo: Support language
-	rows, err := pool.Query(ctx, sqlQuery, lang)
+		ORDER BY LOWER(name)`, h.DbSchema)
+	fmt.Println(query)
+	rows, err := h.DbPool.Query(ctx, query, lang)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

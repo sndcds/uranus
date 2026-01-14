@@ -21,7 +21,8 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 
 	lang := gc.DefaultQuery("lang", "en")
 
-	row := h.DbPool.QueryRow(ctx, app.UranusInstance.SqlAdminGetEvent, eventId, lang, userId)
+	permission := app.PermEditEvent | app.PermViewEventInsights
+	row := h.DbPool.QueryRow(ctx, app.UranusInstance.SqlAdminGetEvent, eventId, lang, userId, permission)
 
 	var event model.AdminEvent
 	err := row.Scan(

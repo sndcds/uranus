@@ -12,7 +12,6 @@ import (
 // TODO: Review code
 
 func (h *ApiHandler) GetChoosableVenueSpaces(gc *gin.Context) {
-	db := app.UranusInstance.MainDbPool
 	ctx := gc.Request.Context()
 
 	venueIdStr := gc.Param("venueId")
@@ -22,8 +21,8 @@ func (h *ApiHandler) GetChoosableVenueSpaces(gc *gin.Context) {
 		return
 	}
 
-	sql := app.UranusInstance.SqlChoosableVenueSpaces
-	rows, err := db.Query(ctx, sql, venueId)
+	query := app.UranusInstance.SqlChoosableVenueSpaces
+	rows, err := h.DbPool.Query(ctx, query, venueId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

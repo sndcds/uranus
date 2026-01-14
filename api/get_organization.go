@@ -10,7 +10,6 @@ import (
 // TODO: Review code
 
 func (h *ApiHandler) GetOrganization(gc *gin.Context) {
-	pool := h.DbPool
 	ctx := gc.Request.Context()
 
 	organizationId, ok := ParamInt(gc, "organizationId")
@@ -20,7 +19,7 @@ func (h *ApiHandler) GetOrganization(gc *gin.Context) {
 	}
 
 	query := app.UranusInstance.SqlGetOrganization
-	rows, err := pool.Query(ctx, query, organizationId)
+	rows, err := h.DbPool.Query(ctx, query, organizationId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

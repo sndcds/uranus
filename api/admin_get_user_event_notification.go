@@ -12,14 +12,14 @@ import (
 // PermissionChecks: Unnecessary.
 // Verified: 2026-01-12, Roald
 
-func (h *ApiHandler) AdminGetUserEventNotification(gc *gin.Context) {
+func (h *ApiHandler) AdminGetUserEventNotifications(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
 
 	releaseDateDaysLeft := 14
 	firstEventDateDaysLeft := 30
 
-	query := app.UranusInstance.SqlAdminGetUserEventNotification
+	query := app.UranusInstance.SqlAdminGetUserEventNotifications
 	rows, err := h.DbPool.Query(ctx, query, userId, releaseDateDaysLeft, firstEventDateDaysLeft)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -27,28 +27,28 @@ func (h *ApiHandler) AdminGetUserEventNotification(gc *gin.Context) {
 	}
 	defer rows.Close()
 
-	events := []model.UserEventNotification{}
+	notifications := []model.UserEventNotification{}
 
 	for rows.Next() {
-		var e model.UserEventNotification
+		var notification model.UserEventNotification
 		// Scan all columns returned by your SQL query
 		err := rows.Scan(
-			&e.EventId,
-			&e.EventTitle,
-			&e.OrganizationId,
-			&e.OrganizationName,
-			&e.ReleaseDate,
-			&e.ReleaseStatusId,
-			&e.EarliestEventDate,
-			&e.LatestEventDate,
-			&e.DaysUntilRelease,
-			&e.DaysUntilEvent,
+			&notification.EventId,
+			&notification.EventTitle,
+			&notification.OrganizationId,
+			&notification.OrganizationName,
+			&notification.ReleaseDate,
+			&notification.ReleaseStatusId,
+			&notification.EarliestEventDate,
+			&notification.LatestEventDate,
+			&notification.DaysUntilRelease,
+			&notification.DaysUntilEvent,
 		)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		events = append(events, e)
+		notifications = append(notifications, notification)
 	}
 
 	if rows.Err() != nil {
@@ -56,5 +56,10 @@ func (h *ApiHandler) AdminGetUserEventNotification(gc *gin.Context) {
 		return
 	}
 
-	gc.JSON(http.StatusOK, events)
+	result := map[string]interface{}{
+		"notifications": notifications,
+		"total_count":   len(notifications),
+	}
+
+	gc.JSON(http.StatusOK, result)
 }

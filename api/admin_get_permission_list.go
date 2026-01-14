@@ -11,13 +11,13 @@ import (
 
 // TODO: Code review
 
-func (h *ApiHandler) AdminGetPermissionList(gc *gin.Context) {
+func (h *ApiHandler) AdminGetPermissionsList(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	langStr := gc.DefaultQuery("lang", "en")
+	lang := gc.DefaultQuery("lang", "en")
 
 	var permissionsJSON []byte
 
-	err := h.DbPool.QueryRow(ctx, app.UranusInstance.SqlAdminGetPermissionList, langStr).Scan(&permissionsJSON)
+	err := h.DbPool.QueryRow(ctx, app.UranusInstance.SqlAdminGetPermissionList, lang).Scan(&permissionsJSON)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			permissionsJSON = []byte("{}")

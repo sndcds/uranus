@@ -23,9 +23,9 @@ func (h *ApiHandler) AdminDeleteEvent(gc *gin.Context) {
 		return
 	}
 
-	deleteSql := fmt.Sprintf(`DELETE FROM %s.event WHERE id = $1`, h.Config.DbSchema)
+	query := fmt.Sprintf(`DELETE FROM %s.event WHERE id = $1`, h.Config.DbSchema)
 
-	cmdTag, err := h.DbPool.Exec(ctx, deleteSql, eventId)
+	cmdTag, err := h.DbPool.Exec(ctx, query, eventId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete event", "details": err.Error()})
 		return

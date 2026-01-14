@@ -53,7 +53,8 @@ func (h *ApiHandler) AdminGetTodos(gc *gin.Context) {
 	}
 
 	gc.JSON(http.StatusOK, gin.H{
-		"todos": todos,
+		"todos":       todos,
+		"total_count": len(todos),
 	})
 }
 

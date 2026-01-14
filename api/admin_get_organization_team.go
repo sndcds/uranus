@@ -22,8 +22,6 @@ func (h *ApiHandler) AdminGetOrganizationTeam(gc *gin.Context) {
 		return
 	}
 
-	langStr := gc.DefaultQuery("lang", "en")
-
 	members := []model.OrganizationMember{}
 	invitedMembers := []model.InvitedOrganizationMember{}
 
@@ -78,16 +76,14 @@ func (h *ApiHandler) AdminGetOrganizationTeam(gc *gin.Context) {
 			oml.user_id,
 			COALESCE(iu.display_name, iu.first_name || ' ' || iu.last_name) AS invited_by,
 			oml.invited_at,
-			u.email_address AS email,
-			oml.member_role_id AS role_id,
-			tmr.name AS role_name
+			u.email_address AS email
 		FROM %s.organization_member_link oml
 		JOIN %s.user iu ON iu.id = oml.invited_by_user_id
 		JOIN %s.user u ON u.id = oml.user_id
-		JOIN %s.team_member_role tmr ON tmr.type_id = oml.member_role_id AND tmr.iso_639_1 = $2
 		WHERE oml.organization_id = $1 AND has_joined = false`,
-			h.Config.DbSchema, h.Config.DbSchema, h.Config.DbSchema, h.Config.DbSchema)
-		rows, err := tx.Query(ctx, invitedMemberQuery, organizationId, langStr)
+			h.Config.DbSchema, h.Config.DbSchema, h.Config.DbSchema)
+		fmt.Println(invitedMemberQuery)
+		rows, err := tx.Query(ctx, invitedMemberQuery, organizationId)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
@@ -98,7 +94,7 @@ func (h *ApiHandler) AdminGetOrganizationTeam(gc *gin.Context) {
 
 		for rows.Next() {
 			var m model.InvitedOrganizationMember
-			err = rows.Scan(&m.UserID, &m.InvitedBy, &m.InvitedAt, &m.Email, &m.RoleID, &m.RoleName)
+			err = rows.Scan(&m.UserID, &m.InvitedBy, &m.InvitedAt, &m.Email)
 			if err != nil {
 				return &ApiTxError{
 					Code: http.StatusInternalServerError,

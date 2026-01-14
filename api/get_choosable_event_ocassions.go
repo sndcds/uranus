@@ -11,7 +11,6 @@ import (
 
 func (h *ApiHandler) GetChoosableEventOccasions(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	dbPool := h.DbPool
 
 	onceEventOccasions.Do(func() {
 		eventOccasionsOptionsQuery = fmt.Sprintf(`
@@ -20,9 +19,9 @@ func (h *ApiHandler) GetChoosableEventOccasions(gc *gin.Context) {
 			h.Config.DbSchema)
 	})
 
-	langStr := gc.DefaultQuery("lang", "en")
+	lang := gc.DefaultQuery("lang", "en")
 
-	rows, err := dbPool.Query(ctx, eventOccasionsOptionsQuery, langStr)
+	rows, err := h.DbPool.Query(ctx, eventOccasionsOptionsQuery, lang)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sndcds/uranus/app"
+	"github.com/sndcds/uranus/model"
 )
 
 // Permission note:
@@ -16,11 +17,11 @@ import (
 // user are returned.
 // Verified: 2026-01-11, Roald
 
-func (h *ApiHandler) AdminChoosableUserVenuesSpaces(gc *gin.Context) {
+func (h *ApiHandler) AdminGetChoosableUserEventPlaces(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
 
-	query := app.UranusInstance.SqlAdminChoosableUserVenuesSpaces
+	query := app.UranusInstance.SqlAdminGetChoosableUserEventPlaces
 	rows, err := h.DbPool.Query(ctx, query, userId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -28,19 +29,10 @@ func (h *ApiHandler) AdminChoosableUserVenuesSpaces(gc *gin.Context) {
 	}
 	defer rows.Close()
 
-	type Place struct {
-		VenueId     int64   `json:"venue_id"`
-		VenueName   *string `json:"venue_name"`
-		SpaceId     *int64  `json:"space_id"`
-		SpaceName   *string `json:"space_name"`
-		City        *string `json:"city"`
-		CountryCode *string `json:"country_code"`
-	}
-
-	var places []Place
+	var places []model.EventPlace
 
 	for rows.Next() {
-		var place Place
+		var place model.EventPlace
 		err := rows.Scan(
 			&place.VenueId,
 			&place.VenueName,
@@ -61,9 +53,14 @@ func (h *ApiHandler) AdminChoosableUserVenuesSpaces(gc *gin.Context) {
 	}
 
 	if len(places) == 0 {
-		gc.JSON(http.StatusOK, []Place{}) // Returns empty array
+		gc.JSON(http.StatusOK, []model.EventPlace{}) // Returns empty array
 		return
 	}
 
-	gc.JSON(http.StatusOK, places)
+	result := map[string]interface{}{
+		"places":      places,
+		"total_count": len(places),
+	}
+
+	gc.JSON(http.StatusOK, result)
 }

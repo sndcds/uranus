@@ -11,7 +11,6 @@ import (
 
 func (h *ApiHandler) GetChoosablePriceTypes(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	dbPool := h.DbPool
 
 	oncePriceTypes.Do(func() {
 		priceTypesOptionsQuery = fmt.Sprintf(`
@@ -20,9 +19,9 @@ func (h *ApiHandler) GetChoosablePriceTypes(gc *gin.Context) {
 			h.Config.DbSchema)
 	})
 
-	langStr := gc.DefaultQuery("lang", "en")
+	lang := gc.DefaultQuery("lang", "en")
 
-	rows, err := dbPool.Query(ctx, priceTypesOptionsQuery, langStr)
+	rows, err := h.DbPool.Query(ctx, priceTypesOptionsQuery, lang)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

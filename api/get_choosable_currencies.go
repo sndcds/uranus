@@ -11,7 +11,6 @@ import (
 
 func (h *ApiHandler) GetChoosableCurrencies(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	dbPool := h.DbPool
 
 	onceCurrencies.Do(func() {
 		currenciesOptionsQuery = fmt.Sprintf(`
@@ -19,9 +18,9 @@ func (h *ApiHandler) GetChoosableCurrencies(gc *gin.Context) {
 			h.Config.DbSchema)
 	})
 
-	langStr := gc.DefaultQuery("lang", "en")
+	lang := gc.DefaultQuery("lang", "en")
 
-	rows, err := dbPool.Query(ctx, currenciesOptionsQuery, langStr)
+	rows, err := h.DbPool.Query(ctx, currenciesOptionsQuery, lang)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

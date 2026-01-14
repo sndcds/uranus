@@ -100,7 +100,7 @@ func main() {
 	publicRoute.GET("/choosable-venues", apiHandler.GetChoosableVenues)
 	publicRoute.GET("/choosable-organizations", apiHandler.GetChoosableOrganizations)
 	publicRoute.GET("/choosable-venues/organization/:organizationId", apiHandler.GetChoosableOrganizationVenues)
-	publicRoute.GET("/choosable-space-types", apiHandler.GetSpaceTypes)
+	publicRoute.GET("/choosable-space-types", apiHandler.GetChoosableSpaceTypes)
 	publicRoute.GET("/choosable-spaces/venue/:venueId", apiHandler.GetChoosableVenueSpaces)
 	publicRoute.GET("/choosable-event-types", apiHandler.GetChoosableEventTypes)
 	publicRoute.GET("/choosable-event-genres/event-type/:id", apiHandler.GetChoosableEventGenres)
@@ -132,60 +132,56 @@ func main() {
 	// Authorized endpoints, user must be logged in
 	adminRoute := router.Group("/api/admin", app.JWTMiddleware)
 
+	adminRoute.GET("/permissions/list", apiHandler.AdminGetPermissionsList)
+
 	adminRoute.POST("/refresh", apiHandler.Refresh)
 
-	adminRoute.GET("/user/me", apiHandler.AdminGetUserProfile)
-	adminRoute.PUT("/user/me", apiHandler.AdminUpdateUserProfile)
-	adminRoute.PUT("/user/me/settings", apiHandler.AdminUpdateUserProfileSettings)
-	adminRoute.POST("/user/me/avatar", apiHandler.AdminUploadUserAvatar)
-	adminRoute.DELETE("/user/me/avatar", apiHandler.AdminDeleteUserAvatar)
-	adminRoute.GET("/user/me/permissions", apiHandler.AdminUserPermissions)
+	// User
+	adminRoute.GET("/user/profile", apiHandler.AdminGetUserProfile)
+	adminRoute.PUT("/user/profile", apiHandler.AdminUpdateUserProfile)
+	adminRoute.PUT("/user/settings", apiHandler.AdminUpdateUserProfileSettings)
+	adminRoute.POST("/user/avatar", apiHandler.AdminUploadUserAvatar)
+	adminRoute.DELETE("/user/avatar", apiHandler.AdminDeleteUserAvatar)
+	adminRoute.GET("/user/messages", apiHandler.AdminGetMessages)
+	adminRoute.POST("/user/send-message", apiHandler.AdminSendMessage)
+	adminRoute.GET("/user/todos", apiHandler.AdminGetTodos)
+	adminRoute.GET("/user/todo/:todoId", apiHandler.AdminGetTodo)
+	adminRoute.PUT("/user/todo", apiHandler.AdminUpsertTodo)
+	adminRoute.DELETE("/user/todo/:todoId", apiHandler.AdminDeleteTodo)
+	adminRoute.GET("/user/event/notifications", apiHandler.AdminGetUserEventNotifications)
+	adminRoute.GET("/user/choosable-organizations", apiHandler.AdminGetChoosableOrganizations)
+	adminRoute.GET("/user/choosable-event-places", apiHandler.AdminGetChoosableUserEventPlaces)
 
-	adminRoute.POST("/send-message", apiHandler.AdminSendMessage)
-	adminRoute.GET("/messages", apiHandler.AdminGetMessages)
-
-	adminRoute.GET("/todos", apiHandler.AdminGetTodos)
-	adminRoute.GET("/todo/:todoId", apiHandler.AdminGetTodo)
-	adminRoute.PUT("/todo", apiHandler.AdminUpsertTodo)
-	adminRoute.DELETE("/todo/:todoId", apiHandler.AdminDeleteTodo)
-
-	adminRoute.GET("/permission/list", apiHandler.AdminGetPermissionList)
-
+	// Organisation
 	adminRoute.GET("/organization/:organizationId/member/:memberId/permissions", apiHandler.AdminGetOrganizationMemberPermissions)
-	adminRoute.PUT("/organization/:organizationId/member/:memberId/permission", apiHandler.AdminUpdateOrganizationMemberPermission)
-
-	adminRoute.GET("/user/event/notification", apiHandler.AdminGetUserEventNotification)
-
-	adminRoute.GET("/choosable-organizations", apiHandler.AdminGetChoosableOrganizations)
-	adminRoute.GET("/user/choosable-venues-spaces", apiHandler.AdminChoosableUserVenuesSpaces)
-
+	adminRoute.PUT("/organization/:organizationId/member/:memberId/permissions", apiHandler.AdminUpdateOrganizationMemberPermissions)
 	adminRoute.GET("/organization/:organizationId", apiHandler.AdminGetOrganization)
 	adminRoute.PUT("/organization", apiHandler.AdminUpsertOrganization)
 	adminRoute.PUT("/organization/:organizationId", apiHandler.AdminUpsertOrganization)
 	adminRoute.DELETE("/organization/:organizationId", apiHandler.AdminDeleteOrganization)
-
 	adminRoute.GET("/organization/dashboard", apiHandler.AdminGetOrganizationDashboard)
 	adminRoute.GET("/organization/:organizationId/venues", apiHandler.AdminGetOrganizationVenues)
 	adminRoute.GET("/organization/:organizationId/events", apiHandler.AdminGetOrganizationEvents)
-
 	adminRoute.GET("/organization/:organizationId/team", apiHandler.AdminGetOrganizationTeam)
 	adminRoute.POST("/organization/:organizationId/team/invite", apiHandler.AdminOrganizationTeamInvite)
 	adminRoute.DELETE("/organization/:organizationId/team/member/:memberId", apiHandler.AdminDeleteOrganizationTeamMember)
 	adminRoute.POST("/organization/team/invite/accept", apiHandler.AdminOrganizationTeamInviteAccept)
 
+	// Venue
 	adminRoute.GET("/venue/:venueId", apiHandler.AdminGetVenue)
 	adminRoute.PUT("/venue", apiHandler.AdminUpsertVenue)
 	adminRoute.PUT("/venue/:venueId", apiHandler.AdminUpsertVenue)
 	adminRoute.DELETE("/venue/:venueId", apiHandler.AdminDeleteVenue)
 
+	// Space
 	adminRoute.GET("/space/:spaceId", apiHandler.AdminGetSpace)
 	adminRoute.PUT("/space", apiHandler.AdminUpsertSpace)
 	adminRoute.PUT("/space/:spaceId", apiHandler.AdminUpsertSpace)
 	adminRoute.DELETE("/space/:spaceId", apiHandler.AdminDeleteSpace)
 
+	// Event
 	adminRoute.GET("/event/:eventId", apiHandler.AdminGetEvent) // .....
 	adminRoute.DELETE("/event/:eventId", apiHandler.AdminDeleteEvent)
-
 	adminRoute.POST("/event/:eventId/date", apiHandler.AdminUpsertEventDate)
 	adminRoute.PUT("/event/:eventId/date/:dateId", apiHandler.AdminUpsertEventDate)
 	adminRoute.DELETE("/event/:eventId/date/:dateId", apiHandler.AdminDeleteEventDate)

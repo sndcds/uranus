@@ -25,9 +25,6 @@ func (h *ApiHandler) AdminGetSpace(gc *gin.Context) {
 	}
 
 	query := app.UranusInstance.SqlAdminGetSpace
-	fmt.Println(query)
-	fmt.Println("spaceId:", spaceId)
-	fmt.Println("userId:", userId)
 
 	rows, err := h.DbPool.Query(ctx, query, spaceId, userId)
 	if err != nil {

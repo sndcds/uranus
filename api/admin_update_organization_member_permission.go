@@ -21,7 +21,7 @@ import (
 // Safeguards against self-escalation are applied.
 // Verified: 2026-01-11, Roald
 
-// AdminUpdateOrganizationMemberPermission updates a single permission bit
+// AdminUpdateOrganizationMemberPermissions updates a single permission bit
 // for a member of an organization.
 //
 // This endpoint allows an authorized organization administrator to enable
@@ -62,7 +62,7 @@ import (
 //   - 403 Forbidden: Caller lacks sufficient permissions.
 //   - 404 Not Found: Target member does not exist in the organization.
 //   - 500 Internal Server Error: Database or transaction failure.
-func (h *ApiHandler) AdminUpdateOrganizationMemberPermission(gc *gin.Context) {
+func (h *ApiHandler) AdminUpdateOrganizationMemberPermissions(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
 

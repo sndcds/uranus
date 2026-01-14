@@ -25,8 +25,8 @@ func (h *ApiHandler) AdminGetChoosableOrganizations(gc *gin.Context) {
 	defer rows.Close()
 
 	type Organization struct {
-		Id   int64   `json:"organization_id"`
-		Name *string `json:"organization_name"`
+		Id   int64   `json:"id"`
+		Name *string `json:"name"`
 	}
 
 	var organizations []Organization
@@ -52,5 +52,10 @@ func (h *ApiHandler) AdminGetChoosableOrganizations(gc *gin.Context) {
 		return
 	}
 
-	gc.JSON(http.StatusOK, organizations)
+	result := map[string]interface{}{
+		"organizations": organizations,
+		"total_count":   len(organizations),
+	}
+
+	gc.JSON(http.StatusOK, result)
 }

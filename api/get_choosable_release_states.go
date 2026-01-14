@@ -11,12 +11,11 @@ import (
 
 func (h *ApiHandler) GetChoosableReleaseStates(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	db := h.DbPool
 
-	sql := fmt.Sprintf(`SELECT status_id, name FROM %s.event_status WHERE iso_639_1 = $1 ORDER BY status_id`, h.Config.DbSchema)
+	query := fmt.Sprintf(`SELECT status_id, name FROM %s.event_status WHERE iso_639_1 = $1 ORDER BY status_id`, h.Config.DbSchema)
 
-	langStr := gc.DefaultQuery("lang", "en")
-	rows, err := db.Query(ctx, sql, langStr)
+	lang := gc.DefaultQuery("lang", "en")
+	rows, err := h.DbPool.Query(ctx, query, lang)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

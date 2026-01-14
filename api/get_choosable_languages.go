@@ -11,17 +11,16 @@ import (
 // TODO: Review code
 
 func (h *ApiHandler) GetChoosableLanguages(gc *gin.Context) {
-	db := app.UranusInstance.MainDbPool
 	ctx := gc.Request.Context()
 
 	lang := gc.DefaultQuery("lang", "en")
 
-	sql := fmt.Sprintf(
+	query := fmt.Sprintf(
 		`SELECT code_iso_639_1, name FROM %s.language WHERE name_iso_639_1 = $1 ORDER BY name`,
 		app.UranusInstance.Config.DbSchema,
 	)
 
-	rows, err := db.Query(ctx, sql, lang)
+	rows, err := h.DbPool.Query(ctx, query, lang)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sndcds/uranus/app"
 )
 
 // TODO: Review code
@@ -20,7 +19,6 @@ type Organization struct {
 }
 
 func (h *ApiHandler) GetOrganizations(gc *gin.Context) {
-	pool := app.UranusInstance.MainDbPool
 	ctx := gc.Request.Context()
 
 	searchStr := strings.TrimSpace(gc.Query("search"))
@@ -38,7 +36,7 @@ func (h *ApiHandler) GetOrganizations(gc *gin.Context) {
 	}
 
 	searchPattern := "%" + searchStr + "%"
-	rows, err := pool.Query(ctx, query, searchPattern)
+	rows, err := h.DbPool.Query(ctx, query, searchPattern)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

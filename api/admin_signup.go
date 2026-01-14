@@ -18,7 +18,7 @@ import (
 
 // Permission to use endpoint checked, 2026-01-11, Roald
 func (h *ApiHandler) Signup(gc *gin.Context) {
-	langStr := gc.DefaultQuery("lang", "en")
+	lang := gc.DefaultQuery("lang", "en")
 
 	// Parse incoming JSON
 	var req struct {
@@ -96,14 +96,14 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 	}
 
 	messageQuery := fmt.Sprintf(`SELECT subject, template FROM %s.system_email_template WHERE context = 'activate-email' AND iso_639_1 = $1`, h.Config.DbSchema)
-	_, err = h.DbPool.Exec(gc, messageQuery, langStr)
+	_, err = h.DbPool.Exec(gc, messageQuery, lang)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create user"})
 		return
 	}
 	var subject string
 	var template string
-	err = h.DbPool.QueryRow(gc, messageQuery, langStr).Scan(&subject, &template)
+	err = h.DbPool.QueryRow(gc, messageQuery, lang).Scan(&subject, &template)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			gc.JSON(http.StatusNotFound, gin.H{"error": "email template not found"})
