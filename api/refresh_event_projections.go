@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/sndcds/pluto"
 	"github.com/sndcds/uranus/app"
 )
 
@@ -31,7 +32,6 @@ func RefreshEventProjections(
 	sourceTable string,
 	ids []int,
 ) error {
-
 	if len(ids) == 0 {
 		return nil
 	}
@@ -46,7 +46,7 @@ func RefreshEventProjections(
 		return fmt.Errorf("unsupported source table: %s", sourceTable)
 	}
 
-	// --- Refresh events ---
+	// Refresh events
 	if q.EventIds != "" {
 		eventIds, err := fetchIds(ctx, tx, q.EventIds, ids)
 		if err != nil {
@@ -60,7 +60,7 @@ func RefreshEventProjections(
 		}
 	}
 
-	// --- Refresh event dates ---
+	// Refresh event dates
 	if q.EventDateIds != "" {
 		eventDateIds, err := fetchIds(ctx, tx, q.EventDateIds, ids)
 		if err != nil {
@@ -75,6 +75,15 @@ func RefreshEventProjections(
 	}
 
 	return nil
+}
+
+func RefreshEventProjectionsCallback(
+	entity string,
+	ids []int,
+) pluto.TxFunc {
+	return func(ctx context.Context, tx pgx.Tx) error {
+		return RefreshEventProjections(ctx, tx, entity, ids)
+	}
 }
 
 func upsertEventProjection(ctx context.Context, tx pgx.Tx, eventIDs []int) error {
@@ -152,7 +161,7 @@ func initQueries() {
 				EventIds: fmt.Sprintf(`
 					SELECT id
 					FROM %s.event
-					WHERE image1_id = ANY($1)
+					WHERE image_ids[1] = ANY($1)
 				`, schema),
 
 				EventDateIds: "", // image does not affect event_date
@@ -188,61 +197,107 @@ func initProjectionSQL() {
 	initProjectionQueries.Do(func() {
 		eventProjectionUpsertSQL = fmt.Sprintf(`
 INSERT INTO %[1]s.event_projection (
-    event_id, organization_id, venue_id, space_id, location_id, release_status_id,
+    event_id, organization_id, venue_id, space_id, location_id, release_status,
     title, subtitle, description, summary, image_id, languages, tags, types,
     source_url, online_event_url, occasion_type_id, max_attendees, min_age, max_age,
     participation_info, meeting_point, ticket_advance, ticket_required,
-    registration_required, price_type_id, currency_code, min_price, max_price,
+    registration_required, price_type, currency, min_price, max_price,
     external_id, custom, style, search_text,
     organization_name, organization_contact_email, organization_contact_phone, organization_website_url,
-	venue_name, venue_street, venue_house_number, venue_postal_code, venue_city,
-	venue_country_code, venue_state_code, venue_geo_pos, venue_website_url,
+    venue_name, venue_street, venue_house_number, venue_postal_code, venue_city,
+    venue_country, venue_state, venue_geo_pos, venue_website_url,
     space_name, space_total_capacity, space_seating_capacity, space_type_id,
     space_building_level, space_website_url, space_accessibility_summary,
     space_accessibility_flags, space_description,
     created_at, modified_at
 )
 SELECT DISTINCT ON (e.id)
-    e.id, e.organization_id, e.venue_id, e.space_id, e.location_id, e.release_status_id,
-    e.title, e.subtitle, e.description, e.summary, e.image1_id, e.languages, e.tags,
+    e.id,
+    e.organization_id,
+    e.venue_id,
+    e.space_id,
+    e.location_id,
+    e.release_status,
+    e.title,
+    e.subtitle,
+    e.description,
+    e.summary,
+    main_image.pluto_image_id AS image_id, -- << refactored here
+    e.languages,
+    e.tags,
     COALESCE(
         (SELECT jsonb_agg(jsonb_build_array(type_id, genre_id))
          FROM %[1]s.event_type_link etl WHERE etl.event_id = e.id),
         '[]'::jsonb
     ),
-    e.source_url, e.online_event_url, e.occasion_type_id, e.max_attendees,
-    e.min_age, e.max_age, e.participation_info, e.meeting_point,
-    e.ticket_advance, e.ticket_required, e.registration_required,
-    e.price_type_id, e.currency_code, e.min_price, e.max_price,
-    e.external_id, e.custom, e.style, e.search_text,
-    o.name, o.contact_email, o.contact_phone, o.website_url,
-	COALESCE(v.name, el.name) AS venue_name,
+    e.source_url,
+    e.online_event_url,
+    e.occasion_type_id,
+    e.max_attendees,
+    e.min_age,
+    e.max_age,
+    e.participation_info,
+    e.meeting_point,
+    e.ticket_advance,
+    e.ticket_required,
+    e.registration_required,
+    e.price_type,
+    e.currency,
+    e.min_price,
+    e.max_price,
+    e.external_id,
+    e.custom,
+    e.style,
+    e.search_text,
+    o.name,
+    o.contact_email,
+    o.contact_phone,
+    o.website_url,
+    COALESCE(v.name, el.name) AS venue_name,
     COALESCE(v.street, el.street) AS venue_street,
     COALESCE(v.house_number, el.house_number) AS venue_house_number,
     COALESCE(v.postal_code, el.postal_code) AS venue_postal_code,
     COALESCE(v.city, el.city) AS venue_city,
-    COALESCE(v.country_code, el.country_code) AS venue_country_code,
-    COALESCE(v.state_code, el.state_code) AS venue_state_code,
+    COALESCE(v.country, el.country) AS venue_country,
+    COALESCE(v.state, el.state) AS venue_state,
     COALESCE(v.wkb_pos, el.wkb_pos) AS venue_geo_pos,
     v.website_url AS venue_website_url,
-    s.name, s.total_capacity, s.seating_capacity, s.space_type_id,
-    s.building_level, s.website_url, s.accessibility_summary,
-    s.accessibility_flags, s.description,
-    NOW(), NOW()
+    s.name,
+    s.total_capacity,
+    s.seating_capacity,
+    s.space_type_id,
+    s.building_level,
+    s.website_url,
+    s.accessibility_summary,
+    s.accessibility_flags,
+    s.description,
+    NOW(),
+    NOW()
 FROM %[1]s.event e
 LEFT JOIN %[1]s.organization o ON o.id = e.organization_id
 LEFT JOIN %[1]s.venue v ON v.id = e.venue_id
 LEFT JOIN %[1]s.space s ON s.id = e.space_id
 LEFT JOIN %[1]s.event_location el ON el.id = e.location_id
 JOIN %[1]s.event_date ed ON ed.event_id = e.id
+
+-- fetch main image
+LEFT JOIN LATERAL (
+    SELECT pil.pluto_image_id
+    FROM %[1]s.pluto_image_link pil
+    WHERE pil.context = 'event'
+      AND pil.context_id = e.id
+      AND pil.identifier = 'main'
+    LIMIT 1
+) main_image ON TRUE
+
 WHERE e.id = ANY($1)
-AND ed.start_date >= CURRENT_DATE
+  AND ed.start_date >= CURRENT_DATE
 ON CONFLICT (event_id) DO UPDATE SET
     organization_id = EXCLUDED.organization_id,
     venue_id = EXCLUDED.venue_id,
     space_id = EXCLUDED.space_id,
     location_id = EXCLUDED.location_id,
-    release_status_id = EXCLUDED.release_status_id,
+    release_status = EXCLUDED.release_status,
     title = EXCLUDED.title,
     subtitle = EXCLUDED.subtitle,
     description = EXCLUDED.description,
@@ -262,8 +317,8 @@ ON CONFLICT (event_id) DO UPDATE SET
     ticket_advance = EXCLUDED.ticket_advance,
     ticket_required = EXCLUDED.ticket_required,
     registration_required = EXCLUDED.registration_required,
-    price_type_id = EXCLUDED.price_type_id,
-    currency_code = EXCLUDED.currency_code,
+    price_type = EXCLUDED.price_type,
+    currency = EXCLUDED.currency,
     min_price = EXCLUDED.min_price,
     max_price = EXCLUDED.max_price,
     external_id = EXCLUDED.external_id,
@@ -279,8 +334,8 @@ ON CONFLICT (event_id) DO UPDATE SET
     venue_house_number = EXCLUDED.venue_house_number,
     venue_postal_code = EXCLUDED.venue_postal_code,
     venue_city = EXCLUDED.venue_city,
-    venue_country_code = EXCLUDED.venue_country_code,
-    venue_state_code = EXCLUDED.venue_state_code,
+    venue_country = EXCLUDED.venue_country,
+    venue_state = EXCLUDED.venue_state,
     venue_geo_pos = EXCLUDED.venue_geo_pos,
     venue_website_url = EXCLUDED.venue_website_url,
     space_name = EXCLUDED.space_name,
@@ -299,8 +354,8 @@ ON CONFLICT (event_id) DO UPDATE SET
 INSERT INTO %[1]s.event_date_projection (
     event_date_id, event_id, venue_id, space_id,
     venue_name, venue_street, venue_house_number,
-    venue_postal_code, venue_city, venue_country_code,
-    venue_state_code, venue_geo_pos, venue_website_url,
+    venue_postal_code, venue_city, venue_country,
+    venue_state, venue_geo_pos, venue_website_url,
     space_name, space_total_capacity, space_seating_capacity,
     space_type_id, space_building_level, space_website_url,
     space_accessibility_summary, space_accessibility_flags,
@@ -321,8 +376,8 @@ SELECT DISTINCT ON (ed.id)
     v.house_number,
     v.postal_code,
     v.city,
-    v.country_code,
-    v.state_code,
+    v.country,
+    v.state,
     v.wkb_pos,
     v.website_url,
     s.name,
@@ -361,8 +416,8 @@ ON CONFLICT (event_date_id) DO UPDATE SET
     venue_house_number = EXCLUDED.venue_house_number,
     venue_postal_code = EXCLUDED.venue_postal_code,
     venue_city = EXCLUDED.venue_city,
-    venue_country_code = EXCLUDED.venue_country_code,
-    venue_state_code = EXCLUDED.venue_state_code,
+    venue_country = EXCLUDED.venue_country,
+    venue_state = EXCLUDED.venue_state,
     venue_geo_pos = EXCLUDED.venue_geo_pos,
     venue_website_url = EXCLUDED.venue_website_url,
     space_name = EXCLUDED.space_name,

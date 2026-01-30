@@ -23,7 +23,7 @@ func (h *ApiHandler) AdminGetOrganizationMemberPermissions(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
 
-	memberId, ok := ParamInt(gc, "memberId") // ID of the user whose permissions are being requested
+	memberId, ok := ParamInt(gc, "memberId") // Id of the user whose permissions are being requested
 	if !ok {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "userId is required"})
 		return

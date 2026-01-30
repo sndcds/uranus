@@ -81,137 +81,143 @@ func main() {
 	// Public endpoints
 	publicRoute := router.Group("/api")
 
-	publicRoute.GET("/events", apiHandler.GetEvents)
-	publicRoute.GET("/events/type-summary", apiHandler.GetEventTypeSummary)
-	publicRoute.GET("/events/venue-summary", apiHandler.GetEventVenueSummary)
+	publicRoute.GET("/events", apiHandler.GetEvents)                          // TODO: check!
+	publicRoute.GET("/events/type-summary", apiHandler.GetEventTypeSummary)   // TODO: check!
+	publicRoute.GET("/events/venue-summary", apiHandler.GetEventVenueSummary) // TODO: check!
 
-	publicRoute.GET("/event/:eventId/date/:dateId", apiHandler.GetEventByDateId)
-	publicRoute.GET("/event/:eventId/date/:dateId/ics", apiHandler.GetEventDateICS)
+	publicRoute.GET("/event/:eventId/date/:dateId", apiHandler.GetEventByDateId)    // TODO: check!
+	publicRoute.GET("/event/:eventId/date/:dateId/ics", apiHandler.GetEventDateICS) // TODO: check!
 
-	publicRoute.GET("/geojson/venues", apiHandler.GetGeojsonVenues)
+	publicRoute.GET("/geojson/venues", apiHandler.GetGeojsonVenues) // TODO: check!
 
-	publicRoute.GET("/organizations", apiHandler.GetOrganizations)
+	publicRoute.GET("/organizations", apiHandler.GetOrganizations) // TODO: check!
 
-	publicRoute.GET("/user/:userId/avatar/:size", apiHandler.GetUserAvatar)
-	publicRoute.GET("/user/:userId/avatar", apiHandler.GetUserAvatar)
+	publicRoute.GET("/user/:userId/avatar/:size", apiHandler.GetUserAvatar) // TODO: check!
+	publicRoute.GET("/user/:userId/avatar", apiHandler.GetUserAvatar)       // TODO: check!
 
-	publicRoute.GET("/event/types-genres-lookup", apiHandler.GetEventTypesAndGenres)
+	publicRoute.GET("/event/type-genre-lookup", apiHandler.GetEventTypeGenreLookup)
 
-	publicRoute.GET("/choosable-venues", apiHandler.GetChoosableVenues)
-	publicRoute.GET("/choosable-organizations", apiHandler.GetChoosableOrganizations)
-	publicRoute.GET("/choosable-venues/organization/:organizationId", apiHandler.GetChoosableOrganizationVenues)
-	publicRoute.GET("/choosable-space-types", apiHandler.GetChoosableSpaceTypes)
-	publicRoute.GET("/choosable-spaces/venue/:venueId", apiHandler.GetChoosableVenueSpaces)
-	publicRoute.GET("/choosable-event-types", apiHandler.GetChoosableEventTypes)
-	publicRoute.GET("/choosable-event-genres/event-type/:id", apiHandler.GetChoosableEventGenres)
-	publicRoute.GET("/choosable-states", apiHandler.GetChoosableStates)
-	publicRoute.GET("/choosable-licenses", apiHandler.GetChoosableLicenses)
-	publicRoute.GET("/choosable-legal-forms", apiHandler.GetChoosableLegalForms)
-	publicRoute.GET("/choosable-countries", apiHandler.GetChoosableCountries)
-	publicRoute.GET("/choosable-release-states", apiHandler.GetChoosableReleaseStates)
-	publicRoute.GET("/choosable-languages", apiHandler.GetChoosableLanguages)
-	publicRoute.GET("/choosable-url-types/event", apiHandler.GetChoosableEventUrlTypes)
+	publicRoute.GET("/choosable-venues", apiHandler.GetChoosableVenues)                                          // TODO: check!
+	publicRoute.GET("/choosable-organizations", apiHandler.GetChoosableOrganizations)                            // TODO: check!
+	publicRoute.GET("/choosable-venues/organization/:organizationId", apiHandler.GetChoosableOrganizationVenues) // TODO: check!
+	publicRoute.GET("/choosable-space-types", apiHandler.GetChoosableSpaceTypes)                                 // TODO: check!
+	publicRoute.GET("/choosable-spaces/venue/:venueId", apiHandler.GetChoosableVenueSpaces)                      // TODO: check!
+	publicRoute.GET("/choosable-event-genres/event-type/:id", apiHandler.GetChoosableEventGenres)                // TODO: check!
+	publicRoute.GET("/choosable-states", apiHandler.GetChoosableStates)                                          // TODO: check!
+	publicRoute.GET("/choosable-licenses", apiHandler.GetChoosableLicenses)                                      // TODO: check!
+	publicRoute.GET("/choosable-legal-forms", apiHandler.GetChoosableLegalForms)                                 // TODO: check!
+	publicRoute.GET("/choosable-countries", apiHandler.GetChoosableCountries)                                    // TODO: check!
+	publicRoute.GET("/choosable-release-states", apiHandler.GetChoosableReleaseStates)                           // TODO: check!
+	publicRoute.GET("/choosable-languages", apiHandler.GetChoosableLanguages)                                    // TODO: check!
+	publicRoute.GET("/choosable-url-types/event", apiHandler.GetChoosableEventUrlTypes)                          // TODO: check!
 
-	publicRoute.GET("/choosable-price-types", apiHandler.GetChoosablePriceTypes)
-	publicRoute.GET("/choosable-currencies", apiHandler.GetChoosableCurrencies)
-	publicRoute.GET("/choosable-event-ocassions", apiHandler.GetChoosableEventOccasions)
+	publicRoute.GET("/choosable-price-types", apiHandler.GetChoosablePriceTypes)         // TODO: check!
+	publicRoute.GET("/choosable-currencies", apiHandler.GetChoosableCurrencies)          // TODO: check!
+	publicRoute.GET("/choosable-event-ocassions", apiHandler.GetChoosableEventOccasions) // TODO: check!
 
-	publicRoute.GET("/accessibility/flags", apiHandler.GetAccessibilityFlags)
+	publicRoute.GET("/accessibility/flags", apiHandler.GetAccessibilityFlags) // TODO: check!
 
-	publicRoute.GET("/organization/:organizationId", apiHandler.GetOrganization)
+	publicRoute.GET("/organization/:organizationId", apiHandler.GetOrganization) // TODO: check!
 
 	// Inject app middleware into Pluto's image routes
-	pluto.PlutoInstance.RegisterRoutes(publicRoute, app.JWTMiddleware)
+	pluto.PlutoInstance.RegisterRoutes(publicRoute, app.JWTMiddleware) // TODO: check!
 
-	publicRoute.POST("/signup", apiHandler.Signup)
-	publicRoute.POST("/activate", apiHandler.Activate)
-	publicRoute.POST("/login", apiHandler.Login)
-	publicRoute.POST("/forgot-password", apiHandler.ForgotPassword)
-	publicRoute.POST("/reset-password", apiHandler.ResetPassword)
+	publicRoute.POST("/signup", apiHandler.Signup)                  // TODO: check!
+	publicRoute.POST("/activate", apiHandler.Activate)              // TODO: check!
+	publicRoute.POST("/login", apiHandler.Login)                    // TODO: check!
+	publicRoute.POST("/forgot-password", apiHandler.ForgotPassword) // TODO: check!
+	publicRoute.POST("/reset-password", apiHandler.ResetPassword)   // TODO: check!
 
 	// Authorized endpoints, user must be logged in
-	adminRoute := router.Group("/api/admin", app.JWTMiddleware)
+	adminRoute := router.Group("/api/admin", app.JWTMiddleware) // TODO: check!
 
-	adminRoute.GET("/permissions/list", apiHandler.AdminGetPermissionsList)
+	adminRoute.GET("/permissions/list", apiHandler.AdminGetPermissionsList) // TODO: check!
 
-	adminRoute.POST("/refresh", apiHandler.Refresh)
+	adminRoute.POST("/refresh", apiHandler.Refresh) // TODO: check!
 
 	// User
-	adminRoute.GET("/user/profile", apiHandler.AdminGetUserProfile)
-	adminRoute.PUT("/user/profile", apiHandler.AdminUpdateUserProfile)
-	adminRoute.PUT("/user/settings", apiHandler.AdminUpdateUserProfileSettings)
-	adminRoute.POST("/user/avatar", apiHandler.AdminUploadUserAvatar)
-	adminRoute.DELETE("/user/avatar", apiHandler.AdminDeleteUserAvatar)
-	adminRoute.GET("/user/messages", apiHandler.AdminGetMessages)
-	adminRoute.POST("/user/send-message", apiHandler.AdminSendMessage)
-	adminRoute.GET("/user/todos", apiHandler.AdminGetTodos)
-	adminRoute.GET("/user/todo/:todoId", apiHandler.AdminGetTodo)
-	adminRoute.PUT("/user/todo", apiHandler.AdminUpsertTodo)
-	adminRoute.DELETE("/user/todo/:todoId", apiHandler.AdminDeleteTodo)
-	adminRoute.GET("/user/event/notifications", apiHandler.AdminGetUserEventNotifications)
-	adminRoute.GET("/user/choosable-organizations", apiHandler.AdminGetChoosableOrganizations)
-	adminRoute.GET("/user/choosable-event-places", apiHandler.AdminGetChoosableUserEventPlaces)
+	adminRoute.GET("/user/profile", apiHandler.AdminGetUserProfile)                             // TODO: check!
+	adminRoute.PUT("/user/profile", apiHandler.AdminUpdateUserProfile)                          // TODO: check!
+	adminRoute.PUT("/user/settings", apiHandler.AdminUpdateUserProfileSettings)                 // TODO: check!
+	adminRoute.POST("/user/avatar", apiHandler.AdminUploadUserAvatar)                           // TODO: check!
+	adminRoute.DELETE("/user/avatar", apiHandler.AdminDeleteUserAvatar)                         // TODO: check!
+	adminRoute.GET("/user/messages", apiHandler.AdminGetMessages)                               // TODO: check!
+	adminRoute.POST("/user/send-message", apiHandler.AdminSendMessage)                          // TODO: check!
+	adminRoute.GET("/user/todos", apiHandler.AdminGetTodos)                                     // TODO: check!
+	adminRoute.GET("/user/todo/:todoId", apiHandler.AdminGetTodo)                               // TODO: check!
+	adminRoute.PUT("/user/todo", apiHandler.AdminUpsertTodo)                                    // TODO: check!
+	adminRoute.DELETE("/user/todo/:todoId", apiHandler.AdminDeleteTodo)                         // TODO: check!
+	adminRoute.GET("/user/event/notifications", apiHandler.AdminGetUserEventNotifications)      // TODO: check!
+	adminRoute.GET("/user/choosable-organizations", apiHandler.AdminGetChoosableOrganizations)  // TODO: check!
+	adminRoute.GET("/user/choosable-event-places", apiHandler.AdminGetChoosableUserEventPlaces) // TODO: check!
 
 	// Organisation
-	adminRoute.GET("/organization/:organizationId/member/:memberId/permissions", apiHandler.AdminGetOrganizationMemberPermissions)
-	adminRoute.PUT("/organization/:organizationId/member/:memberId/permissions", apiHandler.AdminUpdateOrganizationMemberPermissions)
-	adminRoute.GET("/organization/:organizationId", apiHandler.AdminGetOrganization)
-	adminRoute.PUT("/organization", apiHandler.AdminUpsertOrganization)
-	adminRoute.PUT("/organization/:organizationId", apiHandler.AdminUpsertOrganization)
-	adminRoute.DELETE("/organization/:organizationId", apiHandler.AdminDeleteOrganization)
-	adminRoute.GET("/organization/dashboard", apiHandler.AdminGetOrganizationDashboard)
-	adminRoute.GET("/organization/:organizationId/venues", apiHandler.AdminGetOrganizationVenues)
-	adminRoute.GET("/organization/:organizationId/events", apiHandler.AdminGetOrganizationEvents)
-	adminRoute.GET("/organization/:organizationId/team", apiHandler.AdminGetOrganizationTeam)
-	adminRoute.POST("/organization/:organizationId/team/invite", apiHandler.AdminOrganizationTeamInvite)
-	adminRoute.DELETE("/organization/:organizationId/team/member/:memberId", apiHandler.AdminDeleteOrganizationTeamMember)
-	adminRoute.POST("/organization/team/invite/accept", apiHandler.AdminOrganizationTeamInviteAccept)
+	adminRoute.GET("/organization/:organizationId/member/:memberId/permissions", apiHandler.AdminGetOrganizationMemberPermissions)    // TODO: check!
+	adminRoute.PUT("/organization/:organizationId/member/:memberId/permissions", apiHandler.AdminUpdateOrganizationMemberPermissions) // TODO: check!
+	adminRoute.GET("/organization/:organizationId", apiHandler.AdminGetOrganization)                                                  // TODO: check!
+	adminRoute.PUT("/organization", apiHandler.AdminUpsertOrganization)                                                               // TODO: check!
+	adminRoute.PUT("/organization/:organizationId", apiHandler.AdminUpsertOrganization)                                               // TODO: check!
+	adminRoute.DELETE("/organization/:organizationId", apiHandler.AdminDeleteOrganization)                                            // TODO: check!
+	adminRoute.GET("/organization/dashboard", apiHandler.AdminGetOrganizationDashboard)                                               // TODO: check!
+	adminRoute.GET("/organization/:organizationId/venues", apiHandler.AdminGetOrganizationVenues)                                     // TODO: check!
+	adminRoute.GET("/organization/:organizationId/events", apiHandler.AdminGetOrganizationEvents)                                     // TODO: check!
+	adminRoute.GET("/organization/:organizationId/team", apiHandler.AdminGetOrganizationTeam)                                         // TODO: check!
+	adminRoute.POST("/organization/:organizationId/team/invite", apiHandler.AdminOrganizationTeamInvite)                              // TODO: check!
+	adminRoute.DELETE("/organization/:organizationId/team/member/:memberId", apiHandler.AdminDeleteOrganizationTeamMember)            // TODO: check!
+	adminRoute.POST("/organization/team/invite/accept", apiHandler.AdminOrganizationTeamInviteAccept)                                 // TODO: check!
+	adminRoute.POST("/organization/:organizationId/image/:identifier", apiHandler.AdminUpsertOrganizationImage)                       // TODO: check!
+	adminRoute.DELETE("/organization/:organizationId/image/:identifier", apiHandler.AdminDeleteOrganizationImage)                     // TODO: check!
 
 	// Venue
-	adminRoute.GET("/venue/:venueId", apiHandler.AdminGetVenue)
-	adminRoute.PUT("/venue", apiHandler.AdminUpsertVenue)
-	adminRoute.PUT("/venue/:venueId", apiHandler.AdminUpsertVenue)
-	adminRoute.DELETE("/venue/:venueId", apiHandler.AdminDeleteVenue)
+	adminRoute.GET("/venue/:venueId", apiHandler.AdminGetVenue)                            // TODO: check!
+	adminRoute.PUT("/venue", apiHandler.AdminUpsertVenue)                                  // TODO: check!
+	adminRoute.PUT("/venue/:venueId", apiHandler.AdminUpsertVenue)                         // TODO: check!
+	adminRoute.DELETE("/venue/:venueId", apiHandler.AdminDeleteVenue)                      // TODO: check!
+	adminRoute.POST("/venue/:venueId/image/:identifier", apiHandler.AdminUpsertVenueImage) // TODO: check!
 
 	// Space
-	adminRoute.GET("/space/:spaceId", apiHandler.AdminGetSpace)
-	adminRoute.PUT("/space", apiHandler.AdminUpsertSpace)
-	adminRoute.PUT("/space/:spaceId", apiHandler.AdminUpsertSpace)
-	adminRoute.DELETE("/space/:spaceId", apiHandler.AdminDeleteSpace)
+	adminRoute.GET("/space/:spaceId", apiHandler.AdminGetSpace)       // TODO: check!
+	adminRoute.PUT("/space", apiHandler.AdminUpsertSpace)             // TODO: check!
+	adminRoute.PUT("/space/:spaceId", apiHandler.AdminUpsertSpace)    // TODO: check!
+	adminRoute.DELETE("/space/:spaceId", apiHandler.AdminDeleteSpace) // TODO: check!
 
 	// Event
-	adminRoute.GET("/event/:eventId", apiHandler.AdminGetEvent) // .....
-	adminRoute.DELETE("/event/:eventId", apiHandler.AdminDeleteEvent)
-	adminRoute.POST("/event/:eventId/date", apiHandler.AdminUpsertEventDate)
-	adminRoute.PUT("/event/:eventId/date/:dateId", apiHandler.AdminUpsertEventDate)
-	adminRoute.DELETE("/event/:eventId/date/:dateId", apiHandler.AdminDeleteEventDate)
+	adminRoute.GET("/event/:eventId", apiHandler.AdminGetEvent)                             // TODO: check!
+	adminRoute.POST("/delete/event/:eventId", apiHandler.AdminDeleteEvent)                  // TODO: check!
+	adminRoute.POST("/event/:eventId/date", apiHandler.AdminUpsertEventDate)                // TODO: check!
+	adminRoute.PUT("/event/:eventId/date/:dateId", apiHandler.AdminUpsertEventDate)         // TODO: check!
+	adminRoute.POST("/delete/event/:eventId/date/:dateId", apiHandler.AdminDeleteEventDate) // TODO: check!
 
-	adminRoute.POST("/event/create", apiHandler.AdminCreateEvent)
-	adminRoute.PUT("/event/:eventId/release-status", apiHandler.AdminUpdateEventReleaseStatus)
-	adminRoute.PUT("/event/:eventId/header", apiHandler.AdminUpdateEventHeader)
-	adminRoute.PUT("/event/:eventId/description", apiHandler.AdminUpdateEventDescription)
-	adminRoute.PUT("/event/:eventId/summary", apiHandler.AdminUpdateEventSummary)
-	adminRoute.PUT("/event/:eventId/types", apiHandler.AdminUpdateEventTypes)
-	adminRoute.PUT("/event/:eventId/place", apiHandler.AdminUpdateEventPlace)
-	adminRoute.PUT("/event/:eventId/link", apiHandler.AdminUpsertEventLink)
-	adminRoute.PUT("/event/:eventId/link/:linkId", apiHandler.AdminUpsertEventLink)
-	adminRoute.PUT("/event/:eventId/tags", apiHandler.AdminUpdateEventTags)
-	adminRoute.PUT("/event/:eventId/languages", apiHandler.AdminUpdateEventLanguages)
-	adminRoute.PUT("/event/:eventId/participation-infos", apiHandler.AdminUpdateEventParticipationInfos)
+	adminRoute.POST("/event/create", apiHandler.AdminCreateEvent)             // TODO: check!
+	adminRoute.PUT("/event/:eventId/base", apiHandler.AdminUpdateEventBase)   // TODO: check!
+	adminRoute.PUT("/event/:eventId/dates", apiHandler.AdminUpdateEventDates) // TODO: check!
 
-	adminRoute.GET("/event/:eventId/image/:imageIndex/meta", apiHandler.AdminGetImageMeta)
-	adminRoute.POST("/event/:eventId/image/:imageIndex", apiHandler.AdminUpsertEventImage)
-	adminRoute.DELETE("/event/:eventId/image", apiHandler.AdminDeleteEventMainImage)
+	adminRoute.PUT("/event/:eventId/release-status", apiHandler.AdminUpdateEventReleaseStatus)           // TODO: check!
+	adminRoute.PUT("/event/:eventId/header", apiHandler.AdminUpdateEventHeader)                          // TODO: check!
+	adminRoute.PUT("/event/:eventId/description", apiHandler.AdminUpdateEventDescription)                // TODO: check!
+	adminRoute.PUT("/event/:eventId/summary", apiHandler.AdminUpdateEventSummary)                        // TODO: check!
+	adminRoute.PUT("/event/:eventId/types", apiHandler.AdminUpdateEventTypes)                            // TODO: check!
+	adminRoute.PUT("/event/:eventId/place", apiHandler.AdminUpdateEventPlace)                            // TODO: check!
+	adminRoute.PUT("/event/:eventId/link", apiHandler.AdminUpsertEventLink)                              // TODO: check!
+	adminRoute.PUT("/event/:eventId/link/:linkId", apiHandler.AdminUpsertEventLink)                      // TODO: check!
+	adminRoute.DELETE("/event/:eventId/link/:linkId", apiHandler.AdminDeleteEventLink)                   // TODO: check!
+	adminRoute.PUT("/event/:eventId/tags", apiHandler.AdminUpdateEventTags)                              // TODO: check!
+	adminRoute.PUT("/event/:eventId/languages", apiHandler.AdminUpdateEventLanguages)                    // TODO: check!
+	adminRoute.PUT("/event/:eventId/participation-infos", apiHandler.AdminUpdateEventParticipationInfos) // TODO: check!
+	adminRoute.POST("/event/:eventId/image/:identifier", apiHandler.AdminUpsertEventImage)               // TODO: check!
+	adminRoute.DELETE("/event/:eventId/image/:identifier", apiHandler.AdminDeleteEventImage)             // TODO: check!
 
-	adminRoute.POST("/event/:eventId/teaser/image", apiHandler.AdminUpdateEventTeaserImage)
+	adminRoute.POST("/event/:eventId/teaser/image", apiHandler.AdminUpdateEventTeaserImage) // TODO: check!
 
-	fmt.Println("Gin mode:", gin.Mode())
-	fmt.Println("Total routes:", len(router.Routes()))
+	/*
+		fmt.Println("Gin mode:", gin.Mode())
+		fmt.Println("Total routes:", len(router.Routes()))
 
-	// Print all registered routes
-	for _, route := range router.Routes() {
-		fmt.Printf("%-6s -> %s (%s)\n", route.Method, route.Path, route.Handler)
-	}
+		// Print all registered routes
+		for _, route := range router.Routes() {
+			fmt.Printf("%-6s -> %s (%s)\n", route.Method, route.Path, route.Handler)
+		}
+	*/
 
 	// Start the server (Gin handles everything)
 	port := ":" + strconv.Itoa(app.UranusInstance.Config.Port)

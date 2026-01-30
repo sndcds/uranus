@@ -14,7 +14,7 @@ func (h *ApiHandler) AdminDeleteEvent(gc *gin.Context) {
 	userId := h.userId(gc)
 
 	if !h.VerifyUserPassword(gc, userId) {
-		return
+		return // Already sent JSON error
 	}
 
 	eventId, ok := ParamInt(gc, "eventId")

@@ -49,8 +49,6 @@ func (h *ApiHandler) AdminSendMessage(gc *gin.Context) {
 			WHERE ol.organization_id = $1 AND (ol.permissions & $2) != 0`,
 			"{{schema}}", h.Config.DbSchema, -1)
 
-		fmt.Println(query)
-		fmt.Println("organizationId:", organizationId)
 		rows, err := tx.Query(ctx, query, organizationId, app.PermReceiveOrganizationMsgs)
 		if err != nil {
 			gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("database query failed: %v", err)})

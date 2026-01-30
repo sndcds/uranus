@@ -185,34 +185,37 @@ func UserIdFromAccessToken(gc *gin.Context) int {
 	return claims.UserId
 }
 
-// VerifyUserPassword reads password from request body, validates it against user ID.
+const dummyPasswordHash = "$2a$12$wGf6R8t2pFzq9yQmYv8y1u8y0v7E4Qv9ZJ8tQ6lH5E8QK3yQyZCwK"
+
+// VerifyUserPassword reads password from request body, validates it against user Id.
 // Returns true if password is valid, or writes JSON error response to context and returns false.
 func (h *ApiHandler) VerifyUserPassword(gc *gin.Context, userId int) bool {
 	var body struct {
 		Password string `json:"password"`
 	}
 
+	fmt.Println("VerifyUserPassword")
+
 	if err := gc.ShouldBindJSON(&body); err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body", "details": err.Error()})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return false
 	}
+	fmt.Println("body.Password", body.Password)
 
 	if body.Password == "" {
 		gc.JSON(http.StatusUnauthorized, gin.H{"error": "Password is required"})
 		return false
 	}
 
+	fmt.Println("len(body.Password)", len(body.Password))
+
 	var passwordHash string
 	query := fmt.Sprintf(`SELECT password_hash FROM %s.user WHERE id = $1`, h.Config.DbSchema)
 	err := h.DbPool.QueryRow(gc.Request.Context(), query, userId).Scan(&passwordHash)
 	if err != nil {
-		if err.Error() == "no rows in result set" {
-			gc.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
-			return false
-		}
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user", "details": err.Error()})
-		return false
+		passwordHash = dummyPasswordHash
 	}
+	fmt.Println("passwordHash", passwordHash)
 
 	if app.ComparePasswords(passwordHash, body.Password) != nil {
 		gc.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid password"})

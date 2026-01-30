@@ -35,8 +35,8 @@ import (
 //     PermManageTeam permissions for the target organization.
 //
 // URL Parameters:
-//   - organizationId (int): ID of the organization.
-//   - memberId (int): ID of the organization member whose permissions
+//   - organizationId (int): Id of the organization.
+//   - memberId (int): Id of the organization member whose permissions
 //     will be updated.
 //
 // Request Body (JSON):
@@ -101,19 +101,19 @@ func (h *ApiHandler) AdminUpdateOrganizationMemberPermissions(gc *gin.Context) {
 		}
 
 		// Ckeck if member is the admin user
-		var orgMemberLink model.OrganizationMemberLink
-		orgMemberLink.Id = memberId
+		var organizationMemberLink model.OrganizationMemberLink
+		organizationMemberLink.Id = memberId
 		err := tx.QueryRow(
 			ctx, app.UranusInstance.SqlAdminGetOrganizationMemberLink,
 			memberId).
 			Scan(
-				&orgMemberLink.OrganizationId,
-				&orgMemberLink.UserId,
-				&orgMemberLink.HasJoined,
-				&orgMemberLink.InvitedByUserId,
-				&orgMemberLink.InvitedAt,
-				&orgMemberLink.CreatedAt,
-				&orgMemberLink.ModifiedAt)
+				&organizationMemberLink.OrganizationId,
+				&organizationMemberLink.UserId,
+				&organizationMemberLink.HasJoined,
+				&organizationMemberLink.InvitedByUserId,
+				&organizationMemberLink.InvitedAt,
+				&organizationMemberLink.CreatedAt,
+				&organizationMemberLink.ModifiedAt)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusUnauthorized,
@@ -135,7 +135,7 @@ func (h *ApiHandler) AdminUpdateOrganizationMemberPermissions(gc *gin.Context) {
 			}
 		}
 
-		memberUserId := orgMemberLink.UserId
+		memberUserId := organizationMemberLink.UserId
 
 		// If the user is trying to set their own ManagePermissions or ManageTeam bit, block it
 		if memberUserId == userId && (inputReq.Bit == app.PermBitManagePermissions || inputReq.Bit == app.PermBitManageTeam) {

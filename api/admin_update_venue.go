@@ -22,8 +22,8 @@ type venueReq struct {
 	HouseNumber    *string  `json:"house_number"`
 	PostalCode     *string  `json:"postal_code"`
 	City           *string  `json:"city"`
-	StateCode      *string  `json:"state_code"`
-	CountryCode    *string  `json:"country_code"`
+	State          *string  `json:"state"`
+	Country        *string  `json:"country"`
 	Longitude      *float64 `json:"longitude"`
 	Latitude       *float64 `json:"latitude"`
 }
@@ -60,8 +60,8 @@ func (h *ApiHandler) AdminUpsertVenue(gc *gin.Context) {
 				req.HouseNumber,
 				req.PostalCode,
 				req.City,
-				req.CountryCode,
-				req.StateCode,
+				req.Country,
+				req.State,
 				req.Longitude,
 				req.Latitude,
 				userId,
@@ -88,8 +88,8 @@ func (h *ApiHandler) AdminUpsertVenue(gc *gin.Context) {
 				req.HouseNumber,
 				req.PostalCode,
 				req.City,
-				req.CountryCode,
-				req.StateCode,
+				req.Country,
+				req.State,
 				req.Longitude,
 				req.Latitude,
 				userId,

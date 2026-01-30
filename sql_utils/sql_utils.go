@@ -310,7 +310,7 @@ func BuildColumnInIntCondition(
 //
 // Parameters:
 //   - inputStr: A comma-separated string (e.g., "US, IN, CA").
-//   - format: The format string for the SQL condition (e.g., "v.country_code = ANY(%s)").
+//   - format: The format string for the SQL condition (e.g., "v.country = ANY(%s)").
 //   - label: The label for the input parameter (not used in query, optional).
 //   - startIndex: The starting index for SQL placeholders ($1, $2, ...).
 //   - conditions: Pointer to slice of SQL conditions to append to.

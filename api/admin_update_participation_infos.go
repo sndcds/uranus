@@ -15,10 +15,10 @@ type participationInfoReq struct {
 	MinAge               *int     `json:"min_age"`
 	MaxAge               *int     `json:"max_age"`
 	MaxAttendees         *int     `json:"max_attendees"`
-	PriceTypeID          *int     `json:"price_type_id"`
+	PriceType            *int     `json:"price_type"`
 	MinPrice             *float64 `json:"min_price"`
 	MaxPrice             *float64 `json:"max_price"`
-	CurrencyCode         *string  `json:"currency_code"`
+	Currency             *string  `json:"currency"`
 	TicketAdvance        *bool    `json:"ticket_advance"`
 	TicketRequired       *bool    `json:"ticket_required"`
 	RegistrationRequired *bool    `json:"registration_required"`
@@ -65,8 +65,8 @@ func (h *ApiHandler) AdminUpdateEventParticipationInfos(gc *gin.Context) {
 	args = append(args, req.MaxAttendees)
 	argIndex++
 
-	setClauses = append(setClauses, fmt.Sprintf("price_type_id = $%d", argIndex))
-	args = append(args, req.PriceTypeID)
+	setClauses = append(setClauses, fmt.Sprintf("price_type = $%d", argIndex))
+	args = append(args, req.PriceType)
 	argIndex++
 
 	setClauses = append(setClauses, fmt.Sprintf("min_price = $%d", argIndex))
@@ -77,8 +77,8 @@ func (h *ApiHandler) AdminUpdateEventParticipationInfos(gc *gin.Context) {
 	args = append(args, req.MaxPrice)
 	argIndex++
 
-	setClauses = append(setClauses, fmt.Sprintf("currency_code = $%d", argIndex))
-	args = append(args, req.CurrencyCode)
+	setClauses = append(setClauses, fmt.Sprintf("currency = $%d", argIndex))
+	args = append(args, req.Currency)
 	argIndex++
 
 	setClauses = append(setClauses, fmt.Sprintf("ticket_advance = $%d", argIndex))

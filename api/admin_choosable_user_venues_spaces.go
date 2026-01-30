@@ -39,7 +39,7 @@ func (h *ApiHandler) AdminGetChoosableUserEventPlaces(gc *gin.Context) {
 			&place.SpaceId,
 			&place.SpaceName,
 			&place.City,
-			&place.CountryCode)
+			&place.Country)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

@@ -46,21 +46,17 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 
 		if eventDateId < 0 {
-			// INSERT
-			fmt.Println("Insert new event date")
-
-			// Check permissions, we need an 'organizationId' first
-			organizationId, err := h.GetOrganizationIdByEvenId(gc, tx, eventId)
-			fmt.Println("organizationId", organizationId)
+			// Insert
+			// Check permissions, we need an 'orgId' first
+			orgId, err := h.GetOrganizationIdByEvenId(gc, tx, eventId)
 			if err != nil {
 				return ApiErrInternal("%v", err)
 			}
-			if organizationId < 0 {
-				return ApiErrInternal("internal organizationId failed")
+			if orgId < 0 {
+				return ApiErrInternal("internal orgId failed")
 			}
 
-			permissions, err := h.GetUserOrganizationPermissions(gc, tx, userId, organizationId)
-			fmt.Println("permissions", permissions)
+			permissions, err := h.GetUserOrganizationPermissions(gc, tx, userId, orgId)
 			if err != nil {
 				return ApiErrInternal("%v", err)
 			}
@@ -98,7 +94,7 @@ RETURNING id`, h.Config.DbSchema)
 				}
 			}
 		} else {
-			// UPDATE
+			// Update
 			fmt.Println("Update event date")
 
 			query := fmt.Sprintf(`

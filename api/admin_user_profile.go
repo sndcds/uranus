@@ -95,7 +95,7 @@ func (h *ApiHandler) AdminUpdateUserProfile(gc *gin.Context) {
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	// --- Check for existing email ---
+	// Check for existing email
 	checkQuery := fmt.Sprintf(`SELECT id FROM %s.user WHERE email_address = $1`, h.Config.DbSchema)
 	var existingUserId int
 	err = tx.QueryRow(ctx, checkQuery, req.EmailAddress).Scan(&existingUserId)
@@ -110,7 +110,7 @@ func (h *ApiHandler) AdminUpdateUserProfile(gc *gin.Context) {
 		return
 	}
 
-	// --- Update record ---
+	// Update record
 	updateQuery := fmt.Sprintf(`
         UPDATE %s.user
         SET display_name = $1,
@@ -138,7 +138,7 @@ func (h *ApiHandler) AdminUpdateUserProfile(gc *gin.Context) {
 		return
 	}
 
-	// --- Commit transaction ---
+	// Commit transaction
 	if err = tx.Commit(ctx); err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to commit transaction: %v", err)})
 		return

@@ -38,7 +38,7 @@ func (h *ApiHandler) AdminGetUserEventNotifications(gc *gin.Context) {
 			&notification.OrganizationId,
 			&notification.OrganizationName,
 			&notification.ReleaseDate,
-			&notification.ReleaseStatusId,
+			&notification.ReleaseStatus,
 			&notification.EarliestEventDate,
 			&notification.LatestEventDate,
 			&notification.DaysUntilRelease,

@@ -14,14 +14,14 @@ import (
 
 // eventType represents a type-genre mapping (example)
 type eventType struct {
-	TypeID  int `json:"type_id"`
-	GenreID int `json:"genre_id"`
+	TypeId  int `json:"type_id"`
+	GenreId int `json:"genre_id"`
 }
 
 // eventResponse is the JSON structure for each event
 type eventResponse struct {
-	EventDateID             int         `json:"event_date_id"`
-	ID                      int         `json:"id"` // event_id
+	EventDateId             int         `json:"event_date_id"`
+	Id                      int         `json:"id"` // event_id
 	Title                   string      `json:"title"`
 	Subtitle                *string     `json:"subtitle"`
 	StartDate               string      `json:"start_date"`
@@ -33,22 +33,22 @@ type eventResponse struct {
 	AllDay                  *bool       `json:"all_day,omitempty"`
 	Status                  *string     `json:"status,omitempty"`
 	TicketLink              *string     `json:"ticket_link,omitempty"`
-	SpaceID                 *int        `json:"space_id,omitempty"`
+	SpaceId                 *int        `json:"space_id,omitempty"`
 	SpaceName               *string     `json:"space_name,omitempty"`
 	SpaceAccessibilityFlags *int64      `json:"space_accessibility_flags,omitempty"`
-	VenueID                 *int        `json:"venue_id,omitempty"`
+	VenueId                 *int        `json:"venue_id,omitempty"`
 	VenueName               *string     `json:"venue_name,omitempty"`
 	VenueCity               *string     `json:"venue_city,omitempty"`
 	VenueStreet             *string     `json:"venue_street,omitempty"`
 	VenueHouse              *string     `json:"venue_house_number,omitempty"`
 	VenuePostal             *string     `json:"venue_postal_code,omitempty"`
-	VenueState              *string     `json:"venue_state_code,omitempty"`
-	VenueCountry            *string     `json:"venue_country_code,omitempty"`
+	VenueState              *string     `json:"venue_state,omitempty"`
+	VenueCountry            *string     `json:"venue_country,omitempty"`
 	VenueLat                *float64    `json:"venue_lat,omitempty"`
 	VenueLon                *float64    `json:"venue_lon,omitempty"`
 	ImageId                 *int        `json:"image_id,omitempty"`
 	ImagePath               *string     `json:"image_path,omitempty"`
-	OrganizationID          int         `json:"organization_id"`
+	OrganizationId          int         `json:"organization_id"`
 	OrganizationName        string      `json:"organization_name"`
 	EventTypes              []eventType `json:"event_types,omitempty"`
 	Languages               []string    `json:"languages"`
@@ -56,7 +56,7 @@ type eventResponse struct {
 	MinAge                  *int        `json:"min_age"`
 	MaxAge                  *int        `json:"max_age"`
 	VisitorInfoFlags        *int64      `json:"visitor_info_flags,omitempty"`
-	ReleaseStatusId         *int        `json:"release_status_id,omitempty"`
+	ReleaseStatus           *int        `json:"release_status,omitempty"`
 }
 
 // buildEventFilters parses all query parameters from the context
@@ -172,7 +172,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 	}
 
 	if countryCodesStr != "" {
-		format := "COALESCE(edp.venue_country_code, ep.venue_country_code) = ANY(%s)"
+		format := "COALESCE(edp.venue_country, ep.venue_country) = ANY(%s)"
 		nextArgIndex, errBuild = sql_utils.BuildInConditionForStringSlice(countryCodesStr, format, "countries", nextArgIndex, &conditions, &args)
 		if errBuild != nil {
 			return "", "", "", nil, 0, errBuild
@@ -239,7 +239,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 		nextArgIndex, errBuild = sql_utils.BuildJSONArrayIntCondition(
 			eventTypesStr,
 			"types",
-			0, // index 0 = event_type_id
+			0, // index 0 = type_id
 			nextArgIndex,
 			&conditions,
 			&args,
@@ -303,11 +303,11 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		var e eventResponse
 		var typesJSON []byte
 		err := rows.Scan(
-			&e.EventDateID,
-			&e.ID,
-			&e.OrganizationID,
-			&e.VenueID,
-			&e.SpaceID,
+			&e.EventDateId,
+			&e.Id,
+			&e.OrganizationId,
+			&e.VenueId,
+			&e.SpaceId,
 			&e.StartDate,
 			&e.StartTime,
 			&e.EndDate,
@@ -315,7 +315,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			&e.EntryTime,
 			&e.Duration,
 			&e.AllDay,
-			&e.ReleaseStatusId,
+			&e.ReleaseStatus,
 			&e.TicketLink,
 			&e.Title,
 			&e.Subtitle,
@@ -354,8 +354,8 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			e.EventTypes = make([]eventType, len(rawTypes))
 			for i, pair := range rawTypes {
 				e.EventTypes[i] = eventType{
-					TypeID:  pair[0],
-					GenreID: pair[1],
+					TypeId:  pair[0],
+					GenreId: pair[1],
 				}
 			}
 		} else {
@@ -377,7 +377,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 
 	lastEvent := events[len(events)-1]
 	lastEventStartAt := lastEvent.StartDate + "T" + lastEvent.StartTime
-	lastEventDateID := lastEvent.EventDateID
+	lastEventDateID := lastEvent.EventDateId
 
 	gc.JSON(http.StatusOK, gin.H{
 		"events":              events,
@@ -402,7 +402,7 @@ SELECT
 FROM %s.event_date_projection edp
 JOIN %s.event_projection ep ON ep.event_id = edp.event_id
 CROSS JOIN LATERAL jsonb_array_elements(ep.types) AS elem
-WHERE ep.release_status_id >= 3    
+WHERE ep.release_status >= 3    
 AND {{date_conditions}}
 {{conditions}}
 GROUP BY type_id
@@ -447,7 +447,7 @@ func (h *ApiHandler) GetEventVenueSummary(gc *gin.Context) {
 		return
 	}
 
-	conds := []string{"ep.release_status_id >= 3"}
+	conds := []string{"ep.release_status >= 3"}
 
 	if dateConditions != "" {
 		conds = append(conds, dateConditions)

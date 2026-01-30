@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -12,10 +13,11 @@ import (
 func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
+	apiResponseType := "admin_event"
 
-	eventId := gc.Param("eventId")
-	if eventId == "" {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "eventId is required"})
+	eventId, ok := ParamInt(gc, "eventId")
+	if !ok {
+		JSONError(gc, apiResponseType, http.StatusBadRequest, "eventId is required")
 		return
 	}
 
@@ -24,53 +26,31 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 	permission := app.PermEditEvent | app.PermViewEventInsights
 	row := h.DbPool.QueryRow(ctx, app.UranusInstance.SqlAdminGetEvent, eventId, lang, userId, permission)
 
+	// Basic Event
 	var event model.AdminEvent
 	err := row.Scan(
-		&event.EventId,
+		&event.Id,
+		&event.ExternalId,
+		&event.SourceUrl,
+		&event.ReleaseStatus,
+		&event.ReleaseDate,
+		&event.ContentLanguage,
+		&event.OrganizationId,
+		&event.OrganizationName,
 		&event.Title,
 		&event.Subtitle,
 		&event.Description,
 		&event.Summary,
-		&event.ParticipationInfo,
-		&event.Languages,
 		&event.Tags,
-		&event.MeetingPoint,
-		&event.ReleaseStatusId,
-		&event.ReleaseDate,
-		&event.MinAge,
-		&event.MaxAge,
-		&event.MaxAttendees,
-		&event.PriceTypeId,
-		&event.MinPrice,
-		&event.MaxPrice,
-		&event.TicketAdvance,
-		&event.TicketRequired,
-		&event.RegistrationRequired,
-		&event.CurrencyCode,
-		&event.CurrencyName,
-		&event.OccasionTypeId,
-		&event.OnlineEventUrl,
-		&event.SourceUrl,
-		&event.Image1Id,
-		&event.Image2Id,
-		&event.Image3Id,
-		&event.Image4Id,
-		&event.ImageSoMe16To9Id,
-		&event.ImageSoMe4To5Id,
-		&event.ImageSoMe9To16Id,
-		&event.ImageSoMe1To1Id,
-		&event.Custom,
-		&event.Style,
-		&event.OrganizationId,
-		&event.OrganizationName,
+		&event.OccasionType,
 		&event.VenueId,
 		&event.VenueName,
 		&event.VenueStreet,
 		&event.VenueHouseNumber,
 		&event.VenuePostalCode,
 		&event.VenueCity,
-		&event.VenueCountryCode,
-		&event.VenueStateCode,
+		&event.VenueCountry,
+		&event.VenueState,
 		&event.VenueLon,
 		&event.VenueLat,
 		&event.SpaceId,
@@ -78,80 +58,114 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 		&event.SpaceTotalCapacity,
 		&event.SpaceSeatingCapacity,
 		&event.SpaceBuildingLevel,
-		&event.SpaceUrl,
+		&event.LocationId,
 		&event.LocationName,
 		&event.LocationStreet,
 		&event.LocationHouseNumber,
 		&event.LocationPostalCode,
 		&event.LocationCity,
-		&event.LocationCountryCode,
-		&event.LocationStateCode,
-		&event.EventTypes,
-		&event.EventUrls,
+		&event.LocationCountry,
+		&event.LocationState,
+		&event.OnlineEventUrl,
+		&event.MeetingPoint,
+		&event.Languages,
+		&event.ParticipationInfo,
+		&event.MinAge,
+		&event.MaxAge,
+		&event.MaxAttendees,
+		&event.PriceType,
+		&event.MinPrice,
+		&event.MaxPrice,
+		&event.TicketAdvance,
+		&event.TicketRequired,
+		&event.RegistrationRequired,
+		&event.Currency,
+		&event.CurrencyName,
+		&event.Custom,
+		&event.Style,
 	)
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			gc.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
+			JSONError(gc, apiResponseType, http.StatusNotFound, "event not found")
 			return
 		}
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		JSONDatabaseError(gc, apiResponseType)
 		return
 	}
 
-	// --- Fetch event dates ---
-	rows, err := h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventDates, eventId)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+	// Event Types
+	rows, _ := h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventTypes, eventId, lang)
+	defer rows.Close()
+	for rows.Next() {
+		var et model.EventType
+		rows.Scan(&et.Type, &et.TypeName, &et.Genre, &et.GenreName)
+		event.EventTypes = append(event.EventTypes, et)
 	}
+
+	// Event Images
+	rows, _ = h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventImages, eventId)
+	defer rows.Close()
+	for rows.Next() {
+		var img model.Image
+		rows.Scan(&img.Id, &img.Identifier, &img.FocusX, &img.FocusY, &img.Alt, &img.Copyright, &img.Creator, &img.License)
+		img.Url = fmt.Sprintf("%s/api/image/%d", h.Config.BaseApiUrl, img.Id)
+		event.Images = append(event.Images, img)
+	}
+
+	// Event Links
+	rows, _ = h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventLinks, eventId)
+	defer rows.Close()
+	for rows.Next() {
+		var link model.WebLink
+		rows.Scan(&link.Id, &link.Type, &link.Url, &link.Title)
+		event.EventLinks = append(event.EventLinks, link)
+	}
+
+	// Dates
+	rows, _ = h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventDates, eventId)
 	defer rows.Close()
 
 	for rows.Next() {
-		var d model.AdminEventDate
+		var date model.AdminEventDate
 		err := rows.Scan(
-			&d.EventDateId,
-			&d.EventId,
-			&d.StartDate,
-			&d.StartTime,
-			&d.EndDate,
-			&d.EndTime,
-			&d.EntryTime,
-			&d.Duration,
-			&d.AccessibilityInfo,
-			&d.VisitorInfoFlags,
-			&d.DateVenueId,
-			&d.VenueId,
-			&d.VenueName,
-			&d.VenueStreet,
-			&d.VenueHouseNumber,
-			&d.VenuePostalCode,
-			&d.VenueCity,
-			&d.VenueCountryCode,
-			&d.VenueStateCode,
-			&d.VenueLon,
-			&d.VenueLat,
-			&d.VenueUrl,
-			&d.SpaceId,
-			&d.SpaceName,
-			&d.SpaceTotalCapacity,
-			&d.SpaceSeatingCapacity,
-			&d.SpaceBuildingLevel,
-			&d.SpaceUrl,
+			&date.Id,
+			&date.EventId,
+			&date.StartDate,
+			&date.StartTime,
+			&date.EndDate,
+			&date.EndTime,
+			&date.EntryTime,
+			&date.Duration,
+			&date.AccessibilityInfo,
+			&date.VisitorInfoFlags,
+			&date.DateVenueId,
+			&date.VenueId,
+			&date.VenueName,
+			&date.VenueStreet,
+			&date.VenueHouseNumber,
+			&date.VenuePostalCode,
+			&date.VenueCity,
+			&date.VenueCountry,
+			&date.VenueState,
+			&date.VenueLon,
+			&date.VenueLat,
+			&date.VenueUrl,
+			&date.SpaceId,
+			&date.SpaceName,
+			&date.SpaceTotalCapacity,
+			&date.SpaceSeatingCapacity,
+			&date.SpaceBuildingLevel,
+			&date.SpaceUrl,
 		)
 
 		if err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			JSONDatabaseError(gc, apiResponseType)
 			return
 		}
 
-		event.EventDates = append(event.EventDates, d)
+		event.EventDates = append(event.EventDates, date)
 	}
 
-	if err := rows.Err(); err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	gc.JSON(http.StatusOK, event)
+	JSONSuccess(gc, apiResponseType, event, nil)
 }

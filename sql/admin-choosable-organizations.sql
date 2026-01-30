@@ -1,4 +1,4 @@
-WITH user_org_access AS (
+WITH user_organization_access AS (
     SELECT DISTINCT
         o.id AS id,
         o.name AS name
@@ -17,7 +17,7 @@ user_venue_access AS (
     WHERE uvl.user_id = $1
 ),
 accessible_organizations AS (
-    SELECT * FROM user_org_access
+    SELECT * FROM user_organization_access
     UNION
     SELECT * FROM user_venue_access
 )

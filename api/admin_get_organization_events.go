@@ -23,14 +23,15 @@ import (
 func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
+	apiResponseType := "user_organization_event_list"
 
 	organizationId, ok := ParamInt(gc, "organizationId")
 	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid organization id"})
+		JSONError(gc, apiResponseType, http.StatusBadRequest, "invalid organizationId")
 		return
 	}
 
-	var events []model.EventDahboardEntry
+	var events []model.AdminListEvent
 	var organizationPermissions app.Permission
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
@@ -58,19 +59,19 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 		var eventTypesData []byte
 
 		for rows.Next() {
-			var e model.EventDahboardEntry
+			var e model.AdminListEvent
 			err := rows.Scan(
-				&e.EventId,
-				&e.EventDateId,
-				&e.EventTitle,
-				&e.EventSubtitle,
-				&e.EventOrganizationId,
-				&e.EventOrganizationName,
+				&e.Id,
+				&e.DateId,
+				&e.Title,
+				&e.Subtitle,
+				&e.OrganizationId,
+				&e.OrganizationName,
 				&e.StartDate,
 				&e.StartTime,
 				&e.EndDate,
 				&e.EndTime,
-				&e.ReleaseStatusId,
+				&e.ReleaseStatus,
 				&e.ReleaseDate,
 				&e.VenueId,
 				&e.VenueName,
@@ -79,12 +80,13 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 				&e.LocationId,
 				&e.LocationName,
 				&e.ImageId,
+				&e.ImageUrl,
 				&eventTypesData,
 				&e.CanEditEvent,
 				&e.CanDeleteEvent,
 				&e.CanReleaseEvent,
-				&e.TimeSeriesIndex,
-				&e.TimeSeries,
+				&e.SeriesIndex,
+				&e.SeriesTotal,
 			)
 			if err != nil {
 				return &ApiTxError{
@@ -109,22 +111,15 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 		return nil
 	})
 	if txErr != nil {
-		gc.JSON(txErr.Code, gin.H{"error": txErr.Error()})
+		JSONError(gc, apiResponseType, http.StatusBadRequest, "transaction failed") // TODO: txErr.Error()
 		return
 	}
 
 	canAddEvent := organizationPermissions.Has(app.PermAddEvent)
-
-	if len(events) == 0 {
-		gc.JSON(http.StatusOK, gin.H{
-			"can_add_event": canAddEvent,
-			"events":        []model.EventDahboardEntry{},
-		})
-		return
+	metadata := map[string]interface{}{
+		"can_add_event": canAddEvent,
+		"total_events":  len(events),
 	}
 
-	gc.JSON(http.StatusOK, gin.H{
-		"can_add_event": canAddEvent,
-		"events":        events,
-	})
+	JSONSuccess(gc, apiResponseType, events, metadata)
 }

@@ -22,12 +22,3 @@ func FilterNilMap[T ~map[string]interface{}](data T) T {
 	}
 	return filtered
 }
-
-// FilterNilSlice removes nil values from each map in a slice
-func FilterNilSlice[T ~map[string]interface{}](data []T) []T {
-	filteredSlice := make([]T, 0, len(data))
-	for _, item := range data {
-		filteredSlice = append(filteredSlice, FilterNilMap(item))
-	}
-	return filteredSlice
-}

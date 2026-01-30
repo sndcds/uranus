@@ -1,4 +1,4 @@
-WITH user_org_access AS (
+WITH user_organization_access AS (
     SELECT DISTINCT o.id AS organization_id
     FROM {{schema}}.organization o
     JOIN {{schema}}.user_organization_link uol ON uol.organization_id = o.id
@@ -13,7 +13,7 @@ user_venue_access AS (
 ),
 
 accessible_organizations AS (
-    SELECT organization_id FROM user_org_access
+    SELECT organization_id FROM user_organization_access
 
     UNION
 
@@ -78,6 +78,7 @@ venue_info AS (
         v.id AS venue_id,
         v.name AS venue_name,
         v.organization_id,
+        MAX(venue_main_logo_image_link.pluto_image_id) AS venue_logo_image_id,
         COALESCE(vp.can_add_venue, false) AS can_add_venue,
         COALESCE(vp.can_edit_venue, false) AS can_edit_venue,
         COALESCE(vp.can_delete_venue, false) AS can_delete_venue,
@@ -103,6 +104,18 @@ venue_info AS (
     LEFT JOIN space_info s ON s.venue_id = v.id
     LEFT JOIN editable_venues ev ON ev.venue_id = v.id
     LEFT JOIN venue_permissions vp ON vp.venue_id = v.id
+
+    LEFT JOIN LATERAL (
+        SELECT pil.pluto_image_id
+        FROM {{schema}}.pluto_image_link pil
+        WHERE pil.context = 'venue'
+        AND pil.context_id = v.id
+        AND pil.identifier = 'main_logo'
+        ORDER BY pil.id
+        LIMIT 1
+    ) venue_main_logo_image_link ON TRUE
+
+
     GROUP BY
         v.id, v.name, v.organization_id, ev.venue_id,
         vp.can_add_venue, vp.can_edit_venue, vp.can_delete_venue,
@@ -142,6 +155,7 @@ organization_info AS (
                 json_build_object(
                     'venue_id', vi.venue_id,
                     'venue_name', vi.venue_name,
+                    'venue_logo_image_id', vi.venue_logo_image_id,
                     'can_add_venue', vi.can_add_venue,
                     'can_edit_venue', vi.can_edit_venue,
                     'can_delete_venue', vi.can_delete_venue,

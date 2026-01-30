@@ -28,7 +28,7 @@ func (h *ApiHandler) GetChoosableCountries(gc *gin.Context) {
 	defer rows.Close()
 
 	type Country struct {
-		CountryCode *string `json:"country_code"`
+		Country     *string `json:"country"`
 		CountryName *string `json:"country_name"`
 	}
 
@@ -37,7 +37,7 @@ func (h *ApiHandler) GetChoosableCountries(gc *gin.Context) {
 	for rows.Next() {
 		var country Country
 		if err := rows.Scan(
-			&country.CountryCode,
+			&country.Country,
 			&country.CountryName,
 		); err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

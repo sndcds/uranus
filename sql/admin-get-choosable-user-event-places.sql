@@ -6,7 +6,7 @@ WITH allowed_spaces AS (
         s.id AS space_id,
         s.name AS space_name,
         v.city AS city,
-        v.country_code AS country_code
+        v.country AS country
     FROM {{schema}}.space s
     JOIN {{schema}}.venue v ON v.id = s.venue_id
     JOIN {{schema}}.user_organization_link uol ON uol.organization_id = v.organization_id
@@ -22,7 +22,7 @@ WITH allowed_spaces AS (
         s.id AS space_id,
         s.name AS space_name,
         v.city AS city,
-        v.country_code AS country_code
+        v.country AS country
     FROM {{schema}}.space s
     JOIN {{schema}}.user_venue_link uvl ON uvl.venue_id = s.venue_id
     JOIN {{schema}}.venue v ON v.id = s.venue_id
@@ -38,7 +38,7 @@ WITH allowed_spaces AS (
         s.id AS space_id,
         s.name AS space_name,
         v.city AS city,
-        v.country_code AS country_code
+        v.country AS country
     FROM {{schema}}.space s
     JOIN {{schema}}.user_space_link usl ON usl.space_id = s.id
     JOIN {{schema}}.venue v ON v.id = s.venue_id
@@ -53,7 +53,7 @@ allowed_venues AS (
         NULL::integer AS space_id,
         NULL::text AS space_name,
         v.city AS city,
-        v.country_code AS country_code
+        v.country AS country
     FROM {{schema}}.venue v
     -- From organization permission
     JOIN {{schema}}.user_organization_link uol ON uol.organization_id = v.organization_id
@@ -69,7 +69,7 @@ allowed_venues AS (
         NULL::integer AS space_id,
         NULL::text AS space_name,
         v.city AS city,
-        v.country_code AS country_code
+        v.country AS country
     FROM {{schema}}.venue v
     JOIN {{schema}}.user_venue_link uvl ON uvl.venue_id = v.id
     WHERE uvl.user_id = $1

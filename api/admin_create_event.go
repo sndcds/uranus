@@ -24,10 +24,10 @@ type incomingLocation struct {
 	HouseNumber *string `json:"house_number"`
 	PostalCode  string  `json:"postal_code" binding:"required"`
 	City        string  `json:"city" binding:"required"`
-	CountryCode string  `json:"country_code" binding:"required"`
-	StateCode   *string `json:"state_code"`
-	Latitude    float64 `json:"latitude"`
-	Longitude   float64 `json:"longitude"`
+	Country     string  `json:"country" binding:"required"`
+	State       *string `json:"state"`
+	Lon         float64 `json:"lon"`
+	Lat         float64 `json:"lat"`
 }
 
 type incomingTypeGenrePair struct {
@@ -65,14 +65,14 @@ type incomingEvent struct {
 	MaxAge               *int     `json:"max_age"`
 	MeetingPoint         *string  `json:"meeting_point"`
 	MaxAttendees         *int     `json:"max_attendees"`
-	PriceTypeId          *int     `json:"price_type_id"`
-	CurrencyCode         *string  `json:"currency_code"`
+	PriceType            *int     `json:"price_type"`
+	Currency             *string  `json:"currency"`
 	TicketAdvance        *bool    `json:"ticket_advance"`
 	TicketRequired       *bool    `json:"ticket_required"`
 	RegistrationRequired *bool    `json:"registration_required"`
 	Custom               *string  `json:"custom"`
 	Style                *string  `json:"style"`
-	ReleaseStatusId      *int     `json:"release_status_id"`
+	ReleaseStatus        *int     `json:"release_status"`
 	ReleaseDate          *string  `json:"release_date"`
 
 	Location       *incomingLocation       `json:"location"`
@@ -84,7 +84,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
 
-	// --- Read the body ---
+	// Read the body
 	body, err := io.ReadAll(gc.Request.Body)
 	if err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "failed to read request body"})
@@ -95,7 +95,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		return
 	}
 
-	// --- Decode JSON with unknown field rejection ---
+	// Decode JSON with unknown field rejection
 	decoder := json.NewDecoder(bytes.NewReader(body))
 	decoder.DisallowUnknownFields()
 
@@ -188,7 +188,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		if txErr != nil {
 			return txErr
 		}
-		
+
 		// Check if user can create an event in 'incomingEvent.VenueId'
 		if payload.VenueId != nil {
 			venuePermissions, err := h.GetUserEffectiveVenuePermissions(gc, tx, userId, *payload.VenueId)
@@ -210,8 +210,8 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 				house_number,
 				postal_code,
 				city,
-				country_code,
-				state_code,
+				country,
+				state,
 			    wkb_pos,
 				description,
 			    created_by
@@ -226,10 +226,10 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 				payload.Location.HouseNumber,
 				payload.Location.PostalCode,
 				payload.Location.City,
-				payload.Location.CountryCode,
-				payload.Location.StateCode,
-				payload.Location.Longitude,
-				payload.Location.Latitude,
+				payload.Location.Country,
+				payload.Location.State,
+				payload.Location.Lon,
+				payload.Location.Lat,
 				payload.Location.Description,
 				userId,
 			).Scan(&locationId)
@@ -249,7 +249,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			space_id,
 			location_id,
 			external_id,
-		  	release_status_id,
+		  	release_status,
 			title,
 			subtitle,
 			description,
@@ -267,7 +267,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			payload.SpaceId,
 			locationId,
 			payload.ExternalId,
-			payload.ReleaseStatusId,
+			payload.ReleaseStatus,
 			payload.Title,
 			payload.Subtitle,
 			payload.Description,
@@ -489,11 +489,11 @@ func (e *incomingEvent) Validate() error {
 		}
 	}
 
-	// Validate CurrencyCode (optional)
-	if e.CurrencyCode != nil {
-		trimmed := strings.TrimSpace(*e.CurrencyCode)
+	// Validate Currency(optional)
+	if e.Currency != nil {
+		trimmed := strings.TrimSpace(*e.Currency)
 		if trimmed != "" && len(trimmed) != 3 {
-			errs = append(errs, "currency_code must be a 3-letter ISO 4217 code if provided")
+			errs = append(errs, "currency must be a 3-letter ISO 4217 code if provided")
 		}
 	}
 
@@ -507,14 +507,14 @@ func (e *incomingEvent) Validate() error {
 		errs = append(errs, err.Error())
 	}
 
-	// Validate ReleaseStatusId (optional)
-	if e.ReleaseStatusId != nil {
-		if *e.ReleaseStatusId < 1 || *e.ReleaseStatusId > 5 {
-			errs = append(errs, "release_status_id must be between 1 and 5 if provided")
+	// Validate ReleaseStatus (optional)
+	if e.ReleaseStatus != nil {
+		if *e.ReleaseStatus < 1 || *e.ReleaseStatus > 5 {
+			errs = append(errs, "release_status must be between 1 and 5 if provided")
 		}
 	} else {
 		defaultValue := 1
-		e.ReleaseStatusId = &defaultValue
+		e.ReleaseStatus = &defaultValue
 	}
 
 	// Validate ReleaseDate (optional)
@@ -567,8 +567,8 @@ func (e *incomingEvent) Validate() error {
 		- Validate endDate/endTime before startDate/startTime
 		- OrganizationId, check permissions for organization_id
 		- Dates, check permissions for using: venue_id, space_id
-		- OccasionTypeId, check if valid value
-		- PriceTypeId, check if valid value
+		- OccasionType, check if valid value
+		- PriceType, check if valid value
 	*/
 
 	if len(errs) > 0 {

@@ -15,17 +15,17 @@ WITH event_data AS (
     FROM {{schema}}.event_date ed
 )
 SELECT
-    e.id AS event_id,
-    event_date_id,
-    e.title AS event_title,
-    e.subtitle AS event_subtitle,
-    e.organization_id AS event_organization_id,
-    eo.name AS event_organization_name,
+    e.id AS id,
+    event_date_id AS date_id,
+    e.title AS title,
+    e.subtitle AS subtitle,
+    e.organization_id AS organization_id,
+    eo.name AS organization_name,
     TO_CHAR(edt.start_date, 'YYYY-MM-DD') AS start_date,
     TO_CHAR(edt.start_time, 'HH24:MI') AS start_time,
     TO_CHAR(edt.end_date, 'YYYY-MM-DD') AS end_date,
     TO_CHAR(edt.end_time, 'HH24:MI') AS end_time,
-    e.release_status_id,
+    e.release_status AS release_status,
     TO_CHAR(e.release_date, 'YYYY-MM-DD') AS release_date,
     v.id AS venue_id,
     v.name AS venue_name,
@@ -33,7 +33,8 @@ SELECT
     s.name AS space_name,
     el.id AS location_id,
     el.name AS location_name,
-    e.image1_id AS image_id,
+    main_image_link.image_id AS image_id,
+    main_image_link.image_url AS image_url,
     et_data.event_types,
 
     -- Permissions via bitmask
@@ -73,6 +74,18 @@ LEFT JOIN LATERAL (
         WHERE etl.event_id = e.id
     ) event_type
 ) et_data ON true
+
+LEFT JOIN LATERAL (
+    SELECT
+        pil.pluto_image_id AS image_id,
+        format('{{base_api_url}}/api/image/%s', pil.pluto_image_id) AS image_url
+    FROM {{schema}}.pluto_image_link pil
+    WHERE pil.context = 'event'
+    AND pil.context_id = e.id
+    AND pil.identifier = 'main'
+    ORDER BY pil.id
+    LIMIT 1
+) main_image_link ON TRUE
 
 -- User links with permissions bitmask
 LEFT JOIN {{schema}}.user_event_link uel ON uel.event_id = e.id AND uel.user_id = $3

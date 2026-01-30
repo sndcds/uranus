@@ -11,8 +11,8 @@ INSERT INTO {{schema}}.venue (
     house_number,
     postal_code,
     city,
-    country_code,
-    state_code,
+    country,
+    state,
     wkb_pos,
     created_by
 )

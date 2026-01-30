@@ -10,8 +10,8 @@ INSERT INTO {{schema}}.organization (
     house_number,
     postal_code,
     city,
-    country_code,
-    state_code,
+    country,
+    state,
     address_addition,
     wkb_pos,
     created_by

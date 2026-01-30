@@ -27,10 +27,9 @@ func (h *ApiHandler) AdminOrganizationTeamInvite(gc *gin.Context) {
 	userId := h.userId(gc)
 	lang := gc.DefaultQuery("lang", "en")
 
-	organizationIdStr := gc.Param("organizationId")
-	organizationId, err := strconv.Atoi(organizationIdStr)
-	if err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid organization id"})
+	organizationId, ok := ParamInt(gc, "organizationId")
+	if !ok {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid organizationId"})
 		return
 	}
 

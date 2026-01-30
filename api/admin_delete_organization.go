@@ -17,14 +17,14 @@ func (h *ApiHandler) AdminDeleteOrganization(gc *gin.Context) {
 		return
 	}
 
-	organizationId, ok := ParamInt(gc, "organizationId")
+	orgId, ok := ParamInt(gc, "orgnId")
 	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid organizationId"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid orgId"})
 		return
 	}
 
 	query := fmt.Sprintf(`DELETE FROM %s.organization WHERE id = $1`, h.Config.DbSchema)
-	cmdTag, err := h.DbPool.Exec(ctx, query, organizationId)
+	cmdTag, err := h.DbPool.Exec(ctx, query, orgId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete organization", "details": err.Error()})
 		return
@@ -35,5 +35,5 @@ func (h *ApiHandler) AdminDeleteOrganization(gc *gin.Context) {
 		return
 	}
 
-	gc.JSON(http.StatusOK, gin.H{"message": "Organization deleted successfully", "id": organizationId})
+	gc.JSON(http.StatusOK, gin.H{"message": "Organization deleted successfully", "id": orgId})
 }

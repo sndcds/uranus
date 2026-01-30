@@ -1,6 +1,8 @@
 package app
 
-import "golang.org/x/crypto/bcrypt"
+import (
+	"golang.org/x/crypto/bcrypt"
+)
 
 // TODO: Review code
 
@@ -15,6 +17,5 @@ func EncryptPassword(password string) (string, error) {
 
 // ComparePasswords compares a plain password with a bcrypt hash
 func ComparePasswords(storedHash, password string) error {
-	// Compare the plain password to the bcrypt hash
 	return bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(password))
 }

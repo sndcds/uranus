@@ -18,14 +18,14 @@ func (h *ApiHandler) AdminGetOrganization(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
 
-	organizationId := gc.Param("organizationId")
-	if organizationId == "" {
+	orgId := gc.Param("orgId")
+	if orgId == "" {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "organization Id is required"})
 		return
 	}
 
 	query := app.UranusInstance.SqlGetAdminOrganization
-	rows, err := h.DbPool.Query(ctx, query, organizationId, userId)
+	rows, err := h.DbPool.Query(ctx, query, orgId, userId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

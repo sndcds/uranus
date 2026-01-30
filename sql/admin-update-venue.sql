@@ -11,8 +11,8 @@ SET
     house_number = $10,
     postal_code = $11,
     city = $12,
-    country_code = $13,
-    state_code = $14,
+    country = $13,
+    state = $14,
     wkb_pos = ST_SetSRID(ST_MakePoint($15, $16), 4326),
     modified_by = $17
 WHERE id = $1

@@ -43,8 +43,13 @@ type Uranus struct {
 	SqlInsertSpace                      string
 	SqlUpdateSpace                      string
 	SqlAdminGetEvent                    string
-	SqlAdminGetEventDates               string
 	SqlAdminGetEventTypes               string
+	SqlAdminGetEventImages              string
+	SqlAdminGetEventLinks               string
+	SqlAdminGetEventDates               string
+	SqlAdminInsertEventDate             string
+	SqlAdminUpdateEventDate             string
+	SqlTypeGenreLookup                  string
 	SqlChoosableOrganizationVenues      string
 	SqlChoosableVenueSpaces             string
 	SqlChoosableEventTypes              string
@@ -154,7 +159,7 @@ type SqlQueryItem struct {
 	modeDependentFilePath *string
 }
 
-func (q *SqlQueryItem) LoadSql(schema string) error {
+func (q *SqlQueryItem) LoadSql(schema string, baseApiUrl string) error {
 	// Read main SQL file
 	fileContent, err := os.ReadFile(q.filePath)
 	if err != nil {
@@ -163,8 +168,9 @@ func (q *SqlQueryItem) LoadSql(schema string) error {
 
 	contentStr := string(fileContent)
 
-	// Replace {{schema}} placeholder
+	// Replace {{schema}} and {{base_api_url}} placeholder
 	resultStr := strings.ReplaceAll(contentStr, "{{schema}}", schema)
+	resultStr = strings.ReplaceAll(resultStr, "{{base_api_url}}", baseApiUrl)
 
 	// Handle modeDependentFilePath if present
 	if q.modeDependentFilePath != nil && *q.modeDependentFilePath != "" {
@@ -199,9 +205,11 @@ func (app *Uranus) PrepareSql() error {
 
 		{"sql/get-events-type-summary.sql", &app.SqlGetEventsTypeSummary, nil},
 
-		{"sql/choosable-event-types.sql", &app.SqlChoosableEventTypes, nil},
 		{"sql/choosable-event-genres.sql", &app.SqlChoosableEventGenres, nil},
 		{"sql/get-geojson-venues.sql", &app.SqlGetGeojsonVenues, nil},
+
+		{"sql/type-genre-lookup.sql", &app.SqlTypeGenreLookup, nil},
+		{"sql/choosable-organization-venues.sql", &app.SqlChoosableOrganizationVenues, nil},
 
 		{"sql/choosable-organization-venues.sql", &app.SqlChoosableOrganizationVenues, nil},
 		{"sql/choosable-venue-spaces.sql", &app.SqlChoosableVenueSpaces, nil},
@@ -226,8 +234,13 @@ func (app *Uranus) PrepareSql() error {
 		{"sql/admin-update-space.sql", &app.SqlUpdateSpace, nil},
 
 		{"sql/admin-get-event.sql", &app.SqlAdminGetEvent, nil},
-		{"sql/admin-get-event-dates.sql", &app.SqlAdminGetEventDates, nil},
 		{"sql/admin-get-event-types.sql", &app.SqlAdminGetEventTypes, nil},
+		{"sql/admin-get-event-images.sql", &app.SqlAdminGetEventImages, nil},
+		{"sql/admin-get-event-links.sql", &app.SqlAdminGetEventLinks, nil},
+		{"sql/admin-get-event-dates.sql", &app.SqlAdminGetEventDates, nil},
+
+		{"sql/admin-update-event-date.sql", &app.SqlAdminUpdateEventDate, nil},
+		{"sql/admin-insert-event-date.sql", &app.SqlAdminInsertEventDate, nil},
 
 		{"sql/admin-get-user-event-notifications.sql", &app.SqlAdminGetUserEventNotifications, nil},
 
@@ -251,7 +264,7 @@ func (app *Uranus) PrepareSql() error {
 
 	for i := range queries {
 		q := &queries[i] // pointer to slice element
-		if err := q.LoadSql(app.Config.DbSchema); err != nil {
+		if err := q.LoadSql(app.Config.DbSchema, app.Config.BaseApiUrl); err != nil {
 			return err
 		}
 	}

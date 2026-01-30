@@ -12,16 +12,18 @@ func (h *ApiHandler) AdminDeleteEventDate(gc *gin.Context) {
 	userId := h.userId(gc)
 
 	if !h.VerifyUserPassword(gc, userId) {
-		return
+		return // Already sent JSON error
 	}
 
 	eventId, ok := ParamInt(gc, "eventId")
+	fmt.Println("eventId", eventId)
 	if !ok {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "eventId is required"})
 		return
 	}
 
 	eventDateId, ok := ParamInt(gc, "dateId")
+	fmt.Println("eventDateId", eventDateId)
 	if !ok {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "dateId is required"})
 		return

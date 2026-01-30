@@ -12,14 +12,14 @@ import (
 func (h *ApiHandler) GetOrganization(gc *gin.Context) {
 	ctx := gc.Request.Context()
 
-	organizationId, ok := ParamInt(gc, "organizationId")
+	orgId, ok := ParamInt(gc, "orgId")
 	if !ok {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "organization Id is required"})
 		return
 	}
 
 	query := app.UranusInstance.SqlGetOrganization
-	rows, err := h.DbPool.Query(ctx, query, organizationId)
+	rows, err := h.DbPool.Query(ctx, query, orgId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

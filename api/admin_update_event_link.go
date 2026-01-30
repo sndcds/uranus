@@ -46,7 +46,7 @@ func (h *ApiHandler) AdminUpsertEventLink(gc *gin.Context) {
 					Err:  fmt.Errorf("failed to insert event link: %v", err),
 				}
 			}
-			linkId = newId // assign generated ID for response
+			linkId = newId // assign generated Id for response
 		} else {
 			// Update existing link
 			updateQuery := fmt.Sprintf(

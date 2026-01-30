@@ -16,7 +16,7 @@ func (h *ApiHandler) GetChoosableStates(gc *gin.Context) {
 	countryCode := gc.DefaultQuery("country-code", "")
 
 	query := fmt.Sprintf(
-		`SELECT code, name FROM %s.state WHERE country_code = $1 ORDER BY name`,
+		`SELECT code, name FROM %s.state WHERE country = $1 ORDER BY name`,
 		app.UranusInstance.Config.DbSchema,
 	)
 
@@ -28,7 +28,7 @@ func (h *ApiHandler) GetChoosableStates(gc *gin.Context) {
 	defer rows.Close()
 
 	type State struct {
-		StateCode *string `json:"state_code"`
+		State     *string `json:"state"`
 		StateName *string `json:"state_name"`
 	}
 
@@ -37,7 +37,7 @@ func (h *ApiHandler) GetChoosableStates(gc *gin.Context) {
 	for rows.Next() {
 		var state State
 		if err := rows.Scan(
-			&state.StateCode,
+			&state.State,
 			&state.StateName,
 		); err != nil {
 			fmt.Println(err.Error())

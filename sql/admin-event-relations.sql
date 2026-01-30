@@ -10,7 +10,7 @@ WHERE ed.event_id = $1
     )
 SELECT
     e.id AS event_id,
-    e.organization_id AS event_organization_id,
+    e.organization_id AS organization_id,
     COALESCE(s.id, e.space_id) AS space_id,
     e.venue_id
 FROM event_data ed

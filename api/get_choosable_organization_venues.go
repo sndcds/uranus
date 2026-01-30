@@ -3,7 +3,6 @@ package api
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sndcds/uranus/app"
@@ -14,15 +13,14 @@ import (
 func (h *ApiHandler) GetChoosableOrganizationVenues(gc *gin.Context) {
 	ctx := gc.Request.Context()
 
-	organizationIdStr := gc.Param("organizationId")
-	organizationId, err := strconv.Atoi(organizationIdStr)
-	if err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	orgId, ok := ParamInt(gc, "orgId")
+	if !ok {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "orgId required"})
 		return
 	}
 
 	query := app.UranusInstance.SqlChoosableOrganizationVenues
-	rows, err := h.DbPool.Query(ctx, query, organizationId)
+	rows, err := h.DbPool.Query(ctx, query, orgId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

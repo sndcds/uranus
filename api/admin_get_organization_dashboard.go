@@ -40,11 +40,12 @@ func (h *ApiHandler) AdminGetOrganizationDashboard(gc *gin.Context) {
 			&e.OrganizationId,
 			&e.OrganizationName,
 			&e.OrganizationCity,
-			&e.OrganizationCountryCode,
+			&e.OrganizationCountry,
 			&e.TotalUpcomingEvents,
 			&e.VenueCount,
 			&e.SpaceCount,
 			&userPermissions,
+			&e.MainLogoImageId,
 		); err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

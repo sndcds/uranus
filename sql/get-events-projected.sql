@@ -17,8 +17,8 @@ WITH upcoming_dates AS (
         venue_street,
         venue_house_number,
         venue_postal_code,
-        venue_state_code,
-        venue_country_code,
+        venue_state,
+        venue_country,
         venue_geo_pos,
         space_name,
         space_accessibility_flags,
@@ -41,7 +41,7 @@ SELECT
     TO_CHAR(edp.entry_time, 'HH24:MI') AS entry_time,
     edp.duration,
     edp.all_day,
-    ep.release_status_id,
+    ep.release_status,
     edp.ticket_link,
     ep.title,
     ep.subtitle,
@@ -55,8 +55,8 @@ SELECT
     COALESCE(edp.venue_street, ep.venue_street) AS venue_street,
     COALESCE(edp.venue_house_number, ep.venue_house_number) AS venue_house_number,
     COALESCE(edp.venue_postal_code, ep.venue_postal_code) AS venue_postal_code,
-    COALESCE(edp.venue_state_code, ep.venue_state_code) AS venue_state_code,
-    COALESCE(edp.venue_country_code, ep.venue_country_code) AS venue_country_code,
+    COALESCE(edp.venue_state, ep.venue_state) AS venue_state,
+    COALESCE(edp.venue_country, ep.venue_country) AS venue_country,
     ST_Y(COALESCE(edp.venue_geo_pos, ep.venue_geo_pos)) AS venue_lat,
     ST_X(COALESCE(edp.venue_geo_pos, ep.venue_geo_pos)) AS venue_lon,
     COALESCE(edp.space_name, ep.space_name) AS space_name,
@@ -66,7 +66,7 @@ SELECT
     edp.visitor_info_flags
 FROM upcoming_dates edp
 JOIN {{schema}}.event_projection ep ON ep.event_id = edp.event_id
-WHERE ep.release_status_id >= 3
+WHERE ep.release_status >= 3
 AND {{date_conditions}}
 {{conditions}}
 ORDER BY edp.event_start_at ASC, edp.event_date_id ASC

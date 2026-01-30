@@ -18,8 +18,8 @@ func (h *ApiHandler) AdminUpdateEventReleaseStatus(gc *gin.Context) {
 	}
 
 	type incomingReq struct {
-		ReleaseDate     *string `json:"release_date"`
-		ReleaseStatusId int     `json:"release_status_id" binding:"required"`
+		ReleaseDate   *string `json:"release_date"`
+		ReleaseStatus int     `json:"release_status" binding:"required"`
 	}
 
 	var req incomingReq
@@ -29,8 +29,8 @@ func (h *ApiHandler) AdminUpdateEventReleaseStatus(gc *gin.Context) {
 	}
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-		query := fmt.Sprintf(`UPDATE %s.event SET release_status_id = $2, release_date = $3 WHERE id = $1`, h.DbSchema)
-		res, err := tx.Exec(ctx, query, eventId, req.ReleaseStatusId, req.ReleaseDate)
+		query := fmt.Sprintf(`UPDATE %s.event SET release_status = $2, release_date = $3 WHERE id = $1`, h.DbSchema)
+		res, err := tx.Exec(ctx, query, eventId, req.ReleaseStatus, req.ReleaseDate)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,

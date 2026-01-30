@@ -38,14 +38,15 @@ type OrganizationMemberLink struct {
 }
 
 type OrganizationDashboardEntry struct {
-	OrganizationId          int64   `json:"organization_id"`
-	OrganizationName        string  `json:"organization_name"`
-	OrganizationCity        *string `json:"organization_city"`
-	OrganizationCountryCode *string `json:"organization_country_code"`
-	TotalUpcomingEvents     int64   `json:"total_upcoming_events"`
-	VenueCount              int64   `json:"venue_count"`
-	SpaceCount              int64   `json:"space_count"`
-	CanEditOrganization     bool    `json:"can_edit_organization"`
-	CanDeleteOrganization   bool    `json:"can_delete_organization"`
-	CanManageTeam           bool    `json:"can_manage_team"`
+	OrganizationId        int64   `json:"organization_id"`
+	OrganizationName      string  `json:"organization_name"`
+	OrganizationCity      *string `json:"organization_city"`
+	OrganizationCountry   *string `json:"organization_country"`
+	TotalUpcomingEvents   int64   `json:"total_upcoming_events"`
+	VenueCount            int64   `json:"venue_count"`
+	SpaceCount            int64   `json:"space_count"`
+	CanEditOrganization   bool    `json:"can_edit_organization"`
+	CanDeleteOrganization bool    `json:"can_delete_organization"`
+	CanManageTeam         bool    `json:"can_manage_team"`
+	MainLogoImageId       *int    `json:"main_logo_image_id"`
 }

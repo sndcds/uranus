@@ -1,14 +1,14 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sndcds/uranus/app"
+	"github.com/sndcds/uranus/model"
 )
-
-// TODO: Review code
 
 func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 	ctx := gc.Request.Context()
@@ -40,81 +40,124 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 		return
 	}
 
-	eventFieldDesc := eventRow.FieldDescriptions()
-	eventCols := make([]string, len(eventFieldDesc))
-	for i, fd := range eventFieldDesc {
-		eventCols[i] = string(fd.Name)
-	}
+	var event model.EventDetails
+	var imageJSON []byte
+	var eventTypesJSON []byte
+	var eventUrlsJSON []byte
 
-	eventData := make(map[string]interface{})
-	eventValues, err := eventRow.Values()
+	err = eventRow.Scan(
+		&event.Id,
+		&event.Title,
+		&event.Subtitle,
+		&event.Summary,
+		&event.Description,
+		&event.Languages,
+		&event.Tags,
+		&event.OrganizationId,
+		&event.OrganizationName,
+		&event.OrganizationUrl,
+		&imageJSON,
+		&eventTypesJSON,
+		&eventUrlsJSON,
+	)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	for i, col := range eventCols {
-		eventData[col] = eventValues[i]
+
+	// Unmarshal image JSON
+	if len(imageJSON) > 0 {
+		var img model.Image
+		if err := json.Unmarshal(imageJSON, &img); err == nil {
+			event.Image = &img
+		}
 	}
 
-	// Add image_path if image_id exists
-	if imageID, ok := eventData["image_id"]; ok && imageID != nil {
-		eventData["image_path"] = fmt.Sprintf("%s/api/image/%v", app.UranusInstance.Config.BaseApiUrl, imageID)
-	} else {
-		eventData["image_path"] = nil
+	// Unmarshal event types
+	if len(eventTypesJSON) > 0 {
+		var types []model.EventType
+		if err := json.Unmarshal(eventTypesJSON, &types); err == nil {
+			event.EventTypes = types
+		}
+	}
+
+	// Unmarshal event URLs
+	if len(eventUrlsJSON) > 0 {
+		var urls []model.WebLink
+		if err := json.Unmarshal(eventUrlsJSON, &urls); err == nil {
+			event.EventUrls = urls
+		}
 	}
 
 	// Query all event dates
-	datesQuery := app.UranusInstance.SqlGetEventDates
-	dateRows, err := h.DbPool.Query(ctx, datesQuery, eventId)
+	dateRows, err := h.DbPool.Query(ctx, app.UranusInstance.SqlGetEventDates, eventId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	defer dateRows.Close()
 
-	var eventDates []map[string]interface{}
-	dateFieldDesc := dateRows.FieldDescriptions()
-	dateCols := make([]string, len(dateFieldDesc))
-	for i, fd := range dateFieldDesc {
-		dateCols[i] = string(fd.Name)
-	}
+	var selectedDate *model.EventDate
+	var furtherDates []model.EventDate
 
 	for dateRows.Next() {
-		fmt.Println(dateRows.Values())
-		values, err := dateRows.Values()
+		var edd model.EventDate
+		err := dateRows.Scan(
+			&edd.Id,
+			&edd.EventId,
+			&edd.EventReleaseStatus,
+			&edd.StartDate,
+			&edd.StartTime,
+			&edd.EndDate,
+			&edd.EndTime,
+			&edd.EntryTime,
+			&edd.Duration,
+			&edd.VenueId,
+			&edd.LocationName,
+			&edd.Street,
+			&edd.HouseNumber,
+			&edd.PostalCode,
+			&edd.City,
+			&edd.Country,
+			&edd.State,
+			&edd.Lon,
+			&edd.Lat,
+			&edd.VenueWebsiteUrl,
+			&edd.VenueLogoImageId,
+			&edd.SpaceId,
+			&edd.SpaceName,
+			&edd.TotalCapacity,
+			&edd.SeatingCapacity,
+			&edd.BuildingLevel,
+			&edd.SpaceWebsiteUrl,
+			&edd.AccessibilityFlags,
+			&edd.AccessibilitySummary,
+			&edd.AccessibilityInfo,
+			&edd.VisitorInfoFlags,
+		)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
-		dateData := make(map[string]interface{}, len(values))
-		for i, col := range dateCols {
-			dateData[col] = values[i]
+		// Generate VenueLogoUrl if logo exists
+		if edd.VenueLogoImageId != nil {
+			url := fmt.Sprintf("%s/api/image/%d", app.UranusInstance.Config.BaseApiUrl, *edd.VenueLogoImageId)
+			edd.VenueLogoUrl = &url
 		}
 
-		eventDates = append(eventDates, dateData)
-	}
-
-	eventDates = app.FilterNilSlice(eventDates)
-
-	// Split event dates into selected date + further dates
-	var selectedDate map[string]interface{}
-	var furtherDates []map[string]interface{}
-
-	for _, d := range eventDates {
-		if intFromAny(d["event_date_id"]) == dateId {
-			selectedDate = d
+		if edd.Id == dateId {
+			tmp := edd
+			selectedDate = &tmp
 		} else {
-			furtherDates = append(furtherDates, d)
+			furtherDates = append(furtherDates, edd)
 		}
 	}
 
-	// Add to output
-	eventData["date"] = selectedDate
-	eventData["further_dates"] = furtherDates
-	eventData = app.FilterNilMap(eventData)
+	event.Date = selectedDate
+	event.FurtherDates = furtherDates
 
-	gc.JSON(http.StatusOK, eventData)
+	gc.JSON(http.StatusOK, event)
 }
 
 func intFromAny(v interface{}) int {

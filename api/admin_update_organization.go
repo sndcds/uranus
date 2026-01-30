@@ -11,23 +11,23 @@ import (
 )
 
 type organizationReq struct {
-	Name                  string   `json:"name"`
-	Description           *string  `json:"description"`
-	LegalFormID           *int     `json:"legal_form_id"`
-	HoldingOrganizationID *int     `json:"holding_organization_id"`
-	Nonprofit             *bool    `json:"nonprofit"`
-	ContactEmail          *string  `json:"contact_email"`
-	ContactPhone          *string  `json:"contact_phone"`
-	WebsiteUrl            *string  `json:"website_url"`
-	Street                *string  `json:"street"`
-	HouseNumber           *string  `json:"house_number"`
-	PostalCode            *string  `json:"postal_code"`
-	City                  *string  `json:"city"`
-	StateCode             *string  `json:"state_code"`
-	CountryCode           *string  `json:"country_code"`
-	AddressAddition       *string  `json:"address_addition"`
-	Longitude             *float64 `json:"longitude"`
-	Latitude              *float64 `json:"latitude"`
+	Name            string   `json:"name"`
+	Description     *string  `json:"description"`
+	LegalFormID     *int     `json:"legal_form_id"`
+	HoldingOrgID    *int     `json:"holding_organization_id"`
+	Nonprofit       *bool    `json:"nonprofit"`
+	ContactEmail    *string  `json:"contact_email"`
+	ContactPhone    *string  `json:"contact_phone"`
+	WebsiteUrl      *string  `json:"website_url"`
+	Street          *string  `json:"street"`
+	HouseNumber     *string  `json:"house_number"`
+	PostalCode      *string  `json:"postal_code"`
+	City            *string  `json:"city"`
+	State           *string  `json:"state"`
+	Country         *string  `json:"country"`
+	AddressAddition *string  `json:"address_addition"`
+	Longitude       *float64 `json:"longitude"`
+	Latitude        *float64 `json:"latitude"`
 }
 
 func (h *ApiHandler) AdminUpsertOrganization(gc *gin.Context) {
@@ -61,8 +61,8 @@ func (h *ApiHandler) AdminUpsertOrganization(gc *gin.Context) {
 				req.HouseNumber,
 				req.PostalCode,
 				req.City,
-				req.CountryCode,
-				req.StateCode,
+				req.Country,
+				req.State,
 				req.AddressAddition,
 				req.Longitude,
 				req.Latitude,
@@ -121,8 +121,8 @@ INSERT INTO %s.organization_member_link (organization_id, user_id, has_joined) V
 			req.HouseNumber,
 			req.PostalCode,
 			req.City,
-			req.CountryCode,
-			req.StateCode,
+			req.Country,
+			req.State,
 			req.AddressAddition,
 			req.Longitude,
 			req.Latitude,

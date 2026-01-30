@@ -4,7 +4,7 @@ SELECT
     e.organization_id,
     o.name AS organization_name,
     e.release_date,
-    e.release_status_id,
+    e.release_status,
     ed_min.first_event_date::date AS earliest_event_date,
     ed_max.last_event_date::date AS latest_event_date,
     (e.release_date - CURRENT_DATE) AS days_until_release,
@@ -23,7 +23,7 @@ LEFT JOIN LATERAL (
     JOIN {{schema}}.organization o ON o.id = e.organization_id
     JOIN {{schema}}.user_organization_link uol ON uol.organization_id = o.id
 WHERE ed_max.last_event_date >= NOW()
-AND e.release_status_id < 3
+AND e.release_status < 3
 AND uol.user_id = $1
 AND (
     (e.release_date IS NOT NULL AND e.release_date <= CURRENT_DATE + $2::int)
