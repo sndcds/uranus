@@ -5,7 +5,7 @@ SELECT
     s.building_level,
     s.total_capacity,
     s.seating_capacity,
-    s.website_url,
+    s.website_link,
     s.accessibility_flags::text AS accessibility_flags,
     s.accessibility_summary,
     s.area_sqm,

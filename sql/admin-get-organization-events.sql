@@ -10,8 +10,7 @@ WITH event_data AS (
         ed.end_time,
         ed.entry_time,
         ed.duration,
-        ed.accessibility_info,
-        ed.visitor_info_flags
+        ed.accessibility_info
     FROM {{schema}}.event_date ed
 )
 SELECT
@@ -31,8 +30,6 @@ SELECT
     v.name AS venue_name,
     s.id AS space_id,
     s.name AS space_name,
-    el.id AS location_id,
-    el.name AS location_name,
     main_image_link.image_id AS image_id,
     main_image_link.image_url AS image_url,
     et_data.event_types,
@@ -57,10 +54,14 @@ SELECT
 FROM event_data edt
 LEFT JOIN {{schema}}.event e ON edt.event_id = e.id
 LEFT JOIN {{schema}}.venue v ON COALESCE(edt.venue_id, e.venue_id) = v.id
-LEFT JOIN {{schema}}.space s ON COALESCE(edt.space_id, e.space_id) = s.id
+LEFT JOIN {{schema}}.space s ON s.id =
+    CASE
+        WHEN edt.venue_id IS NOT NULL THEN edt.space_id
+        ELSE e.space_id
+    END
+
 LEFT JOIN {{schema}}.organization o ON v.organization_id = o.id
 LEFT JOIN {{schema}}.organization eo ON e.organization_id = eo.id
-LEFT JOIN {{schema}}.event_location el ON e.location_id = el.id
 
 LEFT JOIN LATERAL (
     SELECT jsonb_agg(

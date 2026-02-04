@@ -101,6 +101,8 @@ github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0t
 github.com/rogpeppe/go-internal v1.14.1/go.mod h1:MaRKkUm5W0goXpeCfT7UZI6fk/L7L7so1lCWt35ZSgc=
 github.com/rwcarlsen/goexif v0.0.0-20190401172101-9e8deecbddbd h1:CmH9+J6ZSsIjUK3dcGsnCnO41eRBOnY12zwkn5qVwgc=
 github.com/rwcarlsen/goexif v0.0.0-20190401172101-9e8deecbddbd/go.mod h1:hPqNNc0+uJM6H+SuU8sEs5K5IQeKccPqeSjfgcKGgPk=
+github.com/sndcds/grains v0.0.0-20260130074254-6608544624da h1:WbGDRHyXjJ/06CG8F4njulmJVs5MXJimQ9R0fDAwKv4=
+github.com/sndcds/grains v0.0.0-20260130074254-6608544624da/go.mod h1:KCd7VRAEf9hTOe9XU7/OodbolYVVwM+nirqr5/pP3DQ=
 github.com/sndcds/pluto v0.1.5 h1:lXKN/DWYCjDI4YMQRk8PlakvVxlT6ChfO6nCz2JF8+Y=
 github.com/sndcds/pluto v0.1.5/go.mod h1:Ee2bx3/5ZDNB2552c5hXFBi2rS9sX0yK0X5IvGOkah4=
 github.com/sndcds/pluto v0.1.6 h1:qjLgh6kO1jlS1EKLU7nZeuxHrbyVemxS0BhMu3NZbLs=

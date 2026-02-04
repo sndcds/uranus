@@ -2,15 +2,13 @@ package api
 
 import (
 	"fmt"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-// TODO: Review code
-
 func (h *ApiHandler) GetChoosableCurrencies(gc *gin.Context) {
 	ctx := gc.Request.Context()
+	apiResponseType := "choosable-currencies"
 
 	onceCurrencies.Do(func() {
 		currenciesOptionsQuery = fmt.Sprintf(`
@@ -22,7 +20,8 @@ func (h *ApiHandler) GetChoosableCurrencies(gc *gin.Context) {
 
 	rows, err := h.DbPool.Query(ctx, currenciesOptionsQuery, lang)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		debugf("Error in GetChoosableCurrencies: %s", err.Error())
+		JSONDatabaseError(gc, apiResponseType)
 		return
 	}
 	defer rows.Close()
@@ -40,22 +39,23 @@ func (h *ApiHandler) GetChoosableCurrencies(gc *gin.Context) {
 			&option.Id,
 			&option.Name,
 		); err != nil {
-			fmt.Println(err.Error())
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			debugf("Error in GetChoosableCurrencies: %s", err.Error())
+			JSONDatabaseError(gc, apiResponseType)
 			return
 		}
 		options = append(options, option)
 	}
 
 	if err := rows.Err(); err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		debugf("Error in GetChoosableCurrencies: %s", err.Error())
+		JSONDatabaseError(gc, apiResponseType)
 		return
 	}
 
 	if len(options) == 0 {
-		gc.JSON(http.StatusOK, []OptionType{})
+		JSONSuccess(gc, apiResponseType, []OptionType{}, nil)
 		return
 	}
 
-	gc.JSON(http.StatusOK, options)
+	JSONSuccess(gc, apiResponseType, options, nil)
 }

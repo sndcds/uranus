@@ -5,7 +5,7 @@ INSERT INTO {{schema}}.organization (
     nonprofit,
     contact_email,
     contact_phone,
-    website_url,
+    website_link,
     street,
     house_number,
     postal_code,

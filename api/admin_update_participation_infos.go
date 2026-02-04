@@ -7,22 +7,21 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/sndcds/uranus/model"
 )
 
 type participationInfoReq struct {
-	ParticipationInfo    *string  `json:"participation_info"`
-	MeetingPoint         *string  `json:"meeting_point"`
-	MinAge               *int     `json:"min_age"`
-	MaxAge               *int     `json:"max_age"`
-	MaxAttendees         *int     `json:"max_attendees"`
-	PriceType            *int     `json:"price_type"`
-	MinPrice             *float64 `json:"min_price"`
-	MaxPrice             *float64 `json:"max_price"`
-	Currency             *string  `json:"currency"`
-	TicketAdvance        *bool    `json:"ticket_advance"`
-	TicketRequired       *bool    `json:"ticket_required"`
-	RegistrationRequired *bool    `json:"registration_required"`
-	OccasionTypeID       *int     `json:"occasion_type_id"`
+	ParticipationInfo *string         `json:"participation_info"`
+	MeetingPoint      *string         `json:"meeting_point"`
+	MinAge            *int            `json:"min_age"`
+	MaxAge            *int            `json:"max_age"`
+	MaxAttendees      *int            `json:"max_attendees"`
+	PriceType         model.PriceType `json:"price_type"`
+	MinPrice          *float64        `json:"min_price"`
+	MaxPrice          *float64        `json:"max_price"`
+	Currency          *string         `json:"currency"`
+	TicketFlags       []string        `json:"ticket_flags"`
+	OccasionTypeID    *int            `json:"occasion_type_id"`
 }
 
 func (h *ApiHandler) AdminUpdateEventParticipationInfos(gc *gin.Context) {
@@ -81,16 +80,8 @@ func (h *ApiHandler) AdminUpdateEventParticipationInfos(gc *gin.Context) {
 	args = append(args, req.Currency)
 	argIndex++
 
-	setClauses = append(setClauses, fmt.Sprintf("ticket_advance = $%d", argIndex))
-	args = append(args, req.TicketAdvance)
-	argIndex++
-
-	setClauses = append(setClauses, fmt.Sprintf("ticket_required = $%d", argIndex))
-	args = append(args, req.TicketRequired)
-	argIndex++
-
-	setClauses = append(setClauses, fmt.Sprintf("registration_required = $%d", argIndex))
-	args = append(args, req.RegistrationRequired)
+	setClauses = append(setClauses, fmt.Sprintf("ticket_flags = $%d", argIndex))
+	args = append(args, req.TicketFlags)
 	argIndex++
 
 	setClauses = append(setClauses, fmt.Sprintf("occasion_type_id = $%d", argIndex))

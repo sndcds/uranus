@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/uranus/app"
+	"github.com/sndcds/uranus/model"
 )
 
 // TODO: Review code
@@ -47,33 +48,31 @@ type incomingEventDate struct {
 }
 
 type incomingEvent struct {
-	Title                string   `json:"title" binding:"required"`
-	Description          string   `json:"description" binding:"required"`
-	Subtitle             *string  `json:"subtitle"`
-	Summary              *string  `json:"summary"`
-	Tags                 []string `json:"tags"`
-	SourceUrl            *string  `json:"source_url"`
-	OnlineEventUrl       *string  `json:"online_event_url"`
-	OrganizationId       *int     `json:"organization_id" binding:"required"`
-	VenueId              *int     `json:"venue_id"`
-	SpaceId              *int     `json:"space_id"`
-	ExternalId           *string  `json:"external_id"`
-	ParticipationInfo    *string  `json:"participation_info"`
-	OccasionTypeId       *int     `json:"occasion_type_id"`
-	Languages            []string `json:"languages"`
-	MinAge               *int     `json:"min_age"`
-	MaxAge               *int     `json:"max_age"`
-	MeetingPoint         *string  `json:"meeting_point"`
-	MaxAttendees         *int     `json:"max_attendees"`
-	PriceType            *int     `json:"price_type"`
-	Currency             *string  `json:"currency"`
-	TicketAdvance        *bool    `json:"ticket_advance"`
-	TicketRequired       *bool    `json:"ticket_required"`
-	RegistrationRequired *bool    `json:"registration_required"`
-	Custom               *string  `json:"custom"`
-	Style                *string  `json:"style"`
-	ReleaseStatus        *int     `json:"release_status"`
-	ReleaseDate          *string  `json:"release_date"`
+	Title             string          `json:"title" binding:"required"`
+	Description       string          `json:"description" binding:"required"`
+	Subtitle          *string         `json:"subtitle"`
+	Summary           *string         `json:"summary"`
+	Tags              []string        `json:"tags"`
+	SourceUrl         *string         `json:"source_url"`
+	OnlineLink        *string         `json:"online_link"`
+	OrganizationId    *int            `json:"organization_id" binding:"required"`
+	VenueId           *int            `json:"venue_id"`
+	SpaceId           *int            `json:"space_id"`
+	ExternalId        *string         `json:"external_id"`
+	ParticipationInfo *string         `json:"participation_info"`
+	OccasionTypeId    *int            `json:"occasion_type_id"`
+	Languages         []string        `json:"languages"`
+	MinAge            *int            `json:"min_age"`
+	MaxAge            *int            `json:"max_age"`
+	MeetingPoint      *string         `json:"meeting_point"`
+	MaxAttendees      *int            `json:"max_attendees"`
+	PriceType         model.PriceType `json:"price_type"`
+	Currency          *string         `json:"currency"`
+	TicketFlags       []string        `json:"ticket_flags"`
+	Custom            *string         `json:"custom"`
+	Style             *string         `json:"style"`
+	ReleaseStatus     *string         `json:"release_status"`
+	ReleaseDate       *string         `json:"release_date"`
 
 	Location       *incomingLocation       `json:"location"`
 	Dates          []incomingEventDate     `json:"dates" binding:"required"`
@@ -200,54 +199,12 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			}
 		}
 
-		var locationId *int
-		if payload.hasLocation() {
-			// If JSON has a location field, insert the event location first
-			locationQuery := `
-			INSERT INTO {{schema}}.event_location (
-				"name",
-				street,
-				house_number,
-				postal_code,
-				city,
-				country,
-				state,
-			    wkb_pos,
-				description,
-			    created_by
-			)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, ST_SetSRID(ST_MakePoint($8, $9), 4326), $10, $11)
-			RETURNING id`
-			locationQuery = strings.Replace(locationQuery, "{{schema}}", h.Config.DbSchema, 1)
-			err = tx.QueryRow(
-				ctx, locationQuery,
-				payload.Location.Name,
-				payload.Location.Street,
-				payload.Location.HouseNumber,
-				payload.Location.PostalCode,
-				payload.Location.City,
-				payload.Location.Country,
-				payload.Location.State,
-				payload.Location.Lon,
-				payload.Location.Lat,
-				payload.Location.Description,
-				userId,
-			).Scan(&locationId)
-			if err != nil {
-				return &ApiTxError{
-					Code: http.StatusForbidden,
-					Err:  fmt.Errorf("failed to insert event location: %v", err),
-				}
-			}
-		}
-
 		// Insert event Information
 		insertEventQuery := `
 		INSERT INTO {{schema}}.event (
 			organization_id,
 			venue_id,
 			space_id,
-			location_id,
 			external_id,
 		  	release_status,
 			title,
@@ -256,7 +213,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			summary,
 		  	languages,
 			created_by
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		RETURNING id`
 		query := strings.Replace(insertEventQuery, "{{schema}}", h.Config.DbSchema, 1)
 
@@ -265,7 +222,6 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			payload.OrganizationId,
 			payload.VenueId,
 			payload.SpaceId,
-			locationId,
 			payload.ExternalId,
 			payload.ReleaseStatus,
 			payload.Title,
@@ -420,8 +376,8 @@ func (e *incomingEvent) Validate() error {
 		errs = append(errs, err.Error())
 	}
 
-	// Validate OnlineEventUrl (optional)
-	if err := app.ValidateOptionalUrl("online_event_url", e.OnlineEventUrl); err != nil {
+	// Validate OnlineLink (optional)
+	if err := app.ValidateOptionalUrl("online_link", e.OnlineLink); err != nil {
 		errs = append(errs, err.Error())
 	}
 
@@ -432,11 +388,9 @@ func (e *incomingEvent) Validate() error {
 		errs = append(errs, "organization_id is invalid")
 	}
 
-	// Validate VenueId/Location
-	if !e.hasVenue() && !e.hasLocation() {
-		errs = append(errs, "event must have either venue_id or location")
-	} else if e.hasVenue() && e.hasLocation() {
-		errs = append(errs, "event cannot have both venue_id and location")
+	// Validate VenueId
+	if !e.hasVenue() {
+		errs = append(errs, "event must have venueId")
 	}
 
 	// Validate ExternalId (optional)
@@ -509,11 +463,12 @@ func (e *incomingEvent) Validate() error {
 
 	// Validate ReleaseStatus (optional)
 	if e.ReleaseStatus != nil {
-		if *e.ReleaseStatus < 1 || *e.ReleaseStatus > 5 {
-			errs = append(errs, "release_status must be between 1 and 5 if provided")
+		ok, _ := IsEventReleaseStatus("release_status", e.ReleaseStatus)
+		if !ok {
+			errs = append(errs, "unknown release_status")
 		}
 	} else {
-		defaultValue := 1
+		defaultValue := "draft"
 		e.ReleaseStatus = &defaultValue
 	}
 
@@ -579,13 +534,7 @@ func (e *incomingEvent) Validate() error {
 }
 
 func (e *incomingEvent) hasVenue() bool {
-
 	return e.VenueId != nil
-}
-
-func (e *incomingEvent) hasLocation() bool {
-
-	return e.Location != nil
 }
 
 func isBeforeToday(dateStr string) (bool, error) {

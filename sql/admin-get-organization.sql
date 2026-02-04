@@ -6,7 +6,7 @@ SELECT
     o.nonprofit,
     o.contact_email,
     o.contact_phone,
-    o.website_url,
+    o.website_link,
     o.street,
     o.house_number,
     o.postal_code,

@@ -12,18 +12,19 @@ import (
 
 func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	responseType := "admin-update-event-base"
+	apiResponseType := "admin-update-event-dates"
 	userId := h.userId(gc)
 
 	eventId, ok := ParamInt(gc, "eventId")
 	if !ok {
-		JSONError(gc, responseType, http.StatusBadRequest, "eventId is required")
+		JSONError(gc, apiResponseType, http.StatusBadRequest, "eventId is required")
 		return
 	}
 
-	type AdminEventDatePayload struct {
+	type datePayload struct {
 		DateId    *int    `json:"id"`
 		VenueId   *int    `json:"venue_id"`
+		SpaceId   *int    `json:"space_id"`
 		StartDate string  `json:"start_date"` // required
 		StartTime string  `json:"start_time"` // required
 		EndDate   *string `json:"end_date"`
@@ -35,11 +36,11 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 
 	// Wrapper struct to match JSON shape
 	var wrapper struct {
-		EventDates []AdminEventDatePayload `json:"event_dates"`
+		EventDates []datePayload `json:"event_dates"`
 	}
 
 	if err := gc.ShouldBindJSON(&wrapper); err != nil {
-		JSONError(gc, responseType, http.StatusBadRequest, err.Error())
+		JSONError(gc, apiResponseType, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -48,19 +49,18 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 	// Validate required fields
 	for i, d := range payload {
 		if strings.TrimSpace(d.StartDate) == "" {
-			JSONError(gc, responseType, http.StatusBadRequest,
+			JSONError(gc, apiResponseType, http.StatusBadRequest,
 				fmt.Sprintf("start_date is required (index %d)", i))
 			return
 		}
 		if strings.TrimSpace(d.StartTime) == "" {
-			JSONError(gc, responseType, http.StatusBadRequest,
+			JSONError(gc, apiResponseType, http.StatusBadRequest,
 				fmt.Sprintf("start_time is required (index %d)", i))
 			return
 		}
 	}
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-
 		idsInPayload := []int{}
 		for _, d := range payload {
 			if d.DateId != nil {
@@ -101,6 +101,7 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 					*d.DateId,
 					eventId,
 					d.VenueId,
+					d.SpaceId,
 					d.StartDate,
 					d.StartTime,
 					d.EndDate,
@@ -121,6 +122,7 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 				_, err := tx.Exec(ctx, app.UranusInstance.SqlAdminInsertEventDate,
 					eventId,
 					d.VenueId,
+					d.SpaceId,
 					d.StartDate,
 					d.StartTime,
 					d.EndDate,
@@ -150,11 +152,11 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 		return nil
 	})
 	if txErr != nil {
-		JSONError(gc, responseType, txErr.Code, txErr.Error())
+		JSONError(gc, apiResponseType, txErr.Code, txErr.Error())
 		return
 	}
 
-	JSONSuccessInfo(gc, responseType)
+	JSONSuccessNoData(gc, apiResponseType)
 }
 
 // Convert []int to []interface{} for pgx Exec

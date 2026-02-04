@@ -11,31 +11,36 @@ import (
 
 func (h *ApiHandler) AdminUpdateEventBase(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	responseType := "admin-update-event-base"
+	apiResponseType := "admin-update-event-base"
 
 	eventId, ok := ParamInt(gc, "eventId")
 	if !ok {
-		JSONError(gc, responseType, http.StatusBadRequest, "eventId is required")
+		JSONError(gc, apiResponseType, http.StatusBadRequest, "eventId is required")
 		return
 	}
 
 	var payload struct {
 		ContentLanguage *string `json:"content_language"`
-		Title           string  `json:"title" binding:"required"`
+		Title           *string `json:"title,omitempty"`
 		Subtitle        *string `json:"subtitle,omitempty"`
 		Description     *string `json:"description,omitempty"`
 		Summary         *string `json:"summary,omitempty"`
 	}
 
 	if err := gc.ShouldBindJSON(&payload); err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		JSONPayloadError(gc, apiResponseType)
 		return
 	}
 
-	// Collect fields to update
-	setClauses := []string{"title = $1"} // title is required, always update
-	args := []interface{}{payload.Title}
-	argPos := 2 // SQL parameter position
+	setClauses := []string{}
+	args := []interface{}{}
+	argPos := 1
+
+	if payload.Title != nil {
+		setClauses = append(setClauses, fmt.Sprintf("title = $%d", argPos))
+		args = append(args, *payload.Title)
+		argPos++
+	}
 
 	if payload.ContentLanguage != nil {
 		setClauses = append(setClauses, fmt.Sprintf("content_iso_639_1 = $%d", argPos))
@@ -68,6 +73,8 @@ func (h *ApiHandler) AdminUpdateEventBase(gc *gin.Context) {
 	)
 
 	args = append(args, eventId) // eventId is the last parameter
+	fmt.Println("query", query)
+	fmt.Println("args", args)
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		res, err := tx.Exec(ctx, query, args...)
@@ -96,9 +103,9 @@ func (h *ApiHandler) AdminUpdateEventBase(gc *gin.Context) {
 		return nil
 	})
 	if txErr != nil {
-		JSONError(gc, responseType, txErr.Code, txErr.Error())
+		JSONError(gc, apiResponseType, txErr.Code, txErr.Error())
 		return
 	}
 
-	JSONSuccessInfo(gc, responseType)
+	JSONSuccessNoData(gc, apiResponseType)
 }

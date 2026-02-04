@@ -9,12 +9,11 @@ WITH event_data AS (
         ed.end_date,
         ed.end_time,
         ed.entry_time,
-        ed.duration,
-        ed.visitor_info_flags
+        ed.duration
     FROM {{schema}}.event_date ed
     JOIN {{schema}}.event e
     ON e.id = ed.event_id
-    AND e.release_status >= 3
+    AND e.release_status IN ('released', 'cancelled', 'deferred', 'rescheduled')
     {{event-date-conditions}}
 ),
 venue_data AS (
@@ -94,9 +93,7 @@ SELECT json_build_object(
                 image_data.focus_x,
                 image_data.focus_y,
                 -- event types
-                et_data.event_types,
-                -- visitor info flags
-                vis_flags.visitor_info_flag_names
+                et_data.event_types
             FROM event_data ed
             JOIN venue_data vd ON vd.venue_event_date = ed.event_date_id
             LEFT JOIN LATERAL (
@@ -123,13 +120,6 @@ SELECT json_build_object(
                 ON gt.genre_id = etl.genre_id AND gt.iso_639_1 = $1
                 WHERE etl.event_id = ed.event_id
             ) et_data ON true
-
-            LEFT JOIN LATERAL (
-                SELECT jsonb_agg(name) AS visitor_info_flag_names
-                FROM {{schema}}.visitor_information_flags f
-                WHERE (ed.visitor_info_flags & (1::BIGINT << f.flag)) = (1::BIGINT << f.flag)
-                AND f.iso_639_1 = $1
-            ) vis_flags ON true
 
             {{conditions}}
             {{order}}

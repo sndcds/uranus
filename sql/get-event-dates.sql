@@ -26,7 +26,7 @@ SELECT
     v.state AS venue_state,
     ST_X(v.wkb_pos) AS venue_lon,
     ST_Y(v.wkb_pos) AS venue_lat,
-    v.website_url AS venue_url,
+    v.website_link AS venue_link,
     venue_logo.main_logo_image_id AS venue_logo_image_id,
 
     -- Space logic: take from event_date only if event_date.venue_id exists, else NULL
@@ -35,12 +35,11 @@ SELECT
     s.total_capacity AS space_total_capacity,
     s.seating_capacity AS space_seating_capacity,
     s.building_level AS space_building_level,
-    s.website_url AS space_url,
+    s.website_link AS space_link,
     s.accessibility_flags::text AS accessibility_flags,
     s.accessibility_summary AS accessibility_summary,
 
-    ed.accessibility_info AS accessibility_info,
-    ed.visitor_info_flags
+    ed.accessibility_info AS accessibility_info
 
 FROM {{schema}}.event_date ed
 JOIN target_event e ON ed.event_id = e.id

@@ -6,7 +6,7 @@ SELECT
     v.closed_at,
     v.contact_email,
     v.contact_phone,
-    v.website_url,
+    v.website_link,
     v.street,
     v.house_number,
     v.postal_code,

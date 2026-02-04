@@ -18,7 +18,7 @@ type upsertSpaceReq struct {
 	BuildingLevel        *int    `json:"building_level"`
 	TotalCapacity        *int    `json:"total_capacity"`
 	SeatingCapacity      *int    `json:"seating_capacity"`
-	WebsiteUrl           *string `json:"website_url"`
+	WebsiteLink          *string `json:"website_link"`
 	AccessibilityFlags   *string `json:"accessibility_flags"` // Comes as string, as 64 bit int is not supported in JSON
 	AccessibilitySummary *string `json:"accessibility_summary"`
 }
@@ -56,7 +56,7 @@ func (h *ApiHandler) AdminUpsertSpace(gc *gin.Context) {
 				req.BuildingLevel,
 				req.TotalCapacity,
 				req.SeatingCapacity,
-				req.WebsiteUrl,
+				req.WebsiteLink,
 				req.AccessibilityFlags,
 				req.AccessibilitySummary,
 			).Scan(&spaceId)
@@ -82,7 +82,7 @@ func (h *ApiHandler) AdminUpsertSpace(gc *gin.Context) {
 				req.BuildingLevel,
 				req.TotalCapacity,
 				req.SeatingCapacity,
-				req.WebsiteUrl,
+				req.WebsiteLink,
 				req.AccessibilityFlags,
 				req.AccessibilitySummary,
 			)

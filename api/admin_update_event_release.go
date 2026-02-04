@@ -19,7 +19,7 @@ func (h *ApiHandler) AdminUpdateEventReleaseStatus(gc *gin.Context) {
 
 	type incomingReq struct {
 		ReleaseDate   *string `json:"release_date"`
-		ReleaseStatus int     `json:"release_status" binding:"required"`
+		ReleaseStatus string  `json:"release_status" binding:"required"`
 	}
 
 	var req incomingReq

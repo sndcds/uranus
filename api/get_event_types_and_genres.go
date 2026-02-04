@@ -9,12 +9,12 @@ import (
 
 func (h *ApiHandler) GetEventTypeGenreLookup(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	responseType := "event-type-genre-lookup"
+	apiResponseType := "event-type-genre-lookup"
 
 	query := app.UranusInstance.SqlTypeGenreLookup
 	rows, err := h.DbPool.Query(ctx, query)
 	if err != nil {
-		JSONDatabaseError(gc, responseType)
+		JSONDatabaseError(gc, apiResponseType)
 		return
 	}
 	defer rows.Close()
@@ -31,7 +31,7 @@ func (h *ApiHandler) GetEventTypeGenreLookup(gc *gin.Context) {
 		)
 
 		if err := rows.Scan(&lang, &types); err != nil {
-			JSONDatabaseError(gc, responseType)
+			JSONDatabaseError(gc, apiResponseType)
 			return
 		}
 
@@ -46,9 +46,9 @@ func (h *ApiHandler) GetEventTypeGenreLookup(gc *gin.Context) {
 	}
 
 	if err := rows.Err(); err != nil {
-		JSONDatabaseError(gc, responseType)
+		JSONDatabaseError(gc, apiResponseType)
 		return
 	}
 
-	JSONSuccess(gc, responseType, result, nil)
+	JSONSuccess(gc, apiResponseType, result, nil)
 }

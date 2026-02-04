@@ -31,7 +31,6 @@ type eventResponse struct {
 	EntryTime               *string     `json:"entry_time,omitempty"`
 	Duration                *int        `json:"duration,omitempty"`
 	AllDay                  *bool       `json:"all_day,omitempty"`
-	Status                  *string     `json:"status,omitempty"`
 	TicketLink              *string     `json:"ticket_link,omitempty"`
 	SpaceId                 *int        `json:"space_id,omitempty"`
 	SpaceName               *string     `json:"space_name,omitempty"`
@@ -55,8 +54,7 @@ type eventResponse struct {
 	Tags                    []string    `json:"tags"`
 	MinAge                  *int        `json:"min_age"`
 	MaxAge                  *int        `json:"max_age"`
-	VisitorInfoFlags        *int64      `json:"visitor_info_flags,omitempty"`
-	ReleaseStatus           *int        `json:"release_status,omitempty"`
+	ReleaseStatus           *string     `json:"release_status,omitempty"`
 }
 
 // buildEventFilters parses all query parameters from the context
@@ -337,7 +335,6 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			&e.SpaceAccessibilityFlags,
 			&e.MinAge,
 			&e.MaxAge,
-			&e.VisitorInfoFlags,
 		)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("scan failed: %v", err)})
@@ -402,7 +399,7 @@ SELECT
 FROM %s.event_date_projection edp
 JOIN %s.event_projection ep ON ep.event_id = edp.event_id
 CROSS JOIN LATERAL jsonb_array_elements(ep.types) AS elem
-WHERE ep.release_status >= 3    
+WHERE ep.release_status IN ('released', 'cancelled', 'deferred', 'rescheduled')    
 AND {{date_conditions}}
 {{conditions}}
 GROUP BY type_id
@@ -446,8 +443,7 @@ func (h *ApiHandler) GetEventVenueSummary(gc *gin.Context) {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	conds := []string{"ep.release_status >= 3"}
+	conds := []string{"ep.release_status IN ('released', 'cancelled', 'deferred', 'rescheduled'"}
 
 	if dateConditions != "" {
 		conds = append(conds, dateConditions)

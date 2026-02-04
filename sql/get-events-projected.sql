@@ -22,7 +22,6 @@ WITH upcoming_dates AS (
         venue_geo_pos,
         space_name,
         space_accessibility_flags,
-        visitor_info_flags,
         event_start_at,
         event_end_at
     FROM {{schema}}.event_date_projection
@@ -62,11 +61,10 @@ SELECT
     COALESCE(edp.space_name, ep.space_name) AS space_name,
     COALESCE(edp.space_accessibility_flags, ep.space_accessibility_flags) AS space_accessibility_flags,
     ep.min_age,
-    ep.max_age,
-    edp.visitor_info_flags
+    ep.max_age
 FROM upcoming_dates edp
 JOIN {{schema}}.event_projection ep ON ep.event_id = edp.event_id
-WHERE ep.release_status >= 3
+WHERE ep.release_status IN ('released', 'cancelled', 'deferred', 'rescheduled')
 AND {{date_conditions}}
 {{conditions}}
 ORDER BY edp.event_start_at ASC, edp.event_date_id ASC

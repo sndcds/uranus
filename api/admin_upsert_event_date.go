@@ -66,8 +66,8 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 
 			query := fmt.Sprintf(`
 INSERT INTO %s.event_date 
-(event_id, venue_id, space_id, start_date, start_time, end_date, end_time, entry_time, all_day, visitor_info_flags, ticket_link, availability_status_id, accessibility_info, custom, created_by)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+(event_id, venue_id, space_id, start_date, start_time, end_date, end_time, entry_time, all_day, ticket_link, availability_status_id, accessibility_info, custom, created_by)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
 RETURNING id`, h.Config.DbSchema)
 
 			err = tx.QueryRow(ctx, query,
@@ -80,7 +80,6 @@ RETURNING id`, h.Config.DbSchema)
 				req.EndTime,
 				req.EntryTime,
 				req.AllDay,
-				req.VisitorInfoFlags,
 				req.TicketLink,
 				req.AvailabilityStatusId,
 				req.AccessibilityInfo,
@@ -107,12 +106,11 @@ SET venue_id = $1,
     end_time = $6,
     entry_time = $7,
     all_day = $8,
-    visitor_info_flags = $9,
-    ticket_link = $10,
-    availability_status_id = $11,
-    accessibility_info = $12,
-    custom = $13
-WHERE event_id = $14 AND id = $15
+    ticket_link = $9,
+    availability_status_id = $10,
+    accessibility_info = $11,
+    custom = $12
+WHERE event_id = $13 AND id = $14
 RETURNING id`, h.Config.DbSchema)
 
 			err := tx.QueryRow(ctx, query,
@@ -124,7 +122,6 @@ RETURNING id`, h.Config.DbSchema)
 				req.EndTime,
 				req.EntryTime,
 				req.AllDay,
-				req.VisitorInfoFlags,
 				req.TicketLink,
 				req.AvailabilityStatusId,
 				req.AccessibilityInfo,

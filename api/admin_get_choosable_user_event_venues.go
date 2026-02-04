@@ -1,8 +1,6 @@
 package api
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 	"github.com/sndcds/uranus/app"
 	"github.com/sndcds/uranus/model"
@@ -17,50 +15,51 @@ import (
 // user are returned.
 // Verified: 2026-01-11, Roald
 
-func (h *ApiHandler) AdminGetChoosableUserEventPlaces(gc *gin.Context) {
+func (h *ApiHandler) AdminGetChoosableUserEventVenues(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
+	apiResponseType := "choosable-user-event-venues"
 
-	query := app.UranusInstance.SqlAdminGetChoosableUserEventPlaces
+	query := app.UranusInstance.SqlAdminGetChoosableUserEventVenues
 	rows, err := h.DbPool.Query(ctx, query, userId)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		JSONDatabaseError(gc, apiResponseType)
 		return
 	}
 	defer rows.Close()
 
-	var places []model.EventPlace
+	var venueInfos []model.EventVenueInfo
 
 	for rows.Next() {
-		var place model.EventPlace
+		var venueInfo model.EventVenueInfo
 		err := rows.Scan(
-			&place.VenueId,
-			&place.VenueName,
-			&place.SpaceId,
-			&place.SpaceName,
-			&place.City,
-			&place.Country)
+			&venueInfo.VenueId,
+			&venueInfo.VenueName,
+			&venueInfo.SpaceId,
+			&venueInfo.SpaceName,
+			&venueInfo.City,
+			&venueInfo.Country)
 		if err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			JSONDatabaseError(gc, apiResponseType)
 			return
 		}
-		places = append(places, place)
+		venueInfos = append(venueInfos, venueInfo)
 	}
 
 	if err := rows.Err(); err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		JSONDatabaseError(gc, apiResponseType)
 		return
 	}
 
-	if len(places) == 0 {
-		gc.JSON(http.StatusOK, []model.EventPlace{}) // Returns empty array
+	if len(venueInfos) == 0 {
+		JSONSuccess(gc, apiResponseType, []model.EventVenueInfo{}, nil)
 		return
 	}
 
 	result := map[string]interface{}{
-		"places":      places,
-		"total_count": len(places),
+		"venueInfos":  venueInfos,
+		"total_count": len(venueInfos),
 	}
 
-	gc.JSON(http.StatusOK, result)
+	JSONSuccess(gc, apiResponseType, result, nil)
 }

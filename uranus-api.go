@@ -4,15 +4,24 @@ import (
 	"flag"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
+	"github.com/sndcds/grains/token"
 	"github.com/sndcds/pluto"
 	"github.com/sndcds/uranus/api"
 	"github.com/sndcds/uranus/app"
 )
 
 func main() {
+
+	for _, rowID := range []int64{1, 42, 123} {
+		t := time.Now()
+		randomToken := token.RandomishToken(t, rowID, "", "")
+		fmt.Printf("RowID %d -> Token: %s\n", rowID, randomToken)
+	}
+
 	fmt.Println("start")
 
 	// Configuration
@@ -109,7 +118,7 @@ func main() {
 	publicRoute.GET("/choosable-countries", apiHandler.GetChoosableCountries)                                    // TODO: check!
 	publicRoute.GET("/choosable-release-states", apiHandler.GetChoosableReleaseStates)                           // TODO: check!
 	publicRoute.GET("/choosable-languages", apiHandler.GetChoosableLanguages)                                    // TODO: check!
-	publicRoute.GET("/choosable-url-types/event", apiHandler.GetChoosableEventUrlTypes)                          // TODO: check!
+	publicRoute.GET("/choosable-url-types/event", apiHandler.GetChoosableEventLinkTypes)                         // TODO: check!
 
 	publicRoute.GET("/choosable-price-types", apiHandler.GetChoosablePriceTypes)         // TODO: check!
 	publicRoute.GET("/choosable-currencies", apiHandler.GetChoosableCurrencies)          // TODO: check!
@@ -149,7 +158,7 @@ func main() {
 	adminRoute.DELETE("/user/todo/:todoId", apiHandler.AdminDeleteTodo)                         // TODO: check!
 	adminRoute.GET("/user/event/notifications", apiHandler.AdminGetUserEventNotifications)      // TODO: check!
 	adminRoute.GET("/user/choosable-organizations", apiHandler.AdminGetChoosableOrganizations)  // TODO: check!
-	adminRoute.GET("/user/choosable-event-places", apiHandler.AdminGetChoosableUserEventPlaces) // TODO: check!
+	adminRoute.GET("/user/choosable-event-venues", apiHandler.AdminGetChoosableUserEventVenues) // ok
 
 	// Organisation
 	adminRoute.GET("/organization/:organizationId/member/:memberId/permissions", apiHandler.AdminGetOrganizationMemberPermissions)    // TODO: check!
@@ -188,21 +197,19 @@ func main() {
 	adminRoute.PUT("/event/:eventId/date/:dateId", apiHandler.AdminUpsertEventDate)         // TODO: check!
 	adminRoute.POST("/delete/event/:eventId/date/:dateId", apiHandler.AdminDeleteEventDate) // TODO: check!
 
-	adminRoute.POST("/event/create", apiHandler.AdminCreateEvent)             // TODO: check!
-	adminRoute.PUT("/event/:eventId/base", apiHandler.AdminUpdateEventBase)   // TODO: check!
-	adminRoute.PUT("/event/:eventId/dates", apiHandler.AdminUpdateEventDates) // TODO: check!
+	adminRoute.POST("/event/create", apiHandler.AdminCreateEvent)                     // ok
+	adminRoute.PUT("/event/:eventId/base", apiHandler.AdminUpdateEventBase)           // ok
+	adminRoute.PUT("/event/:eventId/dates", apiHandler.AdminUpdateEventDates)         // ok
+	adminRoute.PUT("/event/:eventId/types", apiHandler.AdminUpdateEventTypes)         // ok
+	adminRoute.PUT("/event/:eventId/languages", apiHandler.AdminUpdateEventLanguages) // ok
+	adminRoute.PUT("/event/:eventId/urls", apiHandler.AdminUpdateEventLinks)          // ok
+	adminRoute.PUT("/event/:eventId/venue", apiHandler.AdminUpdateEventVenue)         // ok
+	adminRoute.PUT("/event/:eventId/fields", apiHandler.UpdateEventFields)            // ok
 
 	adminRoute.PUT("/event/:eventId/release-status", apiHandler.AdminUpdateEventReleaseStatus)           // TODO: check!
 	adminRoute.PUT("/event/:eventId/header", apiHandler.AdminUpdateEventHeader)                          // TODO: check!
 	adminRoute.PUT("/event/:eventId/description", apiHandler.AdminUpdateEventDescription)                // TODO: check!
 	adminRoute.PUT("/event/:eventId/summary", apiHandler.AdminUpdateEventSummary)                        // TODO: check!
-	adminRoute.PUT("/event/:eventId/types", apiHandler.AdminUpdateEventTypes)                            // TODO: check!
-	adminRoute.PUT("/event/:eventId/place", apiHandler.AdminUpdateEventPlace)                            // TODO: check!
-	adminRoute.PUT("/event/:eventId/link", apiHandler.AdminUpsertEventLink)                              // TODO: check!
-	adminRoute.PUT("/event/:eventId/link/:linkId", apiHandler.AdminUpsertEventLink)                      // TODO: check!
-	adminRoute.DELETE("/event/:eventId/link/:linkId", apiHandler.AdminDeleteEventLink)                   // TODO: check!
-	adminRoute.PUT("/event/:eventId/tags", apiHandler.AdminUpdateEventTags)                              // TODO: check!
-	adminRoute.PUT("/event/:eventId/languages", apiHandler.AdminUpdateEventLanguages)                    // TODO: check!
 	adminRoute.PUT("/event/:eventId/participation-infos", apiHandler.AdminUpdateEventParticipationInfos) // TODO: check!
 	adminRoute.POST("/event/:eventId/image/:identifier", apiHandler.AdminUpsertEventImage)               // TODO: check!
 	adminRoute.DELETE("/event/:eventId/image/:identifier", apiHandler.AdminDeleteEventImage)             // TODO: check!

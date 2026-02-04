@@ -8,9 +8,9 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (h *ApiHandler) AdminUpdateEventTypes(gc *gin.Context) {
+func (h *ApiHandler) AdminUpdateEventLinks(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	apiResponseType := "admin-update-event-types"
+	apiResponseType := "admin-update-event-urls"
 
 	eventId, ok := ParamInt(gc, "eventId")
 	if !ok {
@@ -18,14 +18,15 @@ func (h *ApiHandler) AdminUpdateEventTypes(gc *gin.Context) {
 		return
 	}
 
-	type eventTypesRequest struct {
+	type eventLinksRequest struct {
 		Types []struct {
-			TypeId  int  `json:"type_id" binding:"required"`
-			GenreId *int `json:"genre_id"`
-		} `json:"event_types" binding:"required"`
+			Label *string `json:"label"`
+			Type  int     `json:"type" binding:"required"`
+			Url   string  `json:"url" binding:"required"`
+		} `json:"event_links" binding:"required"`
 	}
 
-	var req eventTypesRequest
+	var req eventLinksRequest
 	if err := gc.ShouldBindJSON(&req); err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -33,28 +34,24 @@ func (h *ApiHandler) AdminUpdateEventTypes(gc *gin.Context) {
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		// Delete existing type-genre links
-		deleteQuery := fmt.Sprintf(`DELETE FROM %s.event_type_link WHERE event_id = $1`, h.DbSchema)
+		deleteQuery := fmt.Sprintf(`DELETE FROM %s.event_link WHERE event_id = $1`, h.DbSchema)
 		_, err := tx.Exec(ctx, deleteQuery, eventId)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
-				Err:  fmt.Errorf("failed to delete existing type-genre links: %v", err),
+				Err:  fmt.Errorf("failed to delete existing urls: %v", err),
 			}
 		}
 
 		// Insert new type-genre pairs
-		insertQuery := fmt.Sprintf(`INSERT INTO %s.event_type_link (event_id, type_id, genre_id) VALUES ($1, $2, $3)`, h.DbSchema)
+		insertQuery := fmt.Sprintf(`INSERT INTO %s.event_link (event_id, label, type, url) VALUES ($1, $2, $3, $4)`, h.DbSchema)
 
-		for _, pair := range req.Types {
-			genreId := 0
-			if pair.GenreId != nil {
-				genreId = *pair.GenreId
-			}
-			_, err = tx.Exec(ctx, insertQuery, eventId, pair.TypeId, genreId)
+		for _, url := range req.Types {
+			_, err = tx.Exec(ctx, insertQuery, eventId, url.Label, url.Type, url.Url)
 			if err != nil {
 				return &ApiTxError{
 					Code: http.StatusInternalServerError,
-					Err:  fmt.Errorf("failed to insert type_id=%d, genre_id=%d: %v", pair.TypeId, pair.GenreId, err),
+					Err:  fmt.Errorf("failed to insert url"),
 				}
 			}
 		}

@@ -7,11 +7,10 @@ SELECT
     TO_CHAR(ed.end_time, 'HH24:MI') AS end_time,
     TO_CHAR(ed.entry_time, 'HH24:MI') AS entry_time,
     ed.duration,
+    ed.all_day,
     ed.accessibility_info,
-    ed.visitor_info_flags,
-    ed.venue_id AS date_venue_id,
+    ed.venue_id AS venue_id,
 
-    v.id AS venue_id,
     v.name AS venue_name,
     v.street AS venue_street,
     v.house_number AS venue_house_number,
@@ -21,14 +20,14 @@ SELECT
     v.state AS venue_state,
     ST_X(v.wkb_pos) AS venue_lon,
     ST_Y(v.wkb_pos) AS venue_lat,
-    v.website_url AS venue_url,
+    v.website_link AS venue_link,
 
     space_data.id AS space_id,
     space_data.name AS space_name,
     space_data.total_capacity AS space_total_capacity,
     space_data.seating_capacity AS space_seating_capacity,
     space_data.building_level AS space_building_level,
-    space_data.website_url AS space_url
+    space_data.website_link AS space_link
 
 FROM {{schema}}.event_date ed
 JOIN {{schema}}.event e ON ed.event_id = e.id

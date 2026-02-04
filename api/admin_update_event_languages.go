@@ -8,22 +8,23 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-type eventLanguagesReq struct {
-	Languages []string `json:"languages" binding:"required"`
-}
-
 func (h *ApiHandler) AdminUpdateEventLanguages(gc *gin.Context) {
 	ctx := gc.Request.Context()
+	apiResponseType := "admin-update-event-languages"
 
 	eventId, ok := ParamInt(gc, "eventId")
 	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "event Id is required"})
+		JSONError(gc, apiResponseType, http.StatusBadRequest, "eventId is required")
 		return
+	}
+
+	type eventLanguagesReq struct {
+		Languages []string `json:"languages" binding:"required"`
 	}
 
 	var req eventLanguagesReq
 	if err := gc.ShouldBindJSON(&req); err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		JSONPayloadError(gc, apiResponseType)
 		return
 	}
 
@@ -57,12 +58,9 @@ func (h *ApiHandler) AdminUpdateEventLanguages(gc *gin.Context) {
 		return nil
 	})
 	if txErr != nil {
-		gc.JSON(txErr.Code, gin.H{"error": txErr.Error()})
+		JSONDatabaseError(gc, apiResponseType)
 		return
 	}
 
-	gc.JSON(http.StatusOK, gin.H{
-		"message":  "event languages updated successfully",
-		"event_id": eventId,
-	})
+	JSONSuccessNoData(gc, apiResponseType)
 }

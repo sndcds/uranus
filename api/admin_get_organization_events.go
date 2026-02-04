@@ -23,7 +23,7 @@ import (
 func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
-	apiResponseType := "user_organization_event_list"
+	apiResponseType := "user-organization-event-list"
 
 	organizationId, ok := ParamInt(gc, "organizationId")
 	if !ok {
@@ -77,8 +77,6 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 				&e.VenueName,
 				&e.SpaceId,
 				&e.SpaceName,
-				&e.LocationId,
-				&e.LocationName,
 				&e.ImageId,
 				&e.ImageUrl,
 				&eventTypesData,
@@ -111,7 +109,8 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 		return nil
 	})
 	if txErr != nil {
-		JSONError(gc, apiResponseType, http.StatusBadRequest, "transaction failed") // TODO: txErr.Error()
+		debugf("API %s error: %s", apiResponseType, txErr.Error())
+		JSONError(gc, apiResponseType, http.StatusBadRequest, "transaction failed")
 		return
 	}
 

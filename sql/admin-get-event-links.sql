@@ -1,7 +1,6 @@
 SELECT
-    eu.id,
-    eu.url_type,
-    eu.url,
-    eu.title
-FROM {{schema}}.event_weblink eu
+    eu.label,
+    eu.type,
+    eu.url
+FROM {{schema}}.event_link eu
 WHERE eu.event_id = $1

@@ -12,6 +12,14 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
+var debug = true
+
+func debugf(format string, args ...any) {
+	if debug {
+		fmt.Printf("[DEBUG] "+format+"\n", args...)
+	}
+}
+
 // TODO: Review code
 
 // Package-level variables
@@ -223,4 +231,28 @@ func (h *ApiHandler) VerifyUserPassword(gc *gin.Context, userId int) bool {
 	}
 
 	return true
+}
+
+func IsEventReleaseStatus(fieldName string, value *string) (bool, error) {
+	return ValidateEnum(fieldName, value,
+		"draft", "review", "released", "cancelled", "deferred", "rescheduled",
+	)
+}
+
+// ValidateEnum checks if val is one of allowed values. Returns an error message if invalid, else empty string.
+func ValidateEnum(fieldName string, value *string, allowed ...string) (bool, error) {
+	if value == nil {
+		return false, fmt.Errorf("value must be != nil")
+	}
+
+	allowedSet := make(map[string]struct{}, len(allowed))
+	for _, v := range allowed {
+		allowedSet[v] = struct{}{}
+	}
+
+	if _, ok := allowedSet[*value]; !ok {
+		return false, fmt.Errorf("%s must be one of %v", fieldName, allowed)
+	}
+
+	return true, nil
 }

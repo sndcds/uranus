@@ -6,7 +6,7 @@ SET
     nonprofit = $5,
     contact_email = $6,
     contact_phone = $7,
-    website_url = $8,
+    website_link = $8,
     street = $9,
     house_number = $10,
     postal_code = $11,

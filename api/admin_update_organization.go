@@ -18,7 +18,7 @@ type organizationReq struct {
 	Nonprofit       *bool    `json:"nonprofit"`
 	ContactEmail    *string  `json:"contact_email"`
 	ContactPhone    *string  `json:"contact_phone"`
-	WebsiteUrl      *string  `json:"website_url"`
+	WebsiteLink     *string  `json:"website_link"`
 	Street          *string  `json:"street"`
 	HouseNumber     *string  `json:"house_number"`
 	PostalCode      *string  `json:"postal_code"`
@@ -56,7 +56,7 @@ func (h *ApiHandler) AdminUpsertOrganization(gc *gin.Context) {
 				req.Nonprofit,
 				req.ContactEmail,
 				req.ContactPhone,
-				req.WebsiteUrl,
+				req.WebsiteLink,
 				req.Street,
 				req.HouseNumber,
 				req.PostalCode,
@@ -116,7 +116,7 @@ INSERT INTO %s.organization_member_link (organization_id, user_id, has_joined) V
 			req.Nonprofit,
 			req.ContactEmail,
 			req.ContactPhone,
-			req.WebsiteUrl,
+			req.WebsiteLink,
 			req.Street,
 			req.HouseNumber,
 			req.PostalCode,

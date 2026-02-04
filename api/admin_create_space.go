@@ -21,7 +21,7 @@ func (h *ApiHandler) AdminCreateSpace(gc *gin.Context) {
 		BuildingLevel        int     `json:"building_level"`
 		TotalCapacity        int     `json:"total_capacity"`
 		SeatingCapacity      int     `json:"seating_capacity"`
-		WebsiteUrl           *string `json:"website_url"`
+		WebsiteLink          *string `json:"website_link"`
 		AccessibilityFlags   int64   `json:"accessibility_flags"`
 		AccessibilitySummary *string `json:"accessibility_summary"`
 	}
@@ -45,7 +45,7 @@ func (h *ApiHandler) AdminCreateSpace(gc *gin.Context) {
 	var newId int
 	insertSpaceQuery := `
 		INSERT INTO {{schema}}.space
-			(venue_id, name, description, space_type_id, building_level, total_capacity, seating_capacity, website_url, accessibility_flags, accessibility_summary)
+			(venue_id, name, description, space_type_id, building_level, total_capacity, seating_capacity, website_link, accessibility_flags, accessibility_summary)
 		VALUES
 			($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING id
@@ -60,7 +60,7 @@ func (h *ApiHandler) AdminCreateSpace(gc *gin.Context) {
 		req.BuildingLevel,
 		req.TotalCapacity,
 		req.SeatingCapacity,
-		req.WebsiteUrl,
+		req.WebsiteLink,
 		req.AccessibilityFlags,
 		req.AccessibilitySummary,
 	).Scan(&newId)

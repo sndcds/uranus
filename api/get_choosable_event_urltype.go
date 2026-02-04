@@ -9,7 +9,7 @@ import (
 
 // TODO: Review code
 
-func (h *ApiHandler) GetChoosableEventUrlTypes(gc *gin.Context) {
+func (h *ApiHandler) GetChoosableEventLinkTypes(gc *gin.Context) {
 	ctx := gc.Request.Context()
 
 	lang := gc.DefaultQuery("lang", "en")

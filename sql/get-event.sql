@@ -12,17 +12,7 @@ SELECT
 
     o.id AS organization_id,
     o.name AS organization_name,
-    o.website_url AS organization_url,
-
-    -- l.id AS location_id,
-    -- l.name AS location_name,
-    -- l.street AS location_street,
-    -- l.house_number AS location_house_number,
-    -- l.city AS location_city,
-    -- l.country AS location_country,
-    -- l.state AS location_state,
-    -- ST_X(l.wkb_pos) AS location_lon,
-    -- ST_Y(l.wkb_pos) AS location_lat,
+    o.website_link AS organization_link,
 
     CASE
         WHEN main_image.id IS NULL THEN NULL
@@ -45,7 +35,7 @@ SELECT
     END AS image,
 
     et_data.event_types,
-    url_data.event_urls
+    url_data.event_links
 
 FROM {{schema}}.event e
 JOIN {{schema}}.organization o ON o.id = e.organization_id
@@ -55,9 +45,6 @@ LEFT JOIN {{schema}}.venue v ON v.id = e.venue_id
 
 -- Space (fallback logic if event has space_id)
 LEFT JOIN {{schema}}.space s ON s.id = e.space_id
-
--- Location
-LEFT JOIN {{schema}}.event_location l ON l.id = e.location_id
 
 
 -- Main image: first pluto_image linked as 'main'
@@ -103,13 +90,12 @@ LEFT JOIN LATERAL (
 LEFT JOIN LATERAL (
     SELECT jsonb_agg(
         jsonb_build_object(
-            'id', eu.id,
-            'url_type', eu.url_type,
-            'url', eu.url,
-            'title', eu.title
+            'label', eu.label,
+            'type', eu.type,
+            'url', eu.url
         )
-    ) AS event_urls
-    FROM {{schema}}.event_url eu
+    ) AS event_links
+    FROM {{schema}}.event_link eu
     WHERE eu.event_id = e.id
 ) url_data ON TRUE
 

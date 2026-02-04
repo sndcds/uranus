@@ -13,7 +13,7 @@ import (
 func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
-	apiResponseType := "admin_event"
+	apiResponseType := "admin-event"
 
 	eventId, ok := ParamInt(gc, "eventId")
 	if !ok {
@@ -58,15 +58,7 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 		&event.SpaceTotalCapacity,
 		&event.SpaceSeatingCapacity,
 		&event.SpaceBuildingLevel,
-		&event.LocationId,
-		&event.LocationName,
-		&event.LocationStreet,
-		&event.LocationHouseNumber,
-		&event.LocationPostalCode,
-		&event.LocationCity,
-		&event.LocationCountry,
-		&event.LocationState,
-		&event.OnlineEventUrl,
+		&event.OnlineLink,
 		&event.MeetingPoint,
 		&event.Languages,
 		&event.ParticipationInfo,
@@ -76,9 +68,7 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 		&event.PriceType,
 		&event.MinPrice,
 		&event.MaxPrice,
-		&event.TicketAdvance,
-		&event.TicketRequired,
-		&event.RegistrationRequired,
+		&event.TicketFlags,
 		&event.Currency,
 		&event.CurrencyName,
 		&event.Custom,
@@ -87,15 +77,22 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
+			debugf("API %s error: %s", apiResponseType, err.Error())
 			JSONError(gc, apiResponseType, http.StatusNotFound, "event not found")
 			return
 		}
+		debugf("API %s error: %s", apiResponseType, err.Error())
 		JSONDatabaseError(gc, apiResponseType)
 		return
 	}
 
 	// Event Types
-	rows, _ := h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventTypes, eventId, lang)
+	rows, err := h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventTypes, eventId, lang)
+	if err != nil {
+		debugf("API %s error: %s", apiResponseType, err.Error())
+		JSONError(gc, apiResponseType, http.StatusInternalServerError, "event types error")
+		return
+	}
 	defer rows.Close()
 	for rows.Next() {
 		var et model.EventType
@@ -104,7 +101,12 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 	}
 
 	// Event Images
-	rows, _ = h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventImages, eventId)
+	rows, err = h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventImages, eventId)
+	if err != nil {
+		debugf("API %s error: %s", apiResponseType, err.Error())
+		JSONError(gc, apiResponseType, http.StatusInternalServerError, "event images error")
+		return
+	}
 	defer rows.Close()
 	for rows.Next() {
 		var img model.Image
@@ -114,18 +116,27 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 	}
 
 	// Event Links
-	rows, _ = h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventLinks, eventId)
+	rows, err = h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventLinks, eventId)
+	if err != nil {
+		debugf("API %s error: %s", apiResponseType, err.Error())
+		JSONError(gc, apiResponseType, http.StatusInternalServerError, "event links error")
+		return
+	}
 	defer rows.Close()
 	for rows.Next() {
 		var link model.WebLink
-		rows.Scan(&link.Id, &link.Type, &link.Url, &link.Title)
+		rows.Scan(&link.Label, &link.Type, &link.Url)
 		event.EventLinks = append(event.EventLinks, link)
 	}
 
 	// Dates
-	rows, _ = h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventDates, eventId)
+	rows, err = h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventDates, eventId)
+	if err != nil {
+		debugf("API %s error: %s", apiResponseType, err.Error())
+		JSONError(gc, apiResponseType, http.StatusInternalServerError, "event dates error")
+		return
+	}
 	defer rows.Close()
-
 	for rows.Next() {
 		var date model.AdminEventDate
 		err := rows.Scan(
@@ -137,9 +148,8 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 			&date.EndTime,
 			&date.EntryTime,
 			&date.Duration,
+			&date.AllDay,
 			&date.AccessibilityInfo,
-			&date.VisitorInfoFlags,
-			&date.DateVenueId,
 			&date.VenueId,
 			&date.VenueName,
 			&date.VenueStreet,
@@ -150,16 +160,17 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 			&date.VenueState,
 			&date.VenueLon,
 			&date.VenueLat,
-			&date.VenueUrl,
+			&date.VenueLink,
 			&date.SpaceId,
 			&date.SpaceName,
 			&date.SpaceTotalCapacity,
 			&date.SpaceSeatingCapacity,
 			&date.SpaceBuildingLevel,
-			&date.SpaceUrl,
+			&date.SpaceLink,
 		)
 
 		if err != nil {
+			debugf("API %s error: %s", apiResponseType, err.Error())
 			JSONDatabaseError(gc, apiResponseType)
 			return
 		}

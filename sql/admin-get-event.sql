@@ -28,15 +28,7 @@ SELECT
     sd.total_capacity AS space_total_capacity,
     sd.seating_capacity AS space_seating_capacity,
     sd.building_level AS space_building_level,
-    el.id AS location_id,
-    el.name AS location_name,
-    el.street AS location_street,
-    el.house_number AS location_house_number,
-    el.postal_code AS location_postal_code,
-    el.city AS location_city,
-    el.country AS location_country,
-    el.state AS location_state,
-    e.online_event_url,
+    e.online_link,
     e.meeting_point,
     e.languages,
     e.participation_info,
@@ -46,9 +38,7 @@ SELECT
     e.price_type,
     e.min_price,
     e.max_price,
-    e.ticket_advance,
-    e.ticket_required,
-    e.registration_required,
+    e.ticket_flags,
     e.currency,
     cu.name AS currency_name,
     e.custom,
@@ -56,7 +46,6 @@ SELECT
 FROM {{schema}}.event e
 LEFT JOIN {{schema}}.organization o ON e.organization_id = o.id
 LEFT JOIN {{schema}}.venue v ON v.id = e.venue_id
-LEFT JOIN {{schema}}.event_location el ON e.location_id = el.id
 LEFT JOIN {{schema}}.currency cu ON cu.code = e.currency AND cu.iso_639_1 = $2
 LEFT JOIN {{schema}}.user_organization_link uol
 ON uol.organization_id = o.id

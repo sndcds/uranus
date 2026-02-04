@@ -17,7 +17,7 @@ type venueReq struct {
 	ClosedAt       *string  `json:"closed_at"`
 	ContactEmail   *string  `json:"contact_email"`
 	ContactPhone   *string  `json:"contact_phone"`
-	WebsiteUrl     *string  `json:"website_url"`
+	WebsiteLink    *string  `json:"website_link"`
 	Street         *string  `json:"street"`
 	HouseNumber    *string  `json:"house_number"`
 	PostalCode     *string  `json:"postal_code"`
@@ -55,7 +55,7 @@ func (h *ApiHandler) AdminUpsertVenue(gc *gin.Context) {
 				req.ClosedAt,
 				req.ContactEmail,
 				req.ContactPhone,
-				req.WebsiteUrl,
+				req.WebsiteLink,
 				req.Street,
 				req.HouseNumber,
 				req.PostalCode,
@@ -83,7 +83,7 @@ func (h *ApiHandler) AdminUpsertVenue(gc *gin.Context) {
 				req.ClosedAt,
 				req.ContactEmail,
 				req.ContactPhone,
-				req.WebsiteUrl,
+				req.WebsiteLink,
 				req.Street,
 				req.HouseNumber,
 				req.PostalCode,

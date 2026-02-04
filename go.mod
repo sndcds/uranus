@@ -1,8 +1,6 @@
 module github.com/sndcds/uranus
 
-go 1.24.0
-
-toolchain go1.24.11
+go 1.25
 
 require (
 	github.com/chai2010/webp v1.4.0
@@ -22,6 +20,7 @@ require (
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
 	github.com/quic-go/quic-go v0.55.0 // indirect
+	github.com/sndcds/grains v0.0.0-20260130074254-6608544624da // indirect
 	golang.org/x/image v0.27.0 // indirect
 	golang.org/x/mod v0.29.0 // indirect
 	golang.org/x/tools v0.38.0 // indirect

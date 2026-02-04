@@ -43,7 +43,7 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 	var event model.EventDetails
 	var imageJSON []byte
 	var eventTypesJSON []byte
-	var eventUrlsJSON []byte
+	var eventLinksJSON []byte
 
 	err = eventRow.Scan(
 		&event.Id,
@@ -58,7 +58,7 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 		&event.OrganizationUrl,
 		&imageJSON,
 		&eventTypesJSON,
-		&eventUrlsJSON,
+		&eventLinksJSON,
 	)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -82,10 +82,10 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 	}
 
 	// Unmarshal event URLs
-	if len(eventUrlsJSON) > 0 {
-		var urls []model.WebLink
-		if err := json.Unmarshal(eventUrlsJSON, &urls); err == nil {
-			event.EventUrls = urls
+	if len(eventLinksJSON) > 0 {
+		var links []model.WebLink
+		if err := json.Unmarshal(eventLinksJSON, &links); err == nil {
+			event.EventLinks = links
 		}
 	}
 
@@ -133,7 +133,6 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 			&edd.AccessibilityFlags,
 			&edd.AccessibilitySummary,
 			&edd.AccessibilityInfo,
-			&edd.VisitorInfoFlags,
 		)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

@@ -1,0 +1,103 @@
+package api
+
+import (
+	"fmt"
+	"net/http"
+	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
+)
+
+func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
+	ctx := gc.Request.Context()
+	apiResponseType := "admin-update-event-price"
+
+	eventId, ok := ParamInt(gc, "eventId")
+	if !ok {
+		JSONError(gc, apiResponseType, http.StatusBadRequest, "eventId is required")
+		return
+	}
+
+	var payload struct {
+		Tags              NullableField[[]string] `json:"tags"`
+		MaxAttendees      NullableField[int]      `json:"max_attendees"`
+		MinAge            NullableField[int]      `json:"min_age"`
+		MaxAge            NullableField[int]      `json:"max_age"`
+		ParticipationInfo NullableField[string]   `json:"participation_info"`
+		PriceType         *string                 `json:"price_type"`
+		MinPrice          NullableField[float64]  `json:"min_price"`
+		MaxPrice          NullableField[float64]  `json:"max_price"`
+		Currency          NullableField[string]   `json:"currency"`
+		TicketFlags       *[]string               `json:"ticket_flags"`
+	}
+
+	if err := gc.ShouldBindJSON(&payload); err != nil {
+		JSONPayloadError(gc, apiResponseType)
+		return
+	}
+
+	setClauses := []string{}
+	args := []interface{}{}
+	argPos := 1
+
+	argPos = addUpdateClauseNullable("tags", payload.Tags, &setClauses, &args, argPos)
+	argPos = addUpdateClauseNullable("max_attendees", payload.MaxAttendees, &setClauses, &args, argPos)
+	argPos = addUpdateClauseNullable("min_age", payload.MinAge, &setClauses, &args, argPos)
+	argPos = addUpdateClauseNullable("max_age", payload.MaxAge, &setClauses, &args, argPos)
+	argPos = addUpdateClauseNullable("participation_info", payload.ParticipationInfo, &setClauses, &args, argPos)
+	argPos = addStringUpdateClause("price_type", payload.PriceType, &setClauses, &args, argPos)
+	argPos = addUpdateClauseNullable("min_price", payload.MinPrice, &setClauses, &args, argPos)
+	argPos = addUpdateClauseNullable("max_price", payload.MaxPrice, &setClauses, &args, argPos)
+	argPos = addUpdateClauseNullable("currency", payload.Currency, &setClauses, &args, argPos)
+	argPos = addUpdateStringSliceField("ticket_flags", payload.TicketFlags, &setClauses, &args, argPos)
+
+	if len(setClauses) == 0 {
+		JSONSuccessMessage(gc, apiResponseType, http.StatusOK, "no fields updated")
+		return
+	}
+	fmt.Println("len(setClauses)", len(setClauses))
+
+	query := fmt.Sprintf(`UPDATE %s.event SET %s WHERE id = $%d`,
+		h.DbSchema,
+		strings.Join(setClauses, ", "),
+		argPos, // Last placeholder is for WHERE id
+	)
+	fmt.Println("query", query)
+
+	args = append(args, eventId) // eventId is the last parameter
+	fmt.Println("args", args)
+
+	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
+		res, err := tx.Exec(ctx, query, args...)
+		if err != nil {
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  fmt.Errorf("failed to update event: %v", err),
+			}
+		}
+
+		if res.RowsAffected() == 0 {
+			return &ApiTxError{
+				Code: http.StatusNotFound,
+				Err:  fmt.Errorf("event not found"),
+			}
+		}
+
+		err = RefreshEventProjections(ctx, tx, "event", []int{eventId})
+		if err != nil {
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  fmt.Errorf("refresh projection tables failed: %v", err),
+			}
+		}
+
+		return nil
+	})
+	if txErr != nil {
+		JSONDatabaseError(gc, apiResponseType)
+		return
+	}
+
+	JSONSuccessNoData(gc, apiResponseType)
+}
