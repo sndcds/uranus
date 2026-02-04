@@ -113,6 +113,7 @@ github.com/sndcds/pluto v0.1.8 h1:6YUums2ag/Nh1NapeifQbZhTbnd/GPsmwKBQQ38aHHQ=
 github.com/sndcds/pluto v0.1.8/go.mod h1:Ee2bx3/5ZDNB2552c5hXFBi2rS9sX0yK0X5IvGOkah4=
 github.com/sndcds/pluto v0.2.0 h1:qnqH9d+/2liY4qzk9SmlFyrION4iQ13nJtK9YzO5rAo=
 github.com/sndcds/pluto v0.2.0/go.mod h1:Ee2bx3/5ZDNB2552c5hXFBi2rS9sX0yK0X5IvGOkah4=
+github.com/sndcds/pluto v0.3.0/go.mod h1:Ee2bx3/5ZDNB2552c5hXFBi2rS9sX0yK0X5IvGOkah4=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.4.0/go.mod h1:YvHI0jy2hoMjB+UWwv71VJQ9isScKT/TqJzVSSt89Yw=
 github.com/stretchr/objx v0.5.0/go.mod h1:Yh+to48EsGEfYuaHDzXPcE3xhTkx73EhmCGUpEOglKo=
