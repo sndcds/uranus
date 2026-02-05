@@ -1,15 +1,21 @@
 SELECT
     e.id AS event_id,
-    -- e.release_status,
+    e.release_status,
     e.title,
     e.subtitle,
-    e.summary,
     e.description,
-    -- e.participation_info,
-    -- e.meeting_point,
+    e.summary,
+    e.participation_info,
+    e.meeting_point,
     e.languages,
     e.tags,
-
+    e.max_attendees,
+    e.min_age,
+    e.max_age,
+    e.currency,
+    e.price_type,
+    e.min_price,
+    e.max_price,
     o.id AS organization_id,
     o.name AS organization_name,
     o.website_link AS organization_link,
@@ -72,7 +78,7 @@ LEFT JOIN LATERAL (
         jsonb_agg(DISTINCT jsonb_build_object(
             'type_id', etl.type_id,
             'type_name', et.name,
-            'genre_id', COALESCE(gt.type_id, 0),
+            'genre_id', COALESCE(gt.genre_id, 0),
             'genre_name', gt.name
         )), '[]'::jsonb
     ) AS event_types
