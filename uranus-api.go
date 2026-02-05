@@ -198,7 +198,6 @@ func main() {
 	adminRoute.POST("/delete/event/:eventId/date/:dateId", apiHandler.AdminDeleteEventDate) // TODO: check!
 
 	adminRoute.POST("/event/create", apiHandler.AdminCreateEvent)                     // ok
-	adminRoute.PUT("/event/:eventId/base", apiHandler.AdminUpdateEventBase)           // ok
 	adminRoute.PUT("/event/:eventId/dates", apiHandler.AdminUpdateEventDates)         // ok
 	adminRoute.PUT("/event/:eventId/types", apiHandler.AdminUpdateEventTypes)         // ok
 	adminRoute.PUT("/event/:eventId/languages", apiHandler.AdminUpdateEventLanguages) // ok

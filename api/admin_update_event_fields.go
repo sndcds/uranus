@@ -20,6 +20,13 @@ func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 	}
 
 	var payload struct {
+		ReleaseStatus     NullableField[string]   `json:"release_status"`
+		ReleaseDate       NullableField[string]   `json:"release_date"`
+		ContentLanguage   NullableField[string]   `json:"content_language"`
+		Title             NullableField[string]   `json:"title"`
+		Subtitle          NullableField[string]   `json:"subtitle"`
+		Description       NullableField[string]   `json:"description"`
+		Summary           NullableField[string]   `json:"summary"`
 		Tags              NullableField[[]string] `json:"tags"`
 		MaxAttendees      NullableField[int]      `json:"max_attendees"`
 		MinAge            NullableField[int]      `json:"min_age"`
@@ -41,6 +48,13 @@ func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 	args := []interface{}{}
 	argPos := 1
 
+	argPos = addUpdateClauseNullable("release_status", payload.ReleaseStatus, &setClauses, &args, argPos)
+	argPos = addUpdateClauseNullable("release_date", payload.ReleaseDate, &setClauses, &args, argPos)
+	argPos = addUpdateClauseNullable("content_iso_639_1", payload.ContentLanguage, &setClauses, &args, argPos)
+	argPos = addUpdateClauseNullable("title", payload.Title, &setClauses, &args, argPos)
+	argPos = addUpdateClauseNullable("subtitle", payload.Subtitle, &setClauses, &args, argPos)
+	argPos = addUpdateClauseNullable("description", payload.Description, &setClauses, &args, argPos)
+	argPos = addUpdateClauseNullable("summary", payload.Summary, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("tags", payload.Tags, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("max_attendees", payload.MaxAttendees, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("min_age", payload.MinAge, &setClauses, &args, argPos)
