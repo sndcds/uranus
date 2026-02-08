@@ -3,44 +3,40 @@ package api
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sndcds/grains/grainsapi"
 )
-
-// TODO: Review code
 
 func (h *ApiHandler) AdminDeleteVenue(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
+	apiRequest := grainsapi.NewRequest(gc, "admin-delete-venue")
 
-	if !h.VerifyUserPassword(gc, userId) {
-		return
-	}
-
-	venueIdStr := gc.Param("venueId")
-	if venueIdStr == "" {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Venue Id is required"})
-		return
-	}
-
-	venueId, err := strconv.Atoi(venueIdStr)
+	err := h.VerifyUserPassword(gc, userId)
 	if err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid venue Id"})
+		apiRequest.Error(http.StatusUnauthorized, err.Error())
 		return
 	}
+
+	venueId, ok := ParamInt(gc, "venueId")
+	if !ok {
+		apiRequest.Error(http.StatusUnauthorized, "venueId is required")
+		return
+	}
+	apiRequest.SetMeta("venueId", venueId)
 
 	query := fmt.Sprintf(`DELETE FROM %s.venue WHERE id = $1`, h.Config.DbSchema)
 	cmdTag, err := h.DbPool.Exec(ctx, query, venueId)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete venue", "details": err.Error()})
+		apiRequest.Error(http.StatusInternalServerError, "failed to delete venue")
 		return
 	}
 
 	if cmdTag.RowsAffected() == 0 {
-		gc.JSON(http.StatusNotFound, gin.H{"error": "Venue not found"})
+		apiRequest.Error(http.StatusNotFound, "venue not found")
 		return
 	}
 
-	gc.JSON(http.StatusOK, gin.H{"message": "Venue deleted successfully", "id": venueId})
+	apiRequest.SuccessNoData(http.StatusOK, "venue deleted successfully")
 }

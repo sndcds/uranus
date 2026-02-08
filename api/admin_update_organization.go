@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/sndcds/grains/grainstoken"
 	"github.com/sndcds/uranus/app"
 )
 
@@ -46,6 +47,8 @@ func (h *ApiHandler) AdminUpsertOrganization(gc *gin.Context) {
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		// Insert
+		apiKey := grainstoken.GenerateUuid()
+
 		if organizationId < 0 {
 			err := tx.QueryRow(
 				ctx,
@@ -66,12 +69,23 @@ func (h *ApiHandler) AdminUpsertOrganization(gc *gin.Context) {
 				req.AddressAddition,
 				req.Longitude,
 				req.Latitude,
+				apiKey,
 				userId,
 			).Scan(&newOrganizationId)
 			if err != nil {
 				return &ApiTxError{
 					Code: http.StatusInternalServerError,
-					Err:  fmt.Errorf("insert organization failed: %w", err),
+					Err:  fmt.Errorf("insert organization failed"),
+				}
+			}
+
+			apiKey := grainstoken.GenerateUuid()
+			updateKeyQuery := fmt.Sprintf(`UPDATE %s.organization SET api_key = $2 WHERE id = $1`, h.Config.DbSchema)
+			_, err = tx.Exec(gc, updateKeyQuery, newOrganizationId, apiKey)
+			if err != nil {
+				return &ApiTxError{
+					Code: http.StatusInternalServerError,
+					Err:  fmt.Errorf("insert organization failed, api key failed"),
 				}
 			}
 

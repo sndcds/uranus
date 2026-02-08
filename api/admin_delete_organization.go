@@ -5,35 +5,38 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sndcds/grains/grainsapi"
 )
-
-// TODO: Review code
 
 func (h *ApiHandler) AdminDeleteOrganization(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
+	apiRequest := grainsapi.NewRequest(gc, "admin-delete-organization")
 
-	if !h.VerifyUserPassword(gc, userId) {
+	err := h.VerifyUserPassword(gc, userId)
+	if err != nil {
+		apiRequest.Error(http.StatusUnauthorized, err.Error())
 		return
 	}
 
-	orgId, ok := ParamInt(gc, "orgnId")
+	orgId, ok := ParamInt(gc, "organizationId")
 	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid orgId"})
+		apiRequest.Error(http.StatusBadRequest, "invalid organizationId")
 		return
 	}
+	apiRequest.SetMeta("organization_id", orgId)
 
 	query := fmt.Sprintf(`DELETE FROM %s.organization WHERE id = $1`, h.Config.DbSchema)
 	cmdTag, err := h.DbPool.Exec(ctx, query, orgId)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete organization", "details": err.Error()})
+		apiRequest.Error(http.StatusInternalServerError, "failed to delete organization")
 		return
 	}
 
 	if cmdTag.RowsAffected() == 0 {
-		gc.JSON(http.StatusNotFound, gin.H{"error": "Organization not found"})
+		apiRequest.Error(http.StatusNotFound, "organization not found")
 		return
 	}
 
-	gc.JSON(http.StatusOK, gin.H{"message": "Organization deleted successfully", "id": orgId})
+	apiRequest.SuccessNoData(http.StatusOK, "organization deleted successfully")
 }

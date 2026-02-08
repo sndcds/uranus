@@ -5,35 +5,38 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sndcds/grains/grainsapi"
 )
-
-// TODO: Review code
 
 func (h *ApiHandler) AdminDeleteSpace(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
+	apiRequest := grainsapi.NewRequest(gc, "admin-delete-space")
 
-	if !h.VerifyUserPassword(gc, userId) {
+	err := h.VerifyUserPassword(gc, userId)
+	if err != nil {
+		apiRequest.Error(http.StatusUnauthorized, err.Error())
 		return
 	}
 
 	spaceId, ok := ParamInt(gc, "spaceId")
 	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid space Id"})
+		apiRequest.Error(http.StatusBadRequest, "spaceId is required")
 		return
 	}
-	
+	apiRequest.SetMeta("space_id", spaceId)
+
 	query := fmt.Sprintf(`DELETE FROM %s.space WHERE id = $1`, h.Config.DbSchema)
 	cmdTag, err := h.DbPool.Exec(ctx, query, spaceId)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete space", "details": err.Error()})
+		apiRequest.Error(http.StatusInternalServerError, "failed to delete space")
 		return
 	}
 
 	if cmdTag.RowsAffected() == 0 {
-		gc.JSON(http.StatusNotFound, gin.H{"error": "Space not found"})
+		apiRequest.Error(http.StatusNotFound, "space not found")
 		return
 	}
 
-	gc.JSON(http.StatusOK, gin.H{"message": "Space deleted successfully", "id": spaceId})
+	apiRequest.SuccessNoData(http.StatusOK, "space deleted successfully")
 }

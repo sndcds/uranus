@@ -12,126 +12,94 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/sndcds/grains/grainsapi"
 	"github.com/sndcds/uranus/app"
 	"github.com/sndcds/uranus/model"
 )
 
-// TODO: Review code
-
-type incomingLocation struct {
-	Name        *string `json:"name"`
-	Description *string `json:"description" binding:"required"`
-	Street      string  `json:"street" binding:"required"`
-	HouseNumber *string `json:"house_number"`
-	PostalCode  string  `json:"postal_code" binding:"required"`
-	City        string  `json:"city" binding:"required"`
-	Country     string  `json:"country" binding:"required"`
-	State       *string `json:"state"`
-	Lon         float64 `json:"lon"`
-	Lat         float64 `json:"lat"`
-}
-
-type incomingTypeGenrePair struct {
-	TypeId  int  `json:"type_id" binding:"required"`
-	GenreId *int `json:"genre_id"`
-}
-
-type incomingEventDate struct {
-	StartDate string  `json:"start_date" binding:"required"`
-	StartTime string  `json:"start_time" binding:"required"`
-	EndDate   *string `json:"end_date"`
-	EndTime   *string `json:"end_time"`
-	EntryTime *string `json:"entry_time"`
-	VenueId   *int    `json:"venue_id"`
-	SpaceId   *int    `json:"space_id"`
-	AllDay    *bool   `json:"all_day"`
-}
-
 type incomingEvent struct {
-	Title             string          `json:"title" binding:"required"`
-	Description       string          `json:"description" binding:"required"`
-	Subtitle          *string         `json:"subtitle"`
-	Summary           *string         `json:"summary"`
-	Tags              []string        `json:"tags"`
-	SourceUrl         *string         `json:"source_url"`
-	OnlineLink        *string         `json:"online_link"`
-	OrganizationId    *int            `json:"organization_id" binding:"required"`
-	VenueId           *int            `json:"venue_id"`
-	SpaceId           *int            `json:"space_id"`
-	ExternalId        *string         `json:"external_id"`
-	ParticipationInfo *string         `json:"participation_info"`
-	OccasionTypeId    *int            `json:"occasion_type_id"`
-	Languages         []string        `json:"languages"`
-	MinAge            *int            `json:"min_age"`
-	MaxAge            *int            `json:"max_age"`
-	MeetingPoint      *string         `json:"meeting_point"`
-	MaxAttendees      *int            `json:"max_attendees"`
-	PriceType         model.PriceType `json:"price_type"`
-	Currency          *string         `json:"currency"`
-	TicketFlags       []string        `json:"ticket_flags"`
-	Custom            *string         `json:"custom"`
-	Style             *string         `json:"style"`
-	ReleaseStatus     *string         `json:"release_status"`
-	ReleaseDate       *string         `json:"release_date"`
-
-	Location       *incomingLocation       `json:"location"`
-	Dates          []incomingEventDate     `json:"dates" binding:"required"`
-	TypeGenrePairs []incomingTypeGenrePair `json:"types"`
+	ContentLanguage   string                            `json:"content_language" binding:"required"`
+	ReleaseStatus     *string                           `json:"release_status" binding:"required"`
+	ReleaseDate       *string                           `json:"release_date"`
+	Title             string                            `json:"title" binding:"required"`
+	Description       string                            `json:"description" binding:"required"`
+	Subtitle          *string                           `json:"subtitle"`
+	Summary           *string                           `json:"summary"`
+	Tags              []string                          `json:"tags"`
+	SourceUrl         *string                           `json:"source_url"`
+	OnlineLink        *string                           `json:"online_link"`
+	OrganizationId    *int                              `json:"organization_id" binding:"required"`
+	OrganizationKey   *string                           `json:"organization_key" binding:"required"`
+	VenueId           *int                              `json:"venue_id"`
+	SpaceId           *int                              `json:"space_id"`
+	ExternalId        *string                           `json:"external_id"`
+	ParticipationInfo *string                           `json:"participation_info"`
+	OccasionTypeId    *int                              `json:"occasion_type_id"`
+	Languages         []string                          `json:"languages"`
+	MinAge            *int                              `json:"min_age"`
+	MaxAge            *int                              `json:"max_age"`
+	MeetingPoint      *string                           `json:"meeting_point"`
+	MaxAttendees      *int                              `json:"max_attendees"`
+	PriceType         model.PriceType                   `json:"price_type"`
+	Currency          *string                           `json:"currency"`
+	TicketFlags       []string                          `json:"ticket_flags"`
+	Custom            *string                           `json:"custom"`
+	Style             *string                           `json:"style"`
+	Dates             []model.EventDatePayload          `json:"dates" binding:"required"`
+	TypeGenrePairs    []model.EventTypeGenrePairPayload `json:"types"`
+	ImageUrl          *string                           `json:"image_url"`
+	ImageTitle        *string                           `json:"image_title"`
 }
 
 func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
+	apiRequest := grainsapi.NewRequest(gc, "create-event")
 
 	// Read the body
 	body, err := io.ReadAll(gc.Request.Body)
 	if err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "failed to read request body"})
+		apiRequest.Error(http.StatusBadRequest, "failed to read request body")
 		return
 	}
 	if len(body) == 0 {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "empty request body"})
+		apiRequest.Error(http.StatusBadRequest, "empty request body")
 		return
 	}
 
-	// Decode JSON with unknown field rejection
 	decoder := json.NewDecoder(bytes.NewReader(body))
 	decoder.DisallowUnknownFields()
 
 	var payload incomingEvent
-	if err := decoder.Decode(&payload); err != nil {
+	err = decoder.Decode(&payload)
+	if err != nil {
 		var syntaxErr *json.SyntaxError
 		var typeErr *json.UnmarshalTypeError
 
 		switch {
 		case errors.As(err, &syntaxErr):
-			gc.JSON(
+			apiRequest.Error(
 				http.StatusBadRequest,
-				gin.H{"error": fmt.Sprintf("invalid JSON syntax at offset %d", syntaxErr.Offset)},
-			)
+				fmt.Sprintf("invalid JSON syntax at offset %d", syntaxErr.Offset))
 		case errors.As(err, &typeErr):
 			field := typeErr.Field
 			if field == "" {
 				field = "(unknown)"
 			}
-			gc.JSON(
-				http.StatusBadRequest,
-				gin.H{"error": fmt.Sprintf("invalid type for field %q", field)},
-			)
+			apiRequest.Error(http.StatusBadRequest, fmt.Sprintf("invalid type for field %q", field))
 		case strings.HasPrefix(err.Error(), "json: unknown field"):
-			gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			apiRequest.Error(http.StatusBadRequest, err.Error())
 		default:
-			gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			apiRequest.Error(http.StatusBadRequest, err.Error())
 		}
 		return
 	}
 	if decoder.More() {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "multiple JSON objects are not allowed"})
+		apiRequest.Error(http.StatusBadRequest, "multiple JSON objects are not allowed")
 		return
 	}
 
 	// payload is now safe to use, valid JSON, correct types, no unknown fields, safe to use
-
 	err = json.Unmarshal(body, &payload)
 	if err != nil {
 		var unmarshalTypeError *json.UnmarshalTypeError
@@ -140,50 +108,51 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 
 		switch {
 		case errors.As(err, &syntaxErr):
-			gc.JSON(http.StatusBadRequest, gin.H{
-				"error": fmt.Sprintf("invalid JSON syntax (at offset %d)", syntaxErr.Offset),
-			})
+			apiRequest.Error(
+				http.StatusBadRequest,
+				fmt.Sprintf("invalid JSON syntax (at offset %d)", syntaxErr.Offset))
 			return
 		case errors.As(err, &unmarshalTypeError):
 			field := unmarshalTypeError.Field
 			if field == "" {
 				field = "(unknown field)"
 			}
-			gc.JSON(http.StatusBadRequest, gin.H{
-				"error": fmt.Sprintf("invalid type for field %q: expected %v but got %v", field, unmarshalTypeError.Type, unmarshalTypeError.Value),
-				"hint":  "check numeric and boolean values — don't quote numbers or booleans",
-			})
+			apiRequest.Error(
+				http.StatusBadRequest,
+				fmt.Sprintf("invalid type for field %q: expected %v but got %v", field, unmarshalTypeError.Type, unmarshalTypeError.Value))
 			return
 		case errors.Is(err, io.EOF):
-			gc.JSON(http.StatusBadRequest, gin.H{"error": "empty request body"})
+			apiRequest.Error(http.StatusBadRequest, "empty request body")
 			return
 		case errors.As(err, &invalidUnmarshalError):
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+			apiRequest.Error(http.StatusInternalServerError, "internal server error")
 			return
 		default:
-			gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			apiRequest.Error(http.StatusBadRequest, err.Error())
 			return
 		}
 	}
+	debugf("AdminCreateEvent 3")
 
 	// Validation
 	validationErr := payload.Validate()
 	if validationErr != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": validationErr.Error()})
+		apiRequest.Error(http.StatusBadRequest, validationErr.Error())
 		return
 	}
 
 	if payload.OrganizationId == nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "organizationId is required"})
+		apiRequest.Error(http.StatusBadRequest, "organizationId is required")
 		return
 	}
 
 	var newEventId int
+	debugf("AdminCreateEvent 4")
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-
 		txErr := h.CheckOrganizationAllPermissions(
-			gc, tx, userId, *payload.OrganizationId, app.PermChooseAsEventOrganization|app.PermAddEvent)
+			gc, tx, userId, *payload.OrganizationId, *payload.OrganizationKey,
+			app.PermChooseAsEventOrganization|app.PermAddEvent)
 		if txErr != nil {
 			return txErr
 		}
@@ -326,14 +295,24 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			}
 		}
 
+		err = RefreshEventProjections(ctx, tx, "event", []int{newEventId})
+		if err != nil {
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  fmt.Errorf("refresh projection tables failed: %v", err),
+			}
+		}
+
 		return nil
 	})
 	if txErr != nil {
-		gc.JSON(txErr.Code, gin.H{"error": txErr.Error()})
+		apiRequest.Error(txErr.Code, txErr.Error())
 		return
 	}
+	debugf("AdminCreateEvent 5")
 
-	gc.JSON(http.StatusCreated, gin.H{"event_id": newEventId})
+	apiRequest.Metadata["created_event_id"] = newEventId
+	apiRequest.SuccessNoData(http.StatusCreated, "")
 }
 
 // Validate validates the incomingEvent struct
@@ -468,7 +447,7 @@ func (e *incomingEvent) Validate() error {
 			errs = append(errs, "unknown release_status")
 		}
 	} else {
-		defaultValue := "draft"
+		defaultValue := "released" // TODO: !!!!
 		e.ReleaseStatus = &defaultValue
 	}
 
@@ -562,7 +541,7 @@ func parseTime(timeStr string) (time.Time, error) {
 	return time.Parse("15:04", timeStr)
 }
 
-func validateEventDate(e incomingEventDate, index int) []string {
+func validateEventDate(e model.EventDatePayload, index int) []string {
 	var errs []string
 
 	// Parse start date
@@ -655,9 +634,9 @@ func validateEventDate(e incomingEventDate, index int) []string {
 			errs = append(errs,
 				fmt.Sprintf("dates[%d].entry_time has invalid format (expected HH:MM)", index),
 			)
-		} else if !entryTime.Before(startTime) {
+		} else if entryTime.After(startTime) {
 			errs = append(errs,
-				fmt.Sprintf("dates[%d].entry_time must be before start_time", index),
+				fmt.Sprintf("dates[%d].entry_time must be before or equal start_time", index),
 			)
 		}
 	}

@@ -5,36 +5,38 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sndcds/grains/grainsapi"
 )
-
-// TODO: Review code
 
 func (h *ApiHandler) AdminDeleteEvent(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
+	apiRequest := grainsapi.NewRequest(gc, "admin-delete-event")
 
-	if !h.VerifyUserPassword(gc, userId) {
-		return // Already sent JSON error
+	err := h.VerifyUserPassword(gc, userId)
+	if err != nil {
+		apiRequest.Error(http.StatusUnauthorized, err.Error())
+		return
 	}
 
 	eventId, ok := ParamInt(gc, "eventId")
 	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event Id"})
+		apiRequest.Error(http.StatusBadRequest, "eventId is required")
 		return
 	}
+	apiRequest.SetMeta("event_id", eventId)
 
 	query := fmt.Sprintf(`DELETE FROM %s.event WHERE id = $1`, h.Config.DbSchema)
-
 	cmdTag, err := h.DbPool.Exec(ctx, query, eventId)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete event", "details": err.Error()})
+		apiRequest.Error(http.StatusInternalServerError, "failed to delete event")
 		return
 	}
 
 	if cmdTag.RowsAffected() == 0 {
-		gc.JSON(http.StatusNotFound, gin.H{"error": "Event not found"})
+		apiRequest.Error(http.StatusNotFound, "event not found")
 		return
 	}
 
-	gc.JSON(http.StatusOK, gin.H{"message": "Event deleted successfully", "id": eventId})
+	apiRequest.SuccessNoData(http.StatusOK, "event deleted successfully")
 }

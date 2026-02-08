@@ -2,7 +2,6 @@ package api
 
 import (
 	"fmt"
-	"net/http"
 	"strconv"
 	"strings"
 	"sync"
@@ -197,25 +196,18 @@ const dummyPasswordHash = "$2a$12$wGf6R8t2pFzq9yQmYv8y1u8y0v7E4Qv9ZJ8tQ6lH5E8QK3
 
 // VerifyUserPassword reads password from request body, validates it against user Id.
 // Returns true if password is valid, or writes JSON error response to context and returns false.
-func (h *ApiHandler) VerifyUserPassword(gc *gin.Context, userId int) bool {
+func (h *ApiHandler) VerifyUserPassword(gc *gin.Context, userId int) error {
 	var body struct {
 		Password string `json:"password"`
 	}
 
-	fmt.Println("VerifyUserPassword")
-
 	if err := gc.ShouldBindJSON(&body); err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
-		return false
+		return fmt.Errorf("invalid request body")
 	}
-	fmt.Println("body.Password", body.Password)
 
 	if body.Password == "" {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "Password is required"})
-		return false
+		return fmt.Errorf("password is required")
 	}
-
-	fmt.Println("len(body.Password)", len(body.Password))
 
 	var passwordHash string
 	query := fmt.Sprintf(`SELECT password_hash FROM %s.user WHERE id = $1`, h.Config.DbSchema)
@@ -223,14 +215,12 @@ func (h *ApiHandler) VerifyUserPassword(gc *gin.Context, userId int) bool {
 	if err != nil {
 		passwordHash = dummyPasswordHash
 	}
-	fmt.Println("passwordHash", passwordHash)
 
 	if app.ComparePasswords(passwordHash, body.Password) != nil {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid password"})
-		return false
+		return fmt.Errorf("invalid password")
 	}
 
-	return true
+	return nil
 }
 
 func IsEventReleaseStatus(fieldName string, value *string) (bool, error) {

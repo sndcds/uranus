@@ -5,47 +5,45 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sndcds/grains/grainsapi"
 )
 
 func (h *ApiHandler) AdminDeleteEventDate(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
+	apiRequest := grainsapi.NewRequest(gc, "admin-delete-event-date")
 
-	if !h.VerifyUserPassword(gc, userId) {
-		return // Already sent JSON error
+	err := h.VerifyUserPassword(gc, userId)
+	if err != nil {
+		apiRequest.Error(http.StatusUnauthorized, err.Error())
+		return
 	}
 
 	eventId, ok := ParamInt(gc, "eventId")
-	fmt.Println("eventId", eventId)
 	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "eventId is required"})
+		apiRequest.Error(http.StatusBadRequest, "eventId is required")
 		return
 	}
+	apiRequest.SetMeta("event_id", eventId)
 
 	eventDateId, ok := ParamInt(gc, "dateId")
-	fmt.Println("eventDateId", eventDateId)
 	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "dateId is required"})
+		apiRequest.Error(http.StatusBadRequest, "dateId is required")
 		return
 	}
+	apiRequest.SetMeta("event_date_id", eventDateId)
 
 	query := fmt.Sprintf(`DELETE FROM %s.event_date WHERE id = $1`, h.Config.DbSchema)
 	cmdTag, err := h.DbPool.Exec(ctx, query, eventDateId)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete event date", "details": err.Error()})
+		apiRequest.Error(http.StatusInternalServerError, "failed to delete event date")
 		return
 	}
 
 	if cmdTag.RowsAffected() == 0 {
-		gc.JSON(http.StatusNotFound, gin.H{"error": "Event date not found"})
+		apiRequest.Error(http.StatusNotFound, "event date not found")
 		return
 	}
 
-	gc.JSON(
-		http.StatusOK,
-		gin.H{
-			"message":       "Event date deleted successfully",
-			"event_id":      eventId,
-			"event_date_id": eventDateId,
-		})
+	apiRequest.SuccessNoData(http.StatusOK, "event date deleted successfully")
 }

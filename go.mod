@@ -17,6 +17,7 @@ require (
 	github.com/disintegration/imaging v1.6.2 // indirect
 	github.com/gin-contrib/gzip v1.2.5 // indirect
 	github.com/goccy/go-yaml v1.18.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
 	github.com/quic-go/quic-go v0.55.0 // indirect
@@ -59,4 +60,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-// replace github.com/sndcds/pluto => ../pluto
+replace github.com/sndcds/grains => ../grains
+
+replace github.com/sndcds/pluto => ../pluto

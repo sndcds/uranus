@@ -6,32 +6,37 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/sndcds/grains/grainsapi"
 )
-
-// TODO: Review code
 
 func (h *ApiHandler) AdminDeleteOrganizationTeamMember(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
+	apiRequest := grainsapi.NewRequest(gc, "admin-delete-organization-team-member")
 
-	if !h.VerifyUserPassword(gc, userId) {
+	err := h.VerifyUserPassword(gc, userId)
+	if err != nil {
+		apiRequest.Error(http.StatusUnauthorized, err.Error())
 		return
 	}
 
 	organizationId, ok := ParamInt(gc, "organizationId")
 	if !ok {
+		apiRequest.Error(http.StatusBadRequest, "organizationId is required")
 		return
 	}
+	apiRequest.SetMeta("organization_id", organizationId)
 
 	memberUserId, ok := ParamInt(gc, "memberId")
 	if !ok {
+		apiRequest.Error(http.StatusBadRequest, "memberId is required")
 		return
 	}
+	apiRequest.SetMeta("member_id", memberUserId)
 
-	// Start a transaction
 	tx, err := h.DbPool.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to start transaction: " + err.Error()})
+		apiRequest.Error(http.StatusInternalServerError, "transaction failed (#1)")
 		return
 	}
 	defer func() {
@@ -40,24 +45,28 @@ func (h *ApiHandler) AdminDeleteOrganizationTeamMember(gc *gin.Context) {
 		}
 	}()
 
-	query := fmt.Sprintf(`DELETE FROM %s.organization_member_link WHERE organization_id = $1 AND user_id = $2`, h.Config.DbSchema)
+	query := fmt.Sprintf(
+		`DELETE FROM %s.organization_member_link WHERE organization_id = $1 AND user_id = $2`,
+		h.Config.DbSchema)
 	_, err = tx.Exec(ctx, query, organizationId, memberUserId)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete team member: " + err.Error()})
+		apiRequest.Error(http.StatusInternalServerError, "failed to delete team member (#1)")
 		return
 	}
 
-	query = fmt.Sprintf(`DELETE FROM %s.user_organization_link WHERE organization_id = $1 AND user_id = $2`, h.Config.DbSchema)
+	query = fmt.Sprintf(
+		`DELETE FROM %s.user_organization_link WHERE organization_id = $1 AND user_id = $2`,
+		h.Config.DbSchema)
 	_, err = tx.Exec(ctx, query, organizationId, memberUserId)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete team member: " + err.Error()})
+		apiRequest.Error(http.StatusInternalServerError, "failed to delete team member (#2)")
 		return
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to commit transaction: " + err.Error()})
+		apiRequest.Error(http.StatusInternalServerError, "transaction failed (#2)")
 		return
 	}
 
-	gc.JSON(http.StatusOK, gin.H{"message": "team member deleted"})
+	apiRequest.SuccessNoData(http.StatusOK, "organization team member deleted successfully")
 }

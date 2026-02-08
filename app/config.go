@@ -30,6 +30,7 @@ type Config struct {
 	PlutoImageDir           string   `json:"pluto_image_dir"`
 	PlutoCacheDir           string   `json:"pluto_cache_dir"`
 	JwtSecret               string   `json:"jwt_secret"`
+	SecretKey               string   `json:"secret_key"`
 	AuthTokenExpirationTime int      `json:"auth_token_expiration_time"`
 	AuthSmtpHost            string   `json:"auth_smtp_host"`
 	AuthSmtpPort            int      `json:"auth_smtp_port"`

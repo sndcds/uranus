@@ -23,6 +23,31 @@ const (
 	TieredPrices PriceType = "tiered_prices"
 )
 
+type EventTypeGenrePairPayload struct {
+	TypeId  int  `json:"type_id" binding:"required"`
+	GenreId *int `json:"genre_id"`
+}
+
+// EventDatePayload is used for creating and updating event dates.
+// StartDate and StartTime are required.
+// All other fields are optional and represented as pointers to distinguish
+// between "not provided" and zero values.
+type EventDatePayload struct {
+	StartDate            string  `json:"start_date" binding:"required"`
+	StartTime            string  `json:"start_time" binding:"required"`
+	EndDate              *string `json:"end_date,omitempty"`
+	EndTime              *string `json:"end_time,omitempty"`
+	EntryTime            *string `json:"entry_time,omitempty"`
+	AllDay               *bool   `json:"all_day,omitempty"`
+	Duration             *int    `json:"duration,omitempty"`
+	VenueId              *int    `json:"venue_id,omitempty"`
+	SpaceId              *int    `json:"space_id,omitempty"`
+	TicketLink           *string `json:"ticket_link,omitempty"`
+	AvailabilityStatusId *int    `json:"availability_status_id,omitempty"`
+	AccessibilityInfo    *string `json:"accessibility_info,omitempty"`
+	Custom               *string `json:"custom,omitempty"`
+}
+
 type EventType struct {
 	Type      int     `json:"type_id"`
 	TypeName  *string `json:"type_name,omitempty"`
@@ -207,26 +232,6 @@ type AdminListEvent struct {
 	Title            string      `json:"title"`
 	Subtitle         *string     `json:"subtitle,omitempty"`
 	EventTypes       []EventType `json:"event_types,omitempty"`
-}
-
-// EventDatePayload is used for creating and updating event dates.
-// StartDate and StartTime are required.
-// All other fields are optional and represented as pointers to distinguish
-// between "not provided" and zero values.
-type EventDatePayload struct {
-	StartDate            string  `json:"start_date" binding:"required"`
-	StartTime            string  `json:"start_time" binding:"required"`
-	EndDate              *string `json:"end_date,omitempty"`
-	EndTime              *string `json:"end_time,omitempty"`
-	EntryTime            *string `json:"entry_time,omitempty"`
-	AllDay               *bool   `json:"all_day,omitempty"`
-	Duration             *int    `json:"duration,omitempty"`
-	VenueId              *int    `json:"venue_id,omitempty"`
-	SpaceId              *int    `json:"space_id,omitempty"`
-	TicketLink           *string `json:"ticket_link,omitempty"`
-	AvailabilityStatusId *int    `json:"availability_status_id,omitempty"`
-	AccessibilityInfo    *string `json:"accessibility_info,omitempty"`
-	Custom               *string `json:"custom,omitempty"`
 }
 
 // UserEventNotification contains a single event notification

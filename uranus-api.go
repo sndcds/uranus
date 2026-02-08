@@ -4,31 +4,26 @@ import (
 	"flag"
 	"fmt"
 	"strconv"
-	"time"
 
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
-	"github.com/sndcds/grains/token"
+	"github.com/sndcds/grains/grainsapi"
 	"github.com/sndcds/pluto"
 	"github.com/sndcds/uranus/api"
 	"github.com/sndcds/uranus/app"
 )
 
 func main() {
-
-	for _, rowID := range []int64{1, 42, 123} {
-		t := time.Now()
-		randomToken := token.RandomishToken(t, rowID, "", "")
-		fmt.Printf("RowID %d -> Token: %s\n", rowID, randomToken)
-	}
-
-	fmt.Println("start")
-
-	// Configuration
 	configFileName := flag.String("config", "config.json", "Path to config file")
 	verbose := flag.Bool("verbose", false, "Enable verbose logging")
 	flag.Parse()
 	fmt.Println("Config file:", *configFileName)
+
+	grainsapi.Init(grainsapi.Config{
+		ServiceName: "Uranus API",
+		APIVersion:  "1.0",
+		TimeFormat:  "", // leave empty to use default RFC3339
+	})
 
 	var err error
 	app.UranusInstance, err = app.Initialize(*configFileName)

@@ -29,9 +29,9 @@ SELECT
             'creator', pi.creator_name,
             'copyright', pi.copyright,
             'license', CASE
-            WHEN pi.license_id IS NULL THEN NULL
+            WHEN pi.license_type IS NULL THEN NULL
             ELSE jsonb_build_object(
-                'id', pi.license_id,
+                'type', pi.license_type,
                 'short_name', lic.short_name,
                 'name', lic.name,
                 'url', lic.url
@@ -69,7 +69,7 @@ ON pi.id = main_image.id
 
 -- License
 LEFT JOIN {{schema}}.license_type lic
-ON lic.license_id = pi.license_id
+ON lic.type = pi.license_type
 AND lic.iso_639_1 = $2
 
 -- Event types

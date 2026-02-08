@@ -79,7 +79,9 @@ func (h *ApiHandler) CheckOrganizationPermission(
 func (h *ApiHandler) CheckOrganizationAllPermissions(
 	gc *gin.Context,
 	tx pgx.Tx,
-	userId, organizationId int,
+	userId int,
+	organizationId int,
+	organizationKey string,
 	permMask app.Permission,
 ) *ApiTxError {
 	orgPermissions, err := h.GetUserOrganizationPermissions(gc, tx, userId, organizationId)

@@ -19,12 +19,12 @@ func (h *ApiHandler) GetChoosableLicenses(gc *gin.Context) {
 	var query string
 	if useLongName {
 		query = fmt.Sprintf(
-			`SELECT license_id, name FROM %s.license_type WHERE iso_639_1 = $1 ORDER BY name`,
+			`SELECT type, name FROM %s.license_type WHERE iso_639_1 = $1 ORDER BY name`,
 			h.DbSchema,
 		)
 	} else {
 		query = fmt.Sprintf(
-			`SELECT license_id, short_name FROM %s.license_type WHERE iso_639_1 = $1 ORDER BY short_name`,
+			`SELECT type, short_name FROM %s.license_type WHERE iso_639_1 = $1 ORDER BY short_name`,
 			h.DbSchema,
 		)
 	}
@@ -37,7 +37,7 @@ func (h *ApiHandler) GetChoosableLicenses(gc *gin.Context) {
 	defer rows.Close()
 
 	type Option struct {
-		Id   int64   `json:"id"`
+		Type *string `json:"type"`
 		Name *string `json:"name"`
 	}
 
@@ -46,7 +46,7 @@ func (h *ApiHandler) GetChoosableLicenses(gc *gin.Context) {
 	for rows.Next() {
 		var option Option
 		if err := rows.Scan(
-			&option.Id,
+			&option.Type,
 			&option.Name,
 		); err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

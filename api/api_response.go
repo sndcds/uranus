@@ -20,7 +20,7 @@ type APIResponse[T any] struct {
 
 func JSONSuccess[T any](gc *gin.Context, responseType string, data T, metadata map[string]interface{}) {
 	resp := APIResponse[T]{
-		Service:      "UranusAPI",
+		Service:      "Uranus API",
 		APIVersion:   "1.0",
 		ResponseType: responseType,
 		Status:       "ok",
@@ -33,7 +33,7 @@ func JSONSuccess[T any](gc *gin.Context, responseType string, data T, metadata m
 
 func JSONSuccessNoData(gc *gin.Context, responseType string) {
 	resp := APIResponse[any]{ // 'any' because there is no Data
-		Service:      "UranusAPI",
+		Service:      "Uranus API",
 		APIVersion:   "1.0",
 		ResponseType: responseType,
 		Status:       "ok",
@@ -44,7 +44,7 @@ func JSONSuccessNoData(gc *gin.Context, responseType string) {
 
 func JSONSuccessMessage(gc *gin.Context, responseType string, statusCode int, message string) {
 	resp := APIResponse[any]{ // 'any' because there is no Data
-		Service:      "UranusAPI",
+		Service:      "Uranus API",
 		APIVersion:   "1.0",
 		ResponseType: responseType,
 		Status:       "error",
@@ -56,7 +56,7 @@ func JSONSuccessMessage(gc *gin.Context, responseType string, statusCode int, me
 
 func JSONError(gc *gin.Context, responseType string, statusCode int, errorMessage string) {
 	resp := APIResponse[any]{ // 'any' because there is no Data
-		Service:      "UranusAPI",
+		Service:      "Uranus API",
 		APIVersion:   "1.0",
 		ResponseType: responseType,
 		Status:       "error",

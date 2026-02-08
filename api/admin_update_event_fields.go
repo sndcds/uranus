@@ -7,15 +7,16 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/sndcds/grains/grainsapi"
 )
 
 func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	apiResponseType := "admin-update-event-price"
+	apiRequest := grainsapi.NewRequest(gc, "admin-update-event-fields")
 
 	eventId, ok := ParamInt(gc, "eventId")
 	if !ok {
-		JSONError(gc, apiResponseType, http.StatusBadRequest, "eventId is required")
+		apiRequest.Error(http.StatusBadRequest, "eventId is required")
 		return
 	}
 
@@ -40,7 +41,7 @@ func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 	}
 
 	if err := gc.ShouldBindJSON(&payload); err != nil {
-		JSONPayloadError(gc, apiResponseType)
+		apiRequest.PayloadError()
 		return
 	}
 
@@ -67,7 +68,7 @@ func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 	argPos = addUpdateStringSliceField("ticket_flags", payload.TicketFlags, &setClauses, &args, argPos)
 
 	if len(setClauses) == 0 {
-		JSONSuccessMessage(gc, apiResponseType, http.StatusOK, "no fields updated")
+		apiRequest.SuccessNoData(http.StatusOK, "no fields updated")
 		return
 	}
 	fmt.Println("len(setClauses)", len(setClauses))
@@ -109,9 +110,9 @@ func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 		return nil
 	})
 	if txErr != nil {
-		JSONDatabaseError(gc, apiResponseType)
+		apiRequest.DatabaseError()
 		return
 	}
 
-	JSONSuccessNoData(gc, apiResponseType)
+	apiRequest.SuccessNoData(http.StatusOK, "")
 }

@@ -1,29 +1,39 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sndcds/pluto"
+	"github.com/sndcds/uranus/model"
 )
 
 func (h *ApiHandler) AdminUpsertEventImage(gc *gin.Context) {
 	userId := h.userId(gc)
+	apiResponseType := "upsert-event-image"
 
 	eventId, ok := ParamInt(gc, "eventId")
 	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "eventId is required"})
+		JSONError(gc, apiResponseType, http.StatusBadRequest, "eventId is required")
 		return
 	}
 
 	identifier := gc.Param("identifier")
 	if !IsEventImageIdentifier(identifier) {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "unknown identifier"})
+		JSONError(gc, apiResponseType, http.StatusBadRequest, "unknown identifier")
 		return
 	}
 
 	context := "event"
 	fileNamePrefix := "event"
+
+	fmt.Println("AdminUpsertEventImage")
+	fmt.Println("   context: ", context)
+	fmt.Println("   eventId: ", eventId)
+	fmt.Println("   identifier: ", identifier)
+	fmt.Println("   fileNamePrefix: ", fileNamePrefix)
+	fmt.Println("   userId: ", userId)
 
 	// Upsert image in Pluto
 	plutoUpsertImageResult, err := pluto.UpsertImage(
@@ -38,12 +48,14 @@ func (h *ApiHandler) AdminUpsertEventImage(gc *gin.Context) {
 		return
 	}
 
-	gc.JSON(http.StatusOK, gin.H{
-		"http_status":         plutoUpsertImageResult.HttpStatus,
-		"message":             plutoUpsertImageResult.Message,
-		"file_replaced":       plutoUpsertImageResult.FileRemovedFlag,
-		"cache_files_removed": plutoUpsertImageResult.CacheFilesRemoved,
-		"image_id":            plutoUpsertImageResult.ImageId,
-		"image_identifier":    identifier,
-	})
+	data := model.UpsertImageResultData{
+		HttpStatus:        plutoUpsertImageResult.HttpStatus,
+		Message:           plutoUpsertImageResult.Message,
+		FileReplaced:      plutoUpsertImageResult.FileRemovedFlag,
+		CacheFilesRemoved: plutoUpsertImageResult.CacheFilesRemoved,
+		ImageId:           plutoUpsertImageResult.ImageId,
+		ImageIdentifier:   identifier,
+	}
+
+	JSONSuccess(gc, "upsert_image_result", data, nil)
 }

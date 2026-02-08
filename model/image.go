@@ -19,3 +19,12 @@ type Image struct {
 	FocusX      *float64      `json:"focus_x,omitempty"`
 	FocusY      *float64      `json:"focus_y,omitempty"`
 }
+
+type UpsertImageResultData struct {
+	HttpStatus        int    `json:"http_status"`
+	Message           string `json:"message"`
+	FileReplaced      bool   `json:"file_replaced"`
+	CacheFilesRemoved int    `json:"cache_files_removed"`
+	ImageId           int    `json:"image_id"`
+	ImageIdentifier   string `json:"image_identifier"`
+}
