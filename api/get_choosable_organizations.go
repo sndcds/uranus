@@ -12,7 +12,7 @@ import (
 func (h *ApiHandler) GetChoosableOrganizations(gc *gin.Context) {
 	ctx := gc.Request.Context()
 
-	query := fmt.Sprintf("SELECT id, name FROM %s.organization ORDER BY LOWER(name)", h.Config.DbSchema)
+	query := fmt.Sprintf("SELECT id, name FROM %s.organization ORDER BY LOWER(name)", h.DbSchema)
 	rows, err := h.DbPool.Query(ctx, query)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

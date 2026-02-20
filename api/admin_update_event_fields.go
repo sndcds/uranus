@@ -7,18 +7,19 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
-	"github.com/sndcds/grains/grainsapi"
+	"github.com/sndcds/grains/grains_api"
 )
 
 func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	apiRequest := grainsapi.NewRequest(gc, "admin-update-event-fields")
+	apiRequest := grains_api.NewRequest(gc, "admin-update-event-fields")
 
 	eventId, ok := ParamInt(gc, "eventId")
 	if !ok {
 		apiRequest.Error(http.StatusBadRequest, "eventId is required")
 		return
 	}
+	apiRequest.SetMeta("event_id", eventId)
 
 	var payload struct {
 		ReleaseStatus     NullableField[string]   `json:"release_status"`
@@ -61,27 +62,25 @@ func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 	argPos = addUpdateClauseNullable("min_age", payload.MinAge, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("max_age", payload.MaxAge, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("participation_info", payload.ParticipationInfo, &setClauses, &args, argPos)
-	argPos = addStringUpdateClause("price_type", payload.PriceType, &setClauses, &args, argPos)
+	argPos = addUpdateClauseString("price_type", payload.PriceType, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("min_price", payload.MinPrice, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("max_price", payload.MaxPrice, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("currency", payload.Currency, &setClauses, &args, argPos)
-	argPos = addUpdateStringSliceField("ticket_flags", payload.TicketFlags, &setClauses, &args, argPos)
+	argPos = addUpdateClauseStringSliceField("ticket_flags", payload.TicketFlags, &setClauses, &args, argPos)
 
 	if len(setClauses) == 0 {
 		apiRequest.SuccessNoData(http.StatusOK, "no fields updated")
 		return
 	}
-	fmt.Println("len(setClauses)", len(setClauses))
+	apiRequest.SetMeta("field_count", len(setClauses))
 
 	query := fmt.Sprintf(`UPDATE %s.event SET %s WHERE id = $%d`,
 		h.DbSchema,
 		strings.Join(setClauses, ", "),
 		argPos, // Last placeholder is for WHERE id
 	)
-	fmt.Println("query", query)
 
 	args = append(args, eventId) // eventId is the last parameter
-	fmt.Println("args", args)
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		res, err := tx.Exec(ctx, query, args...)

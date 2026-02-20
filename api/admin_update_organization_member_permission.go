@@ -154,7 +154,7 @@ SET permissions = CASE
 END
 WHERE user_id = $3 AND organization_id = $4
 RETURNING permissions`,
-			h.Config.DbSchema)
+			h.DbSchema)
 
 		err = tx.QueryRow(
 			ctx, bitUpdateQuery, inputReq.Enabled, inputReq.Bit, memberUserId, organizationId).

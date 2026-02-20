@@ -5,36 +5,32 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
 )
 
-// TODO: Review code
-
 func (h *ApiHandler) GetChoosableLegalForms(gc *gin.Context) {
 	ctx := gc.Request.Context()
+	apiRequest := grains_api.NewRequest(gc, "get_choosable_legal_forms")
 
 	lang := gc.DefaultQuery("lang", "en")
+	apiRequest.SetMeta("language", lang)
 
 	query := fmt.Sprintf(
-		`SELECT legal_form_id, name
-FROM %s.legal_form
-WHERE iso_639_1 = $1
-ORDER BY
-CASE WHEN legal_form_id = 0 THEN 1 ELSE 0 END,
-LOWER(name)`,
+		`SELECT key, name, description FROM %s.legal_form_i18n WHERE iso_639_1 = $1 ORDER BY LOWER(name)`,
 		app.UranusInstance.Config.DbSchema,
 	)
-
 	rows, err := h.DbPool.Query(ctx, query, lang)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		apiRequest.InternalServerError()
 		return
 	}
 	defer rows.Close()
 
 	type LegalForm struct {
-		LegalFormId   int64   `json:"id"`
-		LegalFormName *string `json:"name"`
+		Key         string  `json:"key"`
+		Name        *string `json:"name"`
+		Description *string `json:"description"`
 	}
 
 	var legalForms []LegalForm
@@ -42,24 +38,26 @@ LOWER(name)`,
 	for rows.Next() {
 		var legalForm LegalForm
 		if err := rows.Scan(
-			&legalForm.LegalFormId,
-			&legalForm.LegalFormName,
+			&legalForm.Key,
+			&legalForm.Name,
+			&legalForm.Description,
 		); err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			apiRequest.InternalServerError()
 			return
 		}
 		legalForms = append(legalForms, legalForm)
 	}
 
 	if err := rows.Err(); err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		apiRequest.DatabaseError()
 		return
 	}
 
 	if len(legalForms) == 0 {
-		gc.JSON(http.StatusOK, []LegalForm{})
+		apiRequest.NotFound("No legal forms found")
 		return
 	}
 
-	gc.JSON(http.StatusOK, legalForms)
+	apiRequest.SetMeta("legal_form_count", len(legalForms))
+	apiRequest.Success(http.StatusOK, legalForms, "")
 }

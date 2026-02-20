@@ -16,7 +16,7 @@ func (h *ApiHandler) GetChoosablePriceTypes(gc *gin.Context) {
 		priceTypesOptionsQuery = fmt.Sprintf(`
 			SELECT type_id AS id, name FROM %s.price_type WHERE iso_639_1 = $1
 			ORDER BY CASE WHEN type_id = 0 THEN 0 ELSE 1 END, name`,
-			h.Config.DbSchema)
+			h.DbSchema)
 	})
 
 	lang := gc.DefaultQuery("lang", "en")

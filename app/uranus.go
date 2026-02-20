@@ -36,7 +36,7 @@ type Uranus struct {
 	SqlGetAdminOrganization             string
 	SqlInsertOrganization               string
 	SqlUpdateOrganization               string
-	SqlGetAdminVenue                    string
+	SqlAdminGetVenue                    string
 	SqlInsertVenue                      string
 	SqlUpdateVenue                      string
 	SqlAdminGetSpace                    string
@@ -225,7 +225,7 @@ func (app *Uranus) PrepareSql() error {
 		{"sql/admin-insert-organization.sql", &app.SqlInsertOrganization, nil},
 		{"sql/admin-update-organization.sql", &app.SqlUpdateOrganization, nil},
 
-		{"sql/admin-get-venue.sql", &app.SqlGetAdminVenue, nil},
+		{"sql/admin-get-venue.sql", &app.SqlAdminGetVenue, nil},
 		{"sql/admin-insert-venue.sql", &app.SqlInsertVenue, nil},
 		{"sql/admin-update-venue.sql", &app.SqlUpdateVenue, nil},
 

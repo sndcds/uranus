@@ -5,13 +5,13 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sndcds/grains/grainsapi"
+	"github.com/sndcds/grains/grains_api"
 )
 
 func (h *ApiHandler) AdminDeleteVenue(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
-	apiRequest := grainsapi.NewRequest(gc, "admin-delete-venue")
+	apiRequest := grains_api.NewRequest(gc, "admin-delete-venue")
 
 	err := h.VerifyUserPassword(gc, userId)
 	if err != nil {
@@ -26,7 +26,7 @@ func (h *ApiHandler) AdminDeleteVenue(gc *gin.Context) {
 	}
 	apiRequest.SetMeta("venueId", venueId)
 
-	query := fmt.Sprintf(`DELETE FROM %s.venue WHERE id = $1`, h.Config.DbSchema)
+	query := fmt.Sprintf(`DELETE FROM %s.venue WHERE id = $1`, h.DbSchema)
 	cmdTag, err := h.DbPool.Exec(ctx, query, venueId)
 	if err != nil {
 		apiRequest.Error(http.StatusInternalServerError, "failed to delete venue")

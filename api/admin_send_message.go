@@ -47,7 +47,7 @@ func (h *ApiHandler) AdminSendMessage(gc *gin.Context) {
 			FROM {{schema}}.user_organization_link ol
 			JOIN {{schema}}.user u ON u.id = ol.user_id
 			WHERE ol.organization_id = $1 AND (ol.permissions & $2) != 0`,
-			"{{schema}}", h.Config.DbSchema, -1)
+			"{{schema}}", h.DbSchema, -1)
 
 		rows, err := tx.Query(ctx, query, organizationId, app.PermReceiveOrganizationMsgs)
 		if err != nil {
@@ -81,7 +81,7 @@ func (h *ApiHandler) AdminSendMessage(gc *gin.Context) {
 			insertQuery := fmt.Sprintf(
 				`INSERT INTO %s.message (to_user_id, from_user_id, subject, message)
              VALUES ($1, $2, $3, $4)`,
-				h.Config.DbSchema,
+				h.DbSchema,
 			)
 			_, err := tx.Exec(ctx, insertQuery, toUserId, fromUserId, req.Subject, req.Message)
 			if err != nil {

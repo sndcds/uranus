@@ -16,7 +16,7 @@ func (h *ApiHandler) GetAccessibilityFlags(gc *gin.Context) {
 
 	query := fmt.Sprintf(
 		`SELECT flag AS id, topic_id, name FROM %s.accessibility_flags WHERE iso_639_1 = $1 ORDER BY topic_id, flag`,
-		h.Config.DbSchema,
+		h.DbSchema,
 	)
 
 	rows, err := h.DbPool.Query(ctx, query, lang)

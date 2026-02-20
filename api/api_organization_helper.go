@@ -18,7 +18,7 @@ func (h *ApiHandler) GetOrganizationIdByEvenId(
 
 	ctx := gc.Request.Context()
 
-	query := fmt.Sprintf(`SELECT e.organization_id FROM %s.event e WHERE e.id = $1`, h.Config.DbSchema)
+	query := fmt.Sprintf(`SELECT e.organization_id FROM %s.event e WHERE e.id = $1`, h.DbSchema)
 	organizationId := -1
 	err := tx.QueryRow(ctx, query, eventId).Scan(&organizationId)
 	if err != nil {
@@ -38,7 +38,7 @@ func (h *ApiHandler) GetOrganizationIdByEventDateId(
 
 	query := fmt.Sprintf(`
 			SELECT e.organization_id FROM %s.event_date ed JOIN %s.event e ON e.id = ed.event_id WHERE ed.id = $1`,
-		h.Config.DbSchema, h.Config.DbSchema)
+		h.DbSchema, h.DbSchema)
 	organizationId := -1
 	err := tx.QueryRow(ctx, query, eventDateId).Scan(&organizationId)
 	if err != nil {
@@ -81,14 +81,13 @@ func (h *ApiHandler) CheckOrganizationAllPermissions(
 	tx pgx.Tx,
 	userId int,
 	organizationId int,
-	organizationKey string,
 	permMask app.Permission,
 ) *ApiTxError {
 	orgPermissions, err := h.GetUserOrganizationPermissions(gc, tx, userId, organizationId)
 	if err != nil {
 		return &ApiTxError{
 			Code: http.StatusInternalServerError,
-			Err:  fmt.Errorf("Transaction failed: %s", err.Error()),
+			Err:  fmt.Errorf("Transaction failed"),
 		}
 	}
 

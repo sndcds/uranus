@@ -25,23 +25,15 @@ SELECT
         ELSE jsonb_build_object(
             'id', main_image.id,
             'url', format('{{base_api_url}}/api/image/%s', main_image.id),
-            'alt', pi.alt_text,
-            'creator', pi.creator_name,
-            'copyright', pi.copyright,
-            'license', CASE
-            WHEN pi.license_type IS NULL THEN NULL
-            ELSE jsonb_build_object(
-                'type', pi.license_type,
-                'short_name', lic.short_name,
-                'name', lic.name,
-                'url', lic.url
-            )
-            END
+            'alt', main_image.alt_text,
+            'creator', main_image.creator_name,
+            'copyright', main_image.copyright,
+            'license', main_image.license
         )
-    END AS image,
+        END AS image,
 
     et_data.event_types,
-    url_data.event_links
+    link_data.event_links
 
 FROM {{schema}}.event e
 JOIN {{schema}}.organization o ON o.id = e.organization_id
@@ -52,25 +44,39 @@ LEFT JOIN {{schema}}.venue v ON v.id = e.venue_id
 -- Space (fallback logic if event has space_id)
 LEFT JOIN {{schema}}.space s ON s.id = e.space_id
 
-
--- Main image: first pluto_image linked as 'main'
+-- Main image: first pluto_image linked as 'main', include license info
 LEFT JOIN LATERAL (
-    SELECT pil.pluto_image_id AS id
+    SELECT
+        pi.id,
+        pi.alt_text,
+        pi.creator_name,
+        pi.copyright,
+        COALESCE(
+            jsonb_build_object(
+                'key', lic.key,
+                'name', lic.name,
+                'description', lic.description
+            ),
+            jsonb_build_object(
+                'key', lic_fallback.key,
+                'name', lic_fallback.name,
+                'description', lic_fallback.description
+            )
+        ) AS license
     FROM {{schema}}.pluto_image_link pil
+    JOIN {{schema}}.pluto_image pi
+    ON pi.id = pil.pluto_image_id
+    LEFT JOIN {{schema}}.license_i18n lic
+    ON lic.key = pi.license_type
+    AND lic.iso_639_1 = $2
+    LEFT JOIN {{schema}}.license_i18n lic_fallback
+    ON lic_fallback.key = 'all-rights-reserved'
+    AND lic_fallback.iso_639_1 = $2
     WHERE pil.context = 'event'
     AND pil.context_id = e.id
     AND pil.identifier = 'main'
     LIMIT 1
 ) main_image ON TRUE
-
--- Pluto image metadata
-LEFT JOIN {{schema}}.pluto_image pi
-ON pi.id = main_image.id
-
--- License
-LEFT JOIN {{schema}}.license_type lic
-ON lic.type = pi.license_type
-AND lic.iso_639_1 = $2
 
 -- Event types
 LEFT JOIN LATERAL (
@@ -103,6 +109,6 @@ LEFT JOIN LATERAL (
     ) AS event_links
     FROM {{schema}}.event_link eu
     WHERE eu.event_id = e.id
-) url_data ON TRUE
+) link_data ON TRUE
 
 WHERE e.id = $1

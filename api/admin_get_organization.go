@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
 )
 
@@ -17,37 +18,38 @@ import (
 func (h *ApiHandler) AdminGetOrganization(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
+	apiRequest := grains_api.NewRequest(gc, "admin-get-organization")
 
-	orgId := gc.Param("orgId")
-	if orgId == "" {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "organization Id is required"})
+	organizationId := gc.Param("organizationId")
+	if organizationId == "" {
+		apiRequest.Error(http.StatusBadRequest, "organizationId is required")
 		return
 	}
 
 	query := app.UranusInstance.SqlGetAdminOrganization
-	rows, err := h.DbPool.Query(ctx, query, orgId, userId)
+	rows, err := h.DbPool.Query(ctx, query, organizationId, userId)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		apiRequest.Error(http.StatusInternalServerError, "query failed (#1)")
 		return
 	}
 	defer rows.Close()
 
 	if !rows.Next() {
-		gc.JSON(http.StatusNotFound, gin.H{"error": "organization not found"})
+		apiRequest.Error(http.StatusNotFound, "organization not found")
 		return
 	}
 
 	fieldDescriptions := rows.FieldDescriptions()
 	values, err := rows.Values()
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		apiRequest.Error(http.StatusInternalServerError, "query failed (#2)")
 		return
 	}
 
-	result := make(map[string]interface{}, len(values))
+	data := make(map[string]interface{}, len(values))
 	for i, fd := range fieldDescriptions {
-		result[string(fd.Name)] = values[i]
+		data[string(fd.Name)] = values[i]
 	}
 
-	gc.JSON(http.StatusOK, result)
+	apiRequest.Success(http.StatusOK, data, "organization found")
 }

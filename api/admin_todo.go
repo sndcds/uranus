@@ -68,12 +68,7 @@ func (h *ApiHandler) AdminGetTodo(gc *gin.Context) {
 		return
 	}
 
-	query := fmt.Sprintf(`
-		SELECT id, title, description, due_date
-		FROM %s.todo
-		WHERE user_id = $1 AND id = $2`,
-		h.Config.DbSchema)
-
+	query := fmt.Sprintf(`SELECT id, title, description, due_date FROM %s.todo WHERE user_id = $1 AND id = $2`, h.DbSchema)
 	var todo model.Todo
 	err := h.DbPool.QueryRow(ctx, query, userId, todoId).Scan(
 		&todo.Id,
@@ -129,7 +124,7 @@ func (h *ApiHandler) AdminUpsertTodo(gc *gin.Context) {
 				(user_id, title, description, due_date, completed)
 			VALUES ($1, $2, $3, $4, $5)
 			RETURNING id
-		`, h.Config.DbSchema)
+		`, h.DbSchema)
 
 		var newId int
 		err := h.DbPool.QueryRow(
@@ -192,7 +187,7 @@ func (h *ApiHandler) AdminUpsertTodo(gc *gin.Context) {
 		UPDATE %s.todo
 		SET %s
 		WHERE user_id = $%d AND id = $%d
-	`, h.Config.DbSchema, strings.Join(setClauses, ", "), argIdx, argIdx+1)
+	`, h.DbSchema, strings.Join(setClauses, ", "), argIdx, argIdx+1)
 
 	args = append(args, userId, payload.Id)
 

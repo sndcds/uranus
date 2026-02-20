@@ -1,7 +1,8 @@
 SELECT
+    o.id,
     o.name,
     o.description,
-    o.legal_form_id,
+    o.legal_form,
     o.holding_organization_id,
     o.nonprofit,
     o.contact_email,

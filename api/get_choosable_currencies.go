@@ -13,7 +13,7 @@ func (h *ApiHandler) GetChoosableCurrencies(gc *gin.Context) {
 	onceCurrencies.Do(func() {
 		currenciesOptionsQuery = fmt.Sprintf(`
 			SELECT code AS id, name FROM %s.currency WHERE iso_639_1 = $1 ORDER BY name`,
-			h.Config.DbSchema)
+			h.DbSchema)
 	})
 
 	lang := gc.DefaultQuery("lang", "en")

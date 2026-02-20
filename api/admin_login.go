@@ -42,7 +42,7 @@ func (h *ApiHandler) Login(gc *gin.Context) {
 	query := fmt.Sprintf(
 		`SELECT id, email_address, password_hash, first_name, last_name, display_name, locale, theme, is_active
 		FROM %s.user WHERE email_address = $1`,
-		h.Config.DbSchema)
+		h.DbSchema)
 	err := h.DbPool.QueryRow(gc, query, credentials.Email).Scan(
 		&userId,
 		&emailAddress,

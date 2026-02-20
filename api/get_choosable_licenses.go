@@ -5,65 +5,58 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sndcds/grains/grains_api"
 )
 
-// TODO: Review code
-
-func (h *ApiHandler) GetChoosableLicenses(gc *gin.Context) {
+func (h *ApiHandler) GetChoosableLicenseTypes(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	// userId := h.userId(gc)
+	apiRequest := grains_api.NewRequest(gc, "get-chooseable-licenses")
 
 	lang := gc.DefaultQuery("lang", "en")
-	useLongName := gc.DefaultQuery("long", "false") == "true"
+	apiRequest.SetMeta("language", lang)
 
-	var query string
-	if useLongName {
-		query = fmt.Sprintf(
-			`SELECT type, name FROM %s.license_type WHERE iso_639_1 = $1 ORDER BY name`,
-			h.DbSchema,
-		)
-	} else {
-		query = fmt.Sprintf(
-			`SELECT type, short_name FROM %s.license_type WHERE iso_639_1 = $1 ORDER BY short_name`,
-			h.DbSchema,
-		)
-	}
+	query := fmt.Sprintf(
+		`SELECT key, name, description FROM %s.license_i18n WHERE iso_639_1 = $1 ORDER BY key`,
+		h.DbSchema)
 
 	rows, err := h.DbPool.Query(ctx, query, lang)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		apiRequest.InternalServerError()
 		return
 	}
 	defer rows.Close()
 
-	type Option struct {
-		Type *string `json:"type"`
-		Name *string `json:"name"`
+	type License struct {
+		Key         *string `json:"key"`
+		Name        *string `json:"name"`
+		Description *string `json:"description"`
 	}
 
-	var options []Option
+	var licences []License
 
 	for rows.Next() {
-		var option Option
+		var license License
 		if err := rows.Scan(
-			&option.Type,
-			&option.Name,
+			&license.Key,
+			&license.Name,
+			&license.Description,
 		); err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			apiRequest.InternalServerError()
 			return
 		}
-		options = append(options, option)
+		licences = append(licences, license)
 	}
 
 	if err := rows.Err(); err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		apiRequest.InternalServerError()
 		return
 	}
 
-	if len(options) == 0 {
-		gc.JSON(http.StatusOK, []Option{})
+	if len(licences) == 0 {
+		apiRequest.NotFound("No licenses found")
 		return
 	}
 
-	gc.JSON(http.StatusOK, options)
+	apiRequest.SetMeta("license_count", len(licences))
+	apiRequest.Success(http.StatusOK, licences, "")
 }

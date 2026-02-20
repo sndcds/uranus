@@ -13,14 +13,14 @@ import (
 func (h *ApiHandler) GetChoosableOrganizationVenues(gc *gin.Context) {
 	ctx := gc.Request.Context()
 
-	orgId, ok := ParamInt(gc, "orgId")
+	organizationId, ok := ParamInt(gc, "organizationId")
 	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "orgId required"})
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "organizationId required"})
 		return
 	}
 
 	query := app.UranusInstance.SqlChoosableOrganizationVenues
-	rows, err := h.DbPool.Query(ctx, query, orgId)
+	rows, err := h.DbPool.Query(ctx, query, organizationId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

@@ -50,7 +50,7 @@ func (h *ApiHandler) AdminCreateSpace(gc *gin.Context) {
 			($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING id
 	`
-	insertSpaceQuery = strings.Replace(insertSpaceQuery, "{{schema}}", h.Config.DbSchema, 1)
+	insertSpaceQuery = strings.Replace(insertSpaceQuery, "{{schema}}", h.DbSchema, 1)
 
 	err = tx.QueryRow(gc, insertSpaceQuery,
 		req.VenueId,

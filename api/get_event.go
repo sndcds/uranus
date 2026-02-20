@@ -77,10 +77,15 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 
 	// Unmarshal image JSON
 	if len(imageJSON) > 0 {
+		fmt.Println("len(imageJSON)", len(imageJSON))
 		var img model.Image
-		if err := json.Unmarshal(imageJSON, &img); err == nil {
+		if err := json.Unmarshal(imageJSON, &img); err != nil {
+			fmt.Println(err)
 			event.Image = &img
 		}
+
+		fmt.Println("Id", img.Id)
+		fmt.Println("Url", img.Url)
 	}
 
 	// Unmarshal event types
@@ -123,17 +128,19 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 			&edd.EntryTime,
 			&edd.Duration,
 			&edd.VenueId,
-			&edd.LocationName,
-			&edd.Street,
-			&edd.HouseNumber,
-			&edd.PostalCode,
-			&edd.City,
-			&edd.Country,
-			&edd.State,
-			&edd.Lon,
-			&edd.Lat,
+			&edd.VenueName,
+			&edd.VenueStreet,
+			&edd.VenueHouseNumber,
+			&edd.VenuePostalCode,
+			&edd.VenueCity,
+			&edd.VenueCountry,
+			&edd.VenueState,
+			&edd.VenueLon,
+			&edd.VenueLat,
 			&edd.VenueWebsiteUrl,
 			&edd.VenueLogoImageId,
+			&edd.VenueLightThemeLogoImageId,
+			&edd.VenueDarkThemeLogoImageId,
 			&edd.SpaceId,
 			&edd.SpaceName,
 			&edd.TotalCapacity,
@@ -153,6 +160,14 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 		if edd.VenueLogoImageId != nil {
 			url := fmt.Sprintf("%s/api/image/%d", app.UranusInstance.Config.BaseApiUrl, *edd.VenueLogoImageId)
 			edd.VenueLogoUrl = &url
+		}
+		if edd.VenueLightThemeLogoImageId != nil {
+			url := fmt.Sprintf("%s/api/image/%d", app.UranusInstance.Config.BaseApiUrl, *edd.VenueLightThemeLogoImageId)
+			edd.VenueLightThemeLogoUrl = &url
+		}
+		if edd.VenueDarkThemeLogoImageId != nil {
+			url := fmt.Sprintf("%s/api/image/%d", app.UranusInstance.Config.BaseApiUrl, *edd.VenueDarkThemeLogoImageId)
+			edd.VenueDarkThemeLogoUrl = &url
 		}
 
 		if edd.Id == dateId {

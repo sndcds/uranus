@@ -1,7 +1,7 @@
 INSERT INTO {{schema}}.organization (
     name,
     description,
-    legal_form_id,
+    legal_form,
     nonprofit,
     contact_email,
     contact_phone,

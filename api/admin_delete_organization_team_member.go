@@ -6,13 +6,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
-	"github.com/sndcds/grains/grainsapi"
+	"github.com/sndcds/grains/grains_api"
 )
 
 func (h *ApiHandler) AdminDeleteOrganizationTeamMember(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
-	apiRequest := grainsapi.NewRequest(gc, "admin-delete-organization-team-member")
+	apiRequest := grains_api.NewRequest(gc, "admin-delete-organization-team-member")
 
 	err := h.VerifyUserPassword(gc, userId)
 	if err != nil {
@@ -47,7 +47,7 @@ func (h *ApiHandler) AdminDeleteOrganizationTeamMember(gc *gin.Context) {
 
 	query := fmt.Sprintf(
 		`DELETE FROM %s.organization_member_link WHERE organization_id = $1 AND user_id = $2`,
-		h.Config.DbSchema)
+		h.DbSchema)
 	_, err = tx.Exec(ctx, query, organizationId, memberUserId)
 	if err != nil {
 		apiRequest.Error(http.StatusInternalServerError, "failed to delete team member (#1)")
@@ -56,7 +56,7 @@ func (h *ApiHandler) AdminDeleteOrganizationTeamMember(gc *gin.Context) {
 
 	query = fmt.Sprintf(
 		`DELETE FROM %s.user_organization_link WHERE organization_id = $1 AND user_id = $2`,
-		h.Config.DbSchema)
+		h.DbSchema)
 	_, err = tx.Exec(ctx, query, organizationId, memberUserId)
 	if err != nil {
 		apiRequest.Error(http.StatusInternalServerError, "failed to delete team member (#2)")

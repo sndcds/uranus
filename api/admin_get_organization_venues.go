@@ -21,7 +21,7 @@ func (h *ApiHandler) AdminGetOrganizationVenues(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
 
-	orgId, ok := ParamInt(gc, "organizationId")
+	organizationId, ok := ParamInt(gc, "organizationId")
 	if !ok {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid organizationId"})
 		return
@@ -40,7 +40,7 @@ func (h *ApiHandler) AdminGetOrganizationVenues(gc *gin.Context) {
 	}
 
 	// Run query
-	row := h.DbPool.QueryRow(ctx, app.UranusInstance.SqlAdminGetOrganizationVenues, userId, orgId, startDate)
+	row := h.DbPool.QueryRow(ctx, app.UranusInstance.SqlAdminGetOrganizationVenues, userId, organizationId, startDate)
 
 	var jsonResult []byte
 	if err := row.Scan(&jsonResult); err != nil {

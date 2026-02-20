@@ -25,8 +25,8 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 		DateId    *int    `json:"id"`
 		VenueId   *int    `json:"venue_id"`
 		SpaceId   *int    `json:"space_id"`
-		StartDate string  `json:"start_date"` // required
-		StartTime string  `json:"start_time"` // required
+		StartDate string  `json:"start_date" binding:"required"`
+		StartTime string  `json:"start_time" binding:"required"`
 		EndDate   *string `json:"end_date"`
 		EndTime   *string `json:"end_time"`
 		EntryTime *string `json:"entry_time"`
@@ -68,24 +68,28 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 			}
 		}
 
-		if len(idsInPayload) == 0 {
-			// No Id´s, delete all dates for this event
-			query := fmt.Sprintf(`DELETE FROM %s.sevent_date WHERE event_id = $1`, h.DbSchema)
-			_, err := tx.Exec(ctx, query, eventId)
-			if err != nil {
-				return &ApiTxError{
-					Code: http.StatusInternalServerError,
-					Err:  fmt.Errorf("delete all event dates failed"),
+		/*
+			if len(idsInPayload) == 0 {
+				// No Id´s, delete all dates for this event
+				query := fmt.Sprintf(`DELETE FROM %s.event_date WHERE event_id = $1`, h.DbSchema)
+				debugf("query: %s", query)
+				_, err := tx.Exec(ctx, query, eventId)
+				if err != nil {
+					debugf(err.Error())
+					return &ApiTxError{
+						Code: http.StatusInternalServerError,
+						Err:  fmt.Errorf("delete all event dates failed"),
+					}
 				}
+				return nil
 			}
-			return nil
-		}
+		*/
 
 		query := fmt.Sprintf(
 			`DELETE FROM %s.event_date WHERE event_id = $1 AND NOT (id = ANY($2::int[]))`,
 			h.DbSchema)
-		fmt.Println("query", query)
-		fmt.Println("idsInPayload", idsInPayload)
+		debugf("query: %s", query)
+		debugf("idsInPayload: %s", idsInPayload)
 		_, err := tx.Exec(ctx, query, eventId, idsInPayload)
 		if err != nil {
 			return &ApiTxError{
@@ -112,6 +116,7 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 					userId,
 				)
 				if err != nil {
+					debugf("err: %v", err)
 					return &ApiTxError{
 						Code: http.StatusInternalServerError,
 						Err:  fmt.Errorf("update date failed: %w", err),
@@ -133,6 +138,7 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 					userId,
 				)
 				if err != nil {
+					debugf("err: %v", err)
 					return &ApiTxError{
 						Code: http.StatusInternalServerError,
 						Err:  fmt.Errorf("insert date failed: %w", err),
@@ -143,6 +149,7 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 
 		// Refresh projections
 		if err := RefreshEventProjections(ctx, tx, "event", []int{eventId}); err != nil {
+			debugf("err: %v", err)
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
 				Err:  fmt.Errorf("refresh projections failed: %w", err),

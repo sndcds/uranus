@@ -10,7 +10,7 @@ import (
 
 // TODO: Review code
 
-func allIDsExist(gc *gin.Context, tx pgx.Tx, table string, ids []int) (bool, error) {
+func allIdsExist(gc *gin.Context, tx pgx.Tx, table string, ids []int) (bool, error) {
 	if len(ids) == 0 {
 		return true, nil
 	}

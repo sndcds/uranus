@@ -34,7 +34,7 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 	// Look up user
 	query := fmt.Sprintf(
 		"SELECT id FROM %s.user WHERE email_address = $1",
-		h.Config.DbSchema,
+		h.DbSchema,
 	)
 
 	var userID int
@@ -56,7 +56,7 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 	query = fmt.Sprintf(`
 		INSERT INTO %s.password_reset (user_id, token, expires_at)
 		VALUES ($1, $2, $3)`,
-		h.Config.DbSchema)
+		h.DbSchema)
 
 	expiryHour := 1
 	_, err = h.DbPool.Exec(ctx, query, userID, token, time.Now().Add(time.Duration(expiryHour)*time.Hour))
@@ -67,7 +67,7 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 
 	resetUrl := gc.Request.Referer() + "app/reset-password?token=" + token
 
-	messageQuery := fmt.Sprintf(`SELECT subject, template FROM %s.system_email_template WHERE context = 'reset-email' AND iso_639_1 = $1`, h.Config.DbSchema)
+	messageQuery := fmt.Sprintf(`SELECT subject, template FROM %s.system_email_template WHERE context = 'reset-email' AND iso_639_1 = $1`, h.DbSchema)
 	_, err = h.DbPool.Exec(gc, messageQuery, lang)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate email"})
@@ -117,8 +117,7 @@ func (h *ApiHandler) ResetPassword(gc *gin.Context) {
 	var expiresAt time.Time
 	var used bool
 
-	query := fmt.Sprintf(`SELECT user_id, expires_at, used FROM %s.password_reset WHERE token = $1`,
-		h.Config.DbSchema)
+	query := fmt.Sprintf(`SELECT user_id, expires_at, used FROM %s.password_reset WHERE token = $1`, h.DbSchema)
 	err := h.DbPool.QueryRow(
 		ctx,
 		query,
@@ -141,10 +140,7 @@ func (h *ApiHandler) ResetPassword(gc *gin.Context) {
 	defer func() { _ = tx.Rollback(ctx) }()
 
 	// Update user's password
-	updateUserQuery := fmt.Sprintf(
-		`UPDATE %s.user SET password_hash = $1 WHERE id = $2`,
-		h.Config.DbSchema,
-	)
+	updateUserQuery := fmt.Sprintf(`UPDATE %s.user SET password_hash = $1 WHERE id = $2`, h.DbSchema)
 
 	_, err = tx.Exec(ctx, updateUserQuery, hashed, userId)
 	if err != nil {
@@ -153,10 +149,7 @@ func (h *ApiHandler) ResetPassword(gc *gin.Context) {
 	}
 
 	// Mark the reset token as used
-	updateTokenQuery := fmt.Sprintf(
-		`UPDATE %s.password_reset SET used = TRUE WHERE token = $1`,
-		h.Config.DbSchema,
-	)
+	updateTokenQuery := fmt.Sprintf(`UPDATE %s.password_reset SET used = TRUE WHERE token = $1`, h.DbSchema)
 	_, err = tx.Exec(ctx, updateTokenQuery, req.Token)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to mark token used"})

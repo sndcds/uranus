@@ -2,7 +2,7 @@ UPDATE {{schema}}.organization
 SET
     name = $2,
     description = $3,
-    legal_form_id = $4,
+    legal_form = $4,
     nonprofit = $5,
     contact_email = $6,
     contact_phone = $7,

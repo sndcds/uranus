@@ -10,7 +10,7 @@ import (
 
 func (h *ApiHandler) AdminUpdateEventLinks(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	apiResponseType := "admin-update-event-urls"
+	apiResponseType := "admin-update-event-links"
 
 	eventId, ok := ParamInt(gc, "eventId")
 	if !ok {
@@ -21,13 +21,14 @@ func (h *ApiHandler) AdminUpdateEventLinks(gc *gin.Context) {
 	type eventLinksRequest struct {
 		Types []struct {
 			Label *string `json:"label"`
-			Type  int     `json:"type" binding:"required"`
+			Type  *string `json:"type"`
 			Url   string  `json:"url" binding:"required"`
 		} `json:"event_links" binding:"required"`
 	}
 
 	var req eventLinksRequest
 	if err := gc.ShouldBindJSON(&req); err != nil {
+		debugf(err.Error())
 		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -39,7 +40,7 @@ func (h *ApiHandler) AdminUpdateEventLinks(gc *gin.Context) {
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
-				Err:  fmt.Errorf("failed to delete existing urls: %v", err),
+				Err:  fmt.Errorf("failed to delete existing links: %v", err),
 			}
 		}
 

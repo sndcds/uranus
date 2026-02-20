@@ -210,7 +210,7 @@ func (h *ApiHandler) VerifyUserPassword(gc *gin.Context, userId int) error {
 	}
 
 	var passwordHash string
-	query := fmt.Sprintf(`SELECT password_hash FROM %s.user WHERE id = $1`, h.Config.DbSchema)
+	query := fmt.Sprintf(`SELECT password_hash FROM %s.user WHERE id = $1`, h.DbSchema)
 	err := h.DbPool.QueryRow(gc.Request.Context(), query, userId).Scan(&passwordHash)
 	if err != nil {
 		passwordHash = dummyPasswordHash

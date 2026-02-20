@@ -12,12 +12,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
-	"github.com/sndcds/grains/grainsapi"
+	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
 	"github.com/sndcds/uranus/model"
 )
 
-type incomingEvent struct {
+type eventPayload struct {
 	ContentLanguage   string                            `json:"content_language" binding:"required"`
 	ReleaseStatus     *string                           `json:"release_status" binding:"required"`
 	ReleaseDate       *string                           `json:"release_date"`
@@ -54,7 +54,7 @@ type incomingEvent struct {
 func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
-	apiRequest := grainsapi.NewRequest(gc, "create-event")
+	apiRequest := grains_api.NewRequest(gc, "create-event")
 
 	// Read the body
 	body, err := io.ReadAll(gc.Request.Body)
@@ -70,7 +70,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	decoder := json.NewDecoder(bytes.NewReader(body))
 	decoder.DisallowUnknownFields()
 
-	var payload incomingEvent
+	var payload eventPayload
 	err = decoder.Decode(&payload)
 	if err != nil {
 		var syntaxErr *json.SyntaxError
@@ -151,13 +151,13 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		txErr := h.CheckOrganizationAllPermissions(
-			gc, tx, userId, *payload.OrganizationId, *payload.OrganizationKey,
+			gc, tx, userId, *payload.OrganizationId,
 			app.PermChooseAsEventOrganization|app.PermAddEvent)
 		if txErr != nil {
 			return txErr
 		}
 
-		// Check if user can create an event in 'incomingEvent.VenueId'
+		// Check if user can create an event in 'eventPayload.VenueId'
 		if payload.VenueId != nil {
 			venuePermissions, err := h.GetUserEffectiveVenuePermissions(gc, tx, userId, *payload.VenueId)
 			if err != nil {
@@ -184,7 +184,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			created_by
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		RETURNING id`
-		query := strings.Replace(insertEventQuery, "{{schema}}", h.Config.DbSchema, 1)
+		query := strings.Replace(insertEventQuery, "{{schema}}", h.DbSchema, 1)
 
 		err = tx.QueryRow(
 			ctx, query,
@@ -272,7 +272,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		queryTemplate := `
 		INSERT INTO {{schema}}.event_type_link (event_id, type_id, genre_id)
 		VALUES ($1, $2, $3)`
-		query = strings.Replace(queryTemplate, "{{schema}}", h.Config.DbSchema, 1)
+		query = strings.Replace(queryTemplate, "{{schema}}", h.DbSchema, 1)
 
 		for _, pair := range payload.TypeGenrePairs {
 			_, err := tx.Exec(ctx, query, newEventId, pair.TypeId, pair.GenreId)
@@ -315,8 +315,8 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	apiRequest.SuccessNoData(http.StatusCreated, "")
 }
 
-// Validate validates the incomingEvent struct
-func (e *incomingEvent) Validate() error {
+// Validate validates the eventPayload struct
+func (e *eventPayload) Validate() error {
 	var errs []string
 
 	// Validate Title
@@ -512,7 +512,7 @@ func (e *incomingEvent) Validate() error {
 	return nil
 }
 
-func (e *incomingEvent) hasVenue() bool {
+func (e *eventPayload) hasVenue() bool {
 	return e.VenueId != nil
 }
 
@@ -531,14 +531,6 @@ func isBeforeToday(dateStr string) (bool, error) {
 	)
 
 	return d.Before(today), nil
-}
-
-func parseDate(dateStr string) (time.Time, error) {
-	return time.Parse("2006-01-02", dateStr)
-}
-
-func parseTime(timeStr string) (time.Time, error) {
-	return time.Parse("15:04", timeStr)
 }
 
 func validateEventDate(e model.EventDatePayload, index int) []string {

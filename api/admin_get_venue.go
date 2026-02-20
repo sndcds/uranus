@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
 )
 
@@ -16,30 +17,31 @@ import (
 func (h *ApiHandler) AdminGetVenue(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
+	apiRequest := grains_api.NewRequest(gc, "admin-get-venue")
 
 	venueId := gc.Param("venueId")
 	if venueId == "" {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "venue Id is required"})
+		apiRequest.Error(http.StatusBadRequest, "venueId is required")
 		return
 	}
 
-	query := app.UranusInstance.SqlGetAdminVenue
+	query := app.UranusInstance.SqlAdminGetVenue
 	rows, err := h.DbPool.Query(ctx, query, venueId, userId)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		apiRequest.DatabaseError()
 		return
 	}
 	defer rows.Close()
 
 	if !rows.Next() {
-		gc.JSON(http.StatusNotFound, gin.H{"error": "venue not found"})
+		apiRequest.Error(http.StatusNotFound, "venue not found")
 		return
 	}
 
 	fieldDescriptions := rows.FieldDescriptions()
 	values, err := rows.Values()
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		apiRequest.DatabaseError()
 		return
 	}
 
@@ -48,5 +50,5 @@ func (h *ApiHandler) AdminGetVenue(gc *gin.Context) {
 		result[string(fd.Name)] = values[i]
 	}
 
-	gc.JSON(http.StatusOK, result)
+	apiRequest.Success(http.StatusOK, result, "venue loaded successfully")
 }

@@ -68,7 +68,7 @@ WHERE oml.organization_id = $1 AND oml.id = $2`,
 
 		query := fmt.Sprintf(
 			`SELECT permissions FROM %s.user_organization_link WHERE user_id = $1 AND organization_id = $2`,
-			h.Config.DbSchema)
+			h.DbSchema)
 
 		err = tx.QueryRow(ctx, query, memberUserId, organizationId).Scan(&permissions)
 		if err != nil {

@@ -11,18 +11,17 @@ type NullableField[T any] struct {
 	Value *T   // actual value, nil if JSON null
 }
 
-// UnmarshalJSON implements custom JSON binding
-func (n *NullableField[T]) UnmarshalJSON(b []byte) error {
-	n.Set = true
-	if string(b) == "null" {
-		n.Value = nil
+func (nf *NullableField[T]) UnmarshalJSON(data []byte) error {
+	nf.Set = true // field is present
+	if string(data) == "null" {
+		nf.Value = nil
 		return nil
 	}
-	var val T
-	if err := json.Unmarshal(b, &val); err != nil {
-		return fmt.Errorf("invalid value: %w", err)
+	var v T
+	if err := json.Unmarshal(data, &v); err != nil {
+		return err
 	}
-	n.Value = &val
+	nf.Value = &v
 	return nil
 }
 
@@ -37,7 +36,7 @@ func addUpdateClauseNullable[T any](fieldName string, value NullableField[T], se
 	return argPos
 }
 
-func addStringUpdateClause(fieldName string, valuePtr *string, setClauses *[]string, args *[]interface{}, argPos int) int {
+func addUpdateClauseString(fieldName string, valuePtr *string, setClauses *[]string, args *[]interface{}, argPos int) int {
 	if valuePtr != nil {
 		*setClauses = append(*setClauses, fmt.Sprintf("%s = $%d", fieldName, argPos))
 		if *valuePtr == "" {
@@ -50,7 +49,7 @@ func addStringUpdateClause(fieldName string, valuePtr *string, setClauses *[]str
 	return argPos
 }
 
-func addUpdateStringSliceField(
+func addUpdateClauseStringSliceField(
 	fieldName string,
 	valuePtr *[]string,
 	setClauses *[]string,

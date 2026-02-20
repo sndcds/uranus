@@ -1,7 +1,8 @@
 SELECT
+    s.id,
     s.name,
     s.description,
-    s.space_type_id,
+    s.space_type,
     s.building_level,
     s.total_capacity,
     s.seating_capacity,

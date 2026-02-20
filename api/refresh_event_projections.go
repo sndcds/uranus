@@ -22,8 +22,8 @@ var (
 
 var (
 	initProjectionQueries        sync.Once
-	eventProjectionUpsertSQL     string
-	eventDateProjectionUpsertSQL string
+	eventProjectionUpsertSql     string
+	eventDateProjectionUpsertSql string
 )
 
 func RefreshEventProjections(
@@ -39,7 +39,6 @@ func RefreshEventProjections(
 	initQueries()
 
 	ids = uniqueInts(ids)
-	fmt.Println("RefreshEventProjections sourceTable:", sourceTable, "ids:", ids)
 
 	q, ok := queries[sourceTable]
 	if !ok {
@@ -52,7 +51,6 @@ func RefreshEventProjections(
 		if err != nil {
 			return err
 		}
-		fmt.Println("RefreshEventProjections eventIds:", eventIds)
 		if len(eventIds) > 0 {
 			if err := upsertEventProjection(ctx, tx, eventIds); err != nil {
 				return err
@@ -66,7 +64,6 @@ func RefreshEventProjections(
 		if err != nil {
 			return err
 		}
-		fmt.Println("RefreshEventProjections eventDateIds:", eventDateIds)
 		if len(eventDateIds) > 0 {
 			if err := upsertEventDateProjection(ctx, tx, eventDateIds); err != nil {
 				return err
@@ -77,36 +74,29 @@ func RefreshEventProjections(
 	return nil
 }
 
-func RefreshEventProjectionsCallback(
-	entity string,
-	ids []int,
-) pluto.TxFunc {
+func RefreshEventProjectionsCallback(entity string, ids []int) pluto.TxFunc {
 	return func(ctx context.Context, tx pgx.Tx) error {
 		return RefreshEventProjections(ctx, tx, entity, ids)
 	}
 }
 
-func upsertEventProjection(ctx context.Context, tx pgx.Tx, eventIDs []int) error {
-	if len(eventIDs) == 0 {
+func upsertEventProjection(ctx context.Context, tx pgx.Tx, eventIds []int) error {
+	if len(eventIds) == 0 {
 		return nil
 	}
-
-	initProjectionSQL()
-
-	_, err := tx.Exec(ctx, eventProjectionUpsertSQL, eventIDs)
+	initProjectionSql()
+	_, err := tx.Exec(ctx, eventProjectionUpsertSql, eventIds)
 	return err
 }
 
-func upsertEventDateProjection(ctx context.Context, tx pgx.Tx, eventDateIDs []int) error {
-	if len(eventDateIDs) == 0 {
+func upsertEventDateProjection(ctx context.Context, tx pgx.Tx, eventDateIds []int) error {
+	if len(eventDateIds) == 0 {
 		return nil
 	}
+	initProjectionSql()
 
-	initProjectionSQL()
-
-	// fmt.Println("UpsertEventProjection eventDateProjectionUpsertSQL:", eventDateProjectionUpsertSQL)
-
-	_, err := tx.Exec(ctx, eventDateProjectionUpsertSQL, eventDateIDs)
+	// fmt.Println("UpsertEventProjection eventDateProjectionUpsertSql:", eventDateProjectionUpsertSql)
+	_, err := tx.Exec(ctx, eventDateProjectionUpsertSql, eventDateIds)
 	return err
 }
 
@@ -193,9 +183,9 @@ func initQueries() {
 	})
 }
 
-func initProjectionSQL() {
+func initProjectionSql() {
 	initProjectionQueries.Do(func() {
-		eventProjectionUpsertSQL = fmt.Sprintf(`
+		eventProjectionUpsertSql = fmt.Sprintf(`
 INSERT INTO %[1]s.event_projection (
     event_id, organization_id, venue_id, space_id, release_status,
     title, subtitle, description, summary, image_id, languages, tags, types,
@@ -206,7 +196,7 @@ INSERT INTO %[1]s.event_projection (
     organization_name, organization_contact_email, organization_contact_phone, organization_website_link,
     venue_name, venue_street, venue_house_number, venue_postal_code, venue_city,
     venue_country, venue_state, venue_geo_pos, venue_website_link,
-    space_name, space_total_capacity, space_seating_capacity, space_type_id,
+    space_name, space_total_capacity, space_seating_capacity, space_type,
     space_building_level, space_website_link, space_accessibility_summary,
     space_accessibility_flags, space_description,
     created_at, modified_at
@@ -262,7 +252,7 @@ SELECT DISTINCT ON (e.id)
     s.name,
     s.total_capacity,
     s.seating_capacity,
-    s.space_type_id,
+    s.space_type,
     s.building_level,
     s.website_link,
     s.accessibility_summary,
@@ -334,7 +324,7 @@ ON CONFLICT (event_id) DO UPDATE SET
     space_name = EXCLUDED.space_name,
     space_total_capacity = EXCLUDED.space_total_capacity,
     space_seating_capacity = EXCLUDED.space_seating_capacity,
-    space_type_id = EXCLUDED.space_type_id,
+    space_type = EXCLUDED.space_type,
     space_building_level = EXCLUDED.space_building_level,
     space_website_link = EXCLUDED.space_website_link,
     space_accessibility_summary = EXCLUDED.space_accessibility_summary,
@@ -343,14 +333,14 @@ ON CONFLICT (event_id) DO UPDATE SET
     modified_at = NOW();
 `, app.UranusInstance.Config.DbSchema)
 
-		eventDateProjectionUpsertSQL = fmt.Sprintf(`
+		eventDateProjectionUpsertSql = fmt.Sprintf(`
 INSERT INTO %[1]s.event_date_projection (
     event_date_id, event_id, venue_id, space_id,
     venue_name, venue_street, venue_house_number,
     venue_postal_code, venue_city, venue_country,
     venue_state, venue_geo_pos, venue_website_link,
     space_name, space_total_capacity, space_seating_capacity,
-    space_type_id, space_building_level, space_website_link,
+    space_type, space_building_level, space_website_link,
     space_accessibility_summary, space_accessibility_flags,
     space_description,
     start_date, start_time,
@@ -376,7 +366,7 @@ SELECT DISTINCT ON (ed.id)
     s.name,
     s.total_capacity,
     s.seating_capacity,
-    s.space_type_id,
+    s.space_type,
     s.building_level,
     s.website_link,
     s.accessibility_summary,
@@ -415,7 +405,7 @@ ON CONFLICT (event_date_id) DO UPDATE SET
     space_name = EXCLUDED.space_name,
     space_total_capacity = EXCLUDED.space_total_capacity,
     space_seating_capacity = EXCLUDED.space_seating_capacity,
-    space_type_id = EXCLUDED.space_type_id,
+    space_type = EXCLUDED.space_type,
     space_building_level = EXCLUDED.space_building_level,
     space_website_link = EXCLUDED.space_website_link,
     space_accessibility_summary = EXCLUDED.space_accessibility_summary,

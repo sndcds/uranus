@@ -22,7 +22,7 @@ func (h *ApiHandler) AdminGetUserProfile(gc *gin.Context) {
         SELECT id, email_address, display_name, first_name, last_name, locale, theme
         FROM {{schema}}.user
         WHERE id = $1`,
-		"{{schema}}", h.Config.DbSchema, 1)
+		"{{schema}}", h.DbSchema, 1)
 
 	var email string
 	var displayName *string
@@ -96,7 +96,7 @@ func (h *ApiHandler) AdminUpdateUserProfile(gc *gin.Context) {
 	defer func() { _ = tx.Rollback(ctx) }()
 
 	// Check for existing email
-	checkQuery := fmt.Sprintf(`SELECT id FROM %s.user WHERE email_address = $1`, h.Config.DbSchema)
+	checkQuery := fmt.Sprintf(`SELECT id FROM %s.user WHERE email_address = $1`, h.DbSchema)
 	var existingUserId int
 	err = tx.QueryRow(ctx, checkQuery, req.EmailAddress).Scan(&existingUserId)
 
@@ -120,7 +120,7 @@ func (h *ApiHandler) AdminUpdateUserProfile(gc *gin.Context) {
             locale = $5,
             theme = $6
         WHERE id = $7`,
-		h.Config.DbSchema)
+		h.DbSchema)
 
 	_, err = tx.Exec(
 		ctx,
@@ -170,7 +170,7 @@ func (h *ApiHandler) AdminUpdateUserProfileSettings(gc *gin.Context) {
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	query := fmt.Sprintf(`UPDATE %s.user SET locale = $1, theme = $2 WHERE id = $3`, h.Config.DbSchema)
+	query := fmt.Sprintf(`UPDATE %s.user SET locale = $1, theme = $2 WHERE id = $3`, h.DbSchema)
 
 	_, err = tx.Exec(
 		ctx,

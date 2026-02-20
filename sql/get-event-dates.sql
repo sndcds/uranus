@@ -28,6 +28,8 @@ SELECT
     ST_Y(v.wkb_pos) AS venue_lat,
     v.website_link AS venue_link,
     venue_logo.main_logo_image_id AS venue_logo_image_id,
+    light_theme_logo.light_theme_logo_image_id AS venue_light_theme_logo_image_id,
+    dark_theme_logo.dark_theme_logo_image_id AS venue_dark_theme_logo_image_id,
 
     -- Space logic: take from event_date only if event_date.venue_id exists, else NULL
     s.id AS space_id,
@@ -55,6 +57,7 @@ WHEN ed.venue_id IS NOT NULL THEN ed.space_id
 ELSE e.space_id
 END
 
+-- Main logo
 LEFT JOIN LATERAL (
     SELECT pi.id AS main_logo_image_id
     FROM uranus.pluto_image_link pil
@@ -65,5 +68,29 @@ LEFT JOIN LATERAL (
       AND pil.identifier = 'main_logo'
     LIMIT 1
 ) venue_logo ON true
+
+-- Light theme logo
+LEFT JOIN LATERAL (
+    SELECT pi.id AS light_theme_logo_image_id
+    FROM uranus.pluto_image_link pil
+    JOIN uranus.pluto_image pi
+      ON pi.id = pil.pluto_image_id
+    WHERE pil.context = 'venue'
+      AND pil.context_id = v.id
+      AND pil.identifier = 'light_theme_logo'
+    LIMIT 1
+) light_theme_logo ON true
+
+-- Dark theme logo
+LEFT JOIN LATERAL (
+    SELECT pi.id AS dark_theme_logo_image_id
+    FROM uranus.pluto_image_link pil
+    JOIN uranus.pluto_image pi
+      ON pi.id = pil.pluto_image_id
+    WHERE pil.context = 'venue'
+      AND pil.context_id = v.id
+      AND pil.identifier = 'dark_theme_logo'
+    LIMIT 1
+) dark_theme_logo ON true
 
 ORDER BY ed.start_date, ed.start_time

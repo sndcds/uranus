@@ -374,12 +374,12 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 
 	lastEvent := events[len(events)-1]
 	lastEventStartAt := lastEvent.StartDate + "T" + lastEvent.StartTime
-	lastEventDateID := lastEvent.EventDateId
+	lastEventDateId := lastEvent.EventDateId
 
 	gc.JSON(http.StatusOK, gin.H{
 		"events":              events,
 		"last_event_start_at": lastEventStartAt,
-		"last_event_date_id":  lastEventDateID,
+		"last_event_date_id":  lastEventDateId,
 	})
 }
 

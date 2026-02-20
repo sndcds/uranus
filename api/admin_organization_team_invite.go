@@ -53,7 +53,7 @@ func (h *ApiHandler) AdminOrganizationTeamInvite(gc *gin.Context) {
 
 	var memberUserId int
 	var memberUserDisplayName string
-	userQuery := fmt.Sprintf(`SELECT id, COALESCE(display_name, first_name || ' ' || last_name) AS display_name FROM %s."user" WHERE email_address = $1`, h.Config.DbSchema)
+	userQuery := fmt.Sprintf(`SELECT id, COALESCE(display_name, first_name || ' ' || last_name) AS display_name FROM %s."user" WHERE email_address = $1`, h.DbSchema)
 	err = tx.QueryRow(ctx, userQuery, payload.Email).Scan(&memberUserId, &memberUserDisplayName)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -65,7 +65,7 @@ func (h *ApiHandler) AdminOrganizationTeamInvite(gc *gin.Context) {
 	}
 
 	var organizationName string
-	organizationQuery := fmt.Sprintf(`SELECT name FROM %s."organization" WHERE id = $1`, h.Config.DbSchema)
+	organizationQuery := fmt.Sprintf(`SELECT name FROM %s."organization" WHERE id = $1`, h.DbSchema)
 	err = tx.QueryRow(ctx, organizationQuery, organizationId).Scan(&organizationName)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -93,7 +93,7 @@ func (h *ApiHandler) AdminOrganizationTeamInvite(gc *gin.Context) {
 		return
 	}
 
-	messageQuery := fmt.Sprintf(`SELECT subject, template FROM %s.system_email_template WHERE context = 'team-invite-email' AND iso_639_1 = $1`, h.Config.DbSchema)
+	messageQuery := fmt.Sprintf(`SELECT subject, template FROM %s.system_email_template WHERE context = 'team-invite-email' AND iso_639_1 = $1`, h.DbSchema)
 	_, err = h.DbPool.Exec(gc, messageQuery, lang)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get message template"})
@@ -114,7 +114,7 @@ func (h *ApiHandler) AdminOrganizationTeamInvite(gc *gin.Context) {
 	insertQuery := fmt.Sprintf(`
 	           INSERT INTO %s.organization_member_link (organization_id, user_id, accept_token, invited_at, invited_by_user_id)
 	           VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4)`,
-		h.Config.DbSchema)
+		h.DbSchema)
 	_, err = h.DbPool.Exec(ctx, insertQuery, organizationId, memberUserId, tokenString, userId)
 	if err != nil {
 		var pgErr *pgconn.PgError
@@ -195,7 +195,7 @@ func (h *ApiHandler) AdminOrganizationTeamInviteAccept(gc *gin.Context) {
 	// Query stored activation token
 	var storedToken string
 	var organizationMemberLinkId int
-	query := fmt.Sprintf(`SELECT id, accept_token FROM %s.organization_member_link WHERE user_id = $1 AND organization_id = $2 FOR UPDATE`, h.Config.DbSchema)
+	query := fmt.Sprintf(`SELECT id, accept_token FROM %s.organization_member_link WHERE user_id = $1 AND organization_id = $2 FOR UPDATE`, h.DbSchema)
 	err = tx.QueryRow(ctx, query, userId, organizationId).Scan(&organizationMemberLinkId, &storedToken)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -213,7 +213,7 @@ func (h *ApiHandler) AdminOrganizationTeamInviteAccept(gc *gin.Context) {
 	}
 
 	// Activate account
-	updateQuery := fmt.Sprintf(`UPDATE %s.organization_member_link SET has_joined = true, accept_token = NULL WHERE id = $1`, h.Config.DbSchema)
+	updateQuery := fmt.Sprintf(`UPDATE %s.organization_member_link SET has_joined = true, accept_token = NULL WHERE id = $1`, h.DbSchema)
 	if _, err := tx.Exec(ctx, updateQuery, organizationMemberLinkId); err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to accept invite, " + err.Error()})
 		return
@@ -222,7 +222,7 @@ func (h *ApiHandler) AdminOrganizationTeamInviteAccept(gc *gin.Context) {
 	// Create user organization link
 	uolQuery := fmt.Sprintf(`
 		INSERT INTO %s.user_organization_link (user_id, organization_id, permissions)
-		VALUES ($1, $2, $3)`, h.Config.DbSchema)
+		VALUES ($1, $2, $3)`, h.DbSchema)
 	if _, err := tx.Exec(ctx, uolQuery, userId, organizationId, 0); err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to accept invite, " + err.Error()})
 		return

@@ -19,7 +19,7 @@ func (h *ApiHandler) AdminGetMessages(gc *gin.Context) {
 		FROM %s.message
 		WHERE to_user_id = $1
 		ORDER BY created_at DESC
-	`, h.Config.DbSchema)
+	`, h.DbSchema)
 
 	rows, err := h.DbPool.Query(ctx, query, userId)
 	if err != nil {

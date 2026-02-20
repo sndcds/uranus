@@ -47,16 +47,16 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 
 		if eventDateId < 0 {
 			// Insert
-			// Check permissions, we need an 'orgId' first
-			orgId, err := h.GetOrganizationIdByEvenId(gc, tx, eventId)
+			// Check permissions, we need an 'organizationId' first
+			organizationId, err := h.GetOrganizationIdByEvenId(gc, tx, eventId)
 			if err != nil {
 				return ApiErrInternal("%v", err)
 			}
-			if orgId < 0 {
-				return ApiErrInternal("internal orgId failed")
+			if organizationId < 0 {
+				return ApiErrInternal("internal organizationId failed")
 			}
 
-			permissions, err := h.GetUserOrganizationPermissions(gc, tx, userId, orgId)
+			permissions, err := h.GetUserOrganizationPermissions(gc, tx, userId, organizationId)
 			if err != nil {
 				return ApiErrInternal("%v", err)
 			}
@@ -68,7 +68,7 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 INSERT INTO %s.event_date 
 (event_id, venue_id, space_id, start_date, start_time, end_date, end_time, entry_time, all_day, ticket_link, availability_status_id, accessibility_info, custom, created_by)
 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
-RETURNING id`, h.Config.DbSchema)
+RETURNING id`, h.DbSchema)
 
 			err = tx.QueryRow(ctx, query,
 				eventId,
@@ -111,7 +111,7 @@ SET venue_id = $1,
     accessibility_info = $11,
     custom = $12
 WHERE event_id = $13 AND id = $14
-RETURNING id`, h.Config.DbSchema)
+RETURNING id`, h.DbSchema)
 
 			err := tx.QueryRow(ctx, query,
 				req.VenueId,

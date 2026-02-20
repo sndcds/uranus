@@ -30,9 +30,9 @@ func (h *ApiHandler) GetOrganizations(gc *gin.Context) {
 
 	var query string
 	if isEmail {
-		query = fmt.Sprintf("SELECT id, name, city, country, contact_email FROM %s.organization WHERE contact_email ILIKE $1;", h.Config.DbSchema)
+		query = fmt.Sprintf("SELECT id, name, city, country, contact_email FROM %s.organization WHERE contact_email ILIKE $1;", h.DbSchema)
 	} else {
-		query = fmt.Sprintf("SELECT id, name, city, country, contact_email FROM %s.organization WHERE name ILIKE $1;", h.Config.DbSchema)
+		query = fmt.Sprintf("SELECT id, name, city, country, contact_email FROM %s.organization WHERE name ILIKE $1;", h.DbSchema)
 	}
 
 	searchPattern := "%" + searchStr + "%"

@@ -5,31 +5,31 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sndcds/uranus/app"
+	"github.com/sndcds/grains/grains_api"
 )
-
-// TODO: Review code
 
 func (h *ApiHandler) GetChoosableStates(gc *gin.Context) {
 	ctx := gc.Request.Context()
+	apiRequest := grains_api.NewRequest(gc, "choosable-states")
 
 	countryCode := gc.DefaultQuery("country-code", "")
+	apiRequest.SetMeta("country_code", countryCode)
 
 	query := fmt.Sprintf(
 		`SELECT code, name FROM %s.state WHERE country = $1 ORDER BY name`,
-		app.UranusInstance.Config.DbSchema,
+		h.DbSchema,
 	)
 
 	rows, err := h.DbPool.Query(ctx, query, countryCode)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		apiRequest.DatabaseError()
 		return
 	}
 	defer rows.Close()
 
 	type State struct {
-		State     *string `json:"state"`
-		StateName *string `json:"state_name"`
+		Code *string `json:"state_code"`
+		Name *string `json:"state_name"`
 	}
 
 	var states []State
@@ -37,25 +37,20 @@ func (h *ApiHandler) GetChoosableStates(gc *gin.Context) {
 	for rows.Next() {
 		var state State
 		if err := rows.Scan(
-			&state.State,
-			&state.StateName,
+			&state.Code,
+			&state.Name,
 		); err != nil {
-			fmt.Println(err.Error())
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			apiRequest.DatabaseError()
 			return
 		}
 		states = append(states, state)
 	}
 
 	if err := rows.Err(); err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		apiRequest.DatabaseError()
 		return
 	}
 
-	if len(states) == 0 {
-		gc.JSON(http.StatusOK, []State{})
-		return
-	}
-
-	gc.JSON(http.StatusOK, states)
+	apiRequest.SetMeta("state_count", len(states))
+	apiRequest.Success(http.StatusOK, states, "")
 }

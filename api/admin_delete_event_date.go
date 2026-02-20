@@ -5,13 +5,13 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sndcds/grains/grainsapi"
+	"github.com/sndcds/grains/grains_api"
 )
 
 func (h *ApiHandler) AdminDeleteEventDate(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
-	apiRequest := grainsapi.NewRequest(gc, "admin-delete-event-date")
+	apiRequest := grains_api.NewRequest(gc, "admin-delete-event-date")
 
 	err := h.VerifyUserPassword(gc, userId)
 	if err != nil {
@@ -33,7 +33,7 @@ func (h *ApiHandler) AdminDeleteEventDate(gc *gin.Context) {
 	}
 	apiRequest.SetMeta("event_date_id", eventDateId)
 
-	query := fmt.Sprintf(`DELETE FROM %s.event_date WHERE id = $1`, h.Config.DbSchema)
+	query := fmt.Sprintf(`DELETE FROM %s.event_date WHERE id = $1`, h.DbSchema)
 	cmdTag, err := h.DbPool.Exec(ctx, query, eventDateId)
 	if err != nil {
 		apiRequest.Error(http.StatusInternalServerError, "failed to delete event date")
