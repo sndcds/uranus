@@ -78,7 +78,7 @@ func (h *ApiHandler) UpdateVenueFields(gc *gin.Context) {
 
 	if payload.Lon.Set && payload.Lon.Value != nil && payload.Lat.Set && payload.Lat.Value != nil {
 		// Construct PostGIS POINT in WKT format
-		setClauses = append(setClauses, fmt.Sprintf("wkb_pos = ST_SetSRID(ST_MakePoint($%d, $%d), 4326)", argPos, argPos+1))
+		setClauses = append(setClauses, fmt.Sprintf("geo_pos = ST_SetSRID(ST_MakePoint($%d, $%d), 4326)", argPos, argPos+1))
 		args = append(args, *payload.Lon.Value, *payload.Lat.Value)
 		argPos += 2
 	}

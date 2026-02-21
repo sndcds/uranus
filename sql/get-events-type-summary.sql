@@ -27,9 +27,9 @@ venue_data AS (
         COALESCE(v_ed.city, v_ev.city) AS venue_city,
         COALESCE(v_ed.country, v_ev.country) AS venue_country,
         COALESCE(v_ed.state, v_ev.state) AS venue_state,
-        COALESCE(ST_X(v_ed.wkb_pos), ST_X(v_ev.wkb_pos)) AS venue_lon,
-        COALESCE(ST_Y(v_ed.wkb_pos), ST_Y(v_ev.wkb_pos)) AS venue_lat,
-        COALESCE(v_ed.wkb_pos, v_ev.wkb_pos) AS venue_wkb_pos
+        COALESCE(ST_X(v_ed.geo_pos), ST_X(v_ev.geo_pos)) AS venue_lon,
+        COALESCE(ST_Y(v_ed.geo_pos), ST_Y(v_ev.geo_pos)) AS venue_lat,
+        COALESCE(v_ed.geo_pos, v_ev.geo_pos) AS venue_geo_pos
     FROM event_data ed
     LEFT JOIN {{schema}}.venue v_ev
     ON v_ev.id = (SELECT e.venue_id FROM {{schema}}.event e WHERE e.id = ed.event_id)

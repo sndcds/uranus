@@ -18,8 +18,8 @@ SELECT
     v.city AS venue_city,
     v.country AS venue_country,
     v.state AS venue_state,
-    ST_X(v.wkb_pos) AS venue_lon,
-    ST_Y(v.wkb_pos) AS venue_lat,
+    ST_X(v.geo_pos) AS venue_lon,
+    ST_Y(v.geo_pos) AS venue_lat,
     v.website_link AS venue_link,
 
     space_data.id AS space_id,

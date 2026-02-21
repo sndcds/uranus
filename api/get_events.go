@@ -69,7 +69,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 	conditionsStr string,
 	limitClause string,
 	args []interface{},
-	nextArgIndex int,
+	argIndex int,
 	err error,
 ) {
 
@@ -89,7 +89,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 		return "", "", "", nil, 0, fmt.Errorf(validationErr.Error())
 	}
 	args = []interface{}{}
-	nextArgIndex = 1
+	argIndex = 1
 	var conditions []string
 
 	_, hasPast := GetContextParam(gc, "past")
@@ -123,9 +123,9 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 	// Date conditions
 	dateConditionCount := 0
 	if app.IsValidDateStr(startStr) {
-		dateConditions += "edp.event_start_at >= $" + strconv.Itoa(nextArgIndex)
+		dateConditions += "edp.event_start_at >= $" + strconv.Itoa(argIndex)
 		args = append(args, startStr)
-		nextArgIndex++
+		argIndex++
 		dateConditionCount++
 	} else if startStr != "" {
 		return "", "", "", nil, 0, fmt.Errorf("start %s has invalid format", startStr)
@@ -138,9 +138,9 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 		if dateConditionCount > 0 {
 			dateConditions += " AND "
 		}
-		dateConditions += "(edp.event_end_at <= $" + strconv.Itoa(nextArgIndex) + " OR edp.event_start_at <= $" + strconv.Itoa(nextArgIndex) + ")"
+		dateConditions += "(edp.event_end_at <= $" + strconv.Itoa(argIndex) + " OR edp.event_start_at <= $" + strconv.Itoa(argIndex) + ")"
 		args = append(args, endStr)
-		nextArgIndex++
+		argIndex++
 	} else if endStr != "" {
 		return "", "", "", nil, 0, fmt.Errorf("end %s has invalid format", endStr)
 	}
@@ -149,33 +149,33 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 		if dateConditionCount > 0 {
 			dateConditions += " AND "
 		}
-		dateConditions += "(edp.event_start_at, edp.event_date_id) > ($" + strconv.Itoa(nextArgIndex) + "::timestamptz, $" + strconv.Itoa(nextArgIndex+1) + "::int)"
+		dateConditions += "(edp.event_start_at, edp.event_date_id) > ($" + strconv.Itoa(argIndex) + "::timestamptz, $" + strconv.Itoa(argIndex+1) + "::int)"
 		args = append(args, lastEventStartAt, lastEventDateId)
-		nextArgIndex += 2
+		argIndex += 2
 	}
 
 	// Other conditions
 	var errBuild error
-	nextArgIndex, errBuild = sql_utils.BuildTimeCondition(timeStr, "edp.start_time", "time", nextArgIndex, &conditions, &args)
+	argIndex, errBuild = sql_utils.BuildTimeCondition(timeStr, "edp.start_time", "time", argIndex, &conditions, &args)
 	if errBuild != nil {
 		return "", "", "", nil, 0, errBuild
 	}
 
-	nextArgIndex, errBuild = sql_utils.BuildSanitizedSearchCondition(searchStr, "ep.search_text", "search", nextArgIndex, &conditions, &args)
+	argIndex, errBuild = sql_utils.BuildSanitizedSearchCondition(searchStr, "ep.search_text", "search", argIndex, &conditions, &args)
 	if errBuild != nil {
 		return "", "", "", nil, 0, errBuild
 	}
 
-	nextArgIndex, errBuild = sql_utils.BuildSanitizedIlikeCondition(titleStr, "ep.title", "title", nextArgIndex, &conditions, &args)
+	argIndex, errBuild = sql_utils.BuildSanitizedIlikeCondition(titleStr, "ep.title", "title", argIndex, &conditions, &args)
 	if errBuild != nil {
 		return "", "", "", nil, 0, errBuild
 	}
 
 	if countryCodesStr != "" {
-		nextArgIndex, errBuild = sql_utils.BuildInConditionForStringSlice(
+		argIndex, errBuild = sql_utils.BuildInConditionForStringSlice(
 			countryCodesStr,
-			"COALESCE(edp.venue_country, ep.venue_country) = ANY($%d::text[])",
-			nextArgIndex,
+			"COALESCE(edp.venue_country, ep.venue_country) = ANY($%d::text[])", // "column_name && $%d::text[]",
+			argIndex,
 			&conditions,
 			&args,
 		)
@@ -185,77 +185,77 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 	}
 
 	if postalCodeStr != "" {
-		nextArgIndex, errBuild = sql_utils.BuildLikeConditions(postalCodeStr, "COALESCE(edp.venue_postal_code, ep.venue_postal_code)", nextArgIndex, &conditions, &args)
+		argIndex, errBuild = sql_utils.BuildLikeConditions(postalCodeStr, "COALESCE(edp.venue_postal_code, ep.venue_postal_code)", argIndex, &conditions, &args)
 		if errBuild != nil {
 			return "", "", "", nil, 0, errBuild
 		}
 	}
 
-	nextArgIndex, errBuild = sql_utils.BuildSanitizedIlikeCondition(cityStr, "COALESCE(edp.venue_city, ep.venue_city)", "city", nextArgIndex, &conditions, &args)
+	argIndex, errBuild = sql_utils.BuildSanitizedIlikeCondition(cityStr, "COALESCE(edp.venue_city, ep.venue_city)", "city", argIndex, &conditions, &args)
 	if errBuild != nil {
 		return "", "", "", nil, 0, errBuild
 	}
 	if eventIdsStr != "" {
-		nextArgIndex, errBuild = sql_utils.BuildColumnInIntCondition(eventIdsStr, "edp.event_id", nextArgIndex, &conditions, &args)
+		argIndex, errBuild = sql_utils.BuildColumnInIntCondition(eventIdsStr, "edp.event_id", argIndex, &conditions, &args)
 		if errBuild != nil {
 			return "", "", "", nil, 0, errBuild
 		}
 	}
 
 	if organizationIdsStr != "" {
-		nextArgIndex, errBuild = sql_utils.BuildColumnInIntCondition(organizationIdsStr, "ep.organization_id", nextArgIndex, &conditions, &args)
+		argIndex, errBuild = sql_utils.BuildColumnInIntCondition(organizationIdsStr, "ep.organization_id", argIndex, &conditions, &args)
 		if errBuild != nil {
 			return "", "", "", nil, 0, errBuild
 		}
 	}
 
 	if venueIdsStr != "" {
-		nextArgIndex, errBuild = sql_utils.BuildColumnInIntCondition(venueIdsStr, "COALESCE(edp.venue_id, ep.venue_id)", nextArgIndex, &conditions, &args)
+		argIndex, errBuild = sql_utils.BuildColumnInIntCondition(venueIdsStr, "COALESCE(edp.venue_id, ep.venue_id)", argIndex, &conditions, &args)
 		if errBuild != nil {
 			return "", "", "", nil, 0, errBuild
 		}
 	}
 
 	if spaceIdsStr != "" {
-		nextArgIndex, errBuild = sql_utils.BuildColumnInIntCondition(spaceIdsStr, "COALESCE(edp.space_id, ep.space_id)", nextArgIndex, &conditions, &args)
+		argIndex, errBuild = sql_utils.BuildColumnInIntCondition(spaceIdsStr, "COALESCE(edp.space_id, ep.space_id)", argIndex, &conditions, &args)
 		if errBuild != nil {
 			return "", "", "", nil, 0, errBuild
 		}
 	}
 
 	if spaceTypesStr != "" {
-		nextArgIndex, errBuild = sql_utils.BuildColumnInIntCondition(spaceTypesStr, "COALESCE(edp.space_type_id, ep.space_type_id)", nextArgIndex, &conditions, &args)
+		argIndex, errBuild = sql_utils.BuildColumnInIntCondition(spaceTypesStr, "COALESCE(edp.space_type_id, ep.space_type_id)", argIndex, &conditions, &args)
 		if errBuild != nil {
 			return "", "", "", nil, 0, errBuild
 		}
 	}
 
-	nextArgIndex, errBuild = sql_utils.BuildGeoRadiusCondition(lonStr, latStr, radiusStr, "COALESCE(edp.venue_geo_pos, ep.venue_geo_pos)", nextArgIndex, &conditions, &args)
+	argIndex, errBuild = sql_utils.BuildGeoRadiusCondition(lonStr, latStr, radiusStr, "COALESCE(edp.venue_geo_pos, ep.venue_geo_pos)", argIndex, &conditions, &args)
 	if errBuild != nil {
 		return "", "", "", nil, 0, errBuild
 	}
 
-	nextArgIndex, errBuild = sql_utils.BuildContainedInColumnIntRangeCondition(ageStr, "ep.min_age", "ep.max_age", nextArgIndex, &conditions, &args)
+	argIndex, errBuild = sql_utils.BuildContainedInColumnIntRangeCondition(ageStr, "ep.min_age", "ep.max_age", argIndex, &conditions, &args)
 	if errBuild != nil {
 		return "", "", "", nil, 0, errBuild
 	}
 
-	nextArgIndex, errBuild = sql_utils.BuildBitmaskCondition(accessibilityFlagsStr, "edp.space_accessibility_flags", "accessibility", nextArgIndex, &conditions, &args)
+	argIndex, errBuild = sql_utils.BuildBitmaskCondition(accessibilityFlagsStr, "edp.space_accessibility_flags", "accessibility", argIndex, &conditions, &args)
 	if errBuild != nil {
 		return "", "", "", nil, 0, errBuild
 	}
 
-	nextArgIndex, errBuild = sql_utils.BuildBitmaskCondition(visitorInfosStr, "edp.visitor_info_flags", "visitor_infos", nextArgIndex, &conditions, &args)
+	argIndex, errBuild = sql_utils.BuildBitmaskCondition(visitorInfosStr, "edp.visitor_info_flags", "visitor_infos", argIndex, &conditions, &args)
 	if errBuild != nil {
 		return "", "", "", nil, 0, errBuild
 	}
 
 	if eventTypesStr != "" {
-		nextArgIndex, errBuild = sql_utils.BuildJSONArrayIntCondition(
+		argIndex, errBuild = sql_utils.BuildJSONArrayIntCondition(
 			eventTypesStr,
 			"types",
 			0, // index 0 = type_id
-			nextArgIndex,
+			argIndex,
 			&conditions,
 			&args,
 		)
@@ -265,13 +265,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 	}
 
 	if tagsStr != "" {
-		nextArgIndex, errBuild = sql_utils.BuildInConditionForStringSlice(
-			tagsStr,
-			"tags && $%d::text[]",
-			nextArgIndex,
-			&conditions,
-			&args,
-		)
+		argIndex, errBuild = sql_utils.BuildInConditionForStringSlice(tagsStr, "tags", argIndex, &conditions, &args)
 		if errBuild != nil {
 			return "", "", "", nil, 0, errBuild
 		}
@@ -283,12 +277,12 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 	}
 
 	// Build limit/offset clause
-	limitClause, nextArgIndex, errBuild = sql_utils.BuildLimitOffsetClause(limitStr, offsetStr, nextArgIndex, &args)
+	limitClause, argIndex, errBuild = sql_utils.BuildLimitOffsetClause(limitStr, offsetStr, argIndex, &args)
 	if errBuild != nil {
 		return "", "", "", nil, 0, errBuild
 	}
 
-	return dateConditions, conditionsStr, limitClause, args, nextArgIndex, nil
+	return dateConditions, conditionsStr, limitClause, args, argIndex, nil
 }
 
 func (h *ApiHandler) GetEvents(gc *gin.Context) {

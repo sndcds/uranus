@@ -115,13 +115,10 @@ func getPostFormFloatPtr(gc *gin.Context, key string) (*float64, error) {
 //   - string: the value of the parameter, if found.
 //   - bool: true if the parameter was found in either query or form data and is non-empty; false otherwise.
 func GetContextParam(gc *gin.Context, name string) (string, bool) {
-	val, exists := gc.GetQuery(name)
-	if exists {
-
+	if val, exists := gc.GetQuery(name); exists {
 		return val, true
 	}
-	val = gc.PostForm(name)
-	if val != "" {
+	if val, exists := gc.GetPostForm(name); exists {
 		return val, true
 	}
 	return "", false

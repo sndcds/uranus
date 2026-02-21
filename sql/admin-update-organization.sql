@@ -14,6 +14,6 @@ SET
     country = $13,
     state = $14,
     address_addition = $15,
-    wkb_pos = ST_SetSRID(ST_MakePoint($16, $17), 4326),
+    geo_pos = ST_SetSRID(ST_MakePoint($16, $17), 4326),
     modified_by = $18
 WHERE id = $1

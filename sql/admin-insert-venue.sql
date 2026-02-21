@@ -13,7 +13,7 @@ INSERT INTO {{schema}}.venue (
     city,
     country,
     state,
-    wkb_pos,
+    geo_pos,
     created_by
 )
 VALUES (

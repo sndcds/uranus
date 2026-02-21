@@ -15,8 +15,8 @@ SELECT
     o.state,
     o.country,
     o.address_addition,
-    ST_X(o.wkb_pos) AS lon,
-    ST_Y(o.wkb_pos) AS lat,
+    ST_X(o.geo_pos) AS lon,
+    ST_Y(o.geo_pos) AS lat,
     img.images
 FROM {{schema}}.organization o
 JOIN {{schema}}.user_organization_link uol

@@ -15,8 +15,8 @@ SELECT
     v.city,
     v.state,
     v.country,
-    ST_X(v.wkb_pos) AS lon,
-    ST_Y(v.wkb_pos) AS lat,
+    ST_X(v.geo_pos) AS lon,
+    ST_Y(v.geo_pos) AS lat,
     img.images
 FROM {{schema}}.venue v
 JOIN {{schema}}.organization o ON o.id = v.organization_id

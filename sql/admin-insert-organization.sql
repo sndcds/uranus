@@ -13,7 +13,7 @@ INSERT INTO {{schema}}.organization (
     country,
     state,
     address_addition,
-    wkb_pos,
+    geo_pos,
     api_key,
     created_by
 )

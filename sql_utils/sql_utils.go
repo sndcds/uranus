@@ -22,10 +22,12 @@ import (
 //   - args: Pointer to slice of SQL arguments.
 //
 // Returns:
-//   - newArgIndex: The next placeholder index after appending.
+//   - argIndex: The next placeholder index after appending.
 //   - error: If sanitization fails.
 func BuildSanitizedIlikeCondition(
-	inputStr, columnExpr, label string,
+	inputStr string,
+	columnExpr string,
+	label string,
 	argIndex int,
 	conditions *[]string,
 	args *[]interface{},
@@ -33,13 +35,16 @@ func BuildSanitizedIlikeCondition(
 	if inputStr == "" {
 		return argIndex, nil
 	}
+	fmt.Printf("inputStr: %s\n", inputStr)
 
 	sanitizedStr, err := SanitizeSearchPattern(inputStr)
+	fmt.Printf("sanitizedStr: %s\n", sanitizedStr)
 	if err != nil {
 		return argIndex, fmt.Errorf("%s format error: %s", label, inputStr)
 	}
 
 	*conditions = append(*conditions, fmt.Sprintf("%s ILIKE $%d", columnExpr, argIndex))
+	fmt.Printf("Condition: %s ILIKE $%d | Arg: %v\n", columnExpr, argIndex, sanitizedStr)
 	*args = append(*args, sanitizedStr)
 	return argIndex + 1, nil
 }
@@ -47,7 +52,7 @@ func BuildSanitizedIlikeCondition(
 func BuildSanitizedSearchCondition(
 	inputStr string, // the search string
 	columnExpr string, // e.g., "e.document_normalized"
-	label string, // label for errors
+	label string,
 	argIndex int, // starting parameter index ($1, $2, ...)
 	conditions *[]string, // append SQL conditions
 	args *[]interface{}, // append args
@@ -66,8 +71,8 @@ func BuildSanitizedSearchCondition(
 	normalizedInput := normalizeGerman(sanitizedStr)
 
 	// Use ILIKE for substring match with pg_trgm index
-	*conditions = append(*conditions, fmt.Sprintf("%s ILIKE '%%' || $%d || '%%'", columnExpr, argIndex))
-	*args = append(*args, normalizedInput)
+	*conditions = append(*conditions, fmt.Sprintf("%s ILIKE $%d", columnExpr, argIndex))
+	*args = append(*args, "%"+normalizedInput+"%")
 
 	return argIndex + 1, nil
 }
@@ -123,7 +128,9 @@ func normalizeGerman(s string) string {
 //
 // If inputStr is empty, the function does nothing and returns argIndex unchanged.
 func BuildBitmaskCondition(
-	inputStr, columnExpr, label string,
+	inputStr string,
+	columnExpr string,
+	label string,
 	argIndex int,
 	conditions *[]string,
 	args *[]interface{},
@@ -329,7 +336,7 @@ func BuildColumnInIntCondition(
 //
 // Parameters:
 //   - csvInput: A comma-separated string (e.g., "US, IN, CA").
-//   - format: The format string for the SQL condition (e.g., "v.country = ANY(%s)").
+//   - columnExpr: The format string for the SQL condition (e.g., "v.country = ANY(%s)").
 //   - label: The label for the input parameter (not used in query, optional).
 //   - argIndex: The starting index for SQL placeholders ($1, $2, ...).
 //   - conditions: Pointer to slice of SQL conditions to append to.
@@ -340,11 +347,12 @@ func BuildColumnInIntCondition(
 //   - error if parsing fails.
 func BuildInConditionForStringSlice(
 	csvInput string,
-	format string,
+	columnExpr string,
 	argIndex int,
 	conditions *[]string,
 	args *[]interface{},
 ) (int, error) {
+
 	if csvInput == "" {
 		return argIndex, nil
 	}
@@ -364,13 +372,50 @@ func BuildInConditionForStringSlice(
 	}
 
 	// Format the condition string with the placeholder
-	condition := fmt.Sprintf(format, argIndex)
+	condition := fmt.Sprintf(columnExpr, argIndex)
 	*conditions = append(*conditions, condition)
 
 	// **Wrap values in pq.Array for PostgreSQL**
 	*args = append(*args, pq.Array(values))
 
 	return argIndex + 1, nil
+}
+
+func BuildArrayIlikeCondition(
+	csvInput string,
+	columnExpr string,
+	argIndex int,
+	conditions *[]string,
+	args *[]interface{},
+) (int, error) {
+
+	csvInput = strings.TrimSpace(csvInput)
+	if csvInput == "" {
+		return argIndex, nil
+	}
+
+	parts := strings.Split(csvInput, ",")
+	for _, part := range parts {
+		value := strings.TrimSpace(part)
+		if value == "" {
+			continue
+		}
+
+		condition := fmt.Sprintf(
+			`EXISTS (
+				SELECT 1 FROM unnest(%s) t
+				WHERE t ILIKE $%d
+			)`,
+			columnExpr,
+			argIndex,
+		)
+
+		*conditions = append(*conditions, condition)
+		*args = append(*args, "%"+value+"%")
+		argIndex++
+	}
+
+	return argIndex, nil
 }
 
 // BuildTimeCondition parses a flexible time range string and appends a SQL BETWEEN condition
@@ -578,7 +623,7 @@ func BuildLimitOffsetClause(limitStr, offsetStr string, startIndex int, args *[]
 //
 // Parameters:
 //   - lonStr, latStr, radiusStr: string inputs for longitude, latitude, and radius in meters.
-//   - columnExpr: the SQL expression for the geometry column (e.g., "v.wkb_pos").
+//   - columnExpr: the SQL expression for the geometry column (e.g., "v.geo_pos").
 //   - startIndex: the starting placeholder index for the SQL arguments.
 //   - conditions: a pointer to the slice of WHERE conditions to append to.
 //   - args: a pointer to the slice of SQL arguments.
