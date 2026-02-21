@@ -17,7 +17,7 @@ import (
 //   - inputStr: The raw input string (e.g., from query param).
 //   - columnExpr: SQL expression (e.g., "e.title" or "v.city").
 //   - label: A descriptive name for error messages (e.g., "title", "city").
-//   - startIndex: The index to start SQL placeholders at ($1, $2, ...).
+//   - argIndex: The index to start SQL placeholders at ($1, $2, ...).
 //   - conditions: Pointer to slice of SQL conditions.
 //   - args: Pointer to slice of SQL arguments.
 //
@@ -26,50 +26,50 @@ import (
 //   - error: If sanitization fails.
 func BuildSanitizedIlikeCondition(
 	inputStr, columnExpr, label string,
-	startIndex int,
+	argIndex int,
 	conditions *[]string,
 	args *[]interface{},
 ) (int, error) {
 	if inputStr == "" {
-		return startIndex, nil
+		return argIndex, nil
 	}
 
 	sanitizedStr, err := SanitizeSearchPattern(inputStr)
 	if err != nil {
-		return startIndex, fmt.Errorf("%s format error: %s", label, inputStr)
+		return argIndex, fmt.Errorf("%s format error: %s", label, inputStr)
 	}
 
-	*conditions = append(*conditions, fmt.Sprintf("%s ILIKE $%d", columnExpr, startIndex))
+	*conditions = append(*conditions, fmt.Sprintf("%s ILIKE $%d", columnExpr, argIndex))
 	*args = append(*args, sanitizedStr)
-	return startIndex + 1, nil
+	return argIndex + 1, nil
 }
 
 func BuildSanitizedSearchCondition(
 	inputStr string, // the search string
 	columnExpr string, // e.g., "e.document_normalized"
 	label string, // label for errors
-	startIndex int, // starting parameter index ($1, $2, ...)
+	argIndex int, // starting parameter index ($1, $2, ...)
 	conditions *[]string, // append SQL conditions
 	args *[]interface{}, // append args
 ) (int, error) {
 	if inputStr == "" {
-		return startIndex, nil
+		return argIndex, nil
 	}
 
 	// sanitize input (trim, remove dangerous characters, etc.)
 	sanitizedStr, err := SanitizeSearchPattern(inputStr)
 	if err != nil {
-		return startIndex, fmt.Errorf("%s format error: %s", label, inputStr)
+		return argIndex, fmt.Errorf("%s format error: %s", label, inputStr)
 	}
 
 	// Normalize German input so "ä" -> "ae", "ß" -> "ss", etc.
 	normalizedInput := normalizeGerman(sanitizedStr)
 
 	// Use ILIKE for substring match with pg_trgm index
-	*conditions = append(*conditions, fmt.Sprintf("%s ILIKE '%%' || $%d || '%%'", columnExpr, startIndex))
+	*conditions = append(*conditions, fmt.Sprintf("%s ILIKE '%%' || $%d || '%%'", columnExpr, argIndex))
 	*args = append(*args, normalizedInput)
 
-	return startIndex + 1, nil
+	return argIndex + 1, nil
 }
 
 // Example helper to normalize German input in Go
@@ -106,7 +106,7 @@ func normalizeGerman(s string) string {
 //   - inputStr: A string representing either a full bitmask (e.g., "16") or individual flag indices (e.g., "1,3,5").
 //   - columnExpr: The SQL expression to test the bitmask against (e.g., "ed.accessibility_flags").
 //   - label: A human-readable label for use in error messages (e.g., "accessibility_flags").
-//   - startIndex: The current index for SQL placeholder numbering (e.g., 1, 2, 3, ...).
+//   - argIndex: The current index for SQL placeholder numbering (e.g., 1, 2, 3, ...).
 //   - conditions: A pointer to a slice of strings where the SQL condition will be appended.
 //   - args: A pointer to a slice of interface{} where the corresponding SQL arguments will be appended.
 //
@@ -121,15 +121,15 @@ func normalizeGerman(s string) string {
 //	Resulting SQL condition: "(ed.accessibility_flags & $1) = $1"
 //	args = [42]
 //
-// If inputStr is empty, the function does nothing and returns startIndex unchanged.
+// If inputStr is empty, the function does nothing and returns argIndex unchanged.
 func BuildBitmaskCondition(
 	inputStr, columnExpr, label string,
-	startIndex int,
+	argIndex int,
 	conditions *[]string,
 	args *[]interface{},
 ) (int, error) {
 	if inputStr == "" {
-		return startIndex, nil
+		return argIndex, nil
 	}
 
 	parts := strings.Split(inputStr, ",")
@@ -139,20 +139,20 @@ func BuildBitmaskCondition(
 		flagStr := strings.TrimSpace(part)
 		flagInt, err := strconv.Atoi(flagStr)
 		if err != nil {
-			return startIndex, fmt.Errorf("%s format error: %s", label, flagStr)
+			return argIndex, fmt.Errorf("%s format error: %s", label, flagStr)
 		}
-		if flagInt < 0 || flagInt > 62 {
-			return startIndex, fmt.Errorf("%s contains out-of-range flag: %d", label, flagInt)
+		if flagInt < 0 || flagInt > 63 {
+			return argIndex, fmt.Errorf("%s contains out-of-range flag: %d", label, flagInt)
 		}
 		bitmask |= 1 << flagInt
 	}
 
 	// Add condition and bitmask argument
 	*conditions = append(*conditions,
-		fmt.Sprintf("(%s & $%d) = $%d", columnExpr, startIndex, startIndex))
+		fmt.Sprintf("(%s & $%d) = $%d", columnExpr, argIndex, argIndex))
 	*args = append(*args, bitmask)
 
-	return startIndex + 1, nil
+	return argIndex + 1, nil
 }
 
 // BuildIntRangeCondition parses min and max numeric string inputs and appends a SQL condition
@@ -162,7 +162,7 @@ func BuildBitmaskCondition(
 //   - minStr: Minimum value as a string (e.g., "18").
 //   - maxStr: Maximum value as a string (e.g., "65").
 //   - column: The column name for the SQL condition (e.g., "age").
-//   - startIndex: Starting index for SQL placeholders ($1, $2, ...).
+//   - argIndex: Starting index for SQL placeholders ($1, $2, ...).
 //   - conditions: Pointer to a slice of WHERE clause conditions to be appended to.
 //   - args: Pointer to a slice of arguments to be appended to.
 //
@@ -171,46 +171,46 @@ func BuildBitmaskCondition(
 //   - err: An error if parsing of min/max values fails.
 func BuildIntRangeCondition(
 	minStr, maxStr, column string,
-	startIndex int,
+	argIndex int,
 	conditions *[]string,
 	args *[]interface{},
 ) (int, error) {
 	if minStr == "" && maxStr == "" {
-		return startIndex, nil
+		return argIndex, nil
 	}
 
 	if minStr != "" && maxStr != "" {
 		minVal, err := strconv.Atoi(strings.TrimSpace(minStr))
 		if err != nil {
-			return startIndex, fmt.Errorf("invalid min value: %s", minStr)
+			return argIndex, fmt.Errorf("invalid min value: %s", minStr)
 		}
 		maxVal, err := strconv.Atoi(strings.TrimSpace(maxStr))
 		if err != nil {
-			return startIndex, fmt.Errorf("invalid max value: %s", maxStr)
+			return argIndex, fmt.Errorf("invalid max value: %s", maxStr)
 		}
-		*conditions = append(*conditions, fmt.Sprintf("(%s BETWEEN $%d AND $%d)", column, startIndex, startIndex+1))
+		*conditions = append(*conditions, fmt.Sprintf("(%s BETWEEN $%d AND $%d)", column, argIndex, argIndex+1))
 		*args = append(*args, minVal, maxVal)
-		return startIndex + 2, nil
+		return argIndex + 2, nil
 	}
 
 	if minStr != "" {
 		minVal, err := strconv.Atoi(strings.TrimSpace(minStr))
 		if err != nil {
-			return startIndex, fmt.Errorf("invalid min value: %s", minStr)
+			return argIndex, fmt.Errorf("invalid min value: %s", minStr)
 		}
-		*conditions = append(*conditions, fmt.Sprintf("(%s >= $%d)", column, startIndex))
+		*conditions = append(*conditions, fmt.Sprintf("(%s >= $%d)", column, argIndex))
 		*args = append(*args, minVal)
-		return startIndex + 1, nil
+		return argIndex + 1, nil
 	}
 
 	// Only maxStr is present
 	maxVal, err := strconv.Atoi(strings.TrimSpace(maxStr))
 	if err != nil {
-		return startIndex, fmt.Errorf("invalid max value: %s", maxStr)
+		return argIndex, fmt.Errorf("invalid max value: %s", maxStr)
 	}
-	*conditions = append(*conditions, fmt.Sprintf("(%s <= $%d)", column, startIndex))
+	*conditions = append(*conditions, fmt.Sprintf("(%s <= $%d)", column, argIndex))
 	*args = append(*args, maxVal)
-	return startIndex + 1, nil
+	return argIndex + 1, nil
 }
 
 // BuildContainedInColumnIntRangeCondition builds a SQL condition for a min/max range.
@@ -218,60 +218,60 @@ func BuildIntRangeCondition(
 // - Two values: "COALESCE(minCol,0) <= v1 AND COALESCE(maxCol,1000) >= v2"
 func BuildContainedInColumnIntRangeCondition(
 	inputStr, minCol, maxCol string,
-	startIndex int,
+	argIndex int,
 	conditions *[]string,
 	args *[]interface{},
 ) (int, error) {
 
 	inputStr = strings.TrimSpace(inputStr)
 	if inputStr == "" {
-		return startIndex, nil
+		return argIndex, nil
 	}
 
 	parts := strings.Split(inputStr, ",")
 	if len(parts) > 2 {
-		return startIndex, fmt.Errorf("invalid input: expected one or two integers, got: %s", inputStr)
+		return argIndex, fmt.Errorf("invalid input: expected one or two integers, got: %s", inputStr)
 	}
 
 	if len(parts) == 1 {
 		// Single value: value BETWEEN minCol AND maxCol
 		val, err := strconv.Atoi(strings.TrimSpace(parts[0]))
 		if err != nil {
-			return startIndex, fmt.Errorf("invalid integer value: %s", parts[0])
+			return argIndex, fmt.Errorf("invalid integer value: %s", parts[0])
 		}
-		condition := fmt.Sprintf("($%d BETWEEN %s AND %s)", startIndex, minCol, maxCol)
+		condition := fmt.Sprintf("($%d BETWEEN %s AND %s)", argIndex, minCol, maxCol)
 		*conditions = append(*conditions, condition)
 		*args = append(*args, val)
-		startIndex++
+		argIndex++
 	} else if len(parts) == 2 {
 		// Two values: first >= minCol AND second <= maxCol
 		val1, err := strconv.Atoi(strings.TrimSpace(parts[0]))
 		if err != nil {
-			return startIndex, fmt.Errorf("invalid integer value: %s", parts[0])
+			return argIndex, fmt.Errorf("invalid integer value: %s", parts[0])
 		}
 		val2, err := strconv.Atoi(strings.TrimSpace(parts[1]))
 		if err != nil {
-			return startIndex, fmt.Errorf("invalid integer value: %s", parts[1])
+			return argIndex, fmt.Errorf("invalid integer value: %s", parts[1])
 		}
-		condition := fmt.Sprintf("(%s <= $%d AND %s >= $%d)", minCol, startIndex, maxCol, startIndex+1)
+		condition := fmt.Sprintf("(%s <= $%d AND %s >= $%d)", minCol, argIndex, maxCol, argIndex+1)
 		*conditions = append(*conditions, condition)
 		*args = append(*args, val1, val2)
-		startIndex += 2
+		argIndex += 2
 	}
 
-	return startIndex, nil
+	return argIndex, nil
 }
 
 // BuildColumnInIntCondition builds a SQL condition with = ANY($N) for integers.
 // idsInput can be either a string ("1,2,3") or a []int.
 // expr is the SQL column/expression (e.g., "event_id").
-// startIndex is the placeholder number ($1, $2, ...).
+// argIndex is the placeholder number ($1, $2, ...).
 // conditions is a pointer to the slice of WHERE conditions to append to.
 // args is a pointer to the slice of query arguments to append to.
 func BuildColumnInIntCondition(
 	idsInput interface{},
 	expr string,
-	startIndex int,
+	argIndex int,
 	conditions *[]string,
 	args *[]interface{},
 ) (int, error) {
@@ -282,50 +282,56 @@ func BuildColumnInIntCondition(
 	case string:
 		v = strings.TrimSpace(v)
 		if v == "" {
-			return startIndex, nil
+			return argIndex, nil
 		}
 		parts := strings.Split(v, ",")
 		for _, raw := range parts {
 			id, err := strconv.Atoi(strings.TrimSpace(raw))
 			if err != nil {
-				return startIndex, fmt.Errorf("invalid integer in input: %s", raw)
+				return argIndex, fmt.Errorf("invalid integer in input: %s", raw)
 			}
 			ids = append(ids, id)
 		}
 	default:
-		return startIndex, fmt.Errorf("unsupported input type: %T", idsInput)
+		return argIndex, fmt.Errorf("unsupported input type: %T", idsInput)
 	}
 
 	// Build condition
-	condition := fmt.Sprintf("(%s = ANY(string_to_array($%d, ',')::int[]))", expr, startIndex)
+	condition := fmt.Sprintf("(%s = ANY(string_to_array($%d, ',')::int[]))", expr, argIndex)
 	*conditions = append(*conditions, condition)
 
 	*args = append(*args, app.IntSliceToCsv(ids))
 
-	return startIndex + 1, nil
+	return argIndex + 1, nil
 }
 
 // BuildInConditionForStringSlice builds an SQL IN/ANY condition for a comma-separated string list
 // and adds it as a single array argument for SQL sql.
 //
 // Parameters:
-//   - inputStr: A comma-separated string (e.g., "US, IN, CA").
+//   - csvInput: A comma-separated string (e.g., "US, IN, CA").
 //   - format: The format string for the SQL condition (e.g., "v.country = ANY(%s)").
 //   - label: The label for the input parameter (not used in query, optional).
-//   - startIndex: The starting index for SQL placeholders ($1, $2, ...).
+//   - argIndex: The starting index for SQL placeholders ($1, $2, ...).
 //   - conditions: Pointer to slice of SQL conditions to append to.
 //   - args: Pointer to slice of query arguments to append to.
 //
 // Returns:
 //   - Updated argument index (incremented by 1 since we pass a single array arg).
 //   - error if parsing fails.
-func BuildInConditionForStringSlice(inputStr, format, label string, startIndex int, conditions *[]string, args *[]interface{}) (int, error) {
-	if inputStr == "" {
-		return startIndex, nil
+func BuildInConditionForStringSlice(
+	csvInput string,
+	format string,
+	argIndex int,
+	conditions *[]string,
+	args *[]interface{},
+) (int, error) {
+	if csvInput == "" {
+		return argIndex, nil
 	}
 
 	// Split and trim
-	parts := strings.Split(inputStr, ",")
+	parts := strings.Split(csvInput, ",")
 	var values []string
 	for _, part := range parts {
 		trimmed := strings.TrimSpace(part)
@@ -335,21 +341,17 @@ func BuildInConditionForStringSlice(inputStr, format, label string, startIndex i
 	}
 
 	if len(values) == 0 {
-		return startIndex, nil
+		return argIndex, nil
 	}
 
-	// Create a single placeholder for the array argument
-	placeholder := fmt.Sprintf("$%d", startIndex)
-
 	// Format the condition string with the placeholder
-	condition := fmt.Sprintf(format, placeholder)
+	condition := fmt.Sprintf(format, argIndex)
 	*conditions = append(*conditions, condition)
 
-	// Append the slice as one array argument
-	*args = append(*args, values)
+	// **Wrap values in pq.Array for PostgreSQL**
+	*args = append(*args, pq.Array(values))
 
-	// Return next argument index (we used one)
-	return startIndex + 1, nil
+	return argIndex + 1, nil
 }
 
 // BuildTimeCondition parses a flexible time range string and appends a SQL BETWEEN condition
