@@ -222,7 +222,6 @@ func BuildContainedInColumnIntRangeCondition(
 	conditions *[]string,
 	args *[]interface{},
 ) (int, error) {
-
 	inputStr = strings.TrimSpace(inputStr)
 	if inputStr == "" {
 		return argIndex, nil
@@ -234,26 +233,46 @@ func BuildContainedInColumnIntRangeCondition(
 	}
 
 	if len(parts) == 1 {
-		// Single value: value BETWEEN minCol AND maxCol
+		// Single value case
 		val, err := strconv.Atoi(strings.TrimSpace(parts[0]))
 		if err != nil {
 			return argIndex, fmt.Errorf("invalid integer value: %s", parts[0])
 		}
-		condition := fmt.Sprintf("($%d BETWEEN %s AND %s)", argIndex, minCol, maxCol)
+
+		condition := fmt.Sprintf(
+			"((%s IS NOT NULL OR %s IS NOT NULL) AND "+
+				"(%s IS NULL OR %s <= $%d) AND "+
+				"(%s IS NULL OR %s >= $%d))",
+			minCol, maxCol,
+			minCol, minCol, argIndex,
+			maxCol, maxCol, argIndex,
+		)
+
 		*conditions = append(*conditions, condition)
 		*args = append(*args, val)
 		argIndex++
-	} else if len(parts) == 2 {
-		// Two values: first >= minCol AND second <= maxCol
+
+	} else {
+		// Two-value range containment
 		val1, err := strconv.Atoi(strings.TrimSpace(parts[0]))
 		if err != nil {
 			return argIndex, fmt.Errorf("invalid integer value: %s", parts[0])
 		}
+
 		val2, err := strconv.Atoi(strings.TrimSpace(parts[1]))
 		if err != nil {
 			return argIndex, fmt.Errorf("invalid integer value: %s", parts[1])
 		}
-		condition := fmt.Sprintf("(%s <= $%d AND %s >= $%d)", minCol, argIndex, maxCol, argIndex+1)
+
+		condition := fmt.Sprintf(
+			"((%s IS NOT NULL OR %s IS NOT NULL) AND "+
+				"(%s IS NULL OR %s <= $%d) AND "+
+				"(%s IS NULL OR %s >= $%d))",
+			minCol, maxCol,
+			minCol, minCol, argIndex,
+			maxCol, maxCol, argIndex+1,
+		)
+
 		*conditions = append(*conditions, condition)
 		*args = append(*args, val1, val2)
 		argIndex += 2
