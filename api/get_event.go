@@ -6,37 +6,43 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
 	"github.com/sndcds/uranus/model"
 )
 
 func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 	ctx := gc.Request.Context()
+	apiRequest := grains_api.NewRequest(gc, "get-event-by-date-id")
 
 	eventId, ok := ParamInt(gc, "eventId")
 	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "eventId is required"})
+		apiRequest.Error(http.StatusBadRequest, "eventId is required")
 		return
 	}
+	apiRequest.SetMeta("event_id", eventId)
 
 	dateId, ok := ParamInt(gc, "dateId")
 	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "dateId is required"})
+		apiRequest.Error(http.StatusBadRequest, "dateId is required")
 		return
 	}
+	apiRequest.SetMeta("date_id", dateId)
 
 	lang := gc.DefaultQuery("lang", "en")
+	apiRequest.SetMeta("language", lang)
 
 	// Query event-level data without event dates
 	eventRow, err := h.DbPool.Query(ctx, app.UranusInstance.SqlGetEvent, eventId, lang)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		debugf("GetEventByDateId err 1: %v", err)
+		apiRequest.DatabaseError()
 		return
 	}
 	defer eventRow.Close()
 
 	if !eventRow.Next() {
-		gc.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
+		apiRequest.NotFound("event not found")
 		return
 	}
 
@@ -63,6 +69,7 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 		&event.PriceType,
 		&event.MinPrice,
 		&event.MaxPrice,
+		&event.VisitorInfoFlags,
 		&event.OrganizationId,
 		&event.OrganizationName,
 		&event.OrganizationUrl,
@@ -71,27 +78,27 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 		&eventLinksJSON,
 	)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		debugf("GetEventByDateId err 2: %v", err)
+		apiRequest.DatabaseError()
 		return
 	}
 
 	// Unmarshal image JSON
 	if len(imageJSON) > 0 {
-		fmt.Println("len(imageJSON)", len(imageJSON))
 		var img model.Image
-		if err := json.Unmarshal(imageJSON, &img); err != nil {
-			fmt.Println(err)
+		err := json.Unmarshal(imageJSON, &img)
+		if err != nil {
+			apiRequest.SetMeta("image_error", "invalid JSON")
+		} else {
 			event.Image = &img
 		}
-
-		fmt.Println("Id", img.Id)
-		fmt.Println("Url", img.Url)
 	}
 
 	// Unmarshal event types
 	if len(eventTypesJSON) > 0 {
 		var types []model.EventType
-		if err := json.Unmarshal(eventTypesJSON, &types); err == nil {
+		err = json.Unmarshal(eventTypesJSON, &types)
+		if err == nil {
 			event.EventTypes = types
 		}
 	}
@@ -99,7 +106,8 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 	// Unmarshal event URLs
 	if len(eventLinksJSON) > 0 {
 		var links []model.WebLink
-		if err := json.Unmarshal(eventLinksJSON, &links); err == nil {
+		err = json.Unmarshal(eventLinksJSON, &links)
+		if err == nil {
 			event.EventLinks = links
 		}
 	}
@@ -152,7 +160,7 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 			&edd.AccessibilityInfo,
 		)
 		if err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			apiRequest.InternalServerError()
 			return
 		}
 
@@ -180,8 +188,9 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 
 	event.Date = selectedDate
 	event.FurtherDates = furtherDates
+	apiRequest.SetMeta("event_date_count", len(furtherDates)+1)
 
-	gc.JSON(http.StatusOK, event)
+	apiRequest.Success(http.StatusOK, event, "")
 }
 
 func intFromAny(v interface{}) int {

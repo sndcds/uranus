@@ -127,6 +127,7 @@ type EventDetails struct {
 	PriceType         *string     `json:"price_type,omitempty"`
 	MinPrice          *float64    `json:"min_price,omitempty"`
 	MaxPrice          *float64    `json:"max_price,omitempty"`
+	VisitorInfoFlags  *string     `json:"visitor_info_flags,omitempty"`
 	ParticipationInfo *string     `json:"participation_info,omitempty"`
 	MeetingPoint      *string     `json:"meeting_point,omitempty"`
 }
@@ -176,6 +177,7 @@ type AdminEvent struct {
 	TicketFlags          []string         `json:"ticket_flags,omitempty"`
 	Currency             *string          `json:"currency,omitempty"`
 	CurrencyName         *string          `json:"currency_name,omitempty"`
+	VisitorInfoFlags     *string          `json:"visitor_info_flags,omitempty"`
 	Images               []Image          `json:"images,omitempty"`
 	Custom               *string          `json:"custom,omitempty"`
 	Style                *string          `json:"style,omitempty"`

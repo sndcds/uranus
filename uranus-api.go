@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"strconv"
@@ -31,6 +32,13 @@ func main() {
 		fmt.Println(err.Error())
 		panic(err)
 	}
+
+	err = app.UranusInstance.CheckAllDatabaseConsistency(context.Background())
+	if err != nil {
+		fmt.Println(err.Error())
+		panic(err)
+	}
+	app.UranusInstance.Log("CheckAllDatabaseConsistency succeded")
 
 	if *verbose {
 		app.UranusInstance.Config.Verbose = true
@@ -92,7 +100,7 @@ func main() {
 	publicRoute.GET("/events/type-summary", apiHandler.GetEventTypeSummary)   // TODO: check!
 	publicRoute.GET("/events/venue-summary", apiHandler.GetEventVenueSummary) // TODO: check!
 
-	publicRoute.GET("/event/:eventId/date/:dateId", apiHandler.GetEventByDateId)    // TODO: check!
+	publicRoute.GET("/event/:eventId/date/:dateId", apiHandler.GetEventByDateId)
 	publicRoute.GET("/event/:eventId/date/:dateId/ics", apiHandler.GetEventDateICS) // TODO: check!
 
 	publicRoute.GET("/geojson/venues", apiHandler.GetGeojsonVenues) // TODO: check!
@@ -194,7 +202,7 @@ func main() {
 	adminRoute.PUT("/space/:spaceId/fields", apiHandler.UpdateSpaceFields)
 
 	// Event
-	adminRoute.GET("/event/:eventId", apiHandler.AdminGetEvent)                             // TODO: check!
+	adminRoute.GET("/event/:eventId", apiHandler.AdminGetEvent)
 	adminRoute.POST("/delete/event/:eventId", apiHandler.AdminDeleteEvent)                  // TODO: check!
 	adminRoute.POST("/event/:eventId/date", apiHandler.AdminUpsertEventDate)                // TODO: check!
 	adminRoute.PUT("/event/:eventId/date/:dateId", apiHandler.AdminUpsertEventDate)         // TODO: check!

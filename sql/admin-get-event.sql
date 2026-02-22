@@ -41,6 +41,7 @@ SELECT
     e.ticket_flags,
     e.currency,
     cu.name AS currency_name,
+    e.visitor_info_flags,
     e.custom,
     e.style
 FROM {{schema}}.event e

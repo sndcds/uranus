@@ -16,6 +16,7 @@ import (
 	"github.com/jackc/pgx/v5" // PostgreSQL driver
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/sndcds/uranus/database"
 )
 
 // TODO: Review code
@@ -93,6 +94,11 @@ func Initialize(configFilePath string) (*Uranus, error) {
 	}
 
 	// Check configuration
+
+	if len(uranus.Config.SupportedLanguages) == 0 {
+		return nil, fmt.Errorf("configuration error: at least one language must be set in 'supported_languages'")
+	}
+
 	uranus.Config.ProfileImageQuality = ClampFloat32(uranus.Config.ProfileImageQuality, 30, 100)
 
 	if uranus.Config.PlutoImageMaxFileSize == 0 {
@@ -119,6 +125,47 @@ func Initialize(configFilePath string) (*Uranus, error) {
 	uranus.Log("connect to Pluto image service")
 
 	return &uranus, nil
+}
+
+func (uranus *Uranus) CheckAllDatabaseConsistency(ctx context.Context) error {
+	tables := []struct {
+		FlagTable  string
+		TopicTable string
+	}{
+		{
+			uranus.Config.DbSchema + ".accessibility_flag",
+			uranus.Config.DbSchema + ".accessibility_topic",
+		},
+		{
+			uranus.Config.DbSchema + ".visitor_information_flag",
+			uranus.Config.DbSchema + ".visitor_information_topic",
+		},
+	}
+
+	var allErrors []string
+
+	for _, t := range tables {
+		fmt.Printf("Checking tables: %s / %s\n", t.FlagTable, t.TopicTable)
+
+		res, err := database.DatabaseFlagsCheckI18nConsistency(ctx, uranus.MainDbPool, t.FlagTable, t.TopicTable, uranus.Config.SupportedLanguages)
+
+		// Always safe to access res because we ensure DatabaseFlagsCheckI18nConsistency returns non-nil
+		fmt.Printf("Flags checked: %d, Topics checked: %d\n", res.FlagCount, res.TopicCount)
+
+		if err != nil {
+			allErrors = append(allErrors, fmt.Sprintf("Inconsistencies in %s / %s:\n%s",
+				t.FlagTable, t.TopicTable, strings.Join(res.Inconsistencies, "\n")))
+		} else {
+			fmt.Printf("✅ %s / %s consistent\n", t.FlagTable, t.TopicTable)
+		}
+	}
+
+	if len(allErrors) > 0 {
+		return fmt.Errorf("database consistency errors:\n%s", strings.Join(allErrors, "\n\n"))
+	}
+
+	fmt.Println("🎉 All tables are consistent")
+	return nil
 }
 
 func (app *Uranus) Log(msg string) {

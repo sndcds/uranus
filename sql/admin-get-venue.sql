@@ -31,7 +31,7 @@ LEFT JOIN LATERAL (
                 'focus_y', pi.focus_y,
                 'alt', pi.alt_text,
                 'copyright', pi.copyright,
-                'license', pi.license_type,
+                'license', pi.license,
                 'creator', pi.creator_name
             )
         ),

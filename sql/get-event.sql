@@ -16,6 +16,7 @@ SELECT
     e.price_type,
     e.min_price,
     e.max_price,
+    e.visitor_info_flags,
     o.id AS organization_id,
     o.name AS organization_name,
     o.website_link AS organization_link,
@@ -28,7 +29,9 @@ SELECT
             'alt', main_image.alt_text,
             'creator', main_image.creator_name,
             'copyright', main_image.copyright,
-            'license', main_image.license
+            'license', main_image.license,
+            'license_name', main_image.license_name,
+            'license_description', main_image.license_description
         )
         END AS image,
 
@@ -51,30 +54,14 @@ LEFT JOIN LATERAL (
         pi.alt_text,
         pi.creator_name,
         pi.copyright,
-        COALESCE(
-            jsonb_build_object(
-                'key', lic.key,
-                'name', lic.name,
-                'description', lic.description
-            ),
-            jsonb_build_object(
-                'key', lic_fallback.key,
-                'name', lic_fallback.name,
-                'description', lic_fallback.description
-            )
-        ) AS license
+        COALESCE(lic.key, lic_fallback.key) AS license,
+        COALESCE(lic.name, lic_fallback.name) AS license_name,
+        COALESCE(lic.description, lic_fallback.description) AS license_description
     FROM {{schema}}.pluto_image_link pil
-    JOIN {{schema}}.pluto_image pi
-    ON pi.id = pil.pluto_image_id
-    LEFT JOIN {{schema}}.license_i18n lic
-    ON lic.key = pi.license_type
-    AND lic.iso_639_1 = $2
-    LEFT JOIN {{schema}}.license_i18n lic_fallback
-    ON lic_fallback.key = 'all-rights-reserved'
-    AND lic_fallback.iso_639_1 = $2
-    WHERE pil.context = 'event'
-    AND pil.context_id = e.id
-    AND pil.identifier = 'main'
+    JOIN {{schema}}.pluto_image pi ON pi.id = pil.pluto_image_id
+    LEFT JOIN {{schema}}.license_i18n lic ON lic.key = pi.license AND lic.iso_639_1 = $2
+    LEFT JOIN {{schema}}.license_i18n lic_fallback ON lic_fallback.key = 'all-rights-reserved' AND lic_fallback.iso_639_1 = $2
+    WHERE pil.context = 'event' AND pil.context_id = e.id AND pil.identifier = 'main'
     LIMIT 1
 ) main_image ON TRUE
 

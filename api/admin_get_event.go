@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
 	"github.com/sndcds/uranus/model"
 )
@@ -13,15 +14,16 @@ import (
 func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
-	apiResponseType := "admin-event"
+	apiRequest := grains_api.NewRequest(gc, "admin-get-event")
 
 	eventId, ok := ParamInt(gc, "eventId")
 	if !ok {
-		JSONError(gc, apiResponseType, http.StatusBadRequest, "eventId is required")
+		apiRequest.Error(http.StatusBadRequest, "eventId is required")
 		return
 	}
 
 	lang := gc.DefaultQuery("lang", "en")
+	apiRequest.SetMeta("language", lang)
 
 	permission := app.PermEditEvent | app.PermViewEventInsights
 	row := h.DbPool.QueryRow(ctx, app.UranusInstance.SqlAdminGetEvent, eventId, lang, userId, permission)
@@ -71,26 +73,26 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 		&event.TicketFlags,
 		&event.Currency,
 		&event.CurrencyName,
+		&event.VisitorInfoFlags,
 		&event.Custom,
 		&event.Style,
 	)
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			debugf("API %s error: %s", apiResponseType, err.Error())
-			JSONError(gc, apiResponseType, http.StatusNotFound, "event not found")
+			apiRequest.Error(http.StatusNotFound, "event not found")
 			return
 		}
-		debugf("API %s error: %s", apiResponseType, err.Error())
-		JSONDatabaseError(gc, apiResponseType)
+		apiRequest.InternalServerError()
+		apiRequest.SetMeta("error_type", "event")
 		return
 	}
 
 	// Event Types
 	rows, err := h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventTypes, eventId, lang)
 	if err != nil {
-		debugf("API %s error: %s", apiResponseType, err.Error())
-		JSONError(gc, apiResponseType, http.StatusInternalServerError, "event types error")
+		apiRequest.InternalServerError()
+		apiRequest.SetMeta("error_type", "event-types")
 		return
 	}
 	defer rows.Close()
@@ -103,8 +105,8 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 	// Event Images
 	rows, err = h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventImages, eventId)
 	if err != nil {
-		debugf("API %s error: %s", apiResponseType, err.Error())
-		JSONError(gc, apiResponseType, http.StatusInternalServerError, "event images error")
+		apiRequest.InternalServerError()
+		apiRequest.SetMeta("error_type", "event-images")
 		return
 	}
 	defer rows.Close()
@@ -118,8 +120,8 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 	// Event Links
 	rows, err = h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventLinks, eventId)
 	if err != nil {
-		debugf("API %s error: %s", apiResponseType, err.Error())
-		JSONError(gc, apiResponseType, http.StatusInternalServerError, "event links error")
+		apiRequest.InternalServerError()
+		apiRequest.SetMeta("error_type", "event-links")
 		return
 	}
 	defer rows.Close()
@@ -132,8 +134,8 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 	// Dates
 	rows, err = h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventDates, eventId)
 	if err != nil {
-		debugf("API %s error: %s", apiResponseType, err.Error())
-		JSONError(gc, apiResponseType, http.StatusInternalServerError, "event dates error")
+		apiRequest.InternalServerError()
+		apiRequest.SetMeta("error_type", "event-dates")
 		return
 	}
 	defer rows.Close()
@@ -170,13 +172,12 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 		)
 
 		if err != nil {
-			debugf("API %s error: %s", apiResponseType, err.Error())
-			JSONDatabaseError(gc, apiResponseType)
+			apiRequest.DatabaseError()
 			return
 		}
 
 		event.EventDates = append(event.EventDates, date)
 	}
 
-	JSONSuccess(gc, apiResponseType, event, nil)
+	apiRequest.Success(http.StatusOK, event, "")
 }
