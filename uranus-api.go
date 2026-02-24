@@ -96,6 +96,8 @@ func main() {
 	// Public endpoints
 	publicRoute := router.Group("/api")
 
+	publicRoute.GET("/event/release-status-i18n", apiHandler.GetEventReleaseStatusI18n)
+
 	publicRoute.GET("/events", apiHandler.GetEvents)                          // TODO: check!
 	publicRoute.GET("/events/type-summary", apiHandler.GetEventTypeSummary)   // TODO: check!
 	publicRoute.GET("/events/venue-summary", apiHandler.GetEventVenueSummary) // TODO: check!
@@ -112,7 +114,6 @@ func main() {
 
 	publicRoute.GET("/event/type-genre-lookup", apiHandler.GetEventTypeGenreLookup)
 
-	publicRoute.GET("/choosable-release-states", apiHandler.GetChoosableReleaseStates) // TODO: check!
 	publicRoute.GET("/choosable-link-types", apiHandler.GetChoosableLinkTypes)
 	publicRoute.GET("/choosable-venue-types", apiHandler.GetChoosableVenueTypes)
 	publicRoute.GET("/choosable-space-types", apiHandler.GetChoosableSpaceTypes)
