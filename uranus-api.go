@@ -196,10 +196,12 @@ func main() {
 
 	// Space
 	adminRoute.GET("/space/:spaceId", apiHandler.AdminGetSpace)
+	adminRoute.POST("/space/create", apiHandler.AdminCreateSpace)
+	adminRoute.PUT("/space/:spaceId/fields", apiHandler.UpdateSpaceFields)
+
 	adminRoute.PUT("/space", apiHandler.AdminUpsertSpace)             // TODO: check!
 	adminRoute.PUT("/space/:spaceId", apiHandler.AdminUpsertSpace)    // TODO: check!
 	adminRoute.DELETE("/space/:spaceId", apiHandler.AdminDeleteSpace) // TODO: check!
-	adminRoute.PUT("/space/:spaceId/fields", apiHandler.UpdateSpaceFields)
 
 	// Event
 	adminRoute.GET("/event/:eventId", apiHandler.AdminGetEvent)

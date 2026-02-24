@@ -132,7 +132,6 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			return
 		}
 	}
-	debugf("AdminCreateEvent 3")
 
 	// Validation
 	validationErr := payload.Validate()
@@ -147,7 +146,6 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	}
 
 	var newEventId int
-	debugf("AdminCreateEvent 4")
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		txErr := h.CheckOrganizationAllPermissions(
@@ -309,7 +307,6 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		apiRequest.Error(txErr.Code, txErr.Error())
 		return
 	}
-	debugf("AdminCreateEvent 5")
 
 	apiRequest.Metadata["created_event_id"] = newEventId
 	apiRequest.SuccessNoData(http.StatusCreated, "")

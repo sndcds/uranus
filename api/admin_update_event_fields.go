@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -39,12 +40,22 @@ func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 		MaxPrice          NullableField[float64]  `json:"max_price"`
 		Currency          NullableField[string]   `json:"currency"`
 		TicketFlags       *[]string               `json:"ticket_flags"`
+		VisitorInfoFlags  NullableField[string]   `json:"visitor_info_flags"`
 	}
 
+	decoder := json.NewDecoder(gc.Request.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&payload); err != nil {
+		apiRequest.PayloadError()
+		return
+	}
+
+	/* Former version
 	if err := gc.ShouldBindJSON(&payload); err != nil {
 		apiRequest.PayloadError()
 		return
 	}
+	*/
 
 	setClauses := []string{}
 	args := []interface{}{}
@@ -67,6 +78,7 @@ func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 	argPos = addUpdateClauseNullable("max_price", payload.MaxPrice, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("currency", payload.Currency, &setClauses, &args, argPos)
 	argPos = addUpdateClauseStringSliceField("ticket_flags", payload.TicketFlags, &setClauses, &args, argPos)
+	argPos = addUpdateClauseNullable("visitor_info_flags", payload.VisitorInfoFlags, &setClauses, &args, argPos)
 
 	if len(setClauses) == 0 {
 		apiRequest.SuccessNoData(http.StatusOK, "no fields updated")

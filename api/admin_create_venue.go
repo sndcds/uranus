@@ -14,7 +14,7 @@ import (
 func (h *ApiHandler) AdminCreateVenue(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
-	apiRequest := grains_api.NewRequest(gc, "create-venue")
+	apiRequest := grains_api.NewRequest(gc, "admin-create-venue")
 
 	type Payload struct {
 		OrganizationId int    `json:"organization_id" binding:"required"`

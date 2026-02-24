@@ -22,22 +22,22 @@ func (h *ApiHandler) UpdateSpaceFields(gc *gin.Context) {
 	apiRequest.SetMeta("space_id", spaceId)
 
 	var payload struct {
-		Name                  NullableField[string] `json:"name"`
-		Description           NullableField[string] `json:"description"`
-		TotalCapacity         NullableField[int]    `json:"total_capacity"`
-		SeatingCapacity       NullableField[int]    `json:"seating_capacity"`
-		SpaceType             NullableField[string] `json:"space_type"`
-		BuildingLevel         NullableField[int]    `json:"building_level"`
-		WebsiteLink           NullableField[string] `json:"website_link"`
-		AccessibilitySummary  NullableField[string] `json:"accessibility_summary"`
-		AccessibilityFlags    NullableField[string] `json:"accessibility_flags"`
-		AreaSqm               NullableField[int]    `json:"area_sqm"`
-		EnvironmentalFeatures NullableField[int64]  `json:"environmental_features"`
-		AudioFeatures         NullableField[int64]  `json:"audio_features"`
-		PresentationFeatures  NullableField[int64]  `json:"presentation_features"`
-		LightingFeatures      NullableField[int64]  `json:"lighting_features"`
-		ClimateFeatures       NullableField[int64]  `json:"climate_features"`
-		MiscFeatures          NullableField[int64]  `json:"misc_features"`
+		Name                  NullableField[string]  `json:"name"`
+		Description           NullableField[string]  `json:"description"`
+		TotalCapacity         NullableField[int]     `json:"total_capacity"`
+		SeatingCapacity       NullableField[int]     `json:"seating_capacity"`
+		SpaceType             NullableField[string]  `json:"space_type"`
+		BuildingLevel         NullableField[int]     `json:"building_level"`
+		WebsiteLink           NullableField[string]  `json:"website_link"`
+		AccessibilitySummary  NullableField[string]  `json:"accessibility_summary"`
+		AccessibilityFlags    NullableField[string]  `json:"accessibility_flags"`
+		AreaSqm               NullableField[float64] `json:"area_sqm"`
+		EnvironmentalFeatures NullableField[int64]   `json:"environmental_features"`
+		AudioFeatures         NullableField[int64]   `json:"audio_features"`
+		PresentationFeatures  NullableField[int64]   `json:"presentation_features"`
+		LightingFeatures      NullableField[int64]   `json:"lighting_features"`
+		ClimateFeatures       NullableField[int64]   `json:"climate_features"`
+		MiscFeatures          NullableField[int64]   `json:"misc_features"`
 	}
 
 	if err := gc.ShouldBindJSON(&payload); err != nil {

@@ -6,78 +6,61 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
+	"github.com/sndcds/grains/grains_api"
+	"github.com/sndcds/uranus/app"
 )
-
-// TODO: Review code
 
 func (h *ApiHandler) AdminCreateSpace(gc *gin.Context) {
 	ctx := gc.Request.Context()
+	userId := h.userId(gc)
+	apiRequest := grains_api.NewRequest(gc, "admin-create-space")
 
-	type UpdateRequest struct {
-		VenueId              int     `json:"venue_id"`
-		Name                 *string `json:"name"`
-		Description          *string `json:"description"`
-		SpaceTypeId          int     `json:"space_type_id"`
-		BuildingLevel        int     `json:"building_level"`
-		TotalCapacity        int     `json:"total_capacity"`
-		SeatingCapacity      int     `json:"seating_capacity"`
-		WebsiteLink          *string `json:"website_link"`
-		AccessibilityFlags   int64   `json:"accessibility_flags"`
-		AccessibilitySummary *string `json:"accessibility_summary"`
+	type Payload struct {
+		OrganizationId int    `json:"organization_id" binding:"required"`
+		VenueId        int    `json:"venue_id" binding:"required"`
+		SpaceName      string `json:"space_name" binding:"required"`
 	}
-
-	// TODO: Check permissions by user and OrganizationId
-
-	var req UpdateRequest
-	if err := gc.ShouldBindJSON(&req); err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	payload, ok := grains_api.DecodeJSONBody[Payload](gc, apiRequest)
+	if !ok {
 		return
 	}
 
-	// Begin transaction
-	tx, err := h.DbPool.Begin(gc)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to start transaction"})
-		return
-	}
-	defer func() { _ = tx.Rollback(ctx) }()
-
-	var newId int
-	insertSpaceQuery := `
-		INSERT INTO {{schema}}.space
-			(venue_id, name, description, space_type_id, building_level, total_capacity, seating_capacity, website_link, accessibility_flags, accessibility_summary)
-		VALUES
-			($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-		RETURNING id
-	`
-	insertSpaceQuery = strings.Replace(insertSpaceQuery, "{{schema}}", h.DbSchema, 1)
-
-	err = tx.QueryRow(gc, insertSpaceQuery,
-		req.VenueId,
-		req.Name,
-		req.Description,
-		req.SpaceTypeId,
-		req.BuildingLevel,
-		req.TotalCapacity,
-		req.SeatingCapacity,
-		req.WebsiteLink,
-		req.AccessibilityFlags,
-		req.AccessibilitySummary,
-	).Scan(&newId)
-
-	if err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("insert space failed: %v", err)})
+	spaceName := strings.TrimSpace(payload.SpaceName)
+	if spaceName == "" {
+		apiRequest.Error(http.StatusBadRequest, "space_name cannot be empty")
 		return
 	}
 
-	// Commit transaction
-	if err = tx.Commit(gc); err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to commit transaction"})
-		return
-	}
+	apiRequest.Metadata["prganization_id"] = payload.OrganizationId
+	apiRequest.Metadata["venue_id"] = payload.VenueId
+	apiRequest.Metadata["space_name"] = spaceName
 
-	gc.JSON(http.StatusOK, gin.H{
-		"id":      newId,
-		"message": "Space created successfully",
+	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
+
+		txErr := h.CheckOrganizationAllPermissions(
+			gc, tx, userId, payload.OrganizationId,
+			app.PermAddSpace)
+		if txErr != nil {
+			return txErr
+		}
+
+		newSpaceId := -1
+		query := fmt.Sprintf(`INSERT INTO %s.space (venue_id, name) VALUES ($1, $2) RETURNING id`, h.DbSchema)
+		err := tx.QueryRow(ctx, query, payload.VenueId, spaceName).Scan(&newSpaceId)
+		if err != nil {
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  fmt.Errorf("Internal server error"),
+			}
+		}
+		apiRequest.Metadata["space_id"] = newSpaceId
+		return nil
 	})
+	if txErr != nil {
+		apiRequest.Error(txErr.Code, txErr.Error())
+		return
+	}
+
+	apiRequest.SuccessNoData(http.StatusOK, "space successfully created")
 }
