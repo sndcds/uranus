@@ -21,6 +21,7 @@ WITH upcoming_dates AS (
         venue_country,
         venue_geo_pos,
         space_name,
+        space_type,
         space_accessibility_flags,
         event_start_at,
         event_end_at
@@ -61,7 +62,8 @@ SELECT
     COALESCE(edp.space_name, ep.space_name) AS space_name,
     COALESCE(edp.space_accessibility_flags, ep.space_accessibility_flags) AS space_accessibility_flags,
     ep.min_age,
-    ep.max_age
+    ep.max_age,
+    ep.visitor_info_flags
 FROM upcoming_dates edp
 JOIN {{schema}}.event_projection ep ON ep.event_id = edp.event_id
 WHERE ep.release_status IN ('released', 'cancelled', 'deferred', 'rescheduled')

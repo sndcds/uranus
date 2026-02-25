@@ -54,6 +54,7 @@ type eventResponse struct {
 	Tags                    []string    `json:"tags"`
 	MinAge                  *int        `json:"min_age"`
 	MaxAge                  *int        `json:"max_age"`
+	VisitorInfoFlags        *string     `json:"visitor_info_flags,omitempty"`
 	ReleaseStatus           *string     `json:"release_status,omitempty"`
 }
 
@@ -156,17 +157,20 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 
 	// Other conditions
 	var errBuild error
-	argIndex, errBuild = sql_utils.BuildTimeCondition(timeStr, "edp.start_time", "time", argIndex, &conditions, &args)
+	argIndex, errBuild = sql_utils.BuildTimeCondition(
+		timeStr, "edp.start_time", "time", argIndex, &conditions, &args)
 	if errBuild != nil {
 		return "", "", "", nil, 0, errBuild
 	}
 
-	argIndex, errBuild = sql_utils.BuildSanitizedSearchCondition(searchStr, "ep.search_text", "search", argIndex, &conditions, &args)
+	argIndex, errBuild = sql_utils.BuildSanitizedSearchCondition(
+		searchStr, "ep.search_text", "search", argIndex, &conditions, &args)
 	if errBuild != nil {
 		return "", "", "", nil, 0, errBuild
 	}
 
-	argIndex, errBuild = sql_utils.BuildSanitizedIlikeCondition(titleStr, "ep.title", "title", argIndex, &conditions, &args)
+	argIndex, errBuild = sql_utils.BuildSanitizedIlikeCondition(
+		titleStr, "ep.title", "title", argIndex, &conditions, &args)
 	if errBuild != nil {
 		return "", "", "", nil, 0, errBuild
 	}
@@ -185,67 +189,88 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 	}
 
 	if postalCodeStr != "" {
-		argIndex, errBuild = sql_utils.BuildLikeConditions(postalCodeStr, "COALESCE(edp.venue_postal_code, ep.venue_postal_code)", argIndex, &conditions, &args)
+		argIndex, errBuild = sql_utils.BuildLikeConditions(
+			postalCodeStr,
+			"COALESCE(edp.venue_postal_code, ep.venue_postal_code)",
+			argIndex,
+			&conditions,
+			&args)
 		if errBuild != nil {
 			return "", "", "", nil, 0, errBuild
 		}
 	}
 
-	argIndex, errBuild = sql_utils.BuildSanitizedIlikeCondition(cityStr, "COALESCE(edp.venue_city, ep.venue_city)", "city", argIndex, &conditions, &args)
+	argIndex, errBuild = sql_utils.BuildSanitizedIlikeCondition(
+		cityStr, "COALESCE(edp.venue_city, ep.venue_city)",
+		"city", argIndex, &conditions, &args)
 	if errBuild != nil {
 		return "", "", "", nil, 0, errBuild
 	}
 	if eventIdsStr != "" {
-		argIndex, errBuild = sql_utils.BuildColumnInIntCondition(eventIdsStr, "edp.event_id", argIndex, &conditions, &args)
+		argIndex, errBuild = sql_utils.BuildColumnInIntCondition(
+			eventIdsStr, "edp.event_id", argIndex, &conditions, &args)
 		if errBuild != nil {
 			return "", "", "", nil, 0, errBuild
 		}
 	}
 
 	if organizationIdsStr != "" {
-		argIndex, errBuild = sql_utils.BuildColumnInIntCondition(organizationIdsStr, "ep.organization_id", argIndex, &conditions, &args)
+		argIndex, errBuild = sql_utils.BuildColumnInIntCondition(
+			organizationIdsStr, "ep.organization_id", argIndex, &conditions, &args)
 		if errBuild != nil {
 			return "", "", "", nil, 0, errBuild
 		}
 	}
 
 	if venueIdsStr != "" {
-		argIndex, errBuild = sql_utils.BuildColumnInIntCondition(venueIdsStr, "COALESCE(edp.venue_id, ep.venue_id)", argIndex, &conditions, &args)
+		argIndex, errBuild = sql_utils.BuildColumnInIntCondition(
+			venueIdsStr, "COALESCE(edp.venue_id, ep.venue_id)", argIndex, &conditions, &args)
 		if errBuild != nil {
 			return "", "", "", nil, 0, errBuild
 		}
 	}
 
 	if spaceIdsStr != "" {
-		argIndex, errBuild = sql_utils.BuildColumnInIntCondition(spaceIdsStr, "COALESCE(edp.space_id, ep.space_id)", argIndex, &conditions, &args)
+		argIndex, errBuild = sql_utils.BuildColumnInIntCondition(
+			spaceIdsStr, "COALESCE(edp.space_id, ep.space_id)", argIndex, &conditions, &args)
 		if errBuild != nil {
 			return "", "", "", nil, 0, errBuild
 		}
 	}
 
 	if spaceTypesStr != "" {
-		argIndex, errBuild = sql_utils.BuildColumnInIntCondition(spaceTypesStr, "COALESCE(edp.space_type_id, ep.space_type_id)", argIndex, &conditions, &args)
+		argIndex, errBuild = sql_utils.BuildInConditionForStringSlice(
+			spaceTypesStr,
+			"COALESCE(edp.space_type, ep.space_type) = ANY($%d::text[])",
+			argIndex, &conditions, &args,
+		)
 		if errBuild != nil {
 			return "", "", "", nil, 0, errBuild
 		}
 	}
 
-	argIndex, errBuild = sql_utils.BuildGeoRadiusCondition(lonStr, latStr, radiusStr, "COALESCE(edp.venue_geo_pos, ep.venue_geo_pos)", argIndex, &conditions, &args)
+	argIndex, errBuild = sql_utils.BuildGeoRadiusCondition(
+		lonStr, latStr, radiusStr,
+		"COALESCE(edp.venue_geo_pos, ep.venue_geo_pos)",
+		argIndex, &conditions, &args)
 	if errBuild != nil {
 		return "", "", "", nil, 0, errBuild
 	}
 
-	argIndex, errBuild = sql_utils.BuildContainedInColumnIntRangeCondition(ageStr, "ep.min_age", "ep.max_age", argIndex, &conditions, &args)
+	argIndex, errBuild = sql_utils.BuildContainedInColumnIntRangeCondition(
+		ageStr, "ep.min_age", "ep.max_age", argIndex, &conditions, &args)
 	if errBuild != nil {
 		return "", "", "", nil, 0, errBuild
 	}
 
-	argIndex, errBuild = sql_utils.BuildBitmaskCondition(accessibilityFlagsStr, "edp.space_accessibility_flags", "accessibility", argIndex, &conditions, &args)
+	argIndex, errBuild = sql_utils.BuildBitmaskCondition(
+		accessibilityFlagsStr, "edp.space_accessibility_flags", "accessibility", argIndex, &conditions, &args)
 	if errBuild != nil {
 		return "", "", "", nil, 0, errBuild
 	}
 
-	argIndex, errBuild = sql_utils.BuildBitmaskCondition(visitorInfosStr, "edp.visitor_info_flags", "visitor_infos", argIndex, &conditions, &args)
+	argIndex, errBuild = sql_utils.BuildBitmaskCondition(
+		visitorInfosStr, "ep.visitor_info_flags", "visitor_infos", argIndex, &conditions, &args)
 	if errBuild != nil {
 		return "", "", "", nil, 0, errBuild
 	}
@@ -265,7 +290,13 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 	}
 
 	if tagsStr != "" {
-		argIndex, errBuild = sql_utils.BuildInConditionForStringSlice(tagsStr, "tags", argIndex, &conditions, &args)
+		argIndex, errBuild = sql_utils.BuildInConditionForStringSlice(
+			tagsStr,
+			"tags && $%d::text[]", // Array overlap operator
+			argIndex,
+			&conditions,
+			&args,
+		)
 		if errBuild != nil {
 			return "", "", "", nil, 0, errBuild
 		}
@@ -300,6 +331,10 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	query = strings.Replace(query, "{{limit}}", limitClause, 1)
 
 	fmt.Println(query)
+	fmt.Printf("ARGS (%d):\n", len(args))
+	for i, arg := range args {
+		fmt.Printf("  $%d = %#v (type %T)\n", i+1, arg, arg)
+	}
 
 	rows, err := h.DbPool.Query(ctx, query, args...)
 	if err != nil {
@@ -348,6 +383,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			&e.SpaceAccessibilityFlags,
 			&e.MinAge,
 			&e.MaxAge,
+			&e.VisitorInfoFlags,
 		)
 		if err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("scan failed: %v", err)})

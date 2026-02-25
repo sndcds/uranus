@@ -142,7 +142,9 @@ func BuildBitmaskCondition(
 	parts := strings.Split(inputStr, ",")
 	var bitmask uint64
 
+	fmt.Println("inputStr:", inputStr)
 	for _, part := range parts {
+		fmt.Println("part:", part)
 		flagStr := strings.TrimSpace(part)
 		flagInt, err := strconv.Atoi(flagStr)
 		if err != nil {
@@ -151,7 +153,9 @@ func BuildBitmaskCondition(
 		if flagInt < 0 || flagInt > 63 {
 			return argIndex, fmt.Errorf("%s contains out-of-range flag: %d", label, flagInt)
 		}
+		fmt.Println("bit:", 1<<flagInt)
 		bitmask |= 1 << flagInt
+		fmt.Println("bitmask:", bitmask)
 	}
 
 	// Add condition and bitmask argument
