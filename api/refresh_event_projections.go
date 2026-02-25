@@ -52,10 +52,13 @@ func RefreshEventProjections(
 			return err
 		}
 		if len(eventIds) > 0 {
-			if err := upsertEventProjection(ctx, tx, eventIds); err != nil {
+			err := upsertEventProjection(ctx, tx, eventIds)
+			if err != nil {
+				debugf("Error updating event projection: %v", err)
 				return err
 			}
 		}
+		fmt.Println("eventIds:", eventIds)
 	}
 
 	// Refresh event dates
@@ -65,10 +68,13 @@ func RefreshEventProjections(
 			return err
 		}
 		if len(eventDateIds) > 0 {
-			if err := upsertEventDateProjection(ctx, tx, eventDateIds); err != nil {
+			err := upsertEventDateProjection(ctx, tx, eventDateIds)
+			if err != nil {
+				debugf("Error updating event date projection: %v", err)
 				return err
 			}
 		}
+		fmt.Println("eventDateIds:", eventDateIds)
 	}
 
 	return nil
@@ -191,7 +197,7 @@ INSERT INTO %[1]s.event_projection (
     title, subtitle, description, summary, image_id, languages, tags, types,
     source_url, online_link, occasion_type_id, max_attendees, min_age, max_age,
     participation_info, meeting_point, ticket_flags,
-	price_type, currency, min_price, max_price,
+	price_type, currency, min_price, max_price, visitor_info_flags,
     external_id, custom, style, search_text,
     organization_name, organization_contact_email, organization_contact_phone, organization_website_link,
     venue_name, venue_street, venue_house_number, venue_postal_code, venue_city,
@@ -232,6 +238,7 @@ SELECT DISTINCT ON (e.id)
     e.currency,
     e.min_price,
     e.max_price,
+    e.visitor_info_flags,
     e.external_id,
     e.custom,
     e.style,
@@ -304,6 +311,7 @@ ON CONFLICT (event_id) DO UPDATE SET
     currency = EXCLUDED.currency,
     min_price = EXCLUDED.min_price,
     max_price = EXCLUDED.max_price,
+    visitor_info_flags = EXCLUDED.visitor_info_flags,
     external_id = EXCLUDED.external_id,
     custom = EXCLUDED.custom,
     style = EXCLUDED.style,
