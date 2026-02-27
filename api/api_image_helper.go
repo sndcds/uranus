@@ -40,6 +40,10 @@ func IsVenueImageIdentifier(identifier string) bool {
 		"dark_theme_logo":  2,
 		"light_theme_logo": 3,
 		"avatar":           4,
+		"main_photo":       5,
+		"gallery_photo_1":  6,
+		"gallery_photo_2":  7,
+		"gallery_photo_3":  8,
 	}
 
 	_, ok := mapping[identifier]

@@ -107,7 +107,10 @@ func main() {
 
 	publicRoute.GET("/geojson/venues", apiHandler.GetGeojsonVenues) // TODO: check!
 
-	publicRoute.GET("/organizations", apiHandler.GetOrganizations) // TODO: check!
+	publicRoute.GET("/organization/:organizationId", apiHandler.GetOrganization) // TODO: check!
+	publicRoute.GET("/organizations", apiHandler.GetOrganizations)               // TODO: check!
+
+	publicRoute.GET("/venue/:venueId", apiHandler.GetVenue)
 
 	publicRoute.GET("/user/:userId/avatar/:size", apiHandler.GetUserAvatar) // TODO: check!
 	publicRoute.GET("/user/:userId/avatar", apiHandler.GetUserAvatar)       // TODO: check!
@@ -133,8 +136,6 @@ func main() {
 	publicRoute.GET("/choosable-event-genres/event-type/:id", apiHandler.GetChoosableEventGenres)                // TODO: check!
 
 	publicRoute.GET("/accessibility/flags", apiHandler.GetAccessibilityFlags) // TODO: check!
-
-	publicRoute.GET("/organization/:organizationId", apiHandler.GetOrganization) // TODO: check!
 
 	// Inject app middleware into Pluto's image routes
 	pluto.PlutoInstance.RegisterRoutes(publicRoute, app.JWTMiddleware) // TODO: check!

@@ -28,6 +28,7 @@ type Uranus struct {
 	MainDbPool                          *pgxpool.Pool
 	Config                              Config
 	SqlGetOrganization                  string
+	SqlGetVenue                         string
 	SqlGetEvent                         string
 	SqlGetEventDates                    string
 	SqlGetEventsProjected               string
@@ -262,6 +263,7 @@ func (app *Uranus) PrepareSql() error {
 		{"sql/choosable-venue-spaces.sql", &app.SqlChoosableVenueSpaces, nil},
 
 		{"sql/get-organization.sql", &app.SqlGetOrganization, nil},
+		{"sql/get-venue.sql", &app.SqlGetVenue, nil},
 
 		// Admin
 
