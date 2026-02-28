@@ -10,7 +10,7 @@ import (
 // TODO: Review code
 // TODO: Add url parameter
 
-func (h *ApiHandler) GetVenuesGeoJson(gc *gin.Context) {
+func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 	ctx := gc.Request.Context()
 
 	query := app.UranusInstance.SqlGetGeojsonVenues

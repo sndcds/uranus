@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
 	"github.com/sndcds/uranus/sql_utils"
 )
@@ -538,6 +539,97 @@ FROM (
 	}
 
 	gc.JSON(http.StatusOK, gin.H{"venue-summary": venues})
+}
+
+func (h *ApiHandler) GetEventsGeoJSON(gc *gin.Context) {
+	ctx := gc.Request.Context()
+	apiRequest := grains_api.NewRequest(gc, "get-events-geojson")
+
+	dateConditions, conditionsStr, limitClause, args, _, err := h.buildEventFilters(gc)
+	if err != nil {
+		apiRequest.Error(http.StatusBadRequest, "")
+		return
+	}
+
+	query := app.UranusInstance.SqlGetEventsGeoJSON
+	query = strings.Replace(query, "{{date_conditions}}", dateConditions, 1)
+	query = strings.Replace(query, "{{conditions}}", conditionsStr, 1)
+	query = strings.Replace(query, "{{limit}}", limitClause, 1)
+
+	debugf(query)
+	debugf("ARGS (%d):\n", len(args))
+	for i, arg := range args {
+		fmt.Printf("  $%d = %#v (type %T)\n", i+1, arg, arg)
+	}
+
+	rows, err := h.DbPool.Query(ctx, query, args...)
+	if err != nil {
+		debugf("internal server error: %v", err.Error())
+		apiRequest.InternalServerError()
+		return
+	}
+	defer rows.Close()
+
+	type EventResponse struct {
+		EventDateId  int      `json:"event_date_id"`
+		EventId      int      `json:"event_id"`
+		VenueId      *int     `json:"venue_id"`
+		VenueName    *string  `json:"venue_name"`
+		VenueCity    *string  `json:"venue_city"`
+		VenueCountry *string  `json:"venue_country"`
+		VenueLat     *float64 `json:"venue_lat"`
+		VenueLon     *float64 `json:"venue_lon"`
+		Title        string   `json:"title"`
+		StartDate    string   `json:"start_date"`
+		StartTime    *string  `json:"start_time"`
+	}
+
+	var events []EventResponse
+
+	for rows.Next() {
+		var e EventResponse
+		if err := rows.Scan(
+			&e.EventDateId,
+			&e.EventId,
+			&e.VenueId,
+			&e.VenueName,
+			&e.VenueCity,
+			&e.VenueCountry,
+			&e.VenueLon,
+			&e.VenueLat,
+			&e.Title,
+			&e.StartDate,
+			&e.StartTime,
+		); err != nil {
+			debugf("internal server error: %v", err.Error())
+			apiRequest.InternalServerError()
+			return
+		}
+		events = append(events, e)
+	}
+
+	if len(events) == 0 {
+		apiRequest.NotFound("no events found")
+		return
+	}
+
+	apiRequest.SetMeta("event_count", len(events))
+
+	lastEvent := events[len(events)-1]
+	lastEventStartAt := lastEvent.StartDate
+	if lastEvent.StartTime != nil {
+		lastEventStartAt += "T" + *lastEvent.StartTime
+	}
+	lastEventDateId := lastEvent.EventDateId
+
+	apiRequest.Success(
+		http.StatusOK,
+		gin.H{
+			"events":              events,
+			"last_event_start_at": lastEventStartAt,
+			"last_event_date_id":  lastEventDateId,
+		},
+		"")
 }
 
 func validateAllowedQueryParams(c *gin.Context, allowed map[string]struct{}) error {
