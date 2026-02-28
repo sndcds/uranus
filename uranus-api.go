@@ -112,6 +112,8 @@ func main() {
 
 	publicRoute.GET("/venue/:venueId", apiHandler.GetVenue)
 
+	publicRoute.GET("/transport/stations", apiHandler.GetTransportStations)
+
 	publicRoute.GET("/user/:userId/avatar/:size", apiHandler.GetUserAvatar) // TODO: check!
 	publicRoute.GET("/user/:userId/avatar", apiHandler.GetUserAvatar)       // TODO: check!
 
