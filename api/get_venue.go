@@ -38,27 +38,32 @@ func (h *ApiHandler) GetVenue(gc *gin.Context) {
 	}
 
 	type VenueResult struct {
-		Id              int                 `json:"id"`
-		Name            *string             `json:"name,omitempty"`
-		Type            *string             `json:"type,omitempty"`
-		TypeName        *string             `json:"type_name,omitempty"`
-		TypeDescription *string             `json:"type_description,omitempty"`
-		OpenedAt        *string             `json:"opened_at,omitempty"`
-		ClosedAt        *string             `json:"closed_at,omitempty"`
-		Description     *string             `json:"description,omitempty"`
-		Street          *string             `json:"street,omitempty"`
-		HouseNumber     *string             `json:"house_number,omitempty"`
-		PostalCode      *string             `json:"postal_code,omitempty"`
-		City            *string             `json:"city,omitempty"`
-		Country         *string             `json:"country,omitempty"`
-		State           *string             `json:"state,omitempty"`
-		ContactEmail    *string             `json:"contact_email,omitempty"`
-		ContactPhone    *string             `json:"contact_phone,omitempty"`
-		WebsiteLink     *string             `json:"website_link,omitempty"`
-		Lon             *float64            `json:"lon,omitempty"`
-		Lat             *float64            `json:"lat,omitempty"`
-		Organization    *OrganizationResult `json:"organization,omitempty"`
-		Spaces          []SpaceResult       `json:"spaces,omitempty"`
+		Id                   int                 `json:"id"`
+		Name                 *string             `json:"name,omitempty"`
+		Type                 *string             `json:"type,omitempty"`
+		TypeName             *string             `json:"type_name,omitempty"`
+		TypeDescription      *string             `json:"type_description,omitempty"`
+		OpenedAt             *string             `json:"opened_at,omitempty"`
+		ClosedAt             *string             `json:"closed_at,omitempty"`
+		Summary              *string             `json:"summary,omitempty"`
+		Description          *string             `json:"description,omitempty"`
+		Street               *string             `json:"street,omitempty"`
+		HouseNumber          *string             `json:"house_number,omitempty"`
+		PostalCode           *string             `json:"postal_code,omitempty"`
+		City                 *string             `json:"city,omitempty"`
+		Country              *string             `json:"country,omitempty"`
+		State                *string             `json:"state,omitempty"`
+		ContactEmail         *string             `json:"contact_email,omitempty"`
+		ContactPhone         *string             `json:"contact_phone,omitempty"`
+		WebsiteLink          *string             `json:"website_link,omitempty"`
+		TicketLink           *string             `json:"ticket_link,omitempty"`
+		TicketInfo           *string             `json:"ticket_info,omitempty"`
+		Lon                  *float64            `json:"lon,omitempty"`
+		Lat                  *float64            `json:"lat,omitempty"`
+		AccessibilityFlags   *string             `json:"accessibility_flags,omitempty"`
+		AccessibilitySummary *string             `json:"accessibility_summary,omitempty"`
+		Organization         *OrganizationResult `json:"organization,omitempty"`
+		Spaces               []SpaceResult       `json:"spaces,omitempty"`
 	}
 
 	venueId, ok := ParamInt(gc, "venueId")
@@ -87,6 +92,7 @@ func (h *ApiHandler) GetVenue(gc *gin.Context) {
 		&venue.TypeDescription,
 		&venue.OpenedAt,
 		&venue.ClosedAt,
+		&venue.Summary,
 		&venue.Description,
 		&venue.Street,
 		&venue.HouseNumber,
@@ -97,8 +103,12 @@ func (h *ApiHandler) GetVenue(gc *gin.Context) {
 		&venue.ContactEmail,
 		&venue.ContactPhone,
 		&venue.WebsiteLink,
+		&venue.TicketLink,
+		&venue.TicketInfo,
 		&venue.Lon,
 		&venue.Lat,
+		&venue.AccessibilityFlags,
+		&venue.AccessibilitySummary,
 		&org.Id,
 		&org.Name,
 		&org.WebsiteLink,

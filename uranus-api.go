@@ -105,7 +105,7 @@ func main() {
 	publicRoute.GET("/event/:eventId/date/:dateId", apiHandler.GetEventByDateId)
 	publicRoute.GET("/event/:eventId/date/:dateId/ics", apiHandler.GetEventDateICS) // TODO: check!
 
-	publicRoute.GET("/geojson/venues", apiHandler.GetGeojsonVenues) // TODO: check!
+	publicRoute.GET("/venues/geojson", apiHandler.GetVenuesGeoJson) // TODO: check!
 
 	publicRoute.GET("/organization/:organizationId", apiHandler.GetOrganization) // TODO: check!
 	publicRoute.GET("/organizations", apiHandler.GetOrganizations)               // TODO: check!

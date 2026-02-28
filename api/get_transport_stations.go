@@ -105,5 +105,7 @@ func (h *ApiHandler) GetTransportStations(gc *gin.Context) {
 		results = append(results, s)
 	}
 
+	apiRequest.SetMeta("station_count", len(results))
+
 	apiRequest.Success(http.StatusOK, results, "")
 }
