@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
 )
 
@@ -12,12 +13,17 @@ import (
 
 func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 	ctx := gc.Request.Context()
+	apiRequest := grains_api.NewRequest(gc, "get-venues-geojson")
+
+	lang := gc.DefaultQuery("lang", "en")
+	apiRequest.SetMeta("language", lang)
 
 	query := app.UranusInstance.SqlGetGeojsonVenues
+
 	// TODO: languageStr, default "en"
 	rows, err := h.DbPool.Query(ctx, query, "en")
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		apiRequest.InternalServerError()
 		return
 	}
 	defer rows.Close()
@@ -30,11 +36,11 @@ func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 	}
 
 	// Iterate over rows and build JSON
-	var results []map[string]interface{}
+	var venues []map[string]interface{}
 	for rows.Next() {
 		values, err := rows.Values()
 		if err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			apiRequest.InternalServerError()
 			return
 		}
 
@@ -42,18 +48,19 @@ func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 		for i, col := range columnNames {
 			rowMap[col] = values[i]
 		}
-		results = append(results, rowMap)
+		venues = append(venues, rowMap)
 	}
 
 	if rows.Err() != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": rows.Err().Error()})
+		apiRequest.InternalServerError()
 		return
 	}
 
-	if len(results) == 0 {
-		gc.JSON(http.StatusNoContent, gin.H{"message": "query returned 0 results"})
+	if len(venues) == 0 {
+		apiRequest.NoContent("no venues found")
 		return
 	}
+	apiRequest.SetMeta("venues_count", len(venues))
 
-	gc.IndentedJSON(http.StatusOK, results)
+	apiRequest.Success(http.StatusOK, gin.H{"venues": venues}, "")
 }

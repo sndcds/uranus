@@ -545,6 +545,7 @@ func (h *ApiHandler) GetEventsGeoJSON(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	apiRequest := grains_api.NewRequest(gc, "get-events-geojson")
 
+	// Build SQL
 	dateConditions, conditionsStr, limitClause, args, _, err := h.buildEventFilters(gc)
 	if err != nil {
 		apiRequest.Error(http.StatusBadRequest, "")
@@ -570,6 +571,7 @@ func (h *ApiHandler) GetEventsGeoJSON(gc *gin.Context) {
 	}
 	defer rows.Close()
 
+	// Event scan type
 	type EventResponse struct {
 		EventDateId  int      `json:"event_date_id"`
 		EventId      int      `json:"event_id"`
@@ -583,6 +585,16 @@ func (h *ApiHandler) GetEventsGeoJSON(gc *gin.Context) {
 		StartDate    string   `json:"start_date"`
 		StartTime    *string  `json:"start_time"`
 	}
+
+	type VenueEvents struct {
+		Name       string          `json:"name"`
+		Lon        *float64        `json:"lon"`
+		Lat        *float64        `json:"lat"`
+		Events     []EventResponse `json:"events"`
+		EventCount int             `json:"event_count"`
+	}
+
+	venues := make(map[int]*VenueEvents)
 
 	var events []EventResponse
 
@@ -605,11 +617,33 @@ func (h *ApiHandler) GetEventsGeoJSON(gc *gin.Context) {
 			apiRequest.InternalServerError()
 			return
 		}
+
 		events = append(events, e)
+
+		// Skip events without a venue
+		if e.VenueId == nil {
+			continue
+		}
+
+		if e.VenueId != nil {
+			vId := *e.VenueId
+			if _, exists := venues[vId]; !exists {
+				venues[vId] = &VenueEvents{
+					Name:   derefString(e.VenueName, ""),
+					Lon:    e.VenueLon,
+					Lat:    e.VenueLat,
+					Events: []EventResponse{},
+					// don't set EventCount yet
+				}
+			}
+
+			venues[vId].Events = append(venues[vId].Events, e)
+			venues[vId].EventCount = len(venues[vId].Events)
+		}
 	}
 
 	if len(events) == 0 {
-		apiRequest.NotFound("no events found")
+		apiRequest.NoContent("no events found")
 		return
 	}
 
@@ -625,11 +659,12 @@ func (h *ApiHandler) GetEventsGeoJSON(gc *gin.Context) {
 	apiRequest.Success(
 		http.StatusOK,
 		gin.H{
-			"events":              events,
+			"venues":              venues,
 			"last_event_start_at": lastEventStartAt,
 			"last_event_date_id":  lastEventDateId,
 		},
-		"")
+		"",
+	)
 }
 
 func validateAllowedQueryParams(c *gin.Context, allowed map[string]struct{}) error {
@@ -639,4 +674,12 @@ func validateAllowedQueryParams(c *gin.Context, allowed map[string]struct{}) err
 		}
 	}
 	return nil
+}
+
+// Helper for nil strings
+func derefString(s *string, fallback string) string {
+	if s != nil && *s != "" {
+		return *s
+	}
+	return fallback
 }
