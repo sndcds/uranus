@@ -8,8 +8,7 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-// TODO: Review code
-// TODO: Add url parameter
+// TODO: Add query parameters for filtering
 
 func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 	ctx := gc.Request.Context()

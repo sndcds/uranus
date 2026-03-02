@@ -331,11 +331,13 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	query = strings.Replace(query, "{{conditions}}", conditionsStr, 1)
 	query = strings.Replace(query, "{{limit}}", limitClause, 1)
 
-	fmt.Println(query)
-	fmt.Printf("ARGS (%d):\n", len(args))
-	for i, arg := range args {
-		fmt.Printf("  $%d = %#v (type %T)\n", i+1, arg, arg)
-	}
+	/*
+		fmt.Println(query)
+		fmt.Printf("ARGS (%d):\n", len(args))
+		for i, arg := range args {
+			fmt.Printf("  $%d = %#v (type %T)\n", i+1, arg, arg)
+		}
+	*/
 
 	rows, err := h.DbPool.Query(ctx, query, args...)
 	if err != nil {
@@ -410,7 +412,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		}
 
 		if e.ImageId != nil {
-			path := fmt.Sprintf("%s/api/image/%d", h.Config.BaseApiUrl, *e.ImageId)
+			path := ImageUrl(*e.ImageId)
 			e.ImagePath = &path
 		}
 

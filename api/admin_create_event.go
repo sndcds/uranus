@@ -17,6 +17,9 @@ import (
 	"github.com/sndcds/uranus/model"
 )
 
+// TODO: Insert event, add ticket_link
+// TODO: Implement simulation mode without inserting data
+
 type eventPayload struct {
 	ContentLanguage   string                            `json:"content_language" binding:"required"`
 	ReleaseStatus     *string                           `json:"release_status" binding:"required"`
@@ -27,6 +30,7 @@ type eventPayload struct {
 	Summary           *string                           `json:"summary"`
 	Tags              []string                          `json:"tags"`
 	SourceUrl         *string                           `json:"source_url"`
+	SourceImageUrl    *string                           `json:"source_image_url"`
 	OnlineLink        *string                           `json:"online_link"`
 	OrganizationId    *int                              `json:"organization_id" binding:"required"`
 	OrganizationKey   *string                           `json:"organization_key" binding:"required"`
@@ -42,6 +46,7 @@ type eventPayload struct {
 	MaxAttendees      *int                              `json:"max_attendees"`
 	PriceType         model.PriceType                   `json:"price_type"`
 	Currency          *string                           `json:"currency"`
+	TicketLink        *string                           `json:"ticket_link"`
 	TicketFlags       []string                          `json:"ticket_flags"`
 	Custom            *string                           `json:"custom"`
 	Style             *string                           `json:"style"`
@@ -59,10 +64,12 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	// Read the body
 	body, err := io.ReadAll(gc.Request.Body)
 	if err != nil {
+		debugf("Error: %v", err)
 		apiRequest.Error(http.StatusBadRequest, "failed to read request body")
 		return
 	}
 	if len(body) == 0 {
+		debugf("empty request body")
 		apiRequest.Error(http.StatusBadRequest, "empty request body")
 		return
 	}
@@ -75,6 +82,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	if err != nil {
 		var syntaxErr *json.SyntaxError
 		var typeErr *json.UnmarshalTypeError
+		debugf("Error: %v", err)
 
 		switch {
 		case errors.As(err, &syntaxErr):
@@ -95,6 +103,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		return
 	}
 	if decoder.More() {
+		debugf("Error decoder.More()")
 		apiRequest.Error(http.StatusBadRequest, "multiple JSON objects are not allowed")
 		return
 	}
@@ -105,6 +114,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		var unmarshalTypeError *json.UnmarshalTypeError
 		var syntaxErr *json.SyntaxError
 		var invalidUnmarshalError *json.InvalidUnmarshalError
+		debugf("Error: %v", err)
 
 		switch {
 		case errors.As(err, &syntaxErr):
@@ -136,11 +146,13 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	// Validation
 	validationErr := payload.Validate()
 	if validationErr != nil {
+		debugf("Error: %v", validationErr)
 		apiRequest.Error(http.StatusBadRequest, validationErr.Error())
 		return
 	}
 
 	if payload.OrganizationId == nil {
+		debugf("payload.OrganizationId == nil")
 		apiRequest.Error(http.StatusBadRequest, "organizationId is required")
 		return
 	}
@@ -159,6 +171,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		if payload.VenueId != nil {
 			venuePermissions, err := h.GetUserEffectiveVenuePermissions(gc, tx, userId, *payload.VenueId)
 			if err != nil {
+				debugf("Error: %v", err)
 				return &ApiTxError{Code: http.StatusForbidden, Err: err}
 			}
 			if !venuePermissions.Has(app.PermChooseVenue) {
@@ -229,6 +242,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 					return &ApiTxError{Code: http.StatusInternalServerError, Err: err}
 				}
 				if !venuePermissions.Has(app.PermChooseVenue) {
+					debugf("Forbidden userId %d, venueId: %d", userId, *d.VenueId)
 					return ApiErrForbidden("")
 				}
 
@@ -259,6 +273,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 				d.AllDay,
 				userId)
 			if err != nil {
+				debugf("Error: %v", err)
 				return &ApiTxError{
 					Code: http.StatusInternalServerError,
 					Err:  fmt.Errorf("failed to insert event_date: %v", err),
@@ -287,6 +302,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 
 		err = RefreshEventProjections(ctx, tx, "event", []int{newEventId})
 		if err != nil {
+			debugf("Error: %v", err)
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
 				Err:  fmt.Errorf("refresh projection tables failed: %v", err),
@@ -295,6 +311,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 
 		err = RefreshEventProjections(ctx, tx, "event", []int{newEventId})
 		if err != nil {
+			debugf("Error: %v", err)
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
 				Err:  fmt.Errorf("refresh projection tables failed: %v", err),
@@ -308,8 +325,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		return
 	}
 
-	apiRequest.Metadata["created_event_id"] = newEventId
-	apiRequest.SuccessNoData(http.StatusCreated, "")
+	apiRequest.Success(http.StatusCreated, gin.H{"created_event_id": newEventId}, "")
 }
 
 // Validate validates the eventPayload struct
@@ -365,9 +381,11 @@ func (e *eventPayload) Validate() error {
 	}
 
 	// Validate VenueId
+	/* 2026-03-01, venueId not neccessary anymore in event
 	if !e.hasVenue() {
 		errs = append(errs, "event must have venueId")
 	}
+	*/
 
 	// Validate ExternalId (optional)
 	if err := app.ValidateOptionalNonEmptyString("external_id", e.ExternalId); err != nil {

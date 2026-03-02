@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -113,7 +112,7 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 	for rows.Next() {
 		var img model.Image
 		rows.Scan(&img.Id, &img.Identifier, &img.FocusX, &img.FocusY, &img.Alt, &img.Copyright, &img.Creator, &img.License)
-		img.Url = fmt.Sprintf("%s/api/image/%d", h.Config.BaseApiUrl, img.Id)
+		img.Url = ImageUrl(img.Id)
 		event.Images = append(event.Images, img)
 	}
 

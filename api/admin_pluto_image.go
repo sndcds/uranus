@@ -62,6 +62,8 @@ func (h *ApiHandler) AdminUpsertPlutoImage(gc *gin.Context) {
 	userId := h.userId(gc)
 	apiRequest := grains_api.NewRequest(gc, "admin-upsert-pluto-image")
 
+	// TODO: Check user permissions for different contexts
+
 	context := gc.Param("context")
 	debugf("context: %s", context)
 	apiRequest.SetMeta("pluto_context", context)
@@ -99,15 +101,19 @@ func (h *ApiHandler) AdminUpsertPlutoImage(gc *gin.Context) {
 		apiRequest.InternalServerError()
 		return
 	}
+	debugf("fileNamePrefix: %s", fileNamePrefix)
 
 	// Upsert image in Pluto
 	plutoUpsertImageResult, err := pluto.UpsertImage(
 		gc, context, contextId, identifier, &fileNamePrefix, userId,
 		refresher(context, []int{contextId}))
 	if err != nil || plutoUpsertImageResult.HttpStatus != http.StatusOK {
+		debugf("err: %v", err)
 		gc.JSON(plutoUpsertImageResult.HttpStatus, gin.H{"error": plutoUpsertImageResult.Message})
 		return
 	}
+
+	debugf("ok")
 
 	apiRequest.SetMeta("file_replaced", plutoUpsertImageResult.FileRemovedFlag)
 	apiRequest.SetMeta("cache_removed_count", plutoUpsertImageResult.CacheFilesRemoved)

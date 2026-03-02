@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -166,15 +165,15 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 
 		// Generate VenueLogoUrl if logo exists
 		if edd.VenueLogoImageId != nil {
-			url := fmt.Sprintf("%s/api/image/%d", app.UranusInstance.Config.BaseApiUrl, *edd.VenueLogoImageId)
+			url := ImageUrl(*edd.VenueLogoImageId)
 			edd.VenueLogoUrl = &url
 		}
 		if edd.VenueLightThemeLogoImageId != nil {
-			url := fmt.Sprintf("%s/api/image/%d", app.UranusInstance.Config.BaseApiUrl, *edd.VenueLightThemeLogoImageId)
+			url := ImageUrl(*edd.VenueLightThemeLogoImageId)
 			edd.VenueLightThemeLogoUrl = &url
 		}
 		if edd.VenueDarkThemeLogoImageId != nil {
-			url := fmt.Sprintf("%s/api/image/%d", app.UranusInstance.Config.BaseApiUrl, *edd.VenueDarkThemeLogoImageId)
+			url := ImageUrl(*edd.VenueDarkThemeLogoImageId)
 			edd.VenueDarkThemeLogoUrl = &url
 		}
 

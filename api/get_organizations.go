@@ -6,26 +6,29 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sndcds/grains/grains_api"
 )
 
-// TODO: Review code
-
-type Organization struct {
-	ID           int     `json:"id"`
-	Name         *string `json:"name"`
-	City         *string `json:"city"`
-	Country      *string `json:"country"`
-	ContactEmail *string `json:"contact_email"`
-}
+// TODO: Add filter options, e.g. lat/lon/radius
 
 func (h *ApiHandler) GetOrganizations(gc *gin.Context) {
 	ctx := gc.Request.Context()
+	apiRequest := grains_api.NewRequest(gc, "get organizations")
+
+	type OrganizationResult struct {
+		Id           int     `json:"id"`
+		Name         *string `json:"name"`
+		City         *string `json:"city"`
+		Country      *string `json:"country"`
+		ContactEmail *string `json:"contact_email"`
+	}
 
 	searchStr := strings.TrimSpace(gc.Query("search"))
 	if len(searchStr) < 1 {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "URL argument search is required"})
+		apiRequest.Error(http.StatusBadRequest, "URL argument search is required")
 		return
 	}
+	apiRequest.SetMeta("search", searchStr)
 	var isEmail = strings.Contains(searchStr, "@")
 
 	var query string
@@ -38,20 +41,24 @@ func (h *ApiHandler) GetOrganizations(gc *gin.Context) {
 	searchPattern := "%" + searchStr + "%"
 	rows, err := h.DbPool.Query(ctx, query, searchPattern)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		apiRequest.InternalServerError()
 		return
 	}
 	defer rows.Close()
 
-	var organizations []Organization
+	var organizations []OrganizationResult
 	for rows.Next() {
-		var o Organization
-		if err := rows.Scan(&o.ID, &o.Name, &o.City, &o.Country, &o.ContactEmail); err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		var o OrganizationResult
+		if err := rows.Scan(&o.Id, &o.Name, &o.City, &o.Country, &o.ContactEmail); err != nil {
+			apiRequest.InternalServerError()
 			return
 		}
 		organizations = append(organizations, o)
 	}
-
-	gc.JSON(http.StatusOK, organizations)
+	if len(organizations) == 0 {
+		apiRequest.NotFound("no organizations found")
+		return
+	}
+	apiRequest.SetMeta("organization_count", len(organizations))
+	apiRequest.Success(http.StatusOK, organizations, "")
 }

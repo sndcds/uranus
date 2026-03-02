@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sndcds/uranus/app"
 )
 
 func IsEventImageIdentifier(identifier string) bool {
@@ -84,4 +85,12 @@ func (h *ApiHandler) UpsertImage(
 	}
 
 	return plutoImageId, nil
+}
+
+func ImageUrl(imageID int) string {
+	return fmt.Sprintf(
+		"%s/api/image/%d",
+		app.UranusInstance.Config.BaseApiUrl,
+		imageID,
+	)
 }
