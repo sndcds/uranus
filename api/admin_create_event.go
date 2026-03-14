@@ -13,6 +13,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/grains/grains_api"
+	"github.com/sndcds/grains/grains_json"
+	"github.com/sndcds/grains/grains_validation"
 	"github.com/sndcds/uranus/app"
 	"github.com/sndcds/uranus/model"
 )
@@ -24,13 +26,13 @@ type eventPayload struct {
 	ContentLanguage   string                            `json:"content_language" binding:"required"`
 	ReleaseStatus     *string                           `json:"release_status" binding:"required"`
 	ReleaseDate       *string                           `json:"release_date"`
+	Categories        grains_json.IntArray              `json:"categories" binding:"required"`
 	Title             string                            `json:"title" binding:"required"`
 	Description       string                            `json:"description" binding:"required"`
 	Subtitle          *string                           `json:"subtitle"`
 	Summary           *string                           `json:"summary"`
 	Tags              []string                          `json:"tags"`
 	SourceUrl         *string                           `json:"source_url"`
-	SourceImageUrl    *string                           `json:"source_image_url"`
 	OnlineLink        *string                           `json:"online_link"`
 	OrganizationId    *int                              `json:"organization_id" binding:"required"`
 	OrganizationKey   *string                           `json:"organization_key" binding:"required"`
@@ -60,6 +62,10 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userId := h.userId(gc)
 	apiRequest := grains_api.NewRequest(gc, "create-event")
+
+	// TODO: Implement test mode without commit the transaction
+	// TODO: Verify OrganizationKey
+	// TODO: TicketFlags
 
 	// Read the body
 	body, err := io.ReadAll(gc.Request.Body)
@@ -187,13 +193,14 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			space_id,
 			external_id,
 		  	release_status,
+		  	categories,
 			title,
 			subtitle,
 			description,
 			summary,
 		  	languages,
 			created_by
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		RETURNING id`
 		query := strings.Replace(insertEventQuery, "{{schema}}", h.DbSchema, 1)
 
@@ -204,6 +211,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			payload.SpaceId,
 			payload.ExternalId,
 			payload.ReleaseStatus,
+			payload.Categories,
 			payload.Title,
 			payload.Subtitle,
 			payload.Description,
@@ -331,6 +339,10 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 // Validate validates the eventPayload struct
 func (e *eventPayload) Validate() error {
 	var errs []string
+
+	if !grains_validation.ValidateArrayIntegers(e.Categories, 1, 6) {
+		errs = append(errs, "categories validation failed")
+	}
 
 	// Validate Title
 	if strings.TrimSpace(e.Title) == "" {
@@ -569,28 +581,18 @@ func validateEventDate(e model.EventDatePayload, index int) []string {
 
 	// Rule: start_date >= today
 	now := time.Now()
-	today := time.Date(
-		now.Year(), now.Month(), now.Day(),
-		0, 0, 0, 0,
-		now.Location(),
-	)
-
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	if startDate.Before(today) {
-		errs = append(errs,
-			fmt.Sprintf("dates[%d].start_date must be today or in the future", index),
-		)
+		errs = append(errs, fmt.Sprintf("dates[%d].start_date must be today or in the future", index))
 	}
 
 	// Parse optional end_date
 	var endDate time.Time
 	hasEndDate := false
-
 	if e.EndDate != nil {
 		endDate, err = time.Parse("2006-01-02", *e.EndDate)
 		if err != nil {
-			errs = append(errs,
-				fmt.Sprintf("dates[%d].end_date has invalid format (expected YYYY-MM-DD)", index),
-			)
+			errs = append(errs, fmt.Sprintf("dates[%d].end_date has invalid format (expected YYYY-MM-DD)", index))
 		} else {
 			hasEndDate = true
 		}
@@ -599,52 +601,41 @@ func validateEventDate(e model.EventDatePayload, index int) []string {
 	// Parse optional end_time
 	var endTime time.Time
 	hasEndTime := false
-
 	if e.EndTime != nil {
 		endTime, err = time.Parse("15:04", *e.EndTime)
 		if err != nil {
-			errs = append(errs,
-				fmt.Sprintf("dates[%d].end_time has invalid format (expected HH:MM)", index),
-			)
+			errs = append(errs, fmt.Sprintf("dates[%d].end_time has invalid format (expected HH:MM)", index))
 		} else {
 			hasEndTime = true
 		}
 	}
 
-	// Rule: end_date > start_date
-	if hasEndDate && !endDate.After(startDate) {
-		errs = append(errs,
-			fmt.Sprintf("dates[%d].end_date must be after start_date", index),
-		)
+	// Rule: end_date > start_date if both exist
+	if hasEndDate && endDate.Before(startDate) {
+		errs = append(errs, fmt.Sprintf("dates[%d].end_date must be equal or after start_date", index))
 	}
 
-	// Rule: end_time validation
-	if hasEndTime {
-		// If no end_date, assume same day as start_date
-		compareDate := startDate
-		if hasEndDate {
-			compareDate = endDate
+	// Rule: same-day end_time must exist and be after start_time
+	if hasEndDate && endDate.Equal(startDate) {
+		if !hasEndTime {
+			errs = append(errs, fmt.Sprintf("dates[%d].end_time must be provided when end_date equals start_date", index))
+		} else if !endTime.After(startTime) {
+			errs = append(errs, fmt.Sprintf("dates[%d].end_time must be after start_time when start_date equals end_date", index))
 		}
-
-		// Same-day check → end_time must be after start_time
-		if compareDate.Equal(startDate) && !endTime.After(startTime) {
-			errs = append(errs,
-				fmt.Sprintf("dates[%d].end_time must be after start_time", index),
-			)
+	} else if !hasEndDate && hasEndTime {
+		// If no end_date but end_time exists, assume same-day
+		if !endTime.After(startTime) {
+			errs = append(errs, fmt.Sprintf("dates[%d].end_time must be after start_time", index))
 		}
 	}
 
-	// Rule: entry_time < start_time
+	// Rule: entry_time <= start_time
 	if e.EntryTime != nil {
 		entryTime, err := time.Parse("15:04", *e.EntryTime)
 		if err != nil {
-			errs = append(errs,
-				fmt.Sprintf("dates[%d].entry_time has invalid format (expected HH:MM)", index),
-			)
+			errs = append(errs, fmt.Sprintf("dates[%d].entry_time has invalid format (expected HH:MM)", index))
 		} else if entryTime.After(startTime) {
-			errs = append(errs,
-				fmt.Sprintf("dates[%d].entry_time must be before or equal start_time", index),
-			)
+			errs = append(errs, fmt.Sprintf("dates[%d].entry_time must be before or equal start_time", index))
 		}
 	}
 

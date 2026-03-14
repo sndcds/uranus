@@ -65,16 +65,16 @@ func (h *ApiHandler) AdminUpsertPlutoImage(gc *gin.Context) {
 	// TODO: Check user permissions for different contexts
 
 	context := gc.Param("context")
-	debugf("context: %s", context)
 	apiRequest.SetMeta("pluto_context", context)
+	debugf("context: %s", context)
 
 	contextId, ok := ParamInt(gc, "contextId")
 	if !ok {
 		apiRequest.Error(http.StatusBadRequest, "contextId is required")
 		return
 	}
-	debugf("contextId: %s", contextId)
 	apiRequest.SetMeta("pluto_context_id", contextId)
+	debugf("contextId: %s", contextId)
 
 	validator, err := validatorByContext(context)
 	if err != nil {
@@ -89,8 +89,8 @@ func (h *ApiHandler) AdminUpsertPlutoImage(gc *gin.Context) {
 	}
 
 	identifier := gc.Param("identifier")
-	debugf("identifier: %s", identifier)
 	apiRequest.SetMeta("pluto_image_identifier", identifier)
+	debugf("identifier: %s", identifier)
 	if !validator(identifier) {
 		apiRequest.Error(http.StatusBadRequest, "unknown identifier")
 		return
@@ -113,7 +113,7 @@ func (h *ApiHandler) AdminUpsertPlutoImage(gc *gin.Context) {
 		return
 	}
 
-	debugf("ok")
+	debugf("pluto.UpsertImage ok")
 
 	apiRequest.SetMeta("file_replaced", plutoUpsertImageResult.FileRemovedFlag)
 	apiRequest.SetMeta("cache_removed_count", plutoUpsertImageResult.CacheFilesRemoved)

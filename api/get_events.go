@@ -21,44 +21,43 @@ type eventType struct {
 
 // eventResponse is the JSON structure for each event
 type eventResponse struct {
-	EventDateId              int         `json:"event_date_id"`
-	Id                       int         `json:"id"` // event_id
-	Title                    string      `json:"title"`
-	Subtitle                 *string     `json:"subtitle"`
-	StartDate                string      `json:"start_date"`
-	StartTime                string      `json:"start_time,omitempty"`
-	EndDate                  *string     `json:"end_date,omitempty"`
-	EndTime                  *string     `json:"end_time,omitempty"`
-	EntryTime                *string     `json:"entry_time,omitempty"`
-	Duration                 *int        `json:"duration,omitempty"`
-	AllDay                   *bool       `json:"all_day,omitempty"`
-	TicketLink               *string     `json:"ticket_link,omitempty"`
-	SpaceId                  *int        `json:"space_id,omitempty"`
-	SpaceName                *string     `json:"space_name,omitempty"`
-	SpaceAccessibilityFlags  *string     `json:"space_accessibility_flags,omitempty"`
-	VenueId                  *int        `json:"venue_id,omitempty"`
-	VenueName                *string     `json:"venue_name,omitempty"`
-	VenueCity                *string     `json:"venue_city,omitempty"`
-	VenueStreet              *string     `json:"venue_street,omitempty"`
-	VenueHouse               *string     `json:"venue_house_number,omitempty"`
-	VenuePostal              *string     `json:"venue_postal_code,omitempty"`
-	VenueState               *string     `json:"venue_state,omitempty"`
-	VenueCountry             *string     `json:"venue_country,omitempty"`
-	VenueLat                 *float64    `json:"venue_lat,omitempty"`
-	VenueLon                 *float64    `json:"venue_lon,omitempty"`
-	ImageId                  *int        `json:"image_id,omitempty"`
-	ImagePath                *string     `json:"image_path,omitempty"`
-	OrganizationId           int         `json:"organization_id"`
-	OrganizationName         string      `json:"organization_name"`
-	Categories               []int       `json:"categories,omitempty"`
-	SecondaryEventCategoryId *int        `json:"secondary_event_category_id,omitempty"`
-	EventTypes               []eventType `json:"event_types,omitempty"`
-	Languages                []string    `json:"languages"`
-	Tags                     []string    `json:"tags"`
-	MinAge                   *int        `json:"min_age"`
-	MaxAge                   *int        `json:"max_age"`
-	VisitorInfoFlags         *string     `json:"visitor_info_flags,omitempty"`
-	ReleaseStatus            *string     `json:"release_status,omitempty"`
+	EventDateId             int         `json:"event_date_id"`
+	Id                      int         `json:"id"` // event_id
+	Title                   string      `json:"title"`
+	Subtitle                *string     `json:"subtitle"`
+	StartDate               string      `json:"start_date"`
+	StartTime               string      `json:"start_time,omitempty"`
+	EndDate                 *string     `json:"end_date,omitempty"`
+	EndTime                 *string     `json:"end_time,omitempty"`
+	EntryTime               *string     `json:"entry_time,omitempty"`
+	Duration                *int        `json:"duration,omitempty"`
+	AllDay                  *bool       `json:"all_day,omitempty"`
+	TicketLink              *string     `json:"ticket_link,omitempty"`
+	SpaceId                 *int        `json:"space_id,omitempty"`
+	SpaceName               *string     `json:"space_name,omitempty"`
+	SpaceAccessibilityFlags *string     `json:"space_accessibility_flags,omitempty"`
+	VenueId                 *int        `json:"venue_id,omitempty"`
+	VenueName               *string     `json:"venue_name,omitempty"`
+	VenueCity               *string     `json:"venue_city,omitempty"`
+	VenueStreet             *string     `json:"venue_street,omitempty"`
+	VenueHouse              *string     `json:"venue_house_number,omitempty"`
+	VenuePostal             *string     `json:"venue_postal_code,omitempty"`
+	VenueState              *string     `json:"venue_state,omitempty"`
+	VenueCountry            *string     `json:"venue_country,omitempty"`
+	VenueLat                *float64    `json:"venue_lat,omitempty"`
+	VenueLon                *float64    `json:"venue_lon,omitempty"`
+	ImageId                 *int        `json:"image_id,omitempty"`
+	ImagePath               *string     `json:"image_path,omitempty"`
+	OrganizationId          int         `json:"organization_id"`
+	OrganizationName        string      `json:"organization_name"`
+	Categories              []int       `json:"categories,omitempty"`
+	EventTypes              []eventType `json:"event_types,omitempty"`
+	Languages               []string    `json:"languages"`
+	Tags                    []string    `json:"tags"`
+	MinAge                  *int        `json:"min_age"`
+	MaxAge                  *int        `json:"max_age"`
+	VisitorInfoFlags        *string     `json:"visitor_info_flags,omitempty"`
+	ReleaseStatus           *string     `json:"release_status,omitempty"`
 }
 
 // buildEventFilters parses all query parameters from the context
@@ -78,7 +77,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 ) {
 
 	allowed := map[string]struct{}{
-		"category": {}, "past": {}, "start": {}, "end": {}, "time": {}, "search": {},
+		"categories": {}, "past": {}, "start": {}, "end": {}, "time": {}, "search": {},
 		"events": {}, "venues": {}, "spaces": {}, "space_types": {},
 		"organizations": {}, "countries": {}, "postal_code": {},
 		"title": {}, "city": {}, "event_types": {}, "tags": {},
@@ -98,7 +97,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 
 	_, hasPast := GetContextParam(gc, "past")
 	// languagesStr, _ := GetContextParam(gc, "language") // TODO: Implement language support!
-	categoryStr, hasCategory := GetContextParam(gc, "category")
+	categoriesStr, hasCategories := GetContextParam(gc, "categories")
 	startStr, _ := GetContextParam(gc, "start")
 	endStr, _ := GetContextParam(gc, "end")
 	lastEventStartAt, _ := GetContextParam(gc, "last_event_start_at")
@@ -128,9 +127,9 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 
 	var errBuild error
 
-	if hasCategory {
+	if hasCategories {
 		argIndex, errBuild = sql_utils.BuildColumnArrayOverlapCondition(
-			categoryStr, "ep.categories", argIndex, &conditions, &args)
+			categoriesStr, "ep.categories", argIndex, &conditions, &args)
 		if errBuild != nil {
 			return "", "", "", nil, 0, errBuild
 		}
