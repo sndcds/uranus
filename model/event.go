@@ -1,10 +1,10 @@
 package model
 
 import (
-	"database/sql"
 	"time"
 )
 
+/*
 type TicketFlag string
 
 const (
@@ -13,6 +13,7 @@ const (
 	OnSiteTicketSales    TicketFlag = "on_site_ticket_sales"
 	RegistrationRequired TicketFlag = "registration_required"
 )
+*/
 
 type PriceType string
 
@@ -215,30 +216,30 @@ type AdminEventDate struct {
 }
 
 type AdminListEvent struct {
-	Id               int           `json:"id"`
-	DateId           sql.NullInt64 `json:"date_id"`
-	ReleaseStatus    *string       `json:"release_status"`
-	ReleaseDate      *string       `json:"release_date,omitempty"`
-	CanEditEvent     bool          `json:"can_edit_event"`
-	CanDeleteEvent   bool          `json:"can_delete_event"`
-	CanReleaseEvent  bool          `json:"can_release_event"`
-	OrganizationId   int           `json:"organization_id"`
-	OrganizationName *string       `json:"organization_name"`
-	VenueId          *int          `json:"venue_id,omitempty"`
-	VenueName        *string       `json:"venue_name,omitempty"`
-	SpaceId          *int          `json:"space_id,omitempty"`
-	SpaceName        *string       `json:"space_name,omitempty"`
-	ImageId          *int          `json:"image_id,omitempty"`
-	ImageUrl         *string       `json:"image_url,omitempty"`
-	SeriesIndex      int           `json:"series_index,omitempty"`
-	SeriesTotal      int           `json:"series_total,omitempty"`
-	StartDate        *string       `json:"start_date"`
-	StartTime        *string       `json:"start_time"`
-	EndDate          *string       `json:"end_date,omitempty"`
-	EndTime          *string       `json:"end_time,omitempty"`
-	Title            string        `json:"title"`
-	Subtitle         *string       `json:"subtitle,omitempty"`
-	EventTypes       []EventType   `json:"event_types,omitempty"`
+	Id               int         `json:"id"`
+	DateId           *int        `json:"date_id"`
+	ReleaseStatus    *string     `json:"release_status"`
+	ReleaseDate      *string     `json:"release_date,omitempty"`
+	CanEditEvent     bool        `json:"can_edit_event"`
+	CanDeleteEvent   bool        `json:"can_delete_event"`
+	CanReleaseEvent  bool        `json:"can_release_event"`
+	OrganizationId   int         `json:"organization_id"`
+	OrganizationName *string     `json:"organization_name"`
+	VenueId          *int        `json:"venue_id,omitempty"`
+	VenueName        *string     `json:"venue_name,omitempty"`
+	SpaceId          *int        `json:"space_id,omitempty"`
+	SpaceName        *string     `json:"space_name,omitempty"`
+	ImageId          *int        `json:"image_id,omitempty"`
+	ImageUrl         *string     `json:"image_url,omitempty"`
+	SeriesIndex      int         `json:"series_index,omitempty"`
+	SeriesTotal      int         `json:"series_total,omitempty"`
+	StartDate        *string     `json:"start_date"`
+	StartTime        *string     `json:"start_time"`
+	EndDate          *string     `json:"end_date,omitempty"`
+	EndTime          *string     `json:"end_time,omitempty"`
+	Title            string      `json:"title"`
+	Subtitle         *string     `json:"subtitle,omitempty"`
+	EventTypes       []EventType `json:"event_types,omitempty"`
 }
 
 // UserEventNotification contains a single event notification

@@ -191,13 +191,13 @@ func (h *ApiHandler) AdminUpsertTodo(gc *gin.Context) {
 
 	args = append(args, userId, payload.Id)
 
-	res, err := h.DbPool.Exec(ctx, query, args...)
+	cmdTag, err := h.DbPool.Exec(ctx, query, args...)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	if res.RowsAffected() == 0 {
+	if cmdTag.RowsAffected() == 0 {
 		gc.JSON(http.StatusNotFound, gin.H{"error": "todo not found"})
 		return
 	}
@@ -219,13 +219,13 @@ func (h *ApiHandler) AdminDeleteTodo(gc *gin.Context) {
 	}
 
 	query := fmt.Sprintf(`DELETE FROM %s.todo WHERE user_id = $1 AND id = $2`, h.DbSchema)
-	res, err := h.DbPool.Exec(ctx, query, userId, todoId)
+	cmdTag, err := h.DbPool.Exec(ctx, query, userId, todoId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("delete failed: %v", err)})
 		return
 	}
 
-	if res.RowsAffected() == 0 {
+	if cmdTag.RowsAffected() == 0 {
 		gc.JSON(http.StatusNotFound, gin.H{"error": "todo not found"})
 		return
 	}

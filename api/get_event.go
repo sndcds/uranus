@@ -180,9 +180,9 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 		if edd.Id == dateId {
 			tmp := edd
 			selectedDate = &tmp
-		} else {
-			furtherDates = append(furtherDates, edd)
 		}
+
+		furtherDates = append(furtherDates, edd)
 	}
 
 	event.Date = selectedDate

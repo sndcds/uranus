@@ -1,11 +1,11 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sndcds/grains/grains_api"
+	"github.com/sndcds/uranus/app"
 )
 
 func (h *ApiHandler) AdminDeleteEvent(gc *gin.Context) {
@@ -26,8 +26,7 @@ func (h *ApiHandler) AdminDeleteEvent(gc *gin.Context) {
 	}
 	apiRequest.SetMeta("event_id", eventId)
 
-	query := fmt.Sprintf(`DELETE FROM %s.event WHERE id = $1`, h.DbSchema)
-	cmdTag, err := h.DbPool.Exec(ctx, query, eventId)
+	cmdTag, err := h.DbPool.Exec(ctx, app.UranusInstance.SqlAdminGetEvent, eventId)
 	if err != nil {
 		apiRequest.Error(http.StatusInternalServerError, "failed to delete event")
 		return

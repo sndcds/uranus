@@ -30,7 +30,7 @@ func (h *ApiHandler) AdminUpdateEventDescription(gc *gin.Context) {
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		query := fmt.Sprintf(`UPDATE %s.event SET description = $2 WHERE id = $1`, h.DbSchema)
 
-		res, err := h.DbPool.Exec(ctx, query, eventId, req.Description)
+		cmdTag, err := h.DbPool.Exec(ctx, query, eventId, req.Description)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
@@ -38,7 +38,7 @@ func (h *ApiHandler) AdminUpdateEventDescription(gc *gin.Context) {
 			}
 		}
 
-		rowsAffected := res.RowsAffected()
+		rowsAffected := cmdTag.RowsAffected()
 		if rowsAffected == 0 {
 			return &ApiTxError{
 				Code: http.StatusNotFound,

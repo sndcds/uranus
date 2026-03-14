@@ -26,6 +26,7 @@ func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 		ReleaseStatus     NullableField[string]   `json:"release_status"`
 		ReleaseDate       NullableField[string]   `json:"release_date"`
 		ContentLanguage   NullableField[string]   `json:"content_language"`
+		Categories        NullableField[[]int]    `json:"categories"`
 		Title             NullableField[string]   `json:"title"`
 		Subtitle          NullableField[string]   `json:"subtitle"`
 		Description       NullableField[string]   `json:"description"`
@@ -64,6 +65,7 @@ func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 	argPos = addUpdateClauseNullable("release_status", payload.ReleaseStatus, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("release_date", payload.ReleaseDate, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("content_iso_639_1", payload.ContentLanguage, &setClauses, &args, argPos)
+	argPos = addUpdateClauseNullable("categories", payload.Categories, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("title", payload.Title, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("subtitle", payload.Subtitle, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("description", payload.Description, &setClauses, &args, argPos)

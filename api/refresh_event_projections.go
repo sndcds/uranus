@@ -194,7 +194,7 @@ func initProjectionSql() {
 		eventProjectionUpsertSql = fmt.Sprintf(`
 INSERT INTO %[1]s.event_projection (
     event_id, organization_id, venue_id, space_id, release_status,
-    title, subtitle, description, summary, image_id, languages, tags, types,
+    title, subtitle, description, summary, image_id, languages, tags, categories, types,
     source_url, online_link, occasion_type_id, max_attendees, min_age, max_age,
     participation_info, meeting_point, ticket_flags,
 	price_type, currency, min_price, max_price, visitor_info_flags,
@@ -220,6 +220,7 @@ SELECT DISTINCT ON (e.id)
     main_image.pluto_image_id AS image_id, -- << refactored here
     e.languages,
     e.tags,
+    e.categories,
     COALESCE(
         (SELECT jsonb_agg(jsonb_build_array(type_id, genre_id))
          FROM %[1]s.event_type_link etl WHERE etl.event_id = e.id),
@@ -297,6 +298,7 @@ ON CONFLICT (event_id) DO UPDATE SET
     image_id = EXCLUDED.image_id,
     languages = EXCLUDED.languages,
     tags = EXCLUDED.tags,
+    categories = EXCLUDED.categories,
     types = EXCLUDED.types,
     source_url = EXCLUDED.source_url,
     online_link = EXCLUDED.online_link,

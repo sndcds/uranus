@@ -335,6 +335,60 @@ func BuildColumnInIntCondition(
 	return argIndex + 1, nil
 }
 
+// BuildColumnArrayOverlapCondition builds a SQL condition for integer array columns using `&&` (overlap).
+// idsInput can be either a string ("1,2,3") or a []int.
+// expr is the SQL column/expression (e.g., "categories").
+// argIndex is the placeholder number ($1, $2, ...).
+// conditions is a pointer to the slice of WHERE conditions to append to.
+// args is a pointer to the slice of query arguments to append to.
+func BuildColumnArrayOverlapCondition(
+	idsInput interface{},
+	expr string,
+	argIndex int,
+	conditions *[]string,
+	args *[]interface{},
+) (int, error) {
+	var ids []int
+
+	// Parse input
+	switch v := idsInput.(type) {
+	case string:
+		v = strings.TrimSpace(v)
+		if v == "" {
+			return argIndex, nil
+		}
+		parts := strings.Split(v, ",")
+		for _, raw := range parts {
+			id, err := strconv.Atoi(strings.TrimSpace(raw))
+			if err != nil {
+				return argIndex, fmt.Errorf("invalid integer in input: %s", raw)
+			}
+			ids = append(ids, id)
+		}
+	case []int:
+		if len(v) == 0 {
+			return argIndex, nil
+		}
+		ids = v
+	default:
+		return argIndex, fmt.Errorf("unsupported input type: %T", idsInput)
+	}
+
+	// If no valid IDs, skip
+	if len(ids) == 0 {
+		return argIndex, nil
+	}
+
+	// Build condition using Postgres array overlap
+	condition := fmt.Sprintf("(%s && $%d)", expr, argIndex)
+	*conditions = append(*conditions, condition)
+
+	// Append argument as a Postgres int array
+	*args = append(*args, pq.Array(ids)) // requires "github.com/lib/pq"
+
+	return argIndex + 1, nil
+}
+
 // BuildInConditionForStringSlice builds an SQL IN/ANY condition for a comma-separated string list
 // and adds it as a single array argument for SQL sql.
 //
@@ -718,4 +772,38 @@ func BuildArrayContainsCondition(
 	*conditions = append(*conditions, fmt.Sprintf("%s @> $%d::text[]", column, argIndex))
 	argIndex++
 	return argIndex, nil
+}
+
+func BuildPriceCondition(
+	priceStr,
+	priceTypeField, currencyField, minPriceField, maxPriceField,
+	label string,
+	argIndex int,
+	conditions *[]string,
+	args *[]interface{},
+) (int, error) {
+
+	if priceStr == "" {
+		return argIndex, nil
+	}
+
+	parts := strings.Split(priceStr, ",")
+	partCount := len(parts)
+
+	fmt.Println("partCount: ", partCount)
+
+	if len(parts) == 1 {
+		condition := fmt.Sprintf("%s = $%d", priceTypeField, argIndex)
+		*conditions = append(*conditions, condition)
+		*args = append(*args, parts[0])
+		return argIndex + 1, nil
+	} else if len(parts) == 2 {
+		// TODO: Implement use of currency!
+		condition := fmt.Sprintf("%s <= $%d", maxPriceField, argIndex)
+		*conditions = append(*conditions, condition)
+		*args = append(*args, parts[0])
+		return argIndex + 1, nil
+	}
+
+	return argIndex, fmt.Errorf("%s must be 'free', 'donation' or '#.#,EUR': %s", label, priceStr)
 }
