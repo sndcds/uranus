@@ -4,6 +4,7 @@ SELECT
     e.source_url,
     e.release_status AS release_status,
     TO_CHAR(e.release_date, 'YYYY-MM-DD') AS release_date,
+    e.categories,
     e.content_iso_639_1 AS content_language,
     o.id AS organization_id,
     o.name AS organization_name,

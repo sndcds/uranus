@@ -139,6 +139,7 @@ type AdminEvent struct {
 	SourceUrl            *string          `json:"source_url,omitempty"`
 	ReleaseStatus        string           `json:"release_status"`
 	ReleaseDate          *string          `json:"release_date,omitempty"`
+	Categories           []int            `json:"categories,omitempty"`
 	ContentLanguage      *string          `json:"content_language,omitempty"`
 	OrganizationId       int              `json:"organization_id"`
 	OrganizationName     string           `json:"organization_name"`
@@ -220,6 +221,7 @@ type AdminListEvent struct {
 	DateId           *int        `json:"date_id"`
 	ReleaseStatus    *string     `json:"release_status"`
 	ReleaseDate      *string     `json:"release_date,omitempty"`
+	Categories       *[]int      `json:"categories,omitempty"`
 	CanEditEvent     bool        `json:"can_edit_event"`
 	CanDeleteEvent   bool        `json:"can_delete_event"`
 	CanReleaseEvent  bool        `json:"can_release_event"`

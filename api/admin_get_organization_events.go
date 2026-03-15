@@ -73,6 +73,7 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 				&e.EndTime,
 				&e.ReleaseStatus,
 				&e.ReleaseDate,
+				&e.Categories,
 				&e.VenueId,
 				&e.VenueName,
 				&e.SpaceId,

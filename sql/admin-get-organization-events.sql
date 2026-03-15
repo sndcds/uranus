@@ -29,6 +29,7 @@ SELECT
 
     e.release_status,
     TO_CHAR(e.release_date, 'YYYY-MM-DD') AS release_date,
+    e.categories,
 
     v.id AS venue_id,
     v.name AS venue_name,

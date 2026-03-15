@@ -35,6 +35,7 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 		&event.SourceUrl,
 		&event.ReleaseStatus,
 		&event.ReleaseDate,
+		&event.Categories,
 		&event.ContentLanguage,
 		&event.OrganizationId,
 		&event.OrganizationName,

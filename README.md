@@ -1,115 +1,45 @@
 # Uranus
 
-**Digitally Mapping and Sharing the Event Landscape**
+**Uranus** is a flexible, open-source event management platform designed to organize, schedule, and promote cultural activities. It empowers non-profits and grassroots organizations to manage events, venues, and organizers in a structured way, providing accessible, high-quality data via a robust API.
 
-> 🚧 Disclaimer: This repository and the associated database are currently in **beta**. Some parts of the code and data may still contain errors. Please [open an issue](#) or contact us via email if you encounter any problems.
+# Key Features
 
----
-
-## Introduction
-
-**Uranus** aims to create a detailed and flexible representation of the event landscape, making it easier to create, maintain, publish, and share high-quality event data.
-
-The database models:
-- **Venues**: Physical locations of events
-- **Spaces**: Descriptions of rooms or sub-locations within venues
-- **Organizations**: Represented hierarchically (e.g., Institution → Association → Working Group)
-- **Events**: Including flexible, multi-date scheduling via `EventDate`
-
-The data is accessible through an **open API** for use in:
-- Plugins (e.g., WordPress)
-- Website integrations
-- Custom applications
-
-Unlike other systems that focus solely on single events, Uranus emphasizes the **relationships** between locations, dates, and organizations — enabling advanced search and visualizations (e.g., maps and portals).
-
----
-
-## Target Audiences
-
-- **Event Organizations**: Associations, initiatives, educational and cultural institutions, etc.
-- **Event Enthusiasts**: Users searching for events based on:
-	- Date
-	- Audience
-	- Type/genre
-	- Location
-	- Organizations
-	- Accessibility
-- **Portals & Institutions**: Municipalities, cultural associations, or media platforms that want to integrate event data
-- **Journalists & Culture Reporters**: Looking for structured event information
-
----
-
-## Project Status
-
-This project was initiated by **OK Lab Flensburg** on **March 2, 2025**.
-
-We are currently building the **first MVP** (Minimal Viable Product) to demonstrate the core concept of Uranus. The MVP will include:
-- Event creation & management
-- API access
-
-More features will be added in the coming months.
-
----
-
-## Get Involved
-
-We welcome feedback and contributions.  
-Feel free to:
-- Create issues for bugs or feature ideas
-- Submit pull requests
-- Contact us directly via email
-
----
-
-## Installation
-
----
-
-### Prerequisites
-
-1. **Database Setup**
-
-- Ensure PostgreSQL with PostGIS extension is installed and running on `localhost` (default port: `5432`).
-- Create a database named `uranus`, owned by a user with the same name.
-- Make sure the database accepts connections from `localhost`.
-
-2. **Environment Variables**
+- **Structured Event Data** – Organize events, venues, and spaces with detailed metadata, including accessibility info and geospatial data for precise location mapping and spatial queries.
+- **Flexible API** – Access and integrate event data via standardized HTTP endpoints.
+- **Support for Nonprofits** – Tailored for smaller cultural and civic organizations that need digital infrastructure.
+- **Inclusive Values** – Supports diversity, minority representation, gender equality, and sustainability.
+- **Open Source** – Reuse, modify, and redistribute freely under a permissive license.
 
 
----
+# Building Blocks
 
-## Configuration
-
-```json
-{
-  "verbose": true,
-  "dev_mode": true,
-  "port": 9090,
-  "base_api_url": "http://localhost:9090",
-  "use_router_middleware": true,
-  "db_host": "localhost",
-  "db_port": 5432,
-  "db_user": "roaldchristesen",
-  "db_password": "",
-  "db_name": "oklab",
-  "db_schema": "uranus",
-  "ssl_mode": "disabled",
-  "allow_origins": ["http://localhost:8009", "https://uranus.grain.one"],
-  "pluto_verbose": true,
-  "pluto_image_dir": "/Users/roaldchristesen/Documents/Developer/Projects/pluto/image",
-  "pluto_cache_dir": "/Users/roaldchristesen/Documents/Developer/Projects/pluto/cache",
-  "jwt_secret": "82jhdksl#",
-  "auth_token_expiration_time": 3600
-}
-```
+- **Uranus API Server** – Go-based backend for fast and scalable data access.
+- **PostgreSQL + PostGIS** – Database with spatial support for accurate venue and event mapping.
+- **Pluto Image Server** – Integrated image handling for events, venues, spaces and organizations.
 
 
----
+# Getting Started
 
-## Export Database
+1. Clone the repository for the Vue3 frontend:
+   ```bash
+   git clone git@github.com:sndcds/uranus-dashboard.git
+   ```
 
-```sh
-pg_dump -U oklab -h localhost -d oklab -n app --data-only --column-inserts --no-owner --no-comments --verbose -f uranus_data_dump.sql_utils
-pg_dump -U oklab -h localhost -d oklab -n app --schema-only --no-owner --no-comments --verbose -f uranus_schema_dump.sql_utils
-```
+2. Clone the repository for the Go backend:
+	```bash
+	git clone clone git@github.com:sndcds/uranus.git
+   ```
+
+3.	Follow setup instructions in the documentation to run the API server and database.
+
+
+
+# Contributing
+
+We welcome contributions, feedback, and feature requests! You can:
+
+- Report bugs
+- Suggest new features
+- Fork and extend the code for your own needs
+
+Join the community and help us build a better platform for cultural and civic event management.
