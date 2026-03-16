@@ -210,7 +210,7 @@ type SqlQueryItem struct {
 }
 
 func (q *SqlQueryItem) LoadSql(schema string, baseApiUrl string) error {
-	// Read main SQL file
+	fmt.Println("LoadSql:", q.filePath)
 	fileContent, err := os.ReadFile(q.filePath)
 	if err != nil {
 		return fmt.Errorf("failed to read file: %w", err)
