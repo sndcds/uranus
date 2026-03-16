@@ -60,6 +60,5 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/sndcds/grains => ../grains
-
-replace github.com/sndcds/pluto => ../pluto
+// replace github.com/sndcds/grains => ../grains
+// replace github.com/sndcds/pluto => ../pluto
