@@ -14,6 +14,35 @@ import (
 	"github.com/shirou/gopsutil/v3/mem"
 )
 
+type HealthResponse struct {
+	Status      string                     `json:"status"`
+	Goroutines  map[string]uint64          `json:"goroutines"`
+	Threads     map[string]uint64          `json:"threads"`
+	CPU         CPUInfo                    `json:"cpu"`
+	Memory      MemoryInfo                 `json:"memory"`
+	Host        HostInfo                   `json:"host"`
+	Dirs        []grains_file.MultiDirInfo `json:"dirs"`
+	Temperature interface{}                `json:"temperature"`
+}
+
+type CPUInfo struct {
+	UsagePercent []float64 `json:"usage_percent"`
+}
+
+type MemoryInfo struct {
+	Total       uint64  `json:"total"`
+	Available   uint64  `json:"available"`
+	Used        uint64  `json:"used"`
+	UsedPercent float64 `json:"used_percent"`
+}
+
+type HostInfo struct {
+	Hostname string `json:"hostname"`
+	Uptime   uint64 `json:"uptime"`
+	OS       string `json:"os"`
+	Platform string `json:"platform"`
+}
+
 func (h *ApiHandler) GetHealth(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-health")
 
@@ -44,37 +73,38 @@ func (h *ApiHandler) GetHealth(gc *gin.Context) {
 	// Temperature (Linux only mostly)
 	temps, _ := host.SensorsTemperatures()
 
-	fileCount, dirSize := grains_file.FileCountAndDirSize(app.UranusInstance.Config.PlutoImageDir)
+	dirs := []string{
+		app.UranusInstance.Config.PlutoImageDir,
+		app.UranusInstance.Config.PlutoCacheDir,
+		app.UranusInstance.Config.ProfileImageDir,
+	}
 
-	apiRequest.Success(http.StatusOK, gin.H{
-		"status": "ok",
+	multiStats := grains_file.MultiDirStats(dirs)
 
-		// Go runtime
-		"goroutines": goroutines,
-		"threads":    threads,
+	resp := HealthResponse{
+		Status:     "ok",
+		Goroutines: goroutines,
+		Threads:    threads,
+		CPU: CPUInfo{
+			UsagePercent: cpuPercent,
+		},
+		Memory: MemoryInfo{
+			Total:       vmStat.Total,
+			Available:   vmStat.Available,
+			Used:        vmStat.Used,
+			UsedPercent: vmStat.UsedPercent,
+		},
+		Host: HostInfo{
+			Hostname: hostInfo.Hostname,
+			Uptime:   hostInfo.Uptime,
+			OS:       hostInfo.OS,
+			Platform: hostInfo.Platform,
+		},
+		Dirs:        multiStats,
+		Temperature: temps,
+	}
 
-		// System metrics
-		"cpu": gin.H{
-			"usage_percent": cpuPercent,
-		},
-		"memory": gin.H{
-			"total":        vmStat.Total,
-			"available":    vmStat.Available,
-			"used":         vmStat.Used,
-			"used_percent": vmStat.UsedPercent,
-		},
-		"host": gin.H{
-			"hostname": hostInfo.Hostname,
-			"uptime":   hostInfo.Uptime,
-			"os":       hostInfo.OS,
-			"platform": hostInfo.Platform,
-		},
-		"dirs": gin.H{
-			"fileCount": fileCount,
-			"dirSize":   grains_file.HumanSize(dirSize),
-		},
-		"temperature": temps,
-	}, "")
+	apiRequest.Success(http.StatusOK, resp, "")
 }
 
 // Helper function to read a metric safely
