@@ -4,28 +4,35 @@ go 1.25
 
 require (
 	github.com/chai2010/webp v1.4.0
+	github.com/gin-contrib/gzip v1.2.5
 	github.com/gin-gonic/gin v1.11.0
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/jackc/pgx/v5 v5.7.4
+	github.com/lib/pq v1.10.9
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
-	github.com/rwcarlsen/goexif v0.0.0-20190401172101-9e8deecbddbd
+	github.com/shirou/gopsutil/v3 v3.24.5
+	github.com/sndcds/grains v0.0.0-20260314193232-b5c2369ddf62
 	golang.org/x/crypto v0.43.0
 )
 
 require (
 	github.com/bytedance/gopkg v0.1.3 // indirect
 	github.com/disintegration/imaging v1.6.2 // indirect
-	github.com/gin-contrib/gzip v1.2.5 // indirect
+	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/goccy/go-yaml v1.18.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/lib/pq v1.10.9 // indirect
+	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
+	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
 	github.com/quic-go/quic-go v0.55.0 // indirect
-	github.com/sndcds/grains v0.0.0-20260130074254-6608544624da // indirect
+	github.com/rwcarlsen/goexif v0.0.0-20190401172101-9e8deecbddbd // indirect
+	github.com/shoenig/go-m1cpu v0.1.6 // indirect
+	github.com/tklauser/go-sysconf v0.3.12 // indirect
+	github.com/tklauser/numcpus v0.6.1 // indirect
+	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	golang.org/x/image v0.27.0 // indirect
 	golang.org/x/mod v0.29.0 // indirect
 	golang.org/x/tools v0.38.0 // indirect
-	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 )
 
 require (
@@ -57,8 +64,8 @@ require (
 	golang.org/x/sys v0.37.0 // indirect
 	golang.org/x/text v0.30.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-// replace github.com/sndcds/grains => ../grains
-// replace github.com/sndcds/pluto => ../pluto
+replace github.com/sndcds/grains => ../grains
+
+replace github.com/sndcds/pluto => ../pluto

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -10,22 +11,22 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-func (h *ApiHandler) GetOrganizationIdByEvenId(
+func (h *ApiHandler) GetOrganizationUuidByEvenUuid(
 	gc *gin.Context,
 	tx pgx.Tx,
-	eventId int,
-) (int, error) {
+	eventUuid string,
+) (string, error) {
 
 	ctx := gc.Request.Context()
 
-	query := fmt.Sprintf(`SELECT e.organization_id FROM %s.event e WHERE e.id = $1`, h.DbSchema)
-	organizationId := -1
-	err := tx.QueryRow(ctx, query, eventId).Scan(&organizationId)
+	query := fmt.Sprintf(`SELECT e.org_id FROM %s.event e WHERE e.id = $1`, h.DbSchema)
+	orgUuid := ""
+	err := tx.QueryRow(ctx, query, eventUuid).Scan(&orgUuid)
 	if err != nil {
-		return -1, err
+		return "", err
 	}
 
-	return organizationId, nil
+	return orgUuid, nil
 }
 
 func (h *ApiHandler) GetOrganizationIdByEventDateId(
@@ -37,7 +38,7 @@ func (h *ApiHandler) GetOrganizationIdByEventDateId(
 	ctx := gc.Request.Context()
 
 	query := fmt.Sprintf(`
-			SELECT e.organization_id FROM %s.event_date ed JOIN %s.event e ON e.id = ed.event_id WHERE ed.id = $1`,
+			SELECT e.org_id FROM %s.event_date ed JOIN %s.event e ON e.id = ed.event_id WHERE ed.id = $1`,
 		h.DbSchema, h.DbSchema)
 	organizationId := -1
 	err := tx.QueryRow(ctx, query, eventDateId).Scan(&organizationId)
@@ -53,10 +54,11 @@ func (h *ApiHandler) GetOrganizationIdByEventDateId(
 func (h *ApiHandler) CheckOrganizationPermission(
 	gc *gin.Context,
 	tx pgx.Tx,
-	userId, organizationId int,
+	userUuid string,
+	orgUuid string,
 	perm app.Permission,
 ) *ApiTxError {
-	organizationPermissions, err := h.GetUserOrganizationPermissions(gc, tx, userId, organizationId)
+	organizationPermissions, err := h.GetUserOrganizationPermissions(gc, tx, userUuid, orgUuid)
 	if err != nil {
 		return &ApiTxError{
 			Code: http.StatusInternalServerError,
@@ -67,7 +69,7 @@ func (h *ApiHandler) CheckOrganizationPermission(
 	if !organizationPermissions.Has(perm) {
 		return &ApiTxError{
 			Code: http.StatusForbidden,
-			Err:  fmt.Errorf("Insufficient permissions"),
+			Err:  errors.New("Insufficient permissions"),
 		}
 	}
 
@@ -79,22 +81,22 @@ func (h *ApiHandler) CheckOrganizationPermission(
 func (h *ApiHandler) CheckOrganizationAllPermissions(
 	gc *gin.Context,
 	tx pgx.Tx,
-	userId int,
-	organizationId int,
+	userUuid string,
+	orgUuid string,
 	permMask app.Permission,
 ) *ApiTxError {
-	orgPermissions, err := h.GetUserOrganizationPermissions(gc, tx, userId, organizationId)
+	orgPermissions, err := h.GetUserOrganizationPermissions(gc, tx, userUuid, orgUuid)
 	if err != nil {
 		return &ApiTxError{
 			Code: http.StatusInternalServerError,
-			Err:  fmt.Errorf("Transaction failed"),
+			Err:  errors.New("Transaction failed"),
 		}
 	}
 
 	if !orgPermissions.HasAll(permMask) {
 		return &ApiTxError{
 			Code: http.StatusForbidden,
-			Err:  fmt.Errorf("Insufficient permissions"),
+			Err:  errors.New("Insufficient permissions"),
 		}
 	}
 
@@ -105,16 +107,18 @@ func (h *ApiHandler) CheckOrganizationAllPermissions(
 func (h *ApiHandler) GetUserOrganizationPermissions(
 	gc *gin.Context,
 	tx pgx.Tx,
-	userId int,
-	organizationId int,
+	userId string,
+	orgUuid string,
 ) (app.Permission, error) {
 
 	ctx := gc.Request.Context()
 	var result pgtype.Int8
 
 	err := tx.QueryRow(
-		ctx, app.UranusInstance.SqlGetUserOrganizationPermissions,
-		userId, organizationId,
+		ctx,
+		app.UranusInstance.SqlGetUserOrganizationPermissions,
+		userId,
+		orgUuid,
 	).Scan(&result)
 	if err != nil {
 		if err == pgx.ErrNoRows {

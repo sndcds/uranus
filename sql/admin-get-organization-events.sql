@@ -1,9 +1,9 @@
 WITH event_data AS (
     SELECT
-        ed.id AS event_date_id,
-        ed.event_id,
-        ed.venue_id,
-        ed.space_id,
+        ed.uuid AS event_date_uuid,
+        ed.event_uuid,
+        ed.venue_uuid,
+        ed.space_uuid,
         ed.start_date,
         ed.start_time,
         ed.end_date,
@@ -15,12 +15,12 @@ WITH event_data AS (
 )
 
 SELECT
-    e.id AS id,
-    edt.event_date_id AS date_id,
+    e.uuid AS uuid,
+    edt.event_date_uuid AS date_uuid,
     e.title,
     e.subtitle,
-    e.organization_id,
-    eo.name AS organization_name,
+    e.org_uuid,
+    eo.name AS org_name,
 
     TO_CHAR(edt.start_date, 'YYYY-MM-DD') AS start_date,
     TO_CHAR(edt.start_time, 'HH24:MI') AS start_time,
@@ -31,12 +31,12 @@ SELECT
     TO_CHAR(e.release_date, 'YYYY-MM-DD') AS release_date,
     e.categories,
 
-    v.id AS venue_id,
+    v.uuid AS venue_uuid,
     v.name AS venue_name,
-    s.id AS space_id,
+    s.uuid AS space_uuid,
     s.name AS space_name,
 
-    main_image_link.image_id,
+    main_image_link.image_uuid,
     main_image_link.image_url,
 
     et_data.event_types,
@@ -62,33 +62,33 @@ SELECT
 
     -- Time series
     ROW_NUMBER() OVER (
-        PARTITION BY e.id
+        PARTITION BY e.uuid
         ORDER BY edt.start_date NULLS LAST, edt.start_time NULLS LAST
     ) AS time_series_index,
 
-    COUNT(edt.event_date_id) OVER (
-        PARTITION BY e.id
+    COUNT(edt.event_date_uuid) OVER (
+        PARTITION BY e.uuid
     ) AS time_series
 
 FROM {{schema}}.event e
 
 -- Attach dates (optional)
 LEFT JOIN event_data edt
-ON edt.event_id = e.id
+ON edt.event_uuid = e.uuid
 
 -- Venue resolution (date overrides event default)
 LEFT JOIN {{schema}}.venue v
-ON v.id = COALESCE(edt.venue_id, e.venue_id)
+ON v.uuid = COALESCE(edt.venue_uuid, e.venue_uuid)
 
 -- Space resolution
 LEFT JOIN {{schema}}.space s
-ON s.id = CASE
-WHEN edt.venue_id IS NOT NULL THEN edt.space_id
-ELSE e.space_id
+ON s.uuid = CASE
+WHEN edt.venue_uuid IS NOT NULL THEN edt.space_uuid
+ELSE e.space_uuid
 END
 
 LEFT JOIN {{schema}}.organization eo
-ON eo.id = e.organization_id
+ON eo.uuid = e.org_uuid
 
 -- Event types
 LEFT JOIN LATERAL (
@@ -98,37 +98,36 @@ LEFT JOIN LATERAL (
             etl.type_id,
             etl.genre_id
         FROM {{schema}}.event_type_link etl
-        WHERE etl.event_id = e.id
+        WHERE etl.event_uuid = e.uuid
     ) event_type
 ) et_data ON TRUE
 
 -- Main image
 LEFT JOIN LATERAL (
     SELECT
-        pil.pluto_image_id AS image_id,
-        format('{{base_api_url}}/api/image/%s', pil.pluto_image_id) AS image_url
+        pil.pluto_image_uuid AS image_uuid,
+        format('{{base_api_url}}/api/image/%s', pil.pluto_image_uuid) AS image_url
     FROM {{schema}}.pluto_image_link pil
     WHERE pil.context = 'event'
-      AND pil.context_id = e.id
+      AND pil.context_uuid = e.uuid
       AND pil.identifier = 'main'
-    ORDER BY pil.id
     LIMIT 1
 ) main_image_link ON TRUE
 
 -- Permissions
 LEFT JOIN {{schema}}.user_event_link uel
-    ON uel.event_id = e.id
-    AND uel.user_id = $3
+    ON uel.event_uuid = e.uuid
+    AND uel.user_uuid = $3
 
 LEFT JOIN {{schema}}.user_organization_link uol
-    ON uol.organization_id = e.organization_id
-    AND uol.user_id = $3
+    ON uol.org_uuid = e.org_uuid
+    AND uol.user_uuid = $3
 
 LEFT JOIN {{schema}}.user_venue_link uvl
-    ON uvl.venue_id = e.venue_id
-    AND uvl.user_id = $3
+    ON uvl.venue_uuid = e.venue_uuid
+    AND uvl.user_uuid = $3
 
-WHERE eo.id = $1
+WHERE eo.uuid = $1
 AND (
     edt.start_date >= $2::date
     OR edt.start_date IS NULL

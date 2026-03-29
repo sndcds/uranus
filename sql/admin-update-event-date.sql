@@ -1,7 +1,7 @@
 UPDATE {{schema}}.event_date
 SET
-    venue_id = $3,
-    space_id = $4,
+    venue_uuid = $3,
+    space_uuid = $4,
     start_date = $5,
     start_time = $6,
     end_date = $7,
@@ -10,4 +10,4 @@ SET
     duration = $10,
     all_day = COALESCE($11, all_day),
     modified_by = $12
-WHERE id = $1 AND event_id = $2
+WHERE uuid = $1 AND event_uuid = $2

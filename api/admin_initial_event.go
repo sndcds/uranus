@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -13,12 +14,12 @@ import (
 
 func (h *ApiHandler) AdminInitialEvent(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := h.userId(gc)
+	useUuid := h.userUuid(gc)
 	apiRequest := grains_api.NewRequest(gc, "admin-initial-venue")
 
 	type Payload struct {
-		OrganizationId int    `json:"organization_id" binding:"required"`
-		EventTitle     string `json:"event_title" binding:"required"`
+		OrgUuid    string `json:"org_uuid" binding:"required"`
+		EventTitle string `json:"event_title" binding:"required"`
 	}
 	payload, ok := grains_api.DecodeJSONBody[Payload](gc, apiRequest)
 	if !ok {
@@ -31,11 +32,11 @@ func (h *ApiHandler) AdminInitialEvent(gc *gin.Context) {
 		return
 	}
 
-	apiRequest.Metadata["organization_id"] = payload.OrganizationId
+	apiRequest.Metadata["org_uuid"] = payload.OrgUuid
 	apiRequest.Metadata["event_title"] = eventTitle
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-		txErr := h.CheckOrganizationAllPermissions(gc, tx, userId, payload.OrganizationId, app.PermAddEvent)
+		txErr := h.CheckOrganizationAllPermissions(gc, tx, useUuid, payload.OrgUuid, app.PermAddEvent)
 		if txErr != nil {
 			return txErr
 		}
@@ -44,12 +45,12 @@ func (h *ApiHandler) AdminInitialEvent(gc *gin.Context) {
 		query := fmt.Sprintf(
 			`INSERT INTO %s.event (organization_id, title, created_by) VALUES ($1, $2, $3) RETURNING id`,
 			h.DbSchema)
-		err := tx.QueryRow(ctx, query, payload.OrganizationId, eventTitle, userId).Scan(&newEventId)
+		err := tx.QueryRow(ctx, query, payload.OrgUuid, eventTitle, useUuid).Scan(&newEventId)
 		if err != nil {
 			debugf(err.Error())
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
-				Err:  fmt.Errorf("Internal server error"),
+				Err:  errors.New("Internal server error"),
 			}
 		}
 		apiRequest.Metadata["event_id"] = newEventId

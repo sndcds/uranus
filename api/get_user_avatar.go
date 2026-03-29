@@ -6,44 +6,36 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
 )
 
-// TODO: Review code
-
 func (h *ApiHandler) GetUserAvatar(gc *gin.Context) {
-	userIdStr := gc.Param("userId")
-	sizeStr := gc.Param("size")
+	apiRequest := grains_api.NewRequest(gc, "get-user-avatar")
+	size := ParamIntDefault(gc, "size", 256)
 
-	userId, err := strconv.Atoi(userIdStr)
-	if err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid user Id"})
+	userUuid := gc.Param("userUuid")
+	if userUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "invalid userUuid")
 		return
 	}
 
-	// Default to 256px if no size provided
-	size := 256
-	if sizeStr != "" {
-		s, err := strconv.Atoi(sizeStr)
-		if err != nil || (s != 64 && s != 128 && s != 256 && s != 512) {
-			gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid image size (must be 64, 128, 256, or 512)"})
-			return
-		}
-		size = s
+	if size != 64 && size != 128 && size != 256 && size != 512 {
+		apiRequest.Error(http.StatusBadRequest, "invalid image size (must be 64, 128, 256, or 512)")
+		return
 	}
 
 	imageDir := app.UranusInstance.Config.ProfileImageDir
-	imagePath := filepath.Join(imageDir, fmt.Sprintf("profile_img_%d_%d.webp", userId, size))
+	imagePath := filepath.Join(imageDir, fmt.Sprintf("profile_img_%s_%d.webp", userUuid, size))
 
 	file, err := os.Open(imagePath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			gc.JSON(http.StatusNotFound, gin.H{"error": "image not found"})
+			apiRequest.Error(http.StatusNotFound, "image not found")
 		} else {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to open image"})
+			apiRequest.Error(http.StatusInternalServerError, "failed to open image")
 		}
 		return
 	}

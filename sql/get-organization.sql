@@ -1,10 +1,10 @@
 SELECT
-    id,
+    uuid::text,
     name,
     description,
     contact_email,
     contact_phone,
-    website_link,
+    web_link,
     street,
     house_number,
     address_addition,
@@ -16,10 +16,10 @@ SELECT
     nonprofit,
     address_addition,
     state,
-    ST_X(geo_pos) AS lon,
-    ST_Y(geo_pos) AS lat,
-    image_main_logo_id,
-    image_light_mode_logo_id,
-    image_dark_mode_logo_id
+    ST_X(point) AS lon,
+    ST_Y(point) AS lat,
+    image_main_logo_uuid::text,
+    image_light_mode_logo_uuid::text,
+    image_dark_mode_logo_uuid::text
 FROM {{schema}}.organization
-WHERE id = $1
+WHERE uuid = $1

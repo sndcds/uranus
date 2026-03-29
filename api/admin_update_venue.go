@@ -17,7 +17,7 @@ type venueReq struct {
 	ClosedAt       *string  `json:"closed_at"`
 	ContactEmail   *string  `json:"contact_email"`
 	ContactPhone   *string  `json:"contact_phone"`
-	WebsiteLink    *string  `json:"website_link"`
+	WebLink        *string  `json:"web_link"`
 	Street         *string  `json:"street"`
 	HouseNumber    *string  `json:"house_number"`
 	PostalCode     *string  `json:"postal_code"`
@@ -30,9 +30,9 @@ type venueReq struct {
 
 func (h *ApiHandler) AdminUpsertVenue(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := h.userId(gc)
+	userUuid := h.userUuid(gc)
 
-	venueId := ParamIntDefault(gc, "venueId", -1)
+	venueUuid := gc.Param("venueUuid")
 
 	var req venueReq
 	if err := gc.ShouldBindJSON(&req); err != nil {
@@ -44,7 +44,7 @@ func (h *ApiHandler) AdminUpsertVenue(gc *gin.Context) {
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		// Insert
-		if venueId < 0 {
+		if venueUuid == "" {
 			err := tx.QueryRow(
 				ctx,
 				app.UranusInstance.SqlInsertVenue,
@@ -55,7 +55,7 @@ func (h *ApiHandler) AdminUpsertVenue(gc *gin.Context) {
 				req.ClosedAt,
 				req.ContactEmail,
 				req.ContactPhone,
-				req.WebsiteLink,
+				req.WebLink,
 				req.Street,
 				req.HouseNumber,
 				req.PostalCode,
@@ -64,7 +64,7 @@ func (h *ApiHandler) AdminUpsertVenue(gc *gin.Context) {
 				req.State,
 				req.Longitude,
 				req.Latitude,
-				userId,
+				userUuid,
 			).Scan(&newVenueId)
 			if err != nil {
 				return &ApiTxError{
@@ -76,14 +76,14 @@ func (h *ApiHandler) AdminUpsertVenue(gc *gin.Context) {
 			_, err := tx.Exec(
 				ctx,
 				app.UranusInstance.SqlUpdateVenue,
-				venueId,
+				venueUuid,
 				req.Name,
 				req.Description,
 				req.OpenedAt,
 				req.ClosedAt,
 				req.ContactEmail,
 				req.ContactPhone,
-				req.WebsiteLink,
+				req.WebLink,
 				req.Street,
 				req.HouseNumber,
 				req.PostalCode,
@@ -92,7 +92,7 @@ func (h *ApiHandler) AdminUpsertVenue(gc *gin.Context) {
 				req.State,
 				req.Longitude,
 				req.Latitude,
-				userId,
+				userUuid,
 			)
 			if err != nil {
 				return &ApiTxError{
@@ -101,7 +101,7 @@ func (h *ApiHandler) AdminUpsertVenue(gc *gin.Context) {
 				}
 			}
 
-			err = RefreshEventProjections(ctx, tx, "venue", []int{venueId})
+			err = RefreshEventProjections(ctx, tx, "venue", []string{venueUuid})
 			if err != nil {
 				return &ApiTxError{
 					Code: http.StatusInternalServerError,

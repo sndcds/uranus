@@ -2,13 +2,15 @@ package api
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sndcds/grains/grains_api"
 )
 
 func (h *ApiHandler) GetChoosableCurrencies(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	apiResponseType := "choosable-currencies"
+	apiRequest := grains_api.NewRequest(gc, "choosable-currencies")
 
 	onceCurrencies.Do(func() {
 		currenciesOptionsQuery = fmt.Sprintf(`
@@ -21,7 +23,7 @@ func (h *ApiHandler) GetChoosableCurrencies(gc *gin.Context) {
 	rows, err := h.DbPool.Query(ctx, currenciesOptionsQuery, lang)
 	if err != nil {
 		debugf("Error in GetChoosableCurrencies: %s", err.Error())
-		JSONDatabaseError(gc, apiResponseType)
+		apiRequest.DatabaseError()
 		return
 	}
 	defer rows.Close()
@@ -40,7 +42,7 @@ func (h *ApiHandler) GetChoosableCurrencies(gc *gin.Context) {
 			&option.Name,
 		); err != nil {
 			debugf("Error in GetChoosableCurrencies: %s", err.Error())
-			JSONDatabaseError(gc, apiResponseType)
+			apiRequest.DatabaseError()
 			return
 		}
 		options = append(options, option)
@@ -48,14 +50,14 @@ func (h *ApiHandler) GetChoosableCurrencies(gc *gin.Context) {
 
 	if err := rows.Err(); err != nil {
 		debugf("Error in GetChoosableCurrencies: %s", err.Error())
-		JSONDatabaseError(gc, apiResponseType)
+		apiRequest.DatabaseError()
 		return
 	}
 
 	if len(options) == 0 {
-		JSONSuccess(gc, apiResponseType, []OptionType{}, nil)
+		apiRequest.Success(http.StatusOK, []OptionType{}, "")
 		return
 	}
 
-	JSONSuccess(gc, apiResponseType, options, nil)
+	apiRequest.Success(http.StatusOK, options, "")
 }

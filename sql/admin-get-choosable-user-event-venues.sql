@@ -1,78 +1,78 @@
 WITH allowed_spaces AS (
     -- A. From organization permission (all spaces)
     SELECT
-        v.id AS venue_id,
+        v.uuid AS venue_uuid,
         v.name AS venue_name,
-        s.id AS space_id,
+        s.uuid AS space_uuid,
         s.name AS space_name,
         v.city AS city,
         v.country AS country
     FROM {{schema}}.space s
-    JOIN {{schema}}.venue v ON v.id = s.venue_id
-    JOIN {{schema}}.user_organization_link uol ON uol.organization_id = v.organization_id
-    WHERE uol.user_id = $1
+    JOIN {{schema}}.venue v ON v.uuid = s.venue_uuid
+    JOIN {{schema}}.user_organization_link uol ON uol.org_uuid = v.org_uuid
+    WHERE uol.user_uuid = $1
     AND (uol.permissions & 0x00000800) <> 0
 
     UNION
 
     -- B. From venue permission (all spaces)
     SELECT
-        v.id AS venue_id,
+        v.uuid AS venue_uuid,
         v.name AS venue_name,
-        s.id AS space_id,
+        s.uuid AS space_uuid,
         s.name AS space_name,
         v.city AS city,
         v.country AS country
     FROM {{schema}}.space s
-    JOIN {{schema}}.user_venue_link uvl ON uvl.venue_id = s.venue_id
-    JOIN {{schema}}.venue v ON v.id = s.venue_id
-    WHERE uvl.user_id = $1
+    JOIN {{schema}}.user_venue_link uvl ON uvl.venue_uuid = s.venue_uuid
+    JOIN {{schema}}.venue v ON v.uuid = s.venue_uuid
+    WHERE uvl.user_uuid = $1
     AND (uvl.permissions & 0x00000800) <> 0
 
     UNION
 
     -- C. From direct space permissions
     SELECT
-        v.id AS venue_id,
+        v.uuid AS venue_uuid,
         v.name AS venue_name,
-        s.id AS space_id,
+        s.uuid AS space_uuid,
         s.name AS space_name,
         v.city AS city,
         v.country AS country
     FROM {{schema}}.space s
-    JOIN {{schema}}.user_space_link usl ON usl.space_id = s.id
-    JOIN {{schema}}.venue v ON v.id = s.venue_id
-    WHERE usl.user_id = $1
+    JOIN {{schema}}.user_space_link usl ON usl.space_uuid = s.uuid
+    JOIN {{schema}}.venue v ON v.uuid = s.venue_uuid
+    WHERE usl.user_uuid = $1
     AND usl.permissions <> 0
 ),
 allowed_venues AS (
     -- Venues user can select directly, even without spaces
     SELECT
-        v.id AS venue_id,
+        v.uuid AS venue_uuid,
         v.name AS venue_name,
-        NULL::integer AS space_id,
+        NULL::integer AS space_uuid,
         NULL::text AS space_name,
         v.city AS city,
         v.country AS country
     FROM {{schema}}.venue v
     -- From organization permission
-    JOIN {{schema}}.user_organization_link uol ON uol.organization_id = v.organization_id
-    WHERE uol.user_id = $1
+    JOIN {{schema}}.user_organization_link uol ON uol.org_uuid = v.org_uuid
+    WHERE uol.user_uuid = $1
     AND (uol.permissions & 0x00000800) <> 0
 
     UNION
 
     -- From direct venue permission
     SELECT
-        v.id AS venue_id,
+        v.uuid AS venue_uuid,
         v.name AS venue_name,
-        NULL::integer AS space_id,
+        NULL::integer AS space_uuid,
         NULL::text AS space_name,
         v.city AS city,
         v.country AS country
     FROM {{schema}}.venue v
-    JOIN {{schema}}.user_venue_link uvl ON uvl.venue_id = v.id
-    WHERE uvl.user_id = $1
+    JOIN {{schema}}.user_venue_link uvl ON uvl.venue_uuid = v.uuid
+    WHERE uvl.user_uuid = $1
     AND (uvl.permissions & 0x00000800) <> 0
 )
 SELECT * FROM allowed_spaces

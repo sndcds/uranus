@@ -14,12 +14,12 @@ func (h *ApiHandler) UpdateSpaceFields(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	apiRequest := grains_api.NewRequest(gc, "admin-update-space-fields")
 
-	spaceId, ok := ParamInt(gc, "spaceId")
-	if !ok {
-		apiRequest.Error(http.StatusBadRequest, "spaceId is required")
+	spaceUuid := gc.Param("spaceUuid")
+	if spaceUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "spaceUuid is required")
 		return
 	}
-	apiRequest.SetMeta("space_id", spaceId)
+	apiRequest.SetMeta("space_id", spaceUuid)
 
 	var payload struct {
 		Name                  NullableField[string]  `json:"name"`
@@ -28,7 +28,7 @@ func (h *ApiHandler) UpdateSpaceFields(gc *gin.Context) {
 		SeatingCapacity       NullableField[int]     `json:"seating_capacity"`
 		SpaceType             NullableField[string]  `json:"space_type"`
 		BuildingLevel         NullableField[int]     `json:"building_level"`
-		WebsiteLink           NullableField[string]  `json:"website_link"`
+		WebLink               NullableField[string]  `json:"web_link"`
 		AccessibilitySummary  NullableField[string]  `json:"accessibility_summary"`
 		AccessibilityFlags    NullableField[string]  `json:"accessibility_flags"`
 		AreaSqm               NullableField[float64] `json:"area_sqm"`
@@ -55,7 +55,7 @@ func (h *ApiHandler) UpdateSpaceFields(gc *gin.Context) {
 	argPos = addUpdateClauseNullable("seating_capacity", payload.SeatingCapacity, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("space_type", payload.SpaceType, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("building_level", payload.BuildingLevel, &setClauses, &args, argPos)
-	argPos = addUpdateClauseNullable("website_link", payload.WebsiteLink, &setClauses, &args, argPos)
+	argPos = addUpdateClauseNullable("web_link", payload.WebLink, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("accessibility_summary", payload.AccessibilitySummary, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("accessibility_flags", payload.AccessibilityFlags, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("area_sqm", payload.AreaSqm, &setClauses, &args, argPos)
@@ -78,7 +78,7 @@ func (h *ApiHandler) UpdateSpaceFields(gc *gin.Context) {
 		argPos, // Last placeholder is for WHERE id
 	)
 
-	args = append(args, spaceId) // eventId is the last parameter
+	args = append(args, spaceUuid) // eventId is the last parameter
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		res, err := tx.Exec(ctx, query, args...)
@@ -96,7 +96,7 @@ func (h *ApiHandler) UpdateSpaceFields(gc *gin.Context) {
 			}
 		}
 
-		err = RefreshEventProjections(ctx, tx, "space", []int{spaceId})
+		err = RefreshEventProjections(ctx, tx, "space", []string{spaceUuid})
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,

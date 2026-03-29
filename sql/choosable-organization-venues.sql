@@ -1,4 +1,4 @@
-SELECT v.id, v.name
+SELECT v.uuid, v.name
 FROM {{schema}}.venue v
-WHERE v.organization_id = $1
+WHERE v.org_uuid = $1
 ORDER BY v.name

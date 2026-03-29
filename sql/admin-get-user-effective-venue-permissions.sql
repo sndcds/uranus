@@ -3,8 +3,8 @@ SELECT
         (
             SELECT uvl.permissions
             FROM {{schema}}.user_venue_link uvl
-            WHERE uvl.user_id = $1
-            AND uvl.venue_id = $2
+            WHERE uvl.user_uuid = $1
+            AND uvl.venue_uuid = $2
             LIMIT 1
         ), 0
     )
@@ -13,9 +13,9 @@ SELECT
         (
             SELECT uol.permissions
             FROM {{schema}}.user_organization_link uol
-            JOIN {{schema}}.venue v ON v.organization_id = uol.organization_id
-            WHERE uol.user_id = $1
-            AND v.id = $2
+            JOIN {{schema}}.venue v ON v.org_uuid = uol.org_uuid
+            WHERE uol.user_uuid = $1
+            AND v.uuid = $2
             LIMIT 1
         ), 0
     ) AS permissions

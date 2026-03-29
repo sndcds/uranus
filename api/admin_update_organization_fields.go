@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -11,15 +12,15 @@ import (
 )
 
 func (h *ApiHandler) UpdateOrganizationFields(gc *gin.Context) {
-	ctx := gc.Request.Context()
 	apiRequest := grains_api.NewRequest(gc, "admin-update-organization-fields")
+	ctx := gc.Request.Context()
 
-	organizationId, ok := ParamInt(gc, "organizationId")
-	if !ok {
-		apiRequest.Error(http.StatusBadRequest, "organizationId is required")
+	orgUuid := gc.Param("orgUuid")
+	if orgUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "orgUuid is required")
 		return
 	}
-	apiRequest.SetMeta("organization_id", organizationId)
+	apiRequest.SetMeta("org_uuid", orgUuid)
 
 	var payload struct {
 		Name            NullableField[string]  `json:"name"`
@@ -27,7 +28,7 @@ func (h *ApiHandler) UpdateOrganizationFields(gc *gin.Context) {
 		LegalForm       NullableField[string]  `json:"legal_form"`
 		ContactEmail    NullableField[string]  `json:"contact_email"`
 		ContactPhone    NullableField[string]  `json:"contact_phone"`
-		WebsiteLink     NullableField[string]  `json:"website_link"`
+		WebLink         NullableField[string]  `json:"web_link"`
 		Street          NullableField[string]  `json:"street"`
 		HouseNumber     NullableField[string]  `json:"house_number"`
 		AddressAddition NullableField[string]  `json:"address_addition"`
@@ -53,7 +54,7 @@ func (h *ApiHandler) UpdateOrganizationFields(gc *gin.Context) {
 	argPos = addUpdateClauseNullable("legal_form", payload.LegalForm, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("contact_email", payload.ContactEmail, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("contact_phone", payload.ContactPhone, &setClauses, &args, argPos)
-	argPos = addUpdateClauseNullable("website_link", payload.WebsiteLink, &setClauses, &args, argPos)
+	argPos = addUpdateClauseNullable("web_link", payload.WebLink, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("street", payload.Street, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("house_number", payload.HouseNumber, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("address_addition", payload.AddressAddition, &setClauses, &args, argPos)
@@ -64,7 +65,7 @@ func (h *ApiHandler) UpdateOrganizationFields(gc *gin.Context) {
 
 	if payload.Lon.Set && payload.Lon.Value != nil && payload.Lat.Set && payload.Lat.Value != nil {
 		// Construct PostGIS POINT in WKT format
-		setClauses = append(setClauses, fmt.Sprintf("geo_pos = ST_SetSRID(ST_MakePoint($%d, $%d), 4326)", argPos, argPos+1))
+		setClauses = append(setClauses, fmt.Sprintf("point = ST_SetSRID(ST_MakePoint($%d, $%d), 4326)", argPos, argPos+1))
 		args = append(args, *payload.Lon.Value, *payload.Lat.Value)
 		argPos += 2
 	}
@@ -75,41 +76,42 @@ func (h *ApiHandler) UpdateOrganizationFields(gc *gin.Context) {
 	}
 	apiRequest.SetMeta("field_count", len(setClauses))
 
-	query := fmt.Sprintf(`UPDATE %s.organization SET %s WHERE id = $%d`,
+	query := fmt.Sprintf(`UPDATE %s.organization SET %s WHERE uuid = $%d`,
 		h.DbSchema,
 		strings.Join(setClauses, ", "),
 		argPos, // Last placeholder is for WHERE id
 	)
 
-	args = append(args, organizationId) // eventId is the last parameter
+	args = append(args, orgUuid) // eventId is the last parameter
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		res, err := tx.Exec(ctx, query, args...)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
-				Err:  fmt.Errorf("failed to update event: %v", err),
+				Err:  fmt.Errorf("failed to update organization: %v", err),
 			}
 		}
 
 		if res.RowsAffected() == 0 {
 			return &ApiTxError{
 				Code: http.StatusNotFound,
-				Err:  fmt.Errorf("event not found"),
+				Err:  errors.New("organization not found"),
 			}
 		}
 
-		err = RefreshEventProjections(ctx, tx, "organization", []int{organizationId})
+		err = RefreshEventProjections(ctx, tx, "organization", []string{orgUuid})
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
-				Err:  fmt.Errorf("refresh projection tables failed"),
+				Err:  errors.New("refresh projection tables failed"),
 			}
 		}
 
 		return nil
 	})
 	if txErr != nil {
+		debugf(txErr.Error())
 		apiRequest.DatabaseError()
 		return
 	}

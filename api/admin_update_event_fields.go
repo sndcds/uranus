@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -15,12 +16,12 @@ func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	apiRequest := grains_api.NewRequest(gc, "admin-update-event-fields")
 
-	eventId, ok := ParamInt(gc, "eventId")
-	if !ok {
+	eventUuid := gc.Param("eventUuid")
+	if eventUuid == "" {
 		apiRequest.Error(http.StatusBadRequest, "eventId is required")
 		return
 	}
-	apiRequest.SetMeta("event_id", eventId)
+	apiRequest.SetMeta("event_uuid", eventUuid)
 
 	var payload struct {
 		ReleaseStatus     NullableField[string]   `json:"release_status"`
@@ -94,7 +95,7 @@ func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 		argPos, // Last placeholder is for WHERE id
 	)
 
-	args = append(args, eventId) // eventId is the last parameter
+	args = append(args, eventUuid) // eventId is the last parameter
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		res, err := tx.Exec(ctx, query, args...)
@@ -108,11 +109,11 @@ func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 		if res.RowsAffected() == 0 {
 			return &ApiTxError{
 				Code: http.StatusNotFound,
-				Err:  fmt.Errorf("event not found"),
+				Err:  errors.New("event not found"),
 			}
 		}
 
-		err = RefreshEventProjections(ctx, tx, "event", []int{eventId})
+		err = RefreshEventProjections(ctx, tx, "event", []string{eventUuid})
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,

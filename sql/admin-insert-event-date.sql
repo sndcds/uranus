@@ -1,7 +1,7 @@
 INSERT INTO {{schema}}.event_date (
-    event_id,
-    venue_id,
-    space_id,
+    event_uuid,
+    venue_uuid,
+    space_uuid,
     start_date,
     start_time,
     end_date,

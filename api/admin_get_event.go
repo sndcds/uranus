@@ -12,7 +12,7 @@ import (
 
 func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := h.userId(gc)
+	userUuid := h.userUuid(gc)
 	apiRequest := grains_api.NewRequest(gc, "admin-get-event")
 
 	eventId, ok := ParamInt(gc, "eventId")
@@ -25,14 +25,14 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 	apiRequest.SetMeta("language", lang)
 
 	permission := app.PermEditEvent | app.PermViewEventInsights
-	row := h.DbPool.QueryRow(ctx, app.UranusInstance.SqlAdminGetEvent, eventId, lang, userId, permission)
+	row := h.DbPool.QueryRow(ctx, app.UranusInstance.SqlAdminGetEvent, eventId, lang, userUuid, permission)
 
 	// Basic Event
 	var event model.AdminEvent
 	err := row.Scan(
 		&event.Id,
 		&event.ExternalId,
-		&event.SourceUrl,
+		&event.SourceLink,
 		&event.ReleaseStatus,
 		&event.ReleaseDate,
 		&event.Categories,
@@ -112,8 +112,8 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 	defer rows.Close()
 	for rows.Next() {
 		var img model.Image
-		rows.Scan(&img.Id, &img.Identifier, &img.FocusX, &img.FocusY, &img.Alt, &img.Copyright, &img.Creator, &img.License)
-		img.Url = ImageUrl(img.Id)
+		rows.Scan(&img.Uuid, &img.Identifier, &img.FocusX, &img.FocusY, &img.Alt, &img.Copyright, &img.Creator, &img.License)
+		img.Url = ImageUrl(img.Uuid)
 		event.Images = append(event.Images, img)
 	}
 

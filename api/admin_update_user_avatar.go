@@ -11,51 +11,51 @@ import (
 	"github.com/chai2010/webp"
 	"github.com/gin-gonic/gin"
 	"github.com/nfnt/resize"
+	"github.com/sndcds/grains/grains_api"
 )
 
-// TODO: Code review
-
 func (h *ApiHandler) AdminUploadUserAvatar(gc *gin.Context) {
-	userId := h.userId(gc)
+	apiRequest := grains_api.NewRequest(gc, "ulpoad-user-avatar")
+	userUuid := h.userUuid(gc)
 
 	profileImageDir := h.Config.ProfileImageDir
 	info, err := os.Stat(profileImageDir)
 	if err != nil || !info.IsDir() {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "image directory does not exist"})
+		apiRequest.Error(http.StatusInternalServerError, "image directory does not exist")
 		return
 	}
 
 	file, err := gc.FormFile("avatar")
 	if err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "image file is required"})
+		apiRequest.Error(http.StatusBadRequest, "avatar image file is required")
 		return
 	}
 
 	src, err := file.Open()
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to open uploaded file"})
+		apiRequest.Error(http.StatusInternalServerError, "failed to open uploaded file")
 		return
 	}
 	defer src.Close()
 
 	img, _, err := image.Decode(src)
 	if err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid image"})
+		debugf(err.Error())
+		apiRequest.Error(http.StatusBadRequest, "invalid image file format")
 		return
 	}
 
-	err = processImageAndSave(img, profileImageDir, userId, h.Config.ProfileImageQuality)
+	err = processImageAndSave(img, profileImageDir, userUuid, h.Config.ProfileImageQuality)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to process and save image"})
+		debugf(err.Error())
+		apiRequest.Error(http.StatusInternalServerError, "failed to process and save image")
 		return
 	}
 
-	gc.JSON(http.StatusOK, gin.H{
-		"message": "profile image saved successfully",
-	})
+	apiRequest.SuccessNoData(http.StatusOK, "profile image saved successfully")
 }
 
-func processImageAndSave(img image.Image, saveDir string, userId int, quality float32) error {
+func processImageAndSave(img image.Image, saveDir string, userUuid string, quality float32) error {
 	// Get width and height
 	bounds := img.Bounds()
 	w := bounds.Dx()
@@ -83,7 +83,7 @@ func processImageAndSave(img image.Image, saveDir string, userId int, quality fl
 		resized := resize.Resize(uint(size), uint(size), squareImg, resize.Lanczos3)
 
 		// Example filename: profile_img_123_256.webp
-		savePath := filepath.Join(saveDir, fmt.Sprintf("profile_img_%d_%d.webp", userId, size))
+		savePath := filepath.Join(saveDir, fmt.Sprintf("profile_img_%s_%d.webp", userUuid, size))
 
 		outFile, err := os.Create(savePath)
 		if err != nil {

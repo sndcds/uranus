@@ -1,9 +1,9 @@
 WITH event_data AS (
     SELECT
-        ed.id AS event_date_id,
-        ed.event_id,
-        ed.venue_id,
-        ed.space_id,
+        ed.uuid AS event_date_uuid,
+        ed.event_uuid,
+        ed.venue_uuid,
+        ed.space_uuid,
         ed.start_date,
         ed.start_time,
         ed.end_date,
@@ -12,14 +12,14 @@ WITH event_data AS (
         ed.duration
     FROM {{schema}}.event_date ed
     JOIN {{schema}}.event e
-    ON e.id = ed.event_id
+    ON e.uuid = ed.event_uuid
     AND e.release_status IN ('released', 'cancelled', 'deferred', 'rescheduled')
     {{event-date-conditions}}
 ),
 venue_data AS (
     SELECT
-        ed.event_date_id AS venue_event_date,
-        COALESCE(v_ed.id, v_ev.id) AS venue_id,
+        ed.event_date_uuid AS venue_event_date,
+        COALESCE(v_ed.uuid, v_ev.uuid) AS venue_uuid,
         COALESCE(v_ed.name, v_ev.name) AS venue_name,
         COALESCE(v_ed.street, v_ev.street) AS venue_street,
         COALESCE(v_ed.house_number, v_ev.house_number) AS venue_house_number,
@@ -27,14 +27,14 @@ venue_data AS (
         COALESCE(v_ed.city, v_ev.city) AS venue_city,
         COALESCE(v_ed.country, v_ev.country) AS venue_country,
         COALESCE(v_ed.state, v_ev.state) AS venue_state,
-        COALESCE(ST_X(v_ed.geo_pos), ST_X(v_ev.geo_pos)) AS venue_lon,
-        COALESCE(ST_Y(v_ed.geo_pos), ST_Y(v_ev.geo_pos)) AS venue_lat,
-        COALESCE(v_ed.geo_pos, v_ev.geo_pos) AS venue_geo_pos
+        COALESCE(ST_X(v_ed.point), ST_X(v_ev.point)) AS venue_lon,
+        COALESCE(ST_Y(v_ed.point), ST_Y(v_ev.point)) AS venue_lat,
+        COALESCE(v_ed.point, v_ev.point) AS venue_point
     FROM event_data ed
     LEFT JOIN {{schema}}.venue v_ev
-    ON v_ev.id = (SELECT e.venue_id FROM {{schema}}.event e WHERE e.id = ed.event_id)
+    ON v_ev.uuid = (SELECT e.venue_uuid FROM {{schema}}.event e WHERE e.uuid = ed.event_uuid)
     LEFT JOIN {{schema}}.venue v_ed
-    ON v_ed.id = ed.venue_id
+    ON v_ed.uuid = ed.venue_uuid
 )
 SELECT json_build_object(
     'total', (SELECT COUNT(*) FROM event_data),
@@ -42,13 +42,13 @@ SELECT json_build_object(
         SELECT json_agg(organization_summary)
         FROM (
             SELECT
-                e.organization_id AS id,
+                e.org_uuid AS uuid,
                 o.name AS name,
-                COUNT(ed.event_date_id) AS event_date_count
+                COUNT(ed.event_date_uuid) AS event_date_count
             FROM event_data ed
-            JOIN {{schema}}.event e ON e.id = ed.event_id
-            JOIN {{schema}}.organization o ON o.id = e.organization_id
-            GROUP BY e.organization_id, o.name
+            JOIN {{schema}}.event e ON e.uuid = ed.event_uuid
+            JOIN {{schema}}.organization o ON o.uuid = e.org_uuid
+            GROUP BY e.org_id, o.name
             ORDER BY name ASC
         ) organization_summary
     ),
@@ -56,11 +56,11 @@ SELECT json_build_object(
         SELECT json_agg(type_summary)
         FROM (
             SELECT
-                COUNT(etl.event_id) AS count,
-                et.type_id,
+                COUNT(etl.event_uuid) AS count,
+                et.type_uuid,
                 et.name AS type_name
             FROM event_data ed
-            JOIN {{schema}}.event_type_link etl ON etl.event_id = ed.event_id
+            JOIN {{schema}}.event_type_link etl ON etl.event_uuid = ed.event_uuid
             JOIN {{schema}}.event_type et ON et.type_id = etl.type_id AND et.iso_639_1 = $1
             GROUP BY et.type_id, et.name
             ORDER BY count DESC
@@ -70,14 +70,14 @@ SELECT json_build_object(
         SELECT json_agg(venue_summary)
         FROM (
             SELECT
-                vd.venue_id AS id,
+                vd.venue_uuid AS uuid,
                 vd.venue_name AS name,
                 vd.venue_city AS city,
-                COUNT(ed.event_date_id) AS event_date_count
+                COUNT(ed.event_date_uuid) AS event_date_count
             FROM event_data ed
-            JOIN venue_data vd ON vd.venue_event_date = ed.event_date_id
-            WHERE vd.venue_id IS NOT NULL
-            GROUP BY vd.venue_id, vd.venue_name, vd.venue_city
+            JOIN venue_data vd ON vd.venue_event_date = ed.event_date_uuid
+            WHERE vd.venue_uuid IS NOT NULL
+            GROUP BY vd.venue_uuid, vd.venue_name, vd.venue_city
             ORDER BY vd.venue_name ASC
         ) venue_summary
     ),
@@ -99,8 +99,8 @@ SELECT json_build_object(
             LEFT JOIN LATERAL (
                 SELECT pli.id, pli.focus_x, pli.focus_y
                 FROM {{schema}}.pluto_image pli
-                JOIN {{schema}}.event e ON e.id = ed.event_id
-                WHERE pli.id = e.image_ids[1]
+                JOIN {{schema}}.event e ON e.uuid = ed.event_uuid
+                WHERE pli.uuid = e.image_ids[1]
                 LIMIT 1
             ) image_data ON true
 

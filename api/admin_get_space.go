@@ -16,17 +16,17 @@ import (
 
 func (h *ApiHandler) AdminGetSpace(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := h.userId(gc)
+	userUuid := h.userUuid(gc)
 	apiRequest := grains_api.NewRequest(gc, "admin-get-space")
 
-	spaceId, ok := ParamInt(gc, "spaceId")
-	if !ok {
+	spaceUuid := gc.Param("spaceUuid")
+	if spaceUuid == "" {
 		apiRequest.Error(http.StatusBadRequest, "spaceId is required")
 		return
 	}
-	apiRequest.SetMeta("space_id", spaceId)
+	apiRequest.SetMeta("spaceUuid", spaceUuid)
 
-	rows, err := h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetSpace, spaceId, userId)
+	rows, err := h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetSpace, spaceUuid, userUuid)
 	if err != nil {
 		apiRequest.InternalServerError()
 		return

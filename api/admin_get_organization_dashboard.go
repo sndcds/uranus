@@ -4,11 +4,10 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
 	"github.com/sndcds/uranus/model"
 )
-
-// TODO: Review code
 
 type organizationDashboardResponse struct {
 	Organizations []model.OrganizationDashboardEntry `json:"organizations"`
@@ -22,12 +21,14 @@ type organizationDashboardResponse struct {
 // Verified: 2026-01-12, Roald
 
 func (h *ApiHandler) AdminGetOrganizationDashboard(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "admin-get-organization-dashboard")
 	ctx := gc.Request.Context()
-	userId := h.userId(gc)
+	userUuid := h.userUuid(gc)
 
-	rows, err := h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetOrganizationDashboard, userId)
+	rows, err := h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetOrganizationDashboard, userUuid)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		debugf(err.Error())
+		apiRequest.InternalServerError()
 		return
 	}
 	defer rows.Close()
@@ -37,24 +38,26 @@ func (h *ApiHandler) AdminGetOrganizationDashboard(gc *gin.Context) {
 	for rows.Next() {
 		var e model.OrganizationDashboardEntry
 		if err := rows.Scan(
-			&e.OrganizationId,
-			&e.OrganizationName,
-			&e.OrganizationCity,
-			&e.OrganizationCountry,
+			&e.OrgUuid,
+			&e.OrgName,
+			&e.OrgCity,
+			&e.OrgCountry,
 			&e.TotalUpcomingEvents,
 			&e.VenueCount,
 			&e.SpaceCount,
 			&userPermissions,
-			&e.MainLogoImageId,
+			&e.MainLogoUuid,
+			&e.DarkThemeLogoUuid,
+			&e.LightThemeLogoUuid,
 		); err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		e.CanEditOrganization = userPermissions.Has(app.PermEditOrganization)
-		e.CanDeleteOrganization = userPermissions.Has(app.PermDeleteOrganization)
+		e.CanEditOrg = userPermissions.Has(app.PermEditOrganization)
+		e.CanDeleteOrg = userPermissions.Has(app.PermDeleteOrganization)
 		e.CanManageTeam = userPermissions.Has(app.PermManageTeam)
 		result.Organizations = append(result.Organizations, e)
 	}
 
-	gc.JSON(http.StatusOK, result)
+	apiRequest.Success(http.StatusOK, result, "")
 }

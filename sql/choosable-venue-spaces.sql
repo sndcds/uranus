@@ -1,3 +1,3 @@
-SELECT s.id, s.name
+SELECT s.uuid, s.name
 FROM {{schema}}.space s
-WHERE s.venue_id = $1
+WHERE s.venue_uuid = $1

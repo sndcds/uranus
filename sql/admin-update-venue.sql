@@ -6,13 +6,13 @@ SET
     closed_at = $5,
     contact_email = $6,
     contact_phone = $7,
-    website_link = $8,
+    web_link = $8,
     street = $9,
     house_number = $10,
     postal_code = $11,
     city = $12,
     country = $13,
     state = $14,
-    geo_pos = ST_SetSRID(ST_MakePoint($15, $16), 4326),
+    point = ST_SetSRID(ST_MakePoint($15, $16), 4326),
     modified_by = $17
-WHERE id = $1
+WHERE uuid = $1

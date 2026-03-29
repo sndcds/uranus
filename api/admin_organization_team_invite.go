@@ -17,19 +17,19 @@ import (
 // TODO: Review code
 
 type TeamInviteClaims struct {
-	UserId         int `json:"user_id"`
-	OrganizationId int `json:"organization_id"`
+	UserUuid string `json:"user_uuid"`
+	OrgUuid  string `json:"org_uuid""`
 	jwt.RegisteredClaims
 }
 
 func (h *ApiHandler) AdminOrganizationTeamInvite(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := h.userId(gc)
+	userUuid := h.userUuid(gc)
 	lang := gc.DefaultQuery("lang", "en")
 
-	organizationId, ok := ParamInt(gc, "organizationId")
-	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid organizationId"})
+	orgUuid := gc.Param("orgUuid")
+	if orgUuid == "" {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid orgUuid"})
 		return
 	}
 
@@ -51,10 +51,10 @@ func (h *ApiHandler) AdminOrganizationTeamInvite(gc *gin.Context) {
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	var memberUserId int
+	var memberUserUuid string
 	var memberUserDisplayName string
-	userQuery := fmt.Sprintf(`SELECT id, COALESCE(display_name, first_name || ' ' || last_name) AS display_name FROM %s."user" WHERE email_address = $1`, h.DbSchema)
-	err = tx.QueryRow(ctx, userQuery, payload.Email).Scan(&memberUserId, &memberUserDisplayName)
+	userQuery := fmt.Sprintf(`SELECT id, COALESCE(display_name, first_name || ' ' || last_name) AS display_name FROM %s."user" WHERE email = $1`, h.DbSchema)
+	err = tx.QueryRow(ctx, userQuery, payload.Email).Scan(&memberUserUuid, &memberUserDisplayName)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			gc.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
@@ -64,9 +64,9 @@ func (h *ApiHandler) AdminOrganizationTeamInvite(gc *gin.Context) {
 		return
 	}
 
-	var organizationName string
-	organizationQuery := fmt.Sprintf(`SELECT name FROM %s."organization" WHERE id = $1`, h.DbSchema)
-	err = tx.QueryRow(ctx, organizationQuery, organizationId).Scan(&organizationName)
+	var orgName string
+	orgQuery := fmt.Sprintf(`SELECT name FROM %s."organization" WHERE id = $1`, h.DbSchema)
+	err = tx.QueryRow(ctx, orgQuery, orgUuid).Scan(&orgName)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			gc.JSON(http.StatusNotFound, gin.H{"error": "organization not found"})
@@ -80,8 +80,8 @@ func (h *ApiHandler) AdminOrganizationTeamInvite(gc *gin.Context) {
 	expiryHour := 1
 	tokenExp := time.Now().Add(time.Duration(expiryHour) * time.Hour)
 	tokenClaims := &TeamInviteClaims{
-		UserId:         memberUserId,
-		OrganizationId: organizationId,
+		UserUuid: memberUserUuid,
+		OrgUuid:  orgUuid,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(tokenExp),
 		},
@@ -115,7 +115,7 @@ func (h *ApiHandler) AdminOrganizationTeamInvite(gc *gin.Context) {
 	           INSERT INTO %s.organization_member_link (organization_id, user_id, accept_token, invited_at, invited_by_user_id)
 	           VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4)`,
 		h.DbSchema)
-	_, err = h.DbPool.Exec(ctx, insertQuery, organizationId, memberUserId, tokenString, userId)
+	_, err = h.DbPool.Exec(ctx, insertQuery, orgUuid, memberUserUuid, tokenString, userUuid)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
@@ -131,7 +131,7 @@ func (h *ApiHandler) AdminOrganizationTeamInvite(gc *gin.Context) {
 	emailMessage := strings.Replace(template, "{{invite_link}}", inviteAcceptUrl, -1)
 	emailMessage = strings.Replace(emailMessage, "{{expiry_hours}}", strconv.Itoa(expiryHour), -1)
 	emailMessage = strings.Replace(emailMessage, "{{display_name}}", memberUserDisplayName, -1)
-	emailMessage = strings.Replace(emailMessage, "{{organization_name}}", organizationName, -1)
+	emailMessage = strings.Replace(emailMessage, "{{organization_name}}", orgUuid, -1)
 	go func() {
 		sendEmailErr := sendEmail(payload.Email, subject, emailMessage)
 		if sendEmailErr != nil {
@@ -178,8 +178,8 @@ func (h *ApiHandler) AdminOrganizationTeamInviteAccept(gc *gin.Context) {
 		return
 	}
 
-	userId := claims.UserId
-	organizationId := claims.OrganizationId
+	userId := claims.UserUuid
+	organizationId := claims.OrgUuid
 
 	// Start a transaction
 	tx, err := h.DbPool.BeginTx(ctx, pgx.TxOptions{})

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -31,8 +32,8 @@ var (
 	onceEventOccasions         sync.Once
 )
 
-func (h *ApiHandler) userId(gc *gin.Context) int {
-	return gc.GetInt("user-id")
+func (h *ApiHandler) userUuid(gc *gin.Context) string {
+	return gc.GetString("user-uuid")
 }
 
 // ParamInt extracts a URL path parameter as an integer.
@@ -163,16 +164,16 @@ func GetContextParamIntDefault(gc *gin.Context, name string, defaultVal int) int
 }
 
 // Get the Authorization header
-func UserIdFromAccessToken(gc *gin.Context) int {
+func UseUuidFromAccessToken(gc *gin.Context) string {
 	authHeader := gc.GetHeader("Authorization")
 	if authHeader == "" {
-		return -1
+		return ""
 	}
 
 	// Expect header format: "Bearer <token>"
 	parts := strings.SplitN(authHeader, " ", 2)
 	if len(parts) != 2 || parts[0] != "Bearer" {
-		return -1
+		return ""
 	}
 	accessToken := parts[1]
 
@@ -183,38 +184,38 @@ func UserIdFromAccessToken(gc *gin.Context) int {
 	})
 
 	if err != nil || !token.Valid {
-		return -1
+		return ""
 	}
 
-	return claims.UserId
+	return claims.UserUuid
 }
 
 const dummyPasswordHash = "$2a$12$wGf6R8t2pFzq9yQmYv8y1u8y0v7E4Qv9ZJ8tQ6lH5E8QK3yQyZCwK"
 
 // VerifyUserPassword reads password from request body, validates it against user Id.
 // Returns true if password is valid, or writes JSON error response to context and returns false.
-func (h *ApiHandler) VerifyUserPassword(gc *gin.Context, userId int) error {
+func (h *ApiHandler) VerifyUserPassword(gc *gin.Context, userUuid string) error {
 	var body struct {
 		Password string `json:"password"`
 	}
 
 	if err := gc.ShouldBindJSON(&body); err != nil {
-		return fmt.Errorf("invalid request body")
+		return errors.New("invalid request body")
 	}
 
 	if body.Password == "" {
-		return fmt.Errorf("password is required")
+		return errors.New("password is required")
 	}
 
 	var passwordHash string
 	query := fmt.Sprintf(`SELECT password_hash FROM %s.user WHERE id = $1`, h.DbSchema)
-	err := h.DbPool.QueryRow(gc.Request.Context(), query, userId).Scan(&passwordHash)
+	err := h.DbPool.QueryRow(gc.Request.Context(), query, userUuid).Scan(&passwordHash)
 	if err != nil {
 		passwordHash = dummyPasswordHash
 	}
 
 	if app.ComparePasswords(passwordHash, body.Password) != nil {
-		return fmt.Errorf("invalid password")
+		return errors.New("invalid password")
 	}
 
 	return nil
@@ -229,7 +230,7 @@ func IsEventReleaseStatus(fieldName string, value *string) (bool, error) {
 // ValidateEnum checks if val is one of allowed values. Returns an error message if invalid, else empty string.
 func ValidateEnum(fieldName string, value *string, allowed ...string) (bool, error) {
 	if value == nil {
-		return false, fmt.Errorf("value must be != nil")
+		return false, errors.New("value must be != nil")
 	}
 
 	allowedSet := make(map[string]struct{}, len(allowed))

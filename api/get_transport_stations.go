@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -51,7 +52,7 @@ func (h *ApiHandler) GetTransportStations(gc *gin.Context) {
 	}
 
 	// PostgreSQL query with ST_DWithin and distance
-	query := `
+	query := fmt.Sprintf(`
 	SELECT
 		id,
 		name,
@@ -61,20 +62,20 @@ func (h *ApiHandler) GetTransportStations(gc *gin.Context) {
 		gtfs_parent_station,
 		gtfs_wheelchair_boarding,
 		gtfs_zone_id,
-		ST_X(geo_pos) AS lon,
-		ST_Y(geo_pos) AS lat,
+		ST_X(point) AS lon,
+		ST_Y(point) AS lat,
 		ST_Distance(
-			geo_pos::geography,
+			point::geography,
 			ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography
 		) AS distance_m
-	FROM uranus.transport_station
+	FROM %s.transport_station
 	WHERE ST_DWithin(
-		geo_pos::geography,
+		point::geography,
 		ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography,
 		$3
 	)
 	ORDER BY distance_m;
-	`
+	`, h.DbSchema)
 
 	rows, err := h.DbPool.Query(ctx, query, lon, lat, radius)
 	if err != nil {

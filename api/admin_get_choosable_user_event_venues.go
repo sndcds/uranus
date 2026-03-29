@@ -1,7 +1,10 @@
 package api
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
+	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
 	"github.com/sndcds/uranus/model"
 )
@@ -17,13 +20,13 @@ import (
 
 func (h *ApiHandler) AdminGetChoosableUserEventVenues(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := h.userId(gc)
-	apiResponseType := "choosable-user-event-venues"
+	userUuid := h.userUuid(gc)
+	apiRequest := grains_api.NewRequest(gc, "choosable-user-event-venues")
 
 	query := app.UranusInstance.SqlAdminGetChoosableUserEventVenues
-	rows, err := h.DbPool.Query(ctx, query, userId)
+	rows, err := h.DbPool.Query(ctx, query, userUuid)
 	if err != nil {
-		JSONDatabaseError(gc, apiResponseType)
+		apiRequest.DatabaseError()
 		return
 	}
 	defer rows.Close()
@@ -40,19 +43,19 @@ func (h *ApiHandler) AdminGetChoosableUserEventVenues(gc *gin.Context) {
 			&venueInfo.City,
 			&venueInfo.Country)
 		if err != nil {
-			JSONDatabaseError(gc, apiResponseType)
+			apiRequest.DatabaseError()
 			return
 		}
 		venueInfos = append(venueInfos, venueInfo)
 	}
 
 	if err := rows.Err(); err != nil {
-		JSONDatabaseError(gc, apiResponseType)
+		apiRequest.DatabaseError()
 		return
 	}
 
 	if len(venueInfos) == 0 {
-		JSONSuccess(gc, apiResponseType, []model.EventVenueInfo{}, nil)
+		apiRequest.Success(http.StatusOK, []model.EventVenueInfo{}, "")
 		return
 	}
 
@@ -61,5 +64,5 @@ func (h *ApiHandler) AdminGetChoosableUserEventVenues(gc *gin.Context) {
 		"total_count": len(venueInfos),
 	}
 
-	JSONSuccess(gc, apiResponseType, result, nil)
+	apiRequest.Success(http.StatusOK, result, "")
 }

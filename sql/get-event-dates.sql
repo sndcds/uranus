@@ -1,11 +1,11 @@
 WITH target_event AS (
     SELECT *
     FROM {{schema}}.event
-    WHERE id = $1
+    WHERE uuid = $1
 )
 SELECT
-    ed.id AS event_date_id,
-    ed.event_id,
+    ed.uuid AS event_date_uuid,
+    ed.event_uuid,
     e.release_status,
 
     TO_CHAR(ed.start_date, 'YYYY-MM-DD') AS start_date,
@@ -16,7 +16,7 @@ SELECT
     ed.duration,
 
     -- Venue logic: prefer event_date.venue_id, fallback to event.venue_id
-    v.id AS venue_id,
+    v.uuid AS venue_uuid,
     v.name AS venue_name,
     v.street AS venue_street,
     v.house_number AS venue_house_number,
@@ -24,71 +24,70 @@ SELECT
     v.city AS venue_city,
     v.country AS venue_country,
     v.state AS venue_state,
-    ST_X(v.geo_pos) AS venue_lon,
-    ST_Y(v.geo_pos) AS venue_lat,
-    v.website_link AS venue_link,
-    venue_logo.main_logo_image_id AS venue_logo_image_id,
-    light_theme_logo.light_theme_logo_image_id AS venue_light_theme_logo_image_id,
-    dark_theme_logo.dark_theme_logo_image_id AS venue_dark_theme_logo_image_id,
+    ST_X(v.point) AS venue_lon,
+    ST_Y(v.point) AS venue_lat,
+    v.web_link AS venue_link,
+    venue_logo.main_logo_uuid AS venue_logo_uuid,
+    light_theme_logo.light_theme_logo_uuid AS venue_light_theme_logo_uuid,
+    dark_theme_logo.dark_theme_logo_uuid AS venue_dark_theme_logo_uuid,
 
     -- Space logic: take from event_date only if event_date.venue_id exists, else NULL
-    s.id AS space_id,
+    s.uuid AS space_uuid,
     s.name AS space_name,
     s.total_capacity AS space_total_capacity,
     s.seating_capacity AS space_seating_capacity,
     s.building_level AS space_building_level,
-    s.website_link AS space_link,
+    s.web_link AS space_link,
     s.accessibility_flags::text AS accessibility_flags,
     s.accessibility_summary AS accessibility_summary,
-
     ed.accessibility_info AS accessibility_info
 
 FROM {{schema}}.event_date ed
-JOIN target_event e ON ed.event_id = e.id
+JOIN target_event e ON ed.event_uuid = e.uuid
 
 -- Venue fallback
 LEFT JOIN {{schema}}.venue v
-ON v.id = COALESCE(ed.venue_id, e.venue_id)
+ON v.uuid = COALESCE(ed.venue_uuid, e.venue_uuid)
 
 -- Space fallback
 LEFT JOIN {{schema}}.space s
-ON s.id = CASE
-WHEN ed.venue_id IS NOT NULL THEN ed.space_id
-ELSE e.space_id
+ON s.uuid = CASE
+WHEN ed.venue_uuid IS NOT NULL THEN ed.space_uuid
+ELSE e.space_uuid
 END
 
 -- Main logo
 LEFT JOIN LATERAL (
-    SELECT pi.id AS main_logo_image_id
-    FROM uranus.pluto_image_link pil
-    JOIN uranus.pluto_image pi
-      ON pi.id = pil.pluto_image_id
+    SELECT pi.uuid AS main_logo_uuid
+    FROM {{schema}}.pluto_image_link pil
+    JOIN {{schema}}.pluto_image pi
+      ON pi.uuid = pil.pluto_image_uuid
     WHERE pil.context = 'venue'
-      AND pil.context_id = v.id
+      AND pil.context_uuid = v.uuid
       AND pil.identifier = 'main_logo'
     LIMIT 1
 ) venue_logo ON true
 
 -- Light theme logo
 LEFT JOIN LATERAL (
-    SELECT pi.id AS light_theme_logo_image_id
-    FROM uranus.pluto_image_link pil
-    JOIN uranus.pluto_image pi
-      ON pi.id = pil.pluto_image_id
+    SELECT pi.uuid AS light_theme_logo_uuid
+    FROM {{schema}}.pluto_image_link pil
+    JOIN {{schema}}.pluto_image pi
+      ON pi.uuid = pil.pluto_image_uuid
     WHERE pil.context = 'venue'
-      AND pil.context_id = v.id
+      AND pil.context_uuid = v.uuid
       AND pil.identifier = 'light_theme_logo'
     LIMIT 1
 ) light_theme_logo ON true
 
 -- Dark theme logo
 LEFT JOIN LATERAL (
-    SELECT pi.id AS dark_theme_logo_image_id
-    FROM uranus.pluto_image_link pil
-    JOIN uranus.pluto_image pi
-      ON pi.id = pil.pluto_image_id
+    SELECT pi.uuid AS dark_theme_logo_uuid
+    FROM {{schema}}.pluto_image_link pil
+    JOIN {{schema}}.pluto_image pi
+      ON pi.uuid = pil.pluto_image_uuid
     WHERE pil.context = 'venue'
-      AND pil.context_id = v.id
+      AND pil.context_uuid = v.uuid
       AND pil.identifier = 'dark_theme_logo'
     LIMIT 1
 ) dark_theme_logo ON true

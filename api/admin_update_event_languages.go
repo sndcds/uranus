@@ -1,20 +1,22 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/sndcds/grains/grains_api"
 )
 
 func (h *ApiHandler) AdminUpdateEventLanguages(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	apiResponseType := "admin-update-event-languages"
+	apiRequest := grains_api.NewRequest(gc, "admin-update-event-languages")
 
-	eventId, ok := ParamInt(gc, "eventId")
-	if !ok {
-		JSONError(gc, apiResponseType, http.StatusBadRequest, "eventId is required")
+	eventUuid := gc.Param("eventUuid")
+	if eventUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "eventUuid is required")
 		return
 	}
 
@@ -24,14 +26,14 @@ func (h *ApiHandler) AdminUpdateEventLanguages(gc *gin.Context) {
 
 	var req eventLanguagesReq
 	if err := gc.ShouldBindJSON(&req); err != nil {
-		JSONPayloadError(gc, apiResponseType)
+		apiRequest.PayloadError()
 		return
 	}
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		query := fmt.Sprintf(`UPDATE %s.event SET languages = $2 WHERE id = $1`, h.DbSchema)
 
-		res, err := tx.Exec(ctx, query, eventId, req.Languages)
+		res, err := tx.Exec(ctx, query, eventUuid, req.Languages)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
@@ -43,11 +45,11 @@ func (h *ApiHandler) AdminUpdateEventLanguages(gc *gin.Context) {
 		if rowsAffected == 0 {
 			return &ApiTxError{
 				Code: http.StatusNotFound,
-				Err:  fmt.Errorf("event not found"),
+				Err:  errors.New("event not found"),
 			}
 		}
 
-		err = RefreshEventProjections(ctx, tx, "event", []int{eventId})
+		err = RefreshEventProjections(ctx, tx, "event", []string{eventUuid})
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
@@ -58,9 +60,9 @@ func (h *ApiHandler) AdminUpdateEventLanguages(gc *gin.Context) {
 		return nil
 	})
 	if txErr != nil {
-		JSONDatabaseError(gc, apiResponseType)
+		apiRequest.DatabaseError()
 		return
 	}
 
-	JSONSuccessNoData(gc, apiResponseType)
+	apiRequest.SuccessNoData(http.StatusOK, "")
 }

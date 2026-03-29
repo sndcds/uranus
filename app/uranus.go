@@ -53,7 +53,7 @@ type Uranus struct {
 	SqlAdminInsertEventDate             string
 	SqlAdminUpdateEventDate             string
 	SqlAdminDeleteEvent                 string
-	SqlTypeGenreLookup                  string
+	SqlEventTypeGenreLookup             string
 	SqlChoosableOrganizationVenues      string
 	SqlChoosableVenueSpaces             string
 	SqlChoosableEventTypes              string
@@ -210,7 +210,6 @@ type SqlQueryItem struct {
 }
 
 func (q *SqlQueryItem) LoadSql(schema string, baseApiUrl string) error {
-	fmt.Println("LoadSql:", q.filePath)
 	fileContent, err := os.ReadFile(q.filePath)
 	if err != nil {
 		return fmt.Errorf("failed to read file: %w", err)
@@ -259,7 +258,7 @@ func (app *Uranus) PrepareSql() error {
 		{"sql/choosable-event-genres.sql", &app.SqlChoosableEventGenres, nil},
 		{"sql/get-geojson-venues.sql", &app.SqlGetGeojsonVenues, nil},
 
-		{"sql/type-genre-lookup.sql", &app.SqlTypeGenreLookup, nil},
+		{"sql/event-type-genre-lookup.sql", &app.SqlEventTypeGenreLookup, nil},
 		{"sql/choosable-organization-venues.sql", &app.SqlChoosableOrganizationVenues, nil},
 
 		{"sql/choosable-organization-venues.sql", &app.SqlChoosableOrganizationVenues, nil},

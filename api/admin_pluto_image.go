@@ -13,16 +13,12 @@ func (h *ApiHandler) AdminDeletePlutoImage(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-delete-pluto-image")
 
 	context := gc.Param("context")
-	debugf("context: %s", context)
-	apiRequest.SetMeta("pluto_context", context)
 
-	contextId, ok := ParamInt(gc, "contextId")
-	if !ok {
-		apiRequest.Error(http.StatusBadRequest, "contextId is required")
+	contextUuid := gc.Param("contextUuid")
+	if contextUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "contextUuid is required")
 		return
 	}
-	debugf("contextId: %d", contextId)
-	apiRequest.SetMeta("pluto_context_id", contextId)
 
 	validator, err := validatorByContext(context)
 	if err != nil {
@@ -37,16 +33,14 @@ func (h *ApiHandler) AdminDeletePlutoImage(gc *gin.Context) {
 	}
 
 	identifier := gc.Param("identifier")
-	debugf("identifier: %s", identifier)
-	apiRequest.SetMeta("pluto_image_identifier", identifier)
 	if !validator(identifier) {
 		apiRequest.Error(http.StatusBadRequest, "unknown identifier")
 		return
 	}
 
 	plutoDeleteImageResult, err := pluto.DeleteImage(
-		gc, context, contextId, identifier,
-		refresher(context, []int{contextId}))
+		gc, context, contextUuid, identifier,
+		refresher(context, []string{contextUuid}))
 	if err != nil {
 		apiRequest.Error(http.StatusInternalServerError, "pluto api failed")
 		return
@@ -54,27 +48,26 @@ func (h *ApiHandler) AdminDeletePlutoImage(gc *gin.Context) {
 
 	apiRequest.SetMeta("file_removed", plutoDeleteImageResult.FileRemovedFlag)
 	apiRequest.SetMeta("cache_removed_count", plutoDeleteImageResult.CacheFilesRemoved)
-	apiRequest.SetMeta("image_id", plutoDeleteImageResult.ImageId)
+	apiRequest.SetMeta("image_uuid", plutoDeleteImageResult.ImageUuid)
 	apiRequest.SuccessNoData(plutoDeleteImageResult.HttpStatus, plutoDeleteImageResult.Message)
 }
 
 func (h *ApiHandler) AdminUpsertPlutoImage(gc *gin.Context) {
-	userId := h.userId(gc)
 	apiRequest := grains_api.NewRequest(gc, "admin-upsert-pluto-image")
+	userUuid := h.userUuid(gc)
 
 	// TODO: Check user permissions for different contexts
 
 	context := gc.Param("context")
 	apiRequest.SetMeta("pluto_context", context)
-	debugf("context: %s", context)
 
-	contextId, ok := ParamInt(gc, "contextId")
-	if !ok {
-		apiRequest.Error(http.StatusBadRequest, "contextId is required")
+	contextUuid := gc.Param("contextUuid")
+	debugf("contextUuid: %s", contextUuid)
+	if contextUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "contextUuid is required")
 		return
 	}
-	apiRequest.SetMeta("pluto_context_id", contextId)
-	debugf("contextId: %s", contextId)
+	apiRequest.SetMeta("pluto_context_uuid", contextUuid)
 
 	validator, err := validatorByContext(context)
 	if err != nil {
@@ -105,8 +98,8 @@ func (h *ApiHandler) AdminUpsertPlutoImage(gc *gin.Context) {
 
 	// Upsert image in Pluto
 	plutoUpsertImageResult, err := pluto.UpsertImage(
-		gc, context, contextId, identifier, &fileNamePrefix, userId,
-		refresher(context, []int{contextId}))
+		gc, context, contextUuid, identifier, &fileNamePrefix, userUuid,
+		refresher(context, []string{contextUuid}))
 	if err != nil || plutoUpsertImageResult.HttpStatus != http.StatusOK {
 		debugf("err: %v", err)
 		gc.JSON(plutoUpsertImageResult.HttpStatus, gin.H{"error": plutoUpsertImageResult.Message})
@@ -117,7 +110,7 @@ func (h *ApiHandler) AdminUpsertPlutoImage(gc *gin.Context) {
 
 	apiRequest.SetMeta("file_replaced", plutoUpsertImageResult.FileRemovedFlag)
 	apiRequest.SetMeta("cache_removed_count", plutoUpsertImageResult.CacheFilesRemoved)
-	apiRequest.SetMeta("image_id", plutoUpsertImageResult.ImageId)
+	apiRequest.SetMeta("image_id", plutoUpsertImageResult.ImageUuid)
 	apiRequest.SuccessNoData(plutoUpsertImageResult.HttpStatus, plutoUpsertImageResult.Message)
 }
 

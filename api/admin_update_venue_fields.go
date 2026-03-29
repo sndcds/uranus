@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -14,12 +15,12 @@ func (h *ApiHandler) UpdateVenueFields(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	apiRequest := grains_api.NewRequest(gc, "admin-update-venue-fields")
 
-	venueId, ok := ParamInt(gc, "venueId")
-	if !ok {
-		apiRequest.Error(http.StatusBadRequest, "venueId is required")
+	venueUuid := gc.Param("venueUuid")
+	if venueUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "venueUuid is required")
 		return
 	}
-	apiRequest.SetMeta("venue_id", venueId)
+	apiRequest.SetMeta("venue_uuid", venueUuid)
 
 	var payload struct {
 		Name         NullableField[string]  `json:"name"`
@@ -27,7 +28,7 @@ func (h *ApiHandler) UpdateVenueFields(gc *gin.Context) {
 		Description  NullableField[string]  `json:"description"`
 		ContactEmail NullableField[string]  `json:"contact_email"`
 		ContactPhone NullableField[string]  `json:"contact_phone"`
-		WebsiteLink  NullableField[string]  `json:"website_link"`
+		WebLink      NullableField[string]  `json:"web_link"`
 		Street       NullableField[string]  `json:"street"`
 		HouseNumber  NullableField[string]  `json:"house_number"`
 		PostalCode   NullableField[string]  `json:"postal_code"`
@@ -66,7 +67,7 @@ func (h *ApiHandler) UpdateVenueFields(gc *gin.Context) {
 	argPos = addUpdateClauseNullable("description", payload.Description, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("contact_email", payload.ContactEmail, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("contact_phone", payload.ContactPhone, &setClauses, &args, argPos)
-	argPos = addUpdateClauseNullable("website_link", payload.WebsiteLink, &setClauses, &args, argPos)
+	argPos = addUpdateClauseNullable("web_link", payload.WebLink, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("street", payload.Street, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("house_number", payload.HouseNumber, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("postal_code", payload.PostalCode, &setClauses, &args, argPos)
@@ -78,7 +79,7 @@ func (h *ApiHandler) UpdateVenueFields(gc *gin.Context) {
 
 	if payload.Lon.Set && payload.Lon.Value != nil && payload.Lat.Set && payload.Lat.Value != nil {
 		// Construct PostGIS POINT in WKT format
-		setClauses = append(setClauses, fmt.Sprintf("geo_pos = ST_SetSRID(ST_MakePoint($%d, $%d), 4326)", argPos, argPos+1))
+		setClauses = append(setClauses, fmt.Sprintf("point = ST_SetSRID(ST_MakePoint($%d, $%d), 4326)", argPos, argPos+1))
 		args = append(args, *payload.Lon.Value, *payload.Lat.Value)
 		argPos += 2
 	}
@@ -95,7 +96,7 @@ func (h *ApiHandler) UpdateVenueFields(gc *gin.Context) {
 		argPos, // Last placeholder is for WHERE id
 	)
 
-	args = append(args, venueId) // eventId is the last parameter
+	args = append(args, venueUuid) // eventId is the last parameter
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		res, err := tx.Exec(ctx, query, args...)
@@ -109,15 +110,15 @@ func (h *ApiHandler) UpdateVenueFields(gc *gin.Context) {
 		if res.RowsAffected() == 0 {
 			return &ApiTxError{
 				Code: http.StatusNotFound,
-				Err:  fmt.Errorf("event not found"),
+				Err:  errors.New("event not found"),
 			}
 		}
 
-		err = RefreshEventProjections(ctx, tx, "venue", []int{venueId})
+		err = RefreshEventProjections(ctx, tx, "venue", []string{venueUuid})
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
-				Err:  fmt.Errorf("refresh projection tables failed"),
+				Err:  errors.New("refresh projection tables failed"),
 			}
 		}
 

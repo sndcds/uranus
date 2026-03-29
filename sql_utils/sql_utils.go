@@ -681,7 +681,7 @@ func BuildLimitOffsetClause(limitStr, offsetStr string, startIndex int, args *[]
 //
 // Parameters:
 //   - lonStr, latStr, radiusStr: string inputs for longitude, latitude, and radius in meters.
-//   - columnExpr: the SQL expression for the geometry column (e.g., "v.geo_pos").
+//   - columnExpr: the SQL expression for the geometry column (e.g., "v.point").
 //   - startIndex: the starting placeholder index for the SQL arguments.
 //   - conditions: a pointer to the slice of WHERE conditions to append to.
 //   - args: a pointer to the slice of SQL arguments.

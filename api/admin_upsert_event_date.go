@@ -13,14 +13,14 @@ import (
 
 func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := h.userId(gc)
+	userUuid := h.userUuid(gc)
 
-	fmt.Println("userId", userId)
+	fmt.Println("userUuid", userUuid)
 
-	eventId, ok := ParamInt(gc, "eventId")
-	fmt.Println("eventId", eventId)
-	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "eventId is required"})
+	eventUuid := gc.Param("eventUuid")
+	fmt.Println("eventUuid", eventUuid)
+	if eventUuid == "" {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "eventUuid is required"})
 		return
 	}
 
@@ -38,25 +38,25 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 		fmt.Println(string(reqJSON))
 	}
 
-	eventDateId := ParamIntDefault(gc, "dateId", -1)
-	newEventDateId := -1
+	eventDateUuid := gc.Param("dateUuid")
+	newEventDateUuid := ""
 
-	fmt.Println("eventDateId", eventDateId)
+	fmt.Println("eventDateId", eventDateUuid)
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 
-		if eventDateId < 0 {
+		if eventDateUuid == "" {
 			// Insert
 			// Check permissions, we need an 'organizationId' first
-			organizationId, err := h.GetOrganizationIdByEvenId(gc, tx, eventId)
+			orgUuid, err := h.GetOrganizationUuidByEvenUuid(gc, tx, eventUuid)
 			if err != nil {
 				return ApiErrInternal("%v", err)
 			}
-			if organizationId < 0 {
+			if orgUuid == "" {
 				return ApiErrInternal("internal organizationId failed")
 			}
 
-			permissions, err := h.GetUserOrganizationPermissions(gc, tx, userId, organizationId)
+			permissions, err := h.GetUserOrganizationPermissions(gc, tx, userUuid, orgUuid)
 			if err != nil {
 				return ApiErrInternal("%v", err)
 			}
@@ -71,9 +71,9 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
 RETURNING id`, h.DbSchema)
 
 			err = tx.QueryRow(ctx, query,
-				eventId,
-				req.VenueId,
-				req.SpaceId,
+				eventUuid,
+				req.VenueUuid,
+				req.SpaceUuid,
 				req.StartDate,
 				req.StartTime,
 				req.EndDate,
@@ -84,8 +84,8 @@ RETURNING id`, h.DbSchema)
 				req.AvailabilityStatusId,
 				req.AccessibilityInfo,
 				req.Custom,
-				userId,
-			).Scan(&newEventDateId)
+				userUuid,
+			).Scan(&newEventDateUuid)
 			if err != nil {
 				return &ApiTxError{
 					Code: http.StatusInternalServerError,
@@ -114,8 +114,8 @@ WHERE event_id = $13 AND id = $14
 RETURNING id`, h.DbSchema)
 
 			err := tx.QueryRow(ctx, query,
-				req.VenueId,
-				req.SpaceId,
+				req.VenueUuid,
+				req.SpaceUuid,
 				req.StartDate,
 				req.StartTime,
 				req.EndDate,
@@ -126,9 +126,9 @@ RETURNING id`, h.DbSchema)
 				req.AvailabilityStatusId,
 				req.AccessibilityInfo,
 				req.Custom,
-				eventId,
-				eventDateId,
-			).Scan(&newEventDateId)
+				eventUuid,
+				eventDateUuid,
+			).Scan(&newEventDateUuid)
 			if err != nil {
 				if err == pgx.ErrNoRows {
 					return &ApiTxError{
@@ -139,10 +139,10 @@ RETURNING id`, h.DbSchema)
 				return ApiErrInternal("%v", err)
 			}
 		}
-		fmt.Println("newEventDateId", newEventDateId)
+		fmt.Println("newEventDateId", newEventDateUuid)
 
 		// Refresh projections
-		if err := RefreshEventProjections(ctx, tx, "event_date", []int{newEventDateId}); err != nil {
+		if err := RefreshEventProjections(ctx, tx, "event_date", []string{newEventDateUuid}); err != nil {
 			return ApiErrInternal("refresh projection tables failed: %v", err)
 		}
 
@@ -155,13 +155,13 @@ RETURNING id`, h.DbSchema)
 	}
 
 	action := "updated"
-	if eventDateId < 0 {
+	if eventDateUuid == "" {
 		action = "created"
 	}
 
 	gc.JSON(http.StatusOK, gin.H{
-		"message":       fmt.Sprintf("event date %s successfully", action),
-		"event_id":      eventId,
-		"event_date_id": newEventDateId,
+		"message":         fmt.Sprintf("event date %s successfully", action),
+		"event_uuid":      eventUuid,
+		"event_date_uuid": newEventDateUuid,
 	})
 }

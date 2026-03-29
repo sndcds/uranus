@@ -1,5 +1,5 @@
 SELECT
-    e.id AS event_id,
+    e.uuid AS event_uuid,
     e.release_status,
     e.title,
     e.subtitle,
@@ -17,15 +17,15 @@ SELECT
     e.min_price,
     e.max_price,
     e.visitor_info_flags,
-    o.id AS organization_id,
-    o.name AS organization_name,
-    o.website_link AS organization_link,
+    o.uuid AS org_uuid,
+    o.name AS org_name,
+    o.web_link AS org_link,
 
     CASE
-        WHEN main_image.id IS NULL THEN NULL
+        WHEN main_image.uuid IS NULL THEN NULL
         ELSE jsonb_build_object(
-            'id', main_image.id,
-            'url', format('{{base_api_url}}/api/image/%s', main_image.id),
+            'uuid', main_image.uuid,
+            'url', format('{{base_api_url}}/api/image/%s', main_image.uuid),
             'alt', main_image.alt_text,
             'creator', main_image.creator_name,
             'copyright', main_image.copyright,
@@ -39,18 +39,18 @@ SELECT
     link_data.event_links
 
 FROM {{schema}}.event e
-JOIN {{schema}}.organization o ON o.id = e.organization_id
+JOIN {{schema}}.organization o ON o.uuid = e.org_uuid
 
 -- Venue (fallback logic if event has venue_id)
-LEFT JOIN {{schema}}.venue v ON v.id = e.venue_id
+LEFT JOIN {{schema}}.venue v ON v.uuid = e.venue_uuid
 
 -- Space (fallback logic if event has space_id)
-LEFT JOIN {{schema}}.space s ON s.id = e.space_id
+LEFT JOIN {{schema}}.space s ON s.uuid = e.space_uuid
 
 -- Main image: first pluto_image linked as 'main', include license info
 LEFT JOIN LATERAL (
     SELECT
-        pi.id,
+        pi.uuid,
         pi.alt_text,
         pi.creator_name,
         pi.copyright,
@@ -58,10 +58,10 @@ LEFT JOIN LATERAL (
         COALESCE(lic.name, lic_fallback.name) AS license_name,
         COALESCE(lic.description, lic_fallback.description) AS license_description
     FROM {{schema}}.pluto_image_link pil
-    JOIN {{schema}}.pluto_image pi ON pi.id = pil.pluto_image_id
+    JOIN {{schema}}.pluto_image pi ON pi.uuid = pil.pluto_image_uuid
     LEFT JOIN {{schema}}.license_i18n lic ON lic.key = pi.license AND lic.iso_639_1 = $2
     LEFT JOIN {{schema}}.license_i18n lic_fallback ON lic_fallback.key = 'all-rights-reserved' AND lic_fallback.iso_639_1 = $2
-    WHERE pil.context = 'event' AND pil.context_id = e.id AND pil.identifier = 'main'
+    WHERE pil.context = 'event' AND pil.context_uuid = e.uuid AND pil.identifier = 'main'
     LIMIT 1
 ) main_image ON TRUE
 
@@ -95,7 +95,7 @@ LEFT JOIN LATERAL (
         )
     ) AS event_links
     FROM {{schema}}.event_link eu
-    WHERE eu.event_id = e.id
+    WHERE eu.event_uuid = e.uuid
 ) link_data ON TRUE
 
-WHERE e.id = $1
+WHERE e.uuid = $1

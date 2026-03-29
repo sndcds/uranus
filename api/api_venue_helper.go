@@ -14,8 +14,8 @@ import (
 func (h *ApiHandler) GetUserEffectiveVenuePermissions(
 	gc *gin.Context,
 	tx pgx.Tx,
-	userId int,
-	venueId int,
+	userUuid string,
+	venueUuid string,
 ) (app.Permission, error) {
 	ctx := gc.Request.Context()
 	var result pgtype.Int8
@@ -23,8 +23,8 @@ func (h *ApiHandler) GetUserEffectiveVenuePermissions(
 	err := tx.QueryRow(
 		ctx,
 		app.UranusInstance.SqlGetUserEffectiveVenuePermissions,
-		userId,
-		venueId,
+		userUuid,
+		venueUuid,
 	).Scan(&result)
 
 	if err != nil {
@@ -44,16 +44,16 @@ func (h *ApiHandler) GetUserEffectiveVenuePermissions(
 func (h *ApiHandler) IsSpaceInVenue(
 	gc *gin.Context,
 	tx pgx.Tx,
-	spaceId int,
-	venueId int,
+	spaceUuid string,
+	venueUuid string,
 ) (bool, error) {
 	ctx := gc.Request.Context()
 
 	var result bool
 	query := fmt.Sprintf(
-		`SELECT EXISTS (SELECT 1 FROM %s.space WHERE id = $1 AND venue_id = $2) AS space_exist`,
+		`SELECT EXISTS (SELECT 1 FROM %s.space WHERE uuid = $1 AND venue_uuid = $2) AS space_exist`,
 		h.DbSchema)
-	err := tx.QueryRow(ctx, query, spaceId, venueId).Scan(&result)
+	err := tx.QueryRow(ctx, query, spaceUuid, venueUuid).Scan(&result)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return false, nil

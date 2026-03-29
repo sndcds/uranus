@@ -96,6 +96,8 @@ func main() {
 	// Public endpoints
 	publicRoute := router.Group("/api")
 
+	publicRoute.GET("/health", apiHandler.GetHealth)
+
 	publicRoute.GET("/event/release-status-i18n", apiHandler.GetEventReleaseStatusI18n)
 
 	publicRoute.GET("/events", apiHandler.GetEvents)                          // TODO: check!
@@ -103,22 +105,23 @@ func main() {
 	publicRoute.GET("/events/venue-summary", apiHandler.GetEventVenueSummary) // TODO: check!
 	publicRoute.GET("/events/geojson", apiHandler.GetEventsGeoJSON)           // TODO: Reduce data
 
-	publicRoute.GET("/event/:eventId/date/:dateId", apiHandler.GetEventByDateId)
-	publicRoute.GET("/event/:eventId/date/:dateId/ics", apiHandler.GetEventDateICS) // TODO: check!
+	publicRoute.GET("/event/:eventId/date/:dateUuid", apiHandler.GetEventByDateUuid)
+	publicRoute.GET("/event/:eventId/date/:dateUuid/ics", apiHandler.GetEventDateICS) // TODO: check!
 
 	publicRoute.GET("/venues/geojson", apiHandler.GetVenuesGeoJSON)
 
-	publicRoute.GET("/organization/:organizationId", apiHandler.GetOrganization)
+	publicRoute.GET("/organization/:orgUuid", apiHandler.GetOrganization)
 	publicRoute.GET("/organizations", apiHandler.GetOrganizations)
 
 	publicRoute.GET("/venue/:venueId", apiHandler.GetVenue)
 
 	publicRoute.GET("/transport/stations", apiHandler.GetTransportStations)
 
-	publicRoute.GET("/user/:userId/avatar/:size", apiHandler.GetUserAvatar) // TODO: check!
-	publicRoute.GET("/user/:userId/avatar", apiHandler.GetUserAvatar)       // TODO: check!
+	publicRoute.GET("/user/:userUuid/avatar/:size", apiHandler.GetUserAvatar)
+	publicRoute.GET("/user/:userUuid/avatar", apiHandler.GetUserAvatar)
 
 	publicRoute.GET("/event/type-genre-lookup", apiHandler.GetEventTypeGenreLookup)
+	publicRoute.GET("/event/category-lookup", apiHandler.GetEventCategoryLookup)
 
 	publicRoute.GET("/choosable-link-types", apiHandler.GetChoosableLinkTypes)
 	publicRoute.GET("/choosable-venue-types", apiHandler.GetChoosableVenueTypes)
@@ -132,20 +135,20 @@ func main() {
 	publicRoute.GET("/choosable-currencies", apiHandler.GetChoosableCurrencies)          // TODO: check!
 	publicRoute.GET("/choosable-event-ocassions", apiHandler.GetChoosableEventOccasions) // TODO: check!
 
-	publicRoute.GET("/choosable-venues", apiHandler.GetChoosableVenues)                                          // TODO: check!
-	publicRoute.GET("/choosable-organizations", apiHandler.GetChoosableOrganizations)                            // TODO: check!
-	publicRoute.GET("/choosable-venues/organization/:organizationId", apiHandler.GetChoosableOrganizationVenues) // TODO: check!
-	publicRoute.GET("/choosable-spaces/venue/:venueId", apiHandler.GetChoosableVenueSpaces)                      // TODO: check!
-	publicRoute.GET("/choosable-event-genres/event-type/:id", apiHandler.GetChoosableEventGenres)                // TODO: check!
+	publicRoute.GET("/choosable-venues", apiHandler.GetChoosableVenues)                                   // TODO: check!
+	publicRoute.GET("/choosable-organizations", apiHandler.GetChoosableOrganizations)                     // TODO: check!
+	publicRoute.GET("/choosable-venues/organization/:orgUuid", apiHandler.GetChoosableOrganizationVenues) // TODO: check!
+	publicRoute.GET("/choosable-spaces/venue/:venueId", apiHandler.GetChoosableVenueSpaces)               // TODO: check!
+	publicRoute.GET("/choosable-event-genres/event-type/:id", apiHandler.GetChoosableEventGenres)         // TODO: check!
 
 	publicRoute.GET("/accessibility/flags", apiHandler.GetAccessibilityFlags) // TODO: check!
 
 	// Inject app middleware into Pluto's image routes
 	pluto.PlutoInstance.RegisterRoutes(publicRoute, app.JWTMiddleware) // TODO: check!
 
-	publicRoute.POST("/signup", apiHandler.Signup)                  // TODO: check!
+	publicRoute.POST("/signup", apiHandler.Signup)
+	publicRoute.POST("/login", apiHandler.Login)
 	publicRoute.POST("/activate", apiHandler.Activate)              // TODO: check!
-	publicRoute.POST("/login", apiHandler.Login)                    // TODO: check!
 	publicRoute.POST("/forgot-password", apiHandler.ForgotPassword) // TODO: check!
 	publicRoute.POST("/reset-password", apiHandler.ResetPassword)   // TODO: check!
 
@@ -157,38 +160,41 @@ func main() {
 	adminRoute.POST("/refresh", apiHandler.Refresh) // TODO: check!
 
 	// User
-	adminRoute.GET("/user/profile", apiHandler.AdminGetUserProfile)                            // TODO: check!
-	adminRoute.PUT("/user/profile", apiHandler.AdminUpdateUserProfile)                         // TODO: check!
-	adminRoute.PUT("/user/settings", apiHandler.AdminUpdateUserProfileSettings)                // TODO: check!
-	adminRoute.POST("/user/avatar", apiHandler.AdminUploadUserAvatar)                          // TODO: check!
-	adminRoute.DELETE("/user/avatar", apiHandler.AdminDeleteUserAvatar)                        // TODO: check!
-	adminRoute.GET("/user/messages", apiHandler.AdminGetMessages)                              // TODO: check!
-	adminRoute.POST("/user/send-message", apiHandler.AdminSendMessage)                         // TODO: check!
-	adminRoute.GET("/user/todos", apiHandler.AdminGetTodos)                                    // TODO: check!
-	adminRoute.GET("/user/todo/:todoId", apiHandler.AdminGetTodo)                              // TODO: check!
-	adminRoute.PUT("/user/todo", apiHandler.AdminUpsertTodo)                                   // TODO: check!
-	adminRoute.DELETE("/user/todo/:todoId", apiHandler.AdminDeleteTodo)                        // TODO: check!
-	adminRoute.GET("/user/event/notifications", apiHandler.AdminGetUserEventNotifications)     // TODO: check!
+	adminRoute.GET("/user/profile", apiHandler.AdminGetUserProfile)
+	adminRoute.PUT("/user/profile", apiHandler.AdminUpdateUserProfile)
+	adminRoute.PUT("/user/settings", apiHandler.AdminUpdateUserProfileSettings)
+	adminRoute.POST("/user/avatar", apiHandler.AdminUploadUserAvatar)
+	adminRoute.DELETE("/user/avatar", apiHandler.AdminDeleteUserAvatar)
+
+	adminRoute.GET("/user/todos", apiHandler.AdminUserGetTodos)
+	adminRoute.GET("/user/todo/:todoId", apiHandler.AdminGetTodo)
+	adminRoute.PUT("/user/todo", apiHandler.AdminUpsertTodo)
+	adminRoute.DELETE("/user/todo/:todoId", apiHandler.AdminDeleteTodo)
+
+	adminRoute.GET("/user/messages", apiHandler.AdminGetMessages)      // TODO: check!
+	adminRoute.POST("/user/send-message", apiHandler.AdminSendMessage) // TODO: check!
+
+	adminRoute.GET("/user/event/notifications", apiHandler.AdminGetUserEventNotifications)
 	adminRoute.GET("/user/choosable-organizations", apiHandler.AdminGetChoosableOrganizations) // TODO: check!
 	adminRoute.GET("/user/choosable-event-venues", apiHandler.AdminGetChoosableUserEventVenues)
 
 	// Organisation
-	adminRoute.GET("/organization/:organizationId/member/:memberId/permissions", apiHandler.AdminGetOrganizationMemberPermissions)    // TODO: check!
-	adminRoute.PUT("/organization/:organizationId/member/:memberId/permissions", apiHandler.AdminUpdateOrganizationMemberPermissions) // TODO: check!
+	adminRoute.GET("/organization/:orgUuid/member/:memberId/permissions", apiHandler.AdminGetOrganizationMemberPermissions)    // TODO: check!
+	adminRoute.PUT("/organization/:orgUuid/member/:memberId/permissions", apiHandler.AdminUpdateOrganizationMemberPermissions) // TODO: check!
 
 	adminRoute.POST("/organization/create", apiHandler.AdminCreateOrganization)
-	adminRoute.GET("/organization/:organizationId", apiHandler.AdminGetOrganization)
-	adminRoute.PUT("/organization/:organizationId/fields", apiHandler.UpdateOrganizationFields)
-	adminRoute.DELETE("/organization/:organizationId", apiHandler.AdminDeleteOrganization)
+	adminRoute.GET("/organization/:orgUuid", apiHandler.AdminGetOrganization)
+	adminRoute.PUT("/organization/:orgUuid/fields", apiHandler.UpdateOrganizationFields)
+	adminRoute.DELETE("/organization/:orgUuid", apiHandler.AdminDeleteOrganization)
 
-	adminRoute.GET("/organization/dashboard", apiHandler.AdminGetOrganizationDashboard)           // TODO: check!
-	adminRoute.GET("/organization/:organizationId/venues", apiHandler.AdminGetOrganizationVenues) // TODO: check!
-	adminRoute.GET("/organization/:organizationId/events", apiHandler.AdminGetOrganizationEvents) // TODO: check!
+	adminRoute.GET("/organization/dashboard", apiHandler.AdminGetOrganizationDashboard)
+	adminRoute.GET("/organization/:orgUuid/venues", apiHandler.AdminGetOrganizationVenues)
+	adminRoute.GET("/organization/:orgUuid/events", apiHandler.AdminGetOrganizationEvents) // TODO: check!
 
-	adminRoute.GET("/organization/:organizationId/team", apiHandler.AdminGetOrganizationTeam)                              // TODO: check!
-	adminRoute.POST("/organization/:organizationId/team/invite", apiHandler.AdminOrganizationTeamInvite)                   // TODO: check!
-	adminRoute.DELETE("/organization/:organizationId/team/member/:memberId", apiHandler.AdminDeleteOrganizationTeamMember) // TODO: check!
-	adminRoute.POST("/organization/team/invite/accept", apiHandler.AdminOrganizationTeamInviteAccept)                      // TODO: check!
+	adminRoute.GET("/organization/:orgUuid/team", apiHandler.AdminGetOrganizationTeam)                              // TODO: check!
+	adminRoute.POST("/organization/:orgUuid/team/invite", apiHandler.AdminOrganizationTeamInvite)                   // TODO: check!
+	adminRoute.DELETE("/organization/:orgUuid/team/member/:memberId", apiHandler.AdminDeleteOrganizationTeamMember) // TODO: check!
+	adminRoute.POST("/organization/team/invite/accept", apiHandler.AdminOrganizationTeamInviteAccept)               // TODO: check!
 
 	// Venue
 	adminRoute.GET("/venue/:venueId", apiHandler.AdminGetVenue)
@@ -210,10 +216,10 @@ func main() {
 
 	// Event
 	adminRoute.GET("/event/:eventId", apiHandler.AdminGetEvent)
-	adminRoute.POST("/delete/event/:eventId", apiHandler.AdminDeleteEvent)                  // TODO: check!
-	adminRoute.POST("/event/:eventId/date", apiHandler.AdminUpsertEventDate)                // TODO: check!
-	adminRoute.PUT("/event/:eventId/date/:dateId", apiHandler.AdminUpsertEventDate)         // TODO: check!
-	adminRoute.POST("/delete/event/:eventId/date/:dateId", apiHandler.AdminDeleteEventDate) // TODO: check!
+	adminRoute.POST("/delete/event/:eventId", apiHandler.AdminDeleteEvent)                    // TODO: check!
+	adminRoute.POST("/event/:eventId/date", apiHandler.AdminUpsertEventDate)                  // TODO: check!
+	adminRoute.PUT("/event/:eventId/date/:dateUuid", apiHandler.AdminUpsertEventDate)         // TODO: check!
+	adminRoute.POST("/delete/event/:eventId/date/:dateUuid", apiHandler.AdminDeleteEventDate) // TODO: check!
 
 	adminRoute.POST("/event/initial", apiHandler.AdminInitialEvent)
 	adminRoute.POST("/event/create", apiHandler.AdminCreateEvent)
@@ -230,11 +236,9 @@ func main() {
 	adminRoute.PUT("/event/:eventId/summary", apiHandler.AdminUpdateEventSummary)                        // TODO: check!
 	adminRoute.PUT("/event/:eventId/participation-infos", apiHandler.AdminUpdateEventParticipationInfos) // TODO: check!
 
-	adminRoute.POST("/event/:eventId/teaser/image", apiHandler.AdminUpdateEventTeaserImage) // TODO: check!
-
-	// Image
-	adminRoute.POST("/image/:context/:contextId/:identifier", apiHandler.AdminUpsertPlutoImage)
-	adminRoute.DELETE("/image/:context/:contextId/:identifier", apiHandler.AdminDeletePlutoImage)
+	// Pluto Image
+	adminRoute.POST("/image/:context/:contextUuid/:identifier", apiHandler.AdminUpsertPlutoImage)
+	adminRoute.DELETE("/image/:context/:contextUuid/:identifier", apiHandler.AdminDeletePlutoImage)
 
 	/*
 		fmt.Println("Gin mode:", gin.Mode())

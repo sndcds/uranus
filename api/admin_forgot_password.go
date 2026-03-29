@@ -33,7 +33,7 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 
 	// Look up user
 	query := fmt.Sprintf(
-		"SELECT id FROM %s.user WHERE email_address = $1",
+		"SELECT id FROM %s.user WHERE email = $1",
 		h.DbSchema,
 	)
 
@@ -169,7 +169,7 @@ func generateResetToken() (string, error) {
 }
 
 func sendEmail(to, subject string, htmlContent string) error {
-	from := app.UranusInstance.Config.AuthReplyEmailAddress
+	from := app.UranusInstance.Config.AuthReplyEmail
 	userName := app.UranusInstance.Config.AuthSmtpLogin
 	password := app.UranusInstance.Config.AuthSmtpPassword
 	smtpHost := app.UranusInstance.Config.AuthSmtpHost

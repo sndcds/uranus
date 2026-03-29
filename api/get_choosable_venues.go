@@ -29,7 +29,7 @@ func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
 		return
 	}
 
-	argIndex, errBuild = sql_utils.BuildGeoRadiusCondition(lonStr, latStr, radiusStr, "geo_pos", argIndex, &conditions, &args)
+	argIndex, errBuild = sql_utils.BuildGeoRadiusCondition(lonStr, latStr, radiusStr, "point", argIndex, &conditions, &args)
 	if errBuild != nil {
 		apiRequest.InternalServerError()
 		return

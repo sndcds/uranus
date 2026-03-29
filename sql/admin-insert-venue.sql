@@ -1,19 +1,19 @@
 INSERT INTO {{schema}}.venue (
-    organization_id,
+    org_uuid,
     name,
     description,
     opened_at,
     closed_at,
     contact_email,
     contact_phone,
-    website_link,
+    web_link,
     street,
     house_number,
     postal_code,
     city,
     country,
     state,
-    geo_pos,
+    point,
     created_by
 )
 VALUES (

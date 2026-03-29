@@ -4,25 +4,33 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
 	"github.com/sndcds/uranus/model"
 )
 
-// PermissionNote: Only returns notifications for the authenticated user.
-// PermissionChecks: Unnecessary.
+// PermissionNote: Returns notifications for the authenticated user.
+// PermissionChecks: Done in PSQL.
 // Verified: 2026-01-12, Roald
 
 func (h *ApiHandler) AdminGetUserEventNotifications(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := h.userId(gc)
+	apiRequest := grains_api.NewRequest(gc, "admin-get-user-event-notifications")
+	userUuid := h.userUuid(gc)
 
 	releaseDateDaysLeft := 14
 	firstEventDateDaysLeft := 30
 
+	// For a given user, this query returns all unreleased or draft/review events from organizations
+	// they belong to, along with the event’s earliest and latest dates, the number of days until release,
+	// and the number of days until the next event occurs. It filters out events that have already ended
+	// and applies optional look-ahead windows for release dates or event dates.
 	query := app.UranusInstance.SqlAdminGetUserEventNotifications
-	rows, err := h.DbPool.Query(ctx, query, userId, releaseDateDaysLeft, firstEventDateDaysLeft)
+
+	rows, err := h.DbPool.Query(ctx, query, userUuid, releaseDateDaysLeft, firstEventDateDaysLeft)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		debugf(err.Error())
+		apiRequest.InternalServerError()
 		return
 	}
 	defer rows.Close()
@@ -45,14 +53,16 @@ func (h *ApiHandler) AdminGetUserEventNotifications(gc *gin.Context) {
 			&notification.DaysUntilEvent,
 		)
 		if err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			debugf(err.Error())
+			apiRequest.InternalServerError()
 			return
 		}
 		notifications = append(notifications, notification)
 	}
 
 	if rows.Err() != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": rows.Err().Error()})
+		debugf(rows.Err().Error())
+		apiRequest.InternalServerError()
 		return
 	}
 
@@ -61,5 +71,5 @@ func (h *ApiHandler) AdminGetUserEventNotifications(gc *gin.Context) {
 		"total_count":   len(notifications),
 	}
 
-	gc.JSON(http.StatusOK, result)
+	apiRequest.Success(http.StatusOK, result, "")
 }

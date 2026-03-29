@@ -16,7 +16,7 @@ import (
 
 func (h *ApiHandler) AdminGetVenue(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := h.userId(gc)
+	userUuid := h.userUuid(gc)
 	apiRequest := grains_api.NewRequest(gc, "admin-get-venue")
 
 	venueId := gc.Param("venueId")
@@ -26,7 +26,7 @@ func (h *ApiHandler) AdminGetVenue(gc *gin.Context) {
 	}
 
 	query := app.UranusInstance.SqlAdminGetVenue
-	rows, err := h.DbPool.Query(ctx, query, venueId, userId)
+	rows, err := h.DbPool.Query(ctx, query, venueId, userUuid)
 	if err != nil {
 		apiRequest.DatabaseError()
 		return

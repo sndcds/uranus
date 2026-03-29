@@ -11,10 +11,10 @@ import (
 
 func (h *ApiHandler) AdminDeleteOrganizationTeamMember(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := h.userId(gc)
+	userUuid := h.userUuid(gc)
 	apiRequest := grains_api.NewRequest(gc, "admin-delete-organization-team-member")
 
-	err := h.VerifyUserPassword(gc, userId)
+	err := h.VerifyUserPassword(gc, userUuid)
 	if err != nil {
 		apiRequest.Error(http.StatusUnauthorized, err.Error())
 		return

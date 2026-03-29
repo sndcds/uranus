@@ -2,72 +2,64 @@ package api
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
+	"github.com/sndcds/uranus/model"
 )
 
-// TODO: Review code
-
 func (h *ApiHandler) Login(gc *gin.Context) {
-	var credentials struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
+	apiRequest := grains_api.NewRequest(gc, "login")
 
-	const loginErrorMsg = "invalid email or password"
+	var userCredentials model.UserCredentials
 
 	// Parse credentials
-	if err := gc.BindJSON(&credentials); err != nil || credentials.Email == "" || credentials.Password == "" {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": loginErrorMsg})
+	err := gc.BindJSON(&userCredentials)
+	if err != nil {
+		apiRequest.Error(http.StatusUnauthorized, "invalid credentials")
 		return
 	}
 
-	// Load user
-	var userId int
-	var emailAddress string
-	var passwordHash string
-	var displayName *string
-	var firstName *string
-	var lastName *string
-	var locale *string
-	var theme *string
-	var isActive bool
+	if userCredentials.Email == "" || userCredentials.Password == "" {
+		apiRequest.Error(http.StatusUnauthorized, "invalid email or password")
+		return
+	}
 
+	var user model.User
 	query := fmt.Sprintf(
-		`SELECT id, email_address, password_hash, first_name, last_name, display_name, locale, theme, is_active
-		FROM %s.user WHERE email_address = $1`,
+		`SELECT uuid, email, password_hash, first_name, last_name, display_name, locale, theme, is_active
+		FROM %s.user WHERE email = $1`,
 		h.DbSchema)
-	err := h.DbPool.QueryRow(gc, query, credentials.Email).Scan(
-		&userId,
-		&emailAddress,
-		&passwordHash,
-		&firstName,
-		&lastName,
-		&displayName,
-		&locale,
-		&theme,
-		&isActive,
+	err = h.DbPool.QueryRow(gc, query, userCredentials.Email).Scan(
+		&user.Uuid,
+		&user.Email,
+		&user.PasswordHash,
+		&user.FirstName,
+		&user.LastName,
+		&user.DisplayName,
+		&user.Locale,
+		&user.Theme,
+		&user.IsActive,
 	)
 	if err != nil {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": loginErrorMsg})
+		apiRequest.Error(http.StatusUnauthorized, "login error")
 		return
 	}
 
-	if !isActive || app.ComparePasswords(passwordHash, credentials.Password) != nil {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": loginErrorMsg})
+	if !user.IsActive || app.ComparePasswords(*user.PasswordHash, userCredentials.Password) != nil {
+		apiRequest.Error(http.StatusUnauthorized, "login failed")
 		return
 	}
 
 	// Create access token
 	accessExp := time.Now().Add(time.Duration(h.Config.AuthTokenExpirationTime) * time.Second)
 	accessClaims := &app.Claims{
-		UserId: userId,
+		UserUuid: user.Uuid,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(accessExp),
 		},
@@ -75,15 +67,15 @@ func (h *ApiHandler) Login(gc *gin.Context) {
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
 	accessTokenStr, err := accessToken.SignedString(app.UranusInstance.JwtKey)
 	if err != nil {
-		log.Printf("Failed to sign access token for user=%d: %v", userId, err)
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		debugf("Failed to sign access token for user with uuid %s: %v", user.Uuid, err)
+		apiRequest.InternalServerError()
 		return
 	}
 
 	// Create refresh token
 	refreshExp := time.Now().Add(7 * 24 * time.Hour)
 	refreshClaims := &app.Claims{
-		UserId: userId,
+		UserUuid: user.Uuid,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(refreshExp),
 		},
@@ -91,34 +83,33 @@ func (h *ApiHandler) Login(gc *gin.Context) {
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
 	refreshTokenStr, err := refreshToken.SignedString(app.UranusInstance.JwtKey)
 	if err != nil {
-		log.Printf("Failed to sign refresh token for user=%d: %v", userId, err)
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		debugf("Failed to sign refresh token for user with uuid %s: %v", user.Uuid, err)
+		apiRequest.InternalServerError()
 		return
 	}
 
-	// Return tokens
-	gc.JSON(http.StatusOK, gin.H{
-		"message":       "login successful",
-		"user_id":       userId,
-		"display_name":  displayName,
-		"first_name":    firstName,
-		"last_name":     lastName,
-		"locale":        locale,
-		"theme":         theme,
+	apiRequest.Success(http.StatusOK, gin.H{
+		"user_uuid":     user.Uuid,
+		"display_name":  user.DisplayName,
+		"first_name":    user.FirstName,
+		"last_name":     user.LastName,
+		"locale":        user.Locale,
+		"theme":         user.Theme,
 		"access_token":  accessTokenStr,
 		"refresh_token": refreshTokenStr,
-	})
+	}, "login successful")
 }
 
 func (h *ApiHandler) Refresh(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "refresh access token")
 	const refreshErrorMsg = "invalid refresh token"
 
 	// Get token from Authorization header
 	authHeader := gc.GetHeader("Authorization")
 	parts := strings.SplitN(authHeader, " ", 2)
 	if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-		log.Printf("Invalid refresh header: %s", authHeader)
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": refreshErrorMsg})
+		debugf("Invalid refresh header: %s", authHeader)
+		apiRequest.Error(http.StatusUnauthorized, "failed")
 		return
 	}
 	refreshToken := parts[1]
@@ -132,15 +123,15 @@ func (h *ApiHandler) Refresh(gc *gin.Context) {
 		return app.UranusInstance.JwtKey, nil
 	})
 	if err != nil || !tkn.Valid {
-		log.Printf("Invalid refresh token: %v", err)
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": refreshErrorMsg})
+		debugf("Invalid refresh token: %v", err)
+		apiRequest.Error(http.StatusUnauthorized, "failed")
 		return
 	}
 
 	// Issue new access token
 	accessExp := time.Now().Add(time.Duration(h.Config.AuthTokenExpirationTime) * time.Second)
 	newClaims := &app.Claims{
-		UserId: claims.UserId,
+		UserUuid: claims.UserUuid,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(accessExp),
 		},
@@ -148,8 +139,8 @@ func (h *ApiHandler) Refresh(gc *gin.Context) {
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, newClaims)
 	accessTokenStr, err := accessToken.SignedString(app.UranusInstance.JwtKey)
 	if err != nil {
-		log.Printf("Failed to sign new access token for user=%d: %v", claims.UserId, err)
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		debugf("Failed to sign new access token for user_uuid=%s: %v", claims.UserUuid, err)
+		apiRequest.InternalServerError()
 		return
 	}
 

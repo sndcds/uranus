@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
 )
 
@@ -18,16 +19,19 @@ import (
 // Verified: 2026-01-12, Roald
 
 func (h *ApiHandler) AdminGetOrganizationVenues(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "admin-get-organization-venues")
 	ctx := gc.Request.Context()
-	userId := h.userId(gc)
+	userUuid := h.userUuid(gc)
 
-	organizationId, ok := ParamInt(gc, "organizationId")
-	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid organizationId"})
+	orgUuid := gc.Param("orgUuid")
+	if orgUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "invalid orgUuid")
 		return
 	}
 
 	var err error
+
+	// Start date for getting upcoming event counts
 	startStr := gc.Query("start")
 	var startDate time.Time
 	if startStr != "" {
@@ -40,41 +44,35 @@ func (h *ApiHandler) AdminGetOrganizationVenues(gc *gin.Context) {
 	}
 
 	// Run query
-	row := h.DbPool.QueryRow(ctx, app.UranusInstance.SqlAdminGetOrganizationVenues, userId, organizationId, startDate)
-
+	row := h.DbPool.QueryRow(ctx, app.UranusInstance.SqlAdminGetOrganizationVenues, userUuid, orgUuid, startDate)
 	var jsonResult []byte
-	if err := row.Scan(&jsonResult); err != nil {
+	err = row.Scan(&jsonResult)
+	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			gc.JSON(http.StatusForbidden, gin.H{"error": "user not linked to organization"})
+			apiRequest.Error(http.StatusForbidden, "user not linked to organization")
 			return
 		}
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		debugf(err.Error())
+		apiRequest.InternalServerError()
 		return
 	}
 
 	if len(jsonResult) == 0 || string(jsonResult) == "[]" {
-		gc.JSON(http.StatusForbidden, gin.H{"error": "user not linked to organization"})
+		apiRequest.Error(http.StatusForbidden, "user not linked to organization")
 		return
 	}
 
 	// The SQL currently returns an array like: [{...}], so we unmarshal and return first element
 	var organizations []map[string]interface{}
 	if err := json.Unmarshal(jsonResult, &organizations); err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to parse JSON"})
+		apiRequest.InvalidJSONInput()
 		return
 	}
 
 	if len(organizations) == 0 {
-		gc.JSON(http.StatusForbidden, gin.H{"error": "user not linked to organization"})
+		apiRequest.Error(http.StatusForbidden, "user not linked to organization")
 		return
 	}
 
-	// Return only the first organization as an object
-	singleOrganizationJSON, err := json.Marshal(organizations[0])
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to encode JSON"})
-		return
-	}
-
-	gc.Data(http.StatusOK, "application/json", singleOrganizationJSON)
+	apiRequest.Success(http.StatusOK, organizations[0], "")
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/sndcds/uranus/model"
 )
 
-func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
+func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	apiRequest := grains_api.NewRequest(gc, "get-event-by-date-id")
 
@@ -21,12 +21,12 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 	}
 	apiRequest.SetMeta("event_id", eventId)
 
-	dateId, ok := ParamInt(gc, "dateId")
-	if !ok {
-		apiRequest.Error(http.StatusBadRequest, "dateId is required")
+	dateUuid := gc.Param("dateUuid")
+	if dateUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "dateUuid is required")
 		return
 	}
-	apiRequest.SetMeta("date_id", dateId)
+	apiRequest.SetMeta("date_uuid", dateUuid)
 
 	lang := gc.DefaultQuery("lang", "en")
 	apiRequest.SetMeta("language", lang)
@@ -125,7 +125,7 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 	for dateRows.Next() {
 		var edd model.EventDate
 		err := dateRows.Scan(
-			&edd.Id,
+			&edd.Uuid,
 			&edd.EventId,
 			&edd.EventReleaseStatus,
 			&edd.StartDate,
@@ -145,9 +145,9 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 			&edd.VenueLon,
 			&edd.VenueLat,
 			&edd.VenueWebsiteUrl,
-			&edd.VenueLogoImageId,
-			&edd.VenueLightThemeLogoImageId,
-			&edd.VenueDarkThemeLogoImageId,
+			&edd.VenueLogoImageUuid,
+			&edd.VenueLightThemeLogoImageUuid,
+			&edd.VenueDarkThemeLogoImageUuid,
 			&edd.SpaceId,
 			&edd.SpaceName,
 			&edd.TotalCapacity,
@@ -164,20 +164,20 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 		}
 
 		// Generate VenueLogoUrl if logo exists
-		if edd.VenueLogoImageId != nil {
-			url := ImageUrl(*edd.VenueLogoImageId)
+		if edd.VenueLogoImageUuid != nil {
+			url := ImageUrl(*edd.VenueLogoImageUuid)
 			edd.VenueLogoUrl = &url
 		}
-		if edd.VenueLightThemeLogoImageId != nil {
-			url := ImageUrl(*edd.VenueLightThemeLogoImageId)
+		if edd.VenueLightThemeLogoImageUuid != nil {
+			url := ImageUrl(*edd.VenueLightThemeLogoImageUuid)
 			edd.VenueLightThemeLogoUrl = &url
 		}
-		if edd.VenueDarkThemeLogoImageId != nil {
-			url := ImageUrl(*edd.VenueDarkThemeLogoImageId)
+		if edd.VenueDarkThemeLogoImageUuid != nil {
+			url := ImageUrl(*edd.VenueDarkThemeLogoImageUuid)
 			edd.VenueDarkThemeLogoUrl = &url
 		}
 
-		if edd.Id == dateId {
+		if edd.Uuid == dateUuid {
 			tmp := edd
 			selectedDate = &tmp
 		}

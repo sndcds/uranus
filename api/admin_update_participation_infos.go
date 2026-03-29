@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -27,8 +28,8 @@ type participationInfoReq struct {
 func (h *ApiHandler) AdminUpdateEventParticipationInfos(gc *gin.Context) {
 	ctx := gc.Request.Context()
 
-	eventId, ok := ParamInt(gc, "eventId")
-	if !ok {
+	eventUuid := gc.Param("eventUuid")
+	if eventUuid == "" {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "event Id is required"})
 		return
 	}
@@ -41,7 +42,7 @@ func (h *ApiHandler) AdminUpdateEventParticipationInfos(gc *gin.Context) {
 
 	// Build SQL
 	setClauses := []string{}
-	args := []interface{}{eventId}
+	args := []interface{}{eventUuid}
 	argIndex := 2
 
 	setClauses = append(setClauses, fmt.Sprintf("participation_info = $%d", argIndex))
@@ -112,11 +113,11 @@ func (h *ApiHandler) AdminUpdateEventParticipationInfos(gc *gin.Context) {
 		if res.RowsAffected() == 0 {
 			return &ApiTxError{
 				Code: http.StatusNotFound,
-				Err:  fmt.Errorf("event not found"),
+				Err:  errors.New("event not found"),
 			}
 		}
 
-		err = RefreshEventProjections(ctx, tx, "event", []int{eventId})
+		err = RefreshEventProjections(ctx, tx, "event", []string{eventUuid})
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
@@ -132,8 +133,8 @@ func (h *ApiHandler) AdminUpdateEventParticipationInfos(gc *gin.Context) {
 	}
 
 	gc.JSON(http.StatusOK, gin.H{
-		"message":  "event participation info updated",
-		"event_id": eventId,
-		"updated":  setClauses,
+		"message":    "event participation info updated",
+		"event_uuid": eventUuid,
+		"updated":    setClauses,
 	})
 }

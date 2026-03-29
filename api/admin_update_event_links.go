@@ -1,20 +1,22 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/sndcds/grains/grains_api"
 )
 
 func (h *ApiHandler) AdminUpdateEventLinks(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	apiResponseType := "admin-update-event-links"
+	apiRequest := grains_api.NewRequest(gc, "admin-update-event-links")
 
-	eventId, ok := ParamInt(gc, "eventId")
-	if !ok {
-		JSONError(gc, apiResponseType, http.StatusBadRequest, "eventId is required")
+	eventUuid := gc.Param("eventUuid")
+	if eventUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "eventId is required")
 		return
 	}
 
@@ -29,14 +31,14 @@ func (h *ApiHandler) AdminUpdateEventLinks(gc *gin.Context) {
 	var req eventLinksRequest
 	if err := gc.ShouldBindJSON(&req); err != nil {
 		debugf(err.Error())
-		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		apiRequest.PayloadError()
 		return
 	}
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		// Delete existing type-genre links
 		deleteQuery := fmt.Sprintf(`DELETE FROM %s.event_link WHERE event_id = $1`, h.DbSchema)
-		_, err := tx.Exec(ctx, deleteQuery, eventId)
+		_, err := tx.Exec(ctx, deleteQuery, eventUuid)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
@@ -48,16 +50,16 @@ func (h *ApiHandler) AdminUpdateEventLinks(gc *gin.Context) {
 		insertQuery := fmt.Sprintf(`INSERT INTO %s.event_link (event_id, label, type, url) VALUES ($1, $2, $3, $4)`, h.DbSchema)
 
 		for _, url := range req.Types {
-			_, err = tx.Exec(ctx, insertQuery, eventId, url.Label, url.Type, url.Url)
+			_, err = tx.Exec(ctx, insertQuery, eventUuid, url.Label, url.Type, url.Url)
 			if err != nil {
 				return &ApiTxError{
 					Code: http.StatusInternalServerError,
-					Err:  fmt.Errorf("failed to insert url"),
+					Err:  errors.New("failed to insert url"),
 				}
 			}
 		}
 
-		err = RefreshEventProjections(ctx, tx, "event", []int{eventId})
+		err = RefreshEventProjections(ctx, tx, "event", []string{eventUuid})
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
@@ -68,9 +70,9 @@ func (h *ApiHandler) AdminUpdateEventLinks(gc *gin.Context) {
 		return nil
 	})
 	if txErr != nil {
-		JSONDatabaseError(gc, apiResponseType)
+		apiRequest.Error(txErr.Code, txErr.Error())
 		return
 	}
 
-	JSONSuccessNoData(gc, apiResponseType)
+	apiRequest.SuccessNoData(http.StatusOK, "")
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
 	"github.com/sndcds/uranus/model"
 )
@@ -22,12 +23,12 @@ import (
 
 func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := h.userId(gc)
-	apiResponseType := "user-organization-event-list"
+	userUuid := h.userUuid(gc)
+	apiRequest := grains_api.NewRequest(gc, "user-organization-event-list")
 
-	organizationId, ok := ParamInt(gc, "organizationId")
-	if !ok {
-		JSONError(gc, apiResponseType, http.StatusBadRequest, "invalid organizationId")
+	orgUuid := gc.Param("orgUuid")
+	if orgUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "invalid orgUuid")
 		return
 	}
 
@@ -47,7 +48,7 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 			startDate = time.Now()
 		}
 
-		rows, err := tx.Query(ctx, app.UranusInstance.SqlAdminGetOrganizationEvents, organizationId, startDate, userId)
+		rows, err := tx.Query(ctx, app.UranusInstance.SqlAdminGetOrganizationEvents, orgUuid, startDate, userUuid)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
@@ -99,7 +100,7 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 			events = append(events, e)
 		}
 
-		organizationPermissions, err = h.GetUserOrganizationPermissions(gc, tx, userId, organizationId)
+		organizationPermissions, err = h.GetUserOrganizationPermissions(gc, tx, userUuid, orgUuid)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
@@ -110,16 +111,13 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 		return nil
 	})
 	if txErr != nil {
-		debugf("API %s error: %s", apiResponseType, txErr.Error())
-		JSONError(gc, apiResponseType, http.StatusBadRequest, "transaction failed")
+		apiRequest.Error(txErr.Code, txErr.Error())
 		return
 	}
 
 	canAddEvent := organizationPermissions.Has(app.PermAddEvent)
-	metadata := map[string]interface{}{
-		"can_add_event": canAddEvent,
-		"total_events":  len(events),
-	}
+	apiRequest.SetMeta("can_add_event", canAddEvent)
+	apiRequest.SetMeta("total_events", len(events))
 
-	JSONSuccess(gc, apiResponseType, events, metadata)
+	apiRequest.Success(http.StatusOK, events, "")
 }

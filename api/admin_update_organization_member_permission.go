@@ -64,17 +64,17 @@ import (
 //   - 500 Internal Server Error: Database or transaction failure.
 func (h *ApiHandler) AdminUpdateOrganizationMemberPermissions(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := h.userId(gc)
+	userUuid := h.userUuid(gc)
 
-	organizationId, ok := ParamInt(gc, "organizationId")
-	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "organizationId is required"})
+	orgUuid := gc.Param("orgUuid")
+	if orgUuid == "" {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "orgUuid is required"})
 		return
 	}
 
-	memberId, ok := ParamInt(gc, "memberId")
-	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "memberId is required"})
+	memberUuid := gc.Param("memberUuid")
+	if memberUuid == "" {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "memberUuid is required"})
 		return
 	}
 
@@ -95,25 +95,25 @@ func (h *ApiHandler) AdminUpdateOrganizationMemberPermissions(gc *gin.Context) {
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 
-		txErr := h.CheckOrganizationPermission(gc, tx, userId, organizationId, app.PermManagePermissions)
+		txErr := h.CheckOrganizationPermission(gc, tx, userUuid, orgUuid, app.PermManagePermissions)
 		if txErr != nil {
 			return txErr
 		}
 
 		// Ckeck if member is the admin user
-		var organizationMemberLink model.OrganizationMemberLink
-		organizationMemberLink.Id = memberId
+		var orgMemberLink model.OrganizationMemberLink
+		orgMemberLink.UserUuid = memberUuid
 		err := tx.QueryRow(
 			ctx, app.UranusInstance.SqlAdminGetOrganizationMemberLink,
-			memberId).
+			memberUuid).
 			Scan(
-				&organizationMemberLink.OrganizationId,
-				&organizationMemberLink.UserId,
-				&organizationMemberLink.HasJoined,
-				&organizationMemberLink.InvitedByUserId,
-				&organizationMemberLink.InvitedAt,
-				&organizationMemberLink.CreatedAt,
-				&organizationMemberLink.ModifiedAt)
+				&orgMemberLink.OrgUuid,
+				&orgMemberLink.UserUuid,
+				&orgMemberLink.HasJoined,
+				&orgMemberLink.InvitedByUserUuid,
+				&orgMemberLink.InvitedAt,
+				&orgMemberLink.CreatedAt,
+				&orgMemberLink.ModifiedAt)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusUnauthorized,
@@ -135,10 +135,10 @@ func (h *ApiHandler) AdminUpdateOrganizationMemberPermissions(gc *gin.Context) {
 			}
 		}
 
-		memberUserId := organizationMemberLink.UserId
+		memberUserUuid := orgMemberLink.UserUuid
 
 		// If the user is trying to set their own ManagePermissions or ManageTeam bit, block it
-		if memberUserId == userId && (inputReq.Bit == app.PermBitManagePermissions || inputReq.Bit == app.PermBitManageTeam) {
+		if memberUserUuid == userUuid && (inputReq.Bit == app.PermBitManagePermissions || inputReq.Bit == app.PermBitManageTeam) {
 			return &ApiTxError{
 				Code: http.StatusUnauthorized,
 				Err:  fmt.Errorf("Bits %d protected", inputReq.Bit),
@@ -157,7 +157,7 @@ RETURNING permissions`,
 			h.DbSchema)
 
 		err = tx.QueryRow(
-			ctx, bitUpdateQuery, inputReq.Enabled, inputReq.Bit, memberUserId, organizationId).
+			ctx, bitUpdateQuery, inputReq.Enabled, inputReq.Bit, memberUserUuid, orgUuid).
 			Scan(&updatedPermissions)
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {

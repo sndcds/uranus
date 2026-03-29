@@ -41,12 +41,12 @@ func JWTMiddleware(gc *gin.Context) {
 		gc.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
 		return
 	}
-	if claims.UserId < 0 {
+	if claims.UserUuid == "" {
 		gc.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid user Id"})
 	}
 
 	// 4. Store claims for downstream handlers
-	gc.Set("user-id", claims.UserId)
+	gc.Set("user-uuid", claims.UserUuid)
 
 	gc.Next()
 }

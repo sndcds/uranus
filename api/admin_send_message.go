@@ -13,18 +13,18 @@ import (
 
 func (h *ApiHandler) AdminSendMessage(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	fromUserId := h.userId(gc)
+	fromUserUuid := h.userUuid(gc)
 
-	if fromUserId <= 0 {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user"})
+	if fromUserUuid == "" {
+		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid fromUserUuid"})
 		return
 	}
 
 	type MessageRequest struct {
-		Context   string `json:"context" binding:"required"`
-		ContextId int    `json:"context_id" binding:"required"`
-		Subject   string `json:"subject" binding:"required"`
-		Message   string `json:"message" binding:"required"`
+		Context     string `json:"context" binding:"required"`
+		ContextUuid int    `json:"context_uuid" binding:"required"`
+		Subject     string `json:"subject" binding:"required"`
+		Message     string `json:"message" binding:"required"`
 	}
 
 	var req MessageRequest
@@ -41,15 +41,15 @@ func (h *ApiHandler) AdminSendMessage(gc *gin.Context) {
 	defer func() { _ = tx.Rollback(ctx) }()
 
 	if req.Context == "organization" {
-		organizationId := req.ContextId
+		orgUuid := req.ContextUuid
 		query := strings.Replace(
-			`SELECT u.id, u.display_name
+			`SELECT u.uuid, u.display_name
 			FROM {{schema}}.user_organization_link ol
-			JOIN {{schema}}.user u ON u.id = ol.user_id
-			WHERE ol.organization_id = $1 AND (ol.permissions & $2) != 0`,
+			JOIN {{schema}}.user u ON u.uuid = ol.user_uuid
+			WHERE ol.org_id = $1 AND (ol.permissions & $2) != 0`,
 			"{{schema}}", h.DbSchema, -1)
 
-		rows, err := tx.Query(ctx, query, organizationId, app.PermReceiveOrganizationMsgs)
+		rows, err := tx.Query(ctx, query, orgUuid, app.PermReceiveOrganizationMsgs)
 		if err != nil {
 			gc.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("database query failed: %v", err)})
 			return
@@ -75,7 +75,7 @@ func (h *ApiHandler) AdminSendMessage(gc *gin.Context) {
 			return
 		}
 
-		fmt.Println(fromUserId)
+		fmt.Println(fromUserUuid)
 
 		for _, toUserId := range userIds {
 			insertQuery := fmt.Sprintf(
@@ -83,7 +83,7 @@ func (h *ApiHandler) AdminSendMessage(gc *gin.Context) {
              VALUES ($1, $2, $3, $4)`,
 				h.DbSchema,
 			)
-			_, err := tx.Exec(ctx, insertQuery, toUserId, fromUserId, req.Subject, req.Message)
+			_, err := tx.Exec(ctx, insertQuery, toUserId, fromUserUuid, req.Subject, req.Message)
 			if err != nil {
 				gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to insert message: %v", err)})
 				return

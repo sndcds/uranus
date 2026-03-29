@@ -37,7 +37,7 @@ type Config struct {
 	AuthSmtpPort            int      `json:"auth_smtp_port"`
 	AuthSmtpLogin           string   `json:"auth_smtp_login"`
 	AuthSmtpPassword        string   `json:"auth_smtp_password"`
-	AuthReplyEmailAddress   string   `json:"auth_reply_email_address"`
+	AuthReplyEmail          string   `json:"auth_reply_email"`
 	AuthResetPasswordUrl    string   `json:"auth_reset_password_url"`
 	SmtpHost                string   `json:"smtp_host"`
 	SmtpPort                int      `json:"smtp_port"`
