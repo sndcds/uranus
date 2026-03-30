@@ -3,6 +3,7 @@ module github.com/sndcds/uranus
 go 1.25
 
 require (
+	github.com/arran4/golang-ical v0.3.4
 	github.com/chai2010/webp v1.4.0
 	github.com/gin-contrib/gzip v1.2.5
 	github.com/gin-gonic/gin v1.11.0

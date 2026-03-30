@@ -53,6 +53,7 @@ func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
 	}
 	defer rows.Close()
 
+	// TODO: Rename temp struct
 	type Venue struct {
 		Id      int64   `json:"id"`
 		Name    *string `json:"name"`

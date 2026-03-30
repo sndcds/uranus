@@ -12,8 +12,8 @@ import (
 )
 
 func (h *ApiHandler) UpdateVenueFields(gc *gin.Context) {
-	ctx := gc.Request.Context()
 	apiRequest := grains_api.NewRequest(gc, "admin-update-venue-fields")
+	ctx := gc.Request.Context()
 
 	venueUuid := gc.Param("venueUuid")
 	if venueUuid == "" {
@@ -42,18 +42,21 @@ func (h *ApiHandler) UpdateVenueFields(gc *gin.Context) {
 	}
 
 	if err := gc.ShouldBindJSON(&payload); err != nil {
+		debugf(err.Error())
 		apiRequest.PayloadError()
 		return
 	}
 
 	_, ok, err := ParseNullableDateString(payload.OpenedAt, "opened_at", "2026-01-01")
 	if !ok && err != nil {
+		debugf(err.Error())
 		apiRequest.SuccessNoData(http.StatusBadRequest, err.Error())
 		return
 	}
 
 	_, ok, err = ParseNullableDateString(payload.ClosedAt, "closed_at", "2026-01-01")
 	if !ok && err != nil {
+		debugf(err.Error())
 		apiRequest.SuccessNoData(http.StatusBadRequest, err.Error())
 		return
 	}
@@ -90,7 +93,7 @@ func (h *ApiHandler) UpdateVenueFields(gc *gin.Context) {
 	}
 	apiRequest.SetMeta("field_count", len(setClauses))
 
-	query := fmt.Sprintf(`UPDATE %s.venue SET %s WHERE id = $%d`,
+	query := fmt.Sprintf(`UPDATE %s.venue SET %s WHERE uuid = $%d::uuid`,
 		h.DbSchema,
 		strings.Join(setClauses, ", "),
 		argPos, // Last placeholder is for WHERE id
@@ -125,6 +128,7 @@ func (h *ApiHandler) UpdateVenueFields(gc *gin.Context) {
 		return nil
 	})
 	if txErr != nil {
+		debugf(txErr.Error())
 		apiRequest.DatabaseError()
 		return
 	}

@@ -1,11 +1,14 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
+	"github.com/sndcds/uranus/model"
 )
 
 // PermissionNote: User must be authenticated.
@@ -15,40 +18,62 @@ import (
 // Verified: 2026-01-12, Roald
 
 func (h *ApiHandler) AdminGetVenue(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "admin-get-venue")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
-	apiRequest := grains_api.NewRequest(gc, "admin-get-venue")
 
-	venueId := gc.Param("venueId")
-	if venueId == "" {
-		apiRequest.Error(http.StatusBadRequest, "venueId is required")
+	venueUuid := gc.Param("venueUuid")
+	if venueUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "venueUuid is required")
 		return
 	}
 
+	var venue model.Venue
+	var imagesRaw []byte
 	query := app.UranusInstance.SqlAdminGetVenue
-	rows, err := h.DbPool.Query(ctx, query, venueId, userUuid)
+	row := h.DbPool.QueryRow(ctx, query, venueUuid, userUuid)
+
+	err := row.Scan(
+		&venue.Uuid,
+		&venue.Name,
+		&venue.Description,
+		&venue.Type,
+		&venue.OrgUuid,
+		&venue.OpenedAt,
+		&venue.ClosedAt,
+		&venue.ContactEmail,
+		&venue.ContactPhone,
+		&venue.WebLink,
+		&venue.Street,
+		&venue.HouseNumber,
+		&venue.PostalCode,
+		&venue.City,
+		&venue.State,
+		&venue.Country,
+		&venue.Lon,
+		&venue.Lat,
+		&imagesRaw,
+	)
+
 	if err != nil {
+		if err == pgx.ErrNoRows {
+			apiRequest.Error(http.StatusNotFound, "venue not found")
+			return
+		}
+		debugf(err.Error())
 		apiRequest.DatabaseError()
 		return
 	}
-	defer rows.Close()
 
-	if !rows.Next() {
-		apiRequest.Error(http.StatusNotFound, "venue not found")
-		return
+	if len(imagesRaw) > 0 {
+		if err := json.Unmarshal(imagesRaw, &venue.Images); err != nil {
+			debugf(err.Error())
+			apiRequest.DatabaseError()
+			return
+		}
+	} else {
+		venue.Images = make(map[string]model.Image)
 	}
 
-	fieldDescriptions := rows.FieldDescriptions()
-	values, err := rows.Values()
-	if err != nil {
-		apiRequest.DatabaseError()
-		return
-	}
-
-	result := make(map[string]interface{}, len(values))
-	for i, fd := range fieldDescriptions {
-		result[string(fd.Name)] = values[i]
-	}
-
-	apiRequest.Success(http.StatusOK, result, "venue loaded successfully")
+	apiRequest.Success(http.StatusOK, venue, "venue loaded successfully")
 }

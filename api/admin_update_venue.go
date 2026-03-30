@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
 )
 
@@ -29,6 +30,7 @@ type venueReq struct {
 }
 
 func (h *ApiHandler) AdminUpsertVenue(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "admin-upsert-venue")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 
@@ -36,7 +38,8 @@ func (h *ApiHandler) AdminUpsertVenue(gc *gin.Context) {
 
 	var req venueReq
 	if err := gc.ShouldBindJSON(&req); err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		debugf(err.Error())
+		apiRequest.InvalidJSONInput()
 		return
 	}
 
