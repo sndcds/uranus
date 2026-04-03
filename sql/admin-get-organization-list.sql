@@ -37,10 +37,10 @@ space_counts AS (
 ),
 final_data AS (
     SELECT
-        o.uuid AS org_uuid,
-        o.name AS org_name,
-        o.city AS org_city,
-        o.country AS org_country,
+        o.uuid AS uuid,
+        o.name AS name,
+        o.city AS city,
+        o.country AS country,
         COALESCE(ae.total_upcoming_events, 0) AS total_upcoming_events,
         COALESCE(vc.venue_count, 0) AS venue_count,
         COALESCE(sc.space_count, 0) AS space_count,
@@ -68,10 +68,10 @@ final_data AS (
     ) light_theme_logo_link ON TRUE
 )
 SELECT
-    org_uuid,
-    org_name,
-    org_city,
-    org_country,
+    uuid,
+    name,
+    city,
+    country,
     total_upcoming_events,
     venue_count,
     space_count,
@@ -80,4 +80,4 @@ SELECT
     dark_theme_logo_uuid,
     light_theme_logo_uuid
 FROM final_data
-ORDER BY LOWER(org_name)
+ORDER BY LOWER(name)

@@ -36,11 +36,11 @@ type OrganizationMemberLink struct {
 	ModifiedAt        *time.Time `json:"modified_at"`
 }
 
-type OrganizationDashboardEntry struct {
-	OrgUuid             string  `json:"org_uuid"`
-	OrgName             string  `json:"org_name"`
-	OrgCity             *string `json:"org_city"`
-	OrgCountry          *string `json:"org_country"`
+type OrganizationListItem struct {
+	Uuid                string  `json:"uuid"`
+	Name                string  `json:"name"`
+	City                *string `json:"city"`
+	Country             *string `json:"country"`
 	TotalUpcomingEvents int64   `json:"total_upcoming_events"`
 	VenueCount          int64   `json:"venue_count"`
 	SpaceCount          int64   `json:"space_count"`

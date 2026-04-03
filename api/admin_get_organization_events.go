@@ -22,9 +22,9 @@ import (
 // Verified: 2026-01-12, Roald
 
 func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "get-user-organization-event-list")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
-	apiRequest := grains_api.NewRequest(gc, "user-organization-event-list")
 
 	orgUuid := gc.Param("orgUuid")
 	if orgUuid == "" {
@@ -33,7 +33,7 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 	}
 
 	var events []model.AdminListEvent
-	var organizationPermissions app.Permission
+	var orgPermissions app.Permission
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		var err error
@@ -62,12 +62,12 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 		for rows.Next() {
 			var e model.AdminListEvent
 			err := rows.Scan(
-				&e.Id,
-				&e.DateId,
+				&e.Uuid,
+				&e.DateUuid,
 				&e.Title,
 				&e.Subtitle,
-				&e.OrganizationId,
-				&e.OrganizationName,
+				&e.OrgUuid,
+				&e.OrgName,
 				&e.StartDate,
 				&e.StartTime,
 				&e.EndDate,
@@ -75,9 +75,9 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 				&e.ReleaseStatus,
 				&e.ReleaseDate,
 				&e.Categories,
-				&e.VenueId,
+				&e.VenueUuid,
 				&e.VenueName,
-				&e.SpaceId,
+				&e.SpaceUuid,
 				&e.SpaceName,
 				&e.ImageId,
 				&e.ImageUrl,
@@ -100,7 +100,7 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 			events = append(events, e)
 		}
 
-		organizationPermissions, err = h.GetUserOrganizationPermissions(gc, tx, userUuid, orgUuid)
+		orgPermissions, err = h.GetUserOrganizationPermissions(gc, tx, userUuid, orgUuid)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
@@ -115,9 +115,8 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 		return
 	}
 
-	canAddEvent := organizationPermissions.Has(app.PermAddEvent)
+	canAddEvent := orgPermissions.Has(app.PermAddEvent)
 	apiRequest.SetMeta("can_add_event", canAddEvent)
 	apiRequest.SetMeta("total_events", len(events))
-
 	apiRequest.Success(http.StatusOK, events, "")
 }

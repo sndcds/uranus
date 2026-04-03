@@ -62,7 +62,6 @@ func (h *ApiHandler) AdminUpsertPlutoImage(gc *gin.Context) {
 	apiRequest.SetMeta("pluto_context", context)
 
 	contextUuid := gc.Param("contextUuid")
-	debugf("contextUuid: %s", contextUuid)
 	if contextUuid == "" {
 		apiRequest.Error(http.StatusBadRequest, "contextUuid is required")
 		return
@@ -83,7 +82,6 @@ func (h *ApiHandler) AdminUpsertPlutoImage(gc *gin.Context) {
 
 	identifier := gc.Param("identifier")
 	apiRequest.SetMeta("pluto_image_identifier", identifier)
-	debugf("identifier: %s", identifier)
 	if !validator(identifier) {
 		apiRequest.Error(http.StatusBadRequest, "unknown identifier")
 		return
@@ -94,23 +92,28 @@ func (h *ApiHandler) AdminUpsertPlutoImage(gc *gin.Context) {
 		apiRequest.InternalServerError()
 		return
 	}
-	debugf("fileNamePrefix: %s", fileNamePrefix)
+
+	debugf("context: %s, contextUuid: %s, identifier: %s", context, contextUuid, identifier)
 
 	// Upsert image in Pluto
 	plutoUpsertImageResult, err := pluto.UpsertImage(
-		gc, context, contextUuid, identifier, &fileNamePrefix, userUuid,
-		refresher(context, []string{contextUuid}))
+		gc,
+		context,
+		contextUuid,
+		identifier,
+		&fileNamePrefix,
+		userUuid,
+		refresher(context, []string{contextUuid}),
+	)
 	if err != nil || plutoUpsertImageResult.HttpStatus != http.StatusOK {
 		debugf("err: %v", err)
-		gc.JSON(plutoUpsertImageResult.HttpStatus, gin.H{"error": plutoUpsertImageResult.Message})
+		apiRequest.Error(plutoUpsertImageResult.HttpStatus, plutoUpsertImageResult.Message)
 		return
 	}
 
-	debugf("pluto.UpsertImage ok")
-
 	apiRequest.SetMeta("file_replaced", plutoUpsertImageResult.FileRemovedFlag)
 	apiRequest.SetMeta("cache_removed_count", plutoUpsertImageResult.CacheFilesRemoved)
-	apiRequest.SetMeta("image_id", plutoUpsertImageResult.ImageUuid)
+	apiRequest.SetMeta("image_uuid", plutoUpsertImageResult.ImageUuid)
 	apiRequest.SuccessNoData(plutoUpsertImageResult.HttpStatus, plutoUpsertImageResult.Message)
 }
 

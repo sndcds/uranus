@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
+	"github.com/sndcds/uranus/model"
 )
 
 // PermissionNote: User must be authenticated.
@@ -15,40 +16,38 @@ import (
 // Verified: 2026-01-12, Roald
 
 func (h *ApiHandler) AdminGetSpace(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "admin-get-space")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
-	apiRequest := grains_api.NewRequest(gc, "admin-get-space")
 
 	spaceUuid := gc.Param("spaceUuid")
 	if spaceUuid == "" {
-		apiRequest.Error(http.StatusBadRequest, "spaceId is required")
+		apiRequest.Error(http.StatusBadRequest, "spaceUuid is required")
 		return
 	}
-	apiRequest.SetMeta("spaceUuid", spaceUuid)
+	apiRequest.SetMeta("space_uuid", spaceUuid)
 
-	rows, err := h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetSpace, spaceUuid, userUuid)
+	var space model.Space
+	query := app.UranusInstance.SqlAdminGetSpace
+	row := h.DbPool.QueryRow(ctx, query, spaceUuid, userUuid)
+
+	err := row.Scan(
+		&space.Uuid,
+		&space.Name,
+		&space.Description,
+		&space.SpaceType,
+		&space.BuildingLevel,
+		&space.TotalCapacity,
+		&space.SeatingCapacity,
+		&space.WebLink,
+		&space.AccessibilityFlags,
+		&space.AccessibilitySummary,
+		&space.AreaSqm,
+	)
 	if err != nil {
 		apiRequest.InternalServerError()
 		return
 	}
-	defer rows.Close()
 
-	if !rows.Next() {
-		apiRequest.Error(http.StatusNotFound, "space not found")
-		return
-	}
-
-	fieldDescriptions := rows.FieldDescriptions()
-	values, err := rows.Values()
-	if err != nil {
-		apiRequest.InternalServerError()
-		return
-	}
-
-	result := make(map[string]interface{}, len(values))
-	for i, fd := range fieldDescriptions {
-		result[string(fd.Name)] = values[i]
-	}
-
-	apiRequest.Success(http.StatusOK, result, "space successfully retrieved")
+	apiRequest.Success(http.StatusOK, space, "space loaded successfully")
 }

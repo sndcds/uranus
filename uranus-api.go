@@ -188,9 +188,9 @@ func main() {
 	adminRoute.PUT("/organization/:orgUuid/fields", apiHandler.UpdateOrganizationFields)
 	adminRoute.DELETE("/organization/:orgUuid", apiHandler.AdminDeleteOrganization)
 
-	adminRoute.GET("/organization/dashboard", apiHandler.AdminGetOrganizationDashboard)
+	adminRoute.GET("/organization/list", apiHandler.AdminGetOrganizationList)
 	adminRoute.GET("/organization/:orgUuid/venues", apiHandler.AdminGetOrganizationVenues)
-	adminRoute.GET("/organization/:orgUuid/events", apiHandler.AdminGetOrganizationEvents) // TODO: check!
+	adminRoute.GET("/organization/:orgUuid/events", apiHandler.AdminGetOrganizationEvents)
 
 	adminRoute.GET("/organization/:orgUuid/team", apiHandler.AdminGetOrganizationTeam)                              // TODO: check!
 	adminRoute.POST("/organization/:orgUuid/team/invite", apiHandler.AdminOrganizationTeamInvite)                   // TODO: check!
@@ -200,20 +200,16 @@ func main() {
 	// Venue
 	adminRoute.GET("/venue/:venueUuid", apiHandler.AdminGetVenue)
 	adminRoute.POST("/venue/create", apiHandler.AdminCreateVenue)
+	// adminRoute.PUT("/venue", apiHandler.AdminUpsertVenue) // TODO: refactor to be create with complete data set
 	adminRoute.PUT("/venue/:venueUuid/fields", apiHandler.UpdateVenueFields)
-
-	// adminRoute.PUT("/venue", apiHandler.AdminUpsertVenue)
-	// adminRoute.PUT("/venue/:venueUuid", apiHandler.AdminUpsertVenue)
-	adminRoute.DELETE("/venue/:venueUuid", apiHandler.AdminDeleteVenue) // TODO: check!
+	adminRoute.DELETE("/venue/:venueUuid", apiHandler.AdminDeleteVenue)
 
 	// Space
 	adminRoute.GET("/space/:spaceUuid", apiHandler.AdminGetSpace)
 	adminRoute.POST("/space/create", apiHandler.AdminCreateSpace)
+	// adminRoute.PUT("/space", apiHandler.AdminUpsertSpace) // TODO: refactor to be create with complete data set
 	adminRoute.PUT("/space/:spaceUuid/fields", apiHandler.UpdateSpaceFields)
-
-	adminRoute.PUT("/space", apiHandler.AdminUpsertSpace)               // TODO: check!
-	adminRoute.PUT("/space/:spaceUuid", apiHandler.AdminUpsertSpace)    // TODO: check!
-	adminRoute.DELETE("/space/:spaceUuid", apiHandler.AdminDeleteSpace) // TODO: check!
+	adminRoute.DELETE("/space/:spaceUuid", apiHandler.AdminDeleteSpace)
 
 	// Event
 	adminRoute.GET("/event/:eventUuid", apiHandler.AdminGetEvent)

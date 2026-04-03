@@ -11,13 +11,13 @@ import (
 )
 
 func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "admin-get-event")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
-	apiRequest := grains_api.NewRequest(gc, "admin-get-event")
 
-	eventId, ok := ParamInt(gc, "eventId")
-	if !ok {
-		apiRequest.Error(http.StatusBadRequest, "eventId is required")
+	eventUuid := gc.Param("eventUuid")
+	if eventUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "eventUuid is required")
 		return
 	}
 
@@ -25,27 +25,27 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 	apiRequest.SetMeta("language", lang)
 
 	permission := app.PermEditEvent | app.PermViewEventInsights
-	row := h.DbPool.QueryRow(ctx, app.UranusInstance.SqlAdminGetEvent, eventId, lang, userUuid, permission)
+	row := h.DbPool.QueryRow(ctx, app.UranusInstance.SqlAdminGetEvent, eventUuid, lang, userUuid, permission)
 
 	// Basic Event
 	var event model.AdminEvent
 	err := row.Scan(
-		&event.Id,
+		&event.Uuid,
 		&event.ExternalId,
 		&event.SourceLink,
 		&event.ReleaseStatus,
 		&event.ReleaseDate,
 		&event.Categories,
 		&event.ContentLanguage,
-		&event.OrganizationId,
-		&event.OrganizationName,
+		&event.OrgUuid,
+		&event.OrgName,
 		&event.Title,
 		&event.Subtitle,
 		&event.Description,
 		&event.Summary,
 		&event.Tags,
 		&event.OccasionType,
-		&event.VenueId,
+		&event.VenueUuid,
 		&event.VenueName,
 		&event.VenueStreet,
 		&event.VenueHouseNumber,
@@ -55,7 +55,7 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 		&event.VenueState,
 		&event.VenueLon,
 		&event.VenueLat,
-		&event.SpaceId,
+		&event.SpaceUuid,
 		&event.SpaceName,
 		&event.SpaceTotalCapacity,
 		&event.SpaceSeatingCapacity,
@@ -83,14 +83,16 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 			apiRequest.Error(http.StatusNotFound, "event not found")
 			return
 		}
+		debugf("1: %s", err.Error())
 		apiRequest.InternalServerError()
 		apiRequest.SetMeta("error_type", "event")
 		return
 	}
 
 	// Event Types
-	rows, err := h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventTypes, eventId, lang)
+	rows, err := h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventTypes, eventUuid, lang)
 	if err != nil {
+		debugf("2: %s", err.Error())
 		apiRequest.InternalServerError()
 		apiRequest.SetMeta("error_type", "event-types")
 		return
@@ -103,8 +105,9 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 	}
 
 	// Event Images
-	rows, err = h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventImages, eventId)
+	rows, err = h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventImages, eventUuid)
 	if err != nil {
+		debugf("3: %s", err.Error())
 		apiRequest.InternalServerError()
 		apiRequest.SetMeta("error_type", "event-images")
 		return
@@ -118,8 +121,9 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 	}
 
 	// Event Links
-	rows, err = h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventLinks, eventId)
+	rows, err = h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventLinks, eventUuid)
 	if err != nil {
+		debugf("4: %s", err.Error())
 		apiRequest.InternalServerError()
 		apiRequest.SetMeta("error_type", "event-links")
 		return
@@ -132,8 +136,9 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 	}
 
 	// Dates
-	rows, err = h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventDates, eventId)
+	rows, err = h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventDates, eventUuid)
 	if err != nil {
+		debugf("5: %s", err.Error())
 		apiRequest.InternalServerError()
 		apiRequest.SetMeta("error_type", "event-dates")
 		return
@@ -142,8 +147,8 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 	for rows.Next() {
 		var date model.AdminEventDate
 		err := rows.Scan(
-			&date.Id,
-			&date.EventId,
+			&date.Uuid,
+			&date.EventUuid,
 			&date.StartDate,
 			&date.StartTime,
 			&date.EndDate,
@@ -152,7 +157,7 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 			&date.Duration,
 			&date.AllDay,
 			&date.AccessibilityInfo,
-			&date.VenueId,
+			&date.VenueUuid,
 			&date.VenueName,
 			&date.VenueStreet,
 			&date.VenueHouseNumber,
@@ -163,7 +168,7 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 			&date.VenueLon,
 			&date.VenueLat,
 			&date.VenueLink,
-			&date.SpaceId,
+			&date.SpaceUuid,
 			&date.SpaceName,
 			&date.SpaceTotalCapacity,
 			&date.SpaceSeatingCapacity,
@@ -172,6 +177,7 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 		)
 
 		if err != nil {
+			debugf("6: %s", err.Error())
 			apiRequest.DatabaseError()
 			return
 		}

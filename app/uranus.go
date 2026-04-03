@@ -59,7 +59,7 @@ type Uranus struct {
 	SqlChoosableEventTypes              string
 	SqlChoosableEventGenres             string
 	SqlGetGeojsonVenues                 string
-	SqlAdminGetOrganizationDashboard    string
+	SqlAdminGetOrganizationList         string
 	SqlAdminGetOrganizationVenues       string
 	SqlAdminGetOrganizationEvents       string
 	SqlAdminGetOrganizationMemberLink   string
@@ -68,7 +68,7 @@ type Uranus struct {
 	SqlQueryUserOrgEventsOverview       string
 	SqlAdminGetUserEventNotifications   string
 	SqlAdminChoosableOrganizations      string
-	SqlAdminGetChoosableUserEventVenues string
+	SqlAdminChoosableUserEventVenues    string
 	SqlAdminEvent                       string
 	SqlAdminSpacesForEvent              string
 	SqlInsertPlutoImage                 string
@@ -299,9 +299,9 @@ func (app *Uranus) PrepareSql() error {
 		{"sql/admin-user-spaces-for-event.sql", &app.SqlAdminSpacesForEvent, nil},
 
 		{"sql/admin-choosable-organizations.sql", &app.SqlAdminChoosableOrganizations, nil},
-		{"sql/admin-get-choosable-user-event-venues.sql", &app.SqlAdminGetChoosableUserEventVenues, nil},
+		{"sql/admin-choosable-user-event-venues.sql", &app.SqlAdminChoosableUserEventVenues, nil},
 
-		{"sql/admin-get-organization-dashboard.sql", &app.SqlAdminGetOrganizationDashboard, nil},
+		{"sql/admin-get-organization-list.sql", &app.SqlAdminGetOrganizationList, nil},
 		{"sql/admin-get-organization-events.sql", &app.SqlAdminGetOrganizationEvents, nil},
 
 		{"sql/admin-get-organization-member-link.sql", &app.SqlAdminGetOrganizationMemberLink, nil},

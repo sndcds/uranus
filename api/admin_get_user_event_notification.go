@@ -41,10 +41,10 @@ func (h *ApiHandler) AdminGetUserEventNotifications(gc *gin.Context) {
 		var notification model.UserEventNotification
 		// Scan all columns returned by your SQL query
 		err := rows.Scan(
-			&notification.EventId,
+			&notification.EventUuid,
 			&notification.EventTitle,
-			&notification.OrganizationId,
-			&notification.OrganizationName,
+			&notification.OrgUuid,
+			&notification.OrgName,
 			&notification.ReleaseDate,
 			&notification.ReleaseStatus,
 			&notification.EarliestEventDate,

@@ -107,7 +107,7 @@ func (h *ApiHandler) CheckOrganizationAllPermissions(
 func (h *ApiHandler) GetUserOrganizationPermissions(
 	gc *gin.Context,
 	tx pgx.Tx,
-	userId string,
+	userUuid string,
 	orgUuid string,
 ) (app.Permission, error) {
 
@@ -117,7 +117,7 @@ func (h *ApiHandler) GetUserOrganizationPermissions(
 	err := tx.QueryRow(
 		ctx,
 		app.UranusInstance.SqlGetUserOrganizationPermissions,
-		userId,
+		userUuid,
 		orgUuid,
 	).Scan(&result)
 	if err != nil {

@@ -18,7 +18,7 @@ func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 
 	eventUuid := gc.Param("eventUuid")
 	if eventUuid == "" {
-		apiRequest.Error(http.StatusBadRequest, "eventId is required")
+		apiRequest.Error(http.StatusBadRequest, "eventUuid is required")
 		return
 	}
 	apiRequest.SetMeta("event_uuid", eventUuid)
@@ -89,7 +89,7 @@ func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 	}
 	apiRequest.SetMeta("field_count", len(setClauses))
 
-	query := fmt.Sprintf(`UPDATE %s.event SET %s WHERE id = $%d`,
+	query := fmt.Sprintf(`UPDATE %s.event SET %s WHERE uuid = $%d::uuid`,
 		h.DbSchema,
 		strings.Join(setClauses, ", "),
 		argPos, // Last placeholder is for WHERE id

@@ -6,5 +6,5 @@ SELECT
 FROM {{schema}}.event_type_link etl
 JOIN {{schema}}.event_type et ON et.type_id = etl.type_id AND et.iso_639_1 = $2
 LEFT JOIN {{schema}}.genre_type gt ON gt.genre_id = etl.genre_id AND gt.iso_639_1 = $2
-WHERE etl.event_uuid = $1
+WHERE etl.event_uuid = $1::uuid
 ORDER BY et.name, gt.name

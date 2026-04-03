@@ -9,8 +9,8 @@ import (
 	"github.com/sndcds/uranus/model"
 )
 
-type organizationDashboardResponse struct {
-	Organizations []model.OrganizationDashboardEntry `json:"organizations"`
+type organizationListResponse struct {
+	Organizations []model.OrganizationListItem `json:"organizations"`
 }
 
 // PermissionNote: User must be authenticated.
@@ -20,12 +20,12 @@ type organizationDashboardResponse struct {
 // PermissionChecks: Handled in SQL query; no additional checks needed here.
 // Verified: 2026-01-12, Roald
 
-func (h *ApiHandler) AdminGetOrganizationDashboard(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "admin-get-organization-dashboard")
+func (h *ApiHandler) AdminGetOrganizationList(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "admin-get-organization-list")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 
-	rows, err := h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetOrganizationDashboard, userUuid)
+	rows, err := h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetOrganizationList, userUuid)
 	if err != nil {
 		debugf(err.Error())
 		apiRequest.InternalServerError()
@@ -33,15 +33,15 @@ func (h *ApiHandler) AdminGetOrganizationDashboard(gc *gin.Context) {
 	}
 	defer rows.Close()
 
-	var result organizationDashboardResponse
+	var result organizationListResponse
 	var userPermissions app.Permission
 	for rows.Next() {
-		var e model.OrganizationDashboardEntry
+		var e model.OrganizationListItem
 		if err := rows.Scan(
-			&e.OrgUuid,
-			&e.OrgName,
-			&e.OrgCity,
-			&e.OrgCountry,
+			&e.Uuid,
+			&e.Name,
+			&e.City,
+			&e.Country,
 			&e.TotalUpcomingEvents,
 			&e.VenueCount,
 			&e.SpaceCount,

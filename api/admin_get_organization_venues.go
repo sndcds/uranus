@@ -43,7 +43,6 @@ func (h *ApiHandler) AdminGetOrganizationVenues(gc *gin.Context) {
 		startDate = time.Now() // fallback if param missing
 	}
 
-	// Run query
 	row := h.DbPool.QueryRow(ctx, app.UranusInstance.SqlAdminGetOrganizationVenues, userUuid, orgUuid, startDate)
 	var jsonResult []byte
 	err = row.Scan(&jsonResult)

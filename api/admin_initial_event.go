@@ -9,13 +9,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/grains/grains_api"
+	"github.com/sndcds/grains/grains_uuid"
 	"github.com/sndcds/uranus/app"
 )
 
 func (h *ApiHandler) AdminInitialEvent(gc *gin.Context) {
-	ctx := gc.Request.Context()
-	useUuid := h.userUuid(gc)
 	apiRequest := grains_api.NewRequest(gc, "admin-initial-venue")
+	ctx := gc.Request.Context()
+	userUuid := h.userUuid(gc)
 
 	type Payload struct {
 		OrgUuid    string `json:"org_uuid" binding:"required"`
@@ -23,6 +24,7 @@ func (h *ApiHandler) AdminInitialEvent(gc *gin.Context) {
 	}
 	payload, ok := grains_api.DecodeJSONBody[Payload](gc, apiRequest)
 	if !ok {
+		apiRequest.PayloadError()
 		return
 	}
 
@@ -36,27 +38,30 @@ func (h *ApiHandler) AdminInitialEvent(gc *gin.Context) {
 	apiRequest.Metadata["event_title"] = eventTitle
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-		txErr := h.CheckOrganizationAllPermissions(gc, tx, useUuid, payload.OrgUuid, app.PermAddEvent)
+		txErr := h.CheckOrganizationAllPermissions(gc, tx, userUuid, payload.OrgUuid, app.PermAddEvent)
 		if txErr != nil {
+			debugf(".... 1")
 			return txErr
 		}
 
-		newEventId := -1
 		query := fmt.Sprintf(
-			`INSERT INTO %s.event (organization_id, title, created_by) VALUES ($1, $2, $3) RETURNING id`,
+			`INSERT INTO %s.event (uuid, org_uuid, title, created_by) VALUES ($1::uuid, $2::uuid, $3, $4::uuid)`,
 			h.DbSchema)
-		err := tx.QueryRow(ctx, query, payload.OrgUuid, eventTitle, useUuid).Scan(&newEventId)
+		eventUuid, err := grains_uuid.Uuidv7String()
+		_, err = tx.Exec(ctx, query, eventUuid, payload.OrgUuid, eventTitle, userUuid)
 		if err != nil {
+			debugf(".... 2")
 			debugf(err.Error())
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
 				Err:  errors.New("Internal server error"),
 			}
 		}
-		apiRequest.Metadata["event_id"] = newEventId
+		apiRequest.Metadata["event_uuid"] = eventUuid
 		return nil
 	})
 	if txErr != nil {
+		debugf("1 ... %s", txErr.Error())
 		apiRequest.Error(txErr.Code, txErr.Error())
 		return
 	}

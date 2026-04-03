@@ -19,43 +19,49 @@ import (
 // Verified: 2026-01-11, Roald
 
 func (h *ApiHandler) AdminGetChoosableUserEventVenues(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "choosable-user-event-venues")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
-	apiRequest := grains_api.NewRequest(gc, "choosable-user-event-venues")
 
-	query := app.UranusInstance.SqlAdminGetChoosableUserEventVenues
+	query := app.UranusInstance.SqlAdminChoosableUserEventVenues
+	debugf(query)
+	debugf(userUuid)
 	rows, err := h.DbPool.Query(ctx, query, userUuid)
 	if err != nil {
+		debugf(err.Error())
 		apiRequest.DatabaseError()
 		return
 	}
 	defer rows.Close()
 
-	var venueInfos []model.EventVenueInfo
+	var venueInfos []model.VenueInfo
 
 	for rows.Next() {
-		var venueInfo model.EventVenueInfo
+		var venueInfo model.VenueInfo
 		err := rows.Scan(
-			&venueInfo.VenueId,
+			&venueInfo.VenueUuid,
 			&venueInfo.VenueName,
-			&venueInfo.SpaceId,
+			&venueInfo.SpaceUuid,
 			&venueInfo.SpaceName,
 			&venueInfo.City,
 			&venueInfo.Country)
 		if err != nil {
+			debugf(err.Error())
 			apiRequest.DatabaseError()
 			return
 		}
 		venueInfos = append(venueInfos, venueInfo)
 	}
 
-	if err := rows.Err(); err != nil {
+	err = rows.Err()
+	if err != nil {
+		debugf(err.Error())
 		apiRequest.DatabaseError()
 		return
 	}
 
 	if len(venueInfos) == 0 {
-		apiRequest.Success(http.StatusOK, []model.EventVenueInfo{}, "")
+		apiRequest.Success(http.StatusOK, []model.VenueInfo{}, "")
 		return
 	}
 

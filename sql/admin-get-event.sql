@@ -51,10 +51,10 @@ LEFT JOIN {{schema}}.venue v ON v.uuid = e.venue_uuid
 LEFT JOIN {{schema}}.currency cu ON cu.code = e.currency AND cu.iso_639_1 = $2
 LEFT JOIN {{schema}}.user_organization_link uol
 ON uol.org_uuid = o.uuid
-AND uol.user_uuid = $3
+AND uol.user_uuid = $3::uuid
 LEFT JOIN {{schema}}.user_event_link uel
 ON uel.event_uuid = e.uuid
-AND uel.user_uuid = $3
+AND uel.user_uuid = $3::uuid
 LEFT JOIN LATERAL (
     SELECT *
     FROM {{schema}}.space s2
@@ -62,5 +62,5 @@ LEFT JOIN LATERAL (
     LIMIT 1
 ) sd ON TRUE
 WHERE ((uol.permissions & $4) <> 0 OR (uel.permissions & $4) <> 0)
-AND e.uuid = $1
+AND e.uuid = $1::uuid
 LIMIT 1

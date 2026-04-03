@@ -9,9 +9,9 @@ import (
 )
 
 func (h *ApiHandler) AdminDeleteSpace(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "admin-delete-space")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
-	apiRequest := grains_api.NewRequest(gc, "admin-delete-space")
 
 	err := h.VerifyUserPassword(gc, userUuid)
 	if err != nil {
@@ -19,15 +19,15 @@ func (h *ApiHandler) AdminDeleteSpace(gc *gin.Context) {
 		return
 	}
 
-	spaceId, ok := ParamInt(gc, "spaceId")
-	if !ok {
-		apiRequest.Error(http.StatusBadRequest, "spaceId is required")
+	spaceUuid := gc.Param("spaceUuid")
+	if spaceUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "spaceUuid is required")
 		return
 	}
-	apiRequest.SetMeta("space_id", spaceId)
+	apiRequest.SetMeta("space_uuid", spaceUuid)
 
-	query := fmt.Sprintf(`DELETE FROM %s.space WHERE id = $1`, h.DbSchema)
-	cmdTag, err := h.DbPool.Exec(ctx, query, spaceId)
+	query := fmt.Sprintf(`DELETE FROM %s.space WHERE uuid = $1::uuid`, h.DbSchema)
+	cmdTag, err := h.DbPool.Exec(ctx, query, spaceUuid)
 	if err != nil {
 		apiRequest.Error(http.StatusInternalServerError, "failed to delete space")
 		return

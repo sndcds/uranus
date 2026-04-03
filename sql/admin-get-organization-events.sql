@@ -82,10 +82,10 @@ ON v.uuid = COALESCE(edt.venue_uuid, e.venue_uuid)
 
 -- Space resolution
 LEFT JOIN {{schema}}.space s
-ON s.uuid = CASE
-WHEN edt.venue_uuid IS NOT NULL THEN edt.space_uuid
-ELSE e.space_uuid
-END
+ON s.uuid = (CASE
+    WHEN edt.venue_uuid IS NOT NULL THEN edt.space_uuid
+    ELSE e.space_uuid
+END)::uuid
 
 LEFT JOIN {{schema}}.organization eo
 ON eo.uuid = e.org_uuid
@@ -117,17 +117,17 @@ LEFT JOIN LATERAL (
 -- Permissions
 LEFT JOIN {{schema}}.user_event_link uel
     ON uel.event_uuid = e.uuid
-    AND uel.user_uuid = $3
+    AND uel.user_uuid = $3::uuid
 
 LEFT JOIN {{schema}}.user_organization_link uol
     ON uol.org_uuid = e.org_uuid
-    AND uol.user_uuid = $3
+    AND uol.user_uuid = $3::uuid
 
 LEFT JOIN {{schema}}.user_venue_link uvl
     ON uvl.venue_uuid = e.venue_uuid
-    AND uvl.user_uuid = $3
+    AND uvl.user_uuid = $3::uuid
 
-WHERE eo.uuid = $1
+WHERE eo.uuid = $1::uuid
 AND (
     edt.start_date >= $2::date
     OR edt.start_date IS NULL

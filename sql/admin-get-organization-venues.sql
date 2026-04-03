@@ -95,8 +95,8 @@ venue_info AS (
         COALESCE(
         json_agg(
             json_build_object(
-                'space_uuid', s.space_uuid,
-                'space_name', s.space_name,
+                'uuid', s.space_uuid,
+                'name', s.space_name,
                 'upcoming_event_count', s.upcoming_event_count
             )
         ) FILTER (WHERE s.space_uuid IS NOT NULL),
@@ -154,11 +154,11 @@ organization_info AS (
         COALESCE(
             json_agg(
                 json_build_object(
-                    'venue_uuid', vi.venue_uuid,
-                    'venue_name', vi.venue_name,
-                    'venue_main_logo_uuid', main_logo_uuid,
-                    'venue_dark_theme_logo_uuid', dark_theme_logo_uuid,
-                    'venue_light_theme_logo_uuid', light_theme_logo_uuid,
+                    'uuid', vi.venue_uuid,
+                    'name', vi.venue_name,
+                    'main_logo_uuid', main_logo_uuid,
+                    'dark_theme_logo_uuid', dark_theme_logo_uuid,
+                    'light_theme_logo_uuid', light_theme_logo_uuid,
                     'can_add_venue', vi.can_add_venue,
                     'can_edit_venue', vi.can_edit_venue,
                     'can_delete_venue', vi.can_delete_venue,
