@@ -8,12 +8,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/grains/grains_api"
+	"github.com/sndcds/grains/grains_uuid"
 	"github.com/sndcds/uranus/app"
 )
 
 func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
-	ctx := gc.Request.Context()
 	apiRequest := grains_api.NewRequest(gc, "admin-update-event-dates")
+	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 
 	eventUuid := gc.Param("eventUuid")
@@ -60,10 +61,10 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 	}
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-		idsInPayload := []string{}
+		uuidsInPayload := []string{}
 		for _, d := range payload {
 			if d.DateUuid != nil {
-				idsInPayload = append(idsInPayload, *d.DateUuid)
+				uuidsInPayload = append(uuidsInPayload, *d.DateUuid)
 			}
 		}
 
@@ -86,11 +87,11 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 		*/
 
 		query := fmt.Sprintf(
-			`DELETE FROM %s.event_date WHERE event_id = $1 AND NOT (id = ANY($2::int[]))`,
+			`DELETE FROM %s.event_date WHERE event_uuid = $1::uuid AND NOT (uuid = ANY($2::uuid[]))`,
 			h.DbSchema)
 		debugf("query: %s", query)
-		debugf("idsInPayload: %s", idsInPayload)
-		_, err := tx.Exec(ctx, query, eventUuid, idsInPayload)
+		debugf("uuidsInPayload: %s", uuidsInPayload)
+		_, err := tx.Exec(ctx, query, eventUuid, uuidsInPayload)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
@@ -124,7 +125,15 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 				}
 			} else {
 				// INSERT
-				_, err := tx.Exec(ctx, app.UranusInstance.SqlAdminInsertEventDate,
+				eventDateUuid, err := grains_uuid.Uuidv7String()
+				if err != nil {
+					return &ApiTxError{
+						Code: http.StatusInternalServerError,
+						Err:  fmt.Errorf("failed to generate uuid: %v", err),
+					}
+				}
+				_, err = tx.Exec(ctx, app.UranusInstance.SqlAdminInsertEventDate,
+					eventDateUuid,
 					eventUuid,
 					d.VenueUuid,
 					d.SpaceUuid,
@@ -148,8 +157,10 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 		}
 
 		// Refresh projections
-		if err := RefreshEventProjections(ctx, tx, "event", []string{eventUuid}); err != nil {
-			debugf("err: %v", err)
+		debugf("eventUuid: %s", eventUuid)
+		err = RefreshEventProjections(ctx, tx, "event", []string{eventUuid})
+		if err != nil {
+			debugf("err x: %v", err)
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
 				Err:  fmt.Errorf("refresh projections failed: %w", err),

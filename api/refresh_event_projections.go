@@ -44,11 +44,13 @@ func RefreshEventProjections(
 
 	q, ok := queries[sourceTable]
 	if !ok {
+		debugf("unsupported source table: %s", sourceTable)
 		return fmt.Errorf("unsupported source table: %s", sourceTable)
 	}
 
 	// Refresh events
 	if q.EventUuids != "" {
+		debugf("upsertEventProjection ...")
 		eventUuids, err := fetchUuids(ctx, tx, q.EventUuids, uuids)
 		if err != nil {
 			return err
@@ -65,6 +67,7 @@ func RefreshEventProjections(
 
 	// Refresh event dates
 	if q.EventDateUuids != "" {
+		debugf("upsertEventDateProjection ...")
 		eventDateUuids, err := fetchUuids(ctx, tx, q.EventDateUuids, uuids)
 		if err != nil {
 			return err
@@ -443,7 +446,6 @@ func fetchUuids(
 	uuids []string,
 ) ([]string, error) {
 
-	fmt.Println(query)
 	rows, err := tx.Query(ctx, query, uuids)
 	if err != nil {
 		return nil, err
@@ -452,11 +454,15 @@ func fetchUuids(
 
 	var result []string
 	for rows.Next() {
-		var uuid string
-		if err := rows.Scan(&uuid); err != nil {
+		var uuid *string
+		err = rows.Scan(&uuid)
+		if err != nil {
 			return nil, err
 		}
-		result = append(result, uuid)
+
+		if uuid != nil {
+			result = append(result, *uuid)
+		}
 	}
 	return result, nil
 }

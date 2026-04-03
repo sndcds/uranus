@@ -79,7 +79,7 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 				&e.VenueName,
 				&e.SpaceUuid,
 				&e.SpaceName,
-				&e.ImageId,
+				&e.ImageUuid,
 				&e.ImageUrl,
 				&eventTypesData,
 				&e.CanEditEvent,

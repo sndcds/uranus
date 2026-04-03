@@ -231,7 +231,7 @@ type AdminListEvent struct {
 	VenueName       *string     `json:"venue_name,omitempty"`
 	SpaceUuid       *string     `json:"space_uuid,omitempty"`
 	SpaceName       *string     `json:"space_name,omitempty"`
-	ImageId         *int        `json:"image_id,omitempty"`
+	ImageUuid       *string     `json:"image_uuid,omitempty"`
 	ImageUrl        *string     `json:"image_url,omitempty"`
 	SeriesIndex     int         `json:"series_index,omitempty"`
 	SeriesTotal     int         `json:"series_total,omitempty"`

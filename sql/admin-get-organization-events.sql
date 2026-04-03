@@ -106,7 +106,7 @@ LEFT JOIN LATERAL (
 LEFT JOIN LATERAL (
     SELECT
         pil.pluto_image_uuid AS image_uuid,
-        format('{{base_api_url}}/api/image/%s', pil.pluto_image_uuid) AS image_url
+        format('{{base_api_url}}/api/image/%s', pil.pluto_image_uuid::text) AS image_url
     FROM {{schema}}.pluto_image_link pil
     WHERE pil.context = 'event'
       AND pil.context_uuid = e.uuid
