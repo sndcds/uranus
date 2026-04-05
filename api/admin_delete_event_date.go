@@ -9,9 +9,9 @@ import (
 )
 
 func (h *ApiHandler) AdminDeleteEventDate(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "admin-delete-event-date")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
-	apiRequest := grains_api.NewRequest(gc, "admin-delete-event-date")
 
 	err := h.VerifyUserPassword(gc, userUuid)
 	if err != nil {
@@ -19,24 +19,24 @@ func (h *ApiHandler) AdminDeleteEventDate(gc *gin.Context) {
 		return
 	}
 
-	eventId, ok := ParamInt(gc, "eventId")
-	if !ok {
-		apiRequest.Error(http.StatusBadRequest, "eventId is required")
+	eventUuid := gc.Param("eventUuid")
+	if eventUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "eventUuid is required")
 		return
 	}
-	apiRequest.SetMeta("event_id", eventId)
+	apiRequest.SetMeta("event_uuid", eventUuid)
 
-	eventDateId, ok := ParamInt(gc, "dateId")
-	if !ok {
-		apiRequest.Error(http.StatusBadRequest, "dateId is required")
+	eventDateUuid := gc.Param("dateUuid")
+	if eventDateUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "dateUuid is required")
 		return
 	}
-	apiRequest.SetMeta("event_date_id", eventDateId)
+	apiRequest.SetMeta("event_date_uuid", eventDateUuid)
 
-	query := fmt.Sprintf(`DELETE FROM %s.event_date WHERE id = $1`, h.DbSchema)
-	cmdTag, err := h.DbPool.Exec(ctx, query, eventDateId)
+	query := fmt.Sprintf(`DELETE FROM %s.event_date WHERE uuid = $1::uuid`, h.DbSchema)
+	cmdTag, err := h.DbPool.Exec(ctx, query, eventDateUuid)
 	if err != nil {
-		apiRequest.Error(http.StatusInternalServerError, "failed to delete event date")
+		apiRequest.InternalServerError()
 		return
 	}
 

@@ -11,8 +11,8 @@ import (
 )
 
 func (h *ApiHandler) AdminUpdateEventLanguages(gc *gin.Context) {
-	ctx := gc.Request.Context()
 	apiRequest := grains_api.NewRequest(gc, "admin-update-event-languages")
+	ctx := gc.Request.Context()
 
 	eventUuid := gc.Param("eventUuid")
 	if eventUuid == "" {
@@ -31,7 +31,7 @@ func (h *ApiHandler) AdminUpdateEventLanguages(gc *gin.Context) {
 	}
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-		query := fmt.Sprintf(`UPDATE %s.event SET languages = $2 WHERE id = $1`, h.DbSchema)
+		query := fmt.Sprintf(`UPDATE %s.event SET languages = $2 WHERE uuid = $1::uuid`, h.DbSchema)
 
 		res, err := tx.Exec(ctx, query, eventUuid, req.Languages)
 		if err != nil {

@@ -11,12 +11,12 @@ import (
 )
 
 func (h *ApiHandler) AdminUpdateEventLinks(gc *gin.Context) {
-	ctx := gc.Request.Context()
 	apiRequest := grains_api.NewRequest(gc, "admin-update-event-links")
+	ctx := gc.Request.Context()
 
 	eventUuid := gc.Param("eventUuid")
 	if eventUuid == "" {
-		apiRequest.Error(http.StatusBadRequest, "eventId is required")
+		apiRequest.Error(http.StatusBadRequest, "eventUuid is required")
 		return
 	}
 
@@ -37,7 +37,7 @@ func (h *ApiHandler) AdminUpdateEventLinks(gc *gin.Context) {
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		// Delete existing type-genre links
-		deleteQuery := fmt.Sprintf(`DELETE FROM %s.event_link WHERE event_id = $1`, h.DbSchema)
+		deleteQuery := fmt.Sprintf(`DELETE FROM %s.event_link WHERE event_uuid = $1::uuid`, h.DbSchema)
 		_, err := tx.Exec(ctx, deleteQuery, eventUuid)
 		if err != nil {
 			return &ApiTxError{
@@ -47,7 +47,7 @@ func (h *ApiHandler) AdminUpdateEventLinks(gc *gin.Context) {
 		}
 
 		// Insert new type-genre pairs
-		insertQuery := fmt.Sprintf(`INSERT INTO %s.event_link (event_id, label, type, url) VALUES ($1, $2, $3, $4)`, h.DbSchema)
+		insertQuery := fmt.Sprintf(`INSERT INTO %s.event_link (event_uuid, label, type, url) VALUES ($1::uuid, $2, $3, $4)`, h.DbSchema)
 
 		for _, url := range req.Types {
 			_, err = tx.Exec(ctx, insertQuery, eventUuid, url.Label, url.Type, url.Url)

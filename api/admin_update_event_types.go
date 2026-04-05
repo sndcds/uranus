@@ -10,8 +10,8 @@ import (
 )
 
 func (h *ApiHandler) AdminUpdateEventTypes(gc *gin.Context) {
-	ctx := gc.Request.Context()
 	apiRequest := grains_api.NewRequest(gc, "admin-update-event-types")
+	ctx := gc.Request.Context()
 
 	eventUuid := gc.Param("eventUuid")
 	if eventUuid == "" {
@@ -28,15 +28,19 @@ func (h *ApiHandler) AdminUpdateEventTypes(gc *gin.Context) {
 
 	var req eventTypesRequest
 	if err := gc.ShouldBindJSON(&req); err != nil {
+		debugf(err.Error())
 		apiRequest.PayloadError()
 		return
 	}
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		// Delete existing type-genre links
-		deleteQuery := fmt.Sprintf(`DELETE FROM %s.event_type_link WHERE event_id = $1`, h.DbSchema)
+		deleteQuery := fmt.Sprintf(`DELETE FROM %s.event_type_link WHERE event_uuid = $1::uuid`, h.DbSchema)
+		debugf(deleteQuery)
+		debugf(eventUuid)
 		_, err := tx.Exec(ctx, deleteQuery, eventUuid)
 		if err != nil {
+			debugf("1: %s", err.Error())
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
 				Err:  fmt.Errorf("failed to delete existing type-genre links: %v", err),
@@ -44,7 +48,7 @@ func (h *ApiHandler) AdminUpdateEventTypes(gc *gin.Context) {
 		}
 
 		// Insert new type-genre pairs
-		insertQuery := fmt.Sprintf(`INSERT INTO %s.event_type_link (event_id, type_id, genre_id) VALUES ($1, $2, $3)`, h.DbSchema)
+		insertQuery := fmt.Sprintf(`INSERT INTO %s.event_type_link (event_uuid, type_id, genre_id) VALUES ($1::uuid, $2, $3)`, h.DbSchema)
 
 		for _, pair := range req.Types {
 			genreId := 0
@@ -53,6 +57,7 @@ func (h *ApiHandler) AdminUpdateEventTypes(gc *gin.Context) {
 			}
 			_, err = tx.Exec(ctx, insertQuery, eventUuid, pair.TypeId, genreId)
 			if err != nil {
+				debugf("2: %s", err.Error())
 				return &ApiTxError{
 					Code: http.StatusInternalServerError,
 					Err:  fmt.Errorf("failed to insert type_id=%d, genre_id=%d: %v", pair.TypeId, pair.GenreId, err),
@@ -62,6 +67,7 @@ func (h *ApiHandler) AdminUpdateEventTypes(gc *gin.Context) {
 
 		err = RefreshEventProjections(ctx, tx, "event", []string{eventUuid})
 		if err != nil {
+			debugf("3: %s", err.Error())
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
 				Err:  fmt.Errorf("refresh projection tables failed: %v", err),

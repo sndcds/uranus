@@ -119,11 +119,11 @@ func (h *ApiHandler) AdminUpsertTodo(gc *gin.Context) {
 	if req.DueDate != nil && *req.DueDate != "" {
 		t, err := time.Parse("2006-01-02", *req.DueDate)
 		if err != nil {
-			apiRequest.ErrorWithKey(http.StatusBadRequest, "due_date_format_error", "invalid due_date format (YYYY-MM-DD)")
+			apiRequest.Error(http.StatusBadRequest, "due_date_format_error")
 			return
 		}
 		if t.Before(time.Now()) {
-			apiRequest.ErrorWithKey(http.StatusBadRequest, "due_date_in_past_error", "due_date cannot be in the past")
+			apiRequest.Error(http.StatusBadRequest, "due_date_in_past_error")
 			return
 		}
 		duePtr = &t

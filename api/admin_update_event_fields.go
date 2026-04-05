@@ -100,6 +100,7 @@ func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		res, err := tx.Exec(ctx, query, args...)
 		if err != nil {
+			debugf("1: %s", err.Error())
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
 				Err:  fmt.Errorf("failed to update event: %v", err),
@@ -115,6 +116,7 @@ func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 
 		err = RefreshEventProjections(ctx, tx, "event", []string{eventUuid})
 		if err != nil {
+			debugf("2: %s", err.Error())
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
 				Err:  fmt.Errorf("refresh projection tables failed: %v", err),

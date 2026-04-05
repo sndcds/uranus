@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/lib/pq"
+	"github.com/sndcds/grains/grains_uuid"
 	"github.com/sndcds/uranus/app"
 )
 
@@ -292,12 +293,37 @@ func BuildContainedInColumnIntRangeCondition(
 	return argIndex, nil
 }
 
-// BuildColumnInIntCondition builds a SQL condition with = ANY($N) for integers.
-// idsInput can be either a string ("1,2,3") or a []int.
-// expr is the SQL column/expression (e.g., "event_id").
-// argIndex is the placeholder number ($1, $2, ...).
-// conditions is a pointer to the slice of WHERE conditions to append to.
-// args is a pointer to the slice of query arguments to append to.
+// BuildColumnInUuidCondition builds a SQL condition using = ANY($N::uuid[]) for UUIDv7 values.
+//
+// uuidsInput can be either a comma-separated string of UUIDs (e.g., "uuid1,uuid2,uuid3")
+// or a []string slice of UUIDs. All UUIDs are validated using grains_uuid.IsValidUuidv7.
+//
+// expr is the SQL column or expression to compare against (e.g., "event_uuid").
+//
+// argIndex is the placeholder number for the SQL parameter ($1, $2, ...).
+//
+// conditions is a pointer to a slice of strings where the generated condition will be appended.
+//
+// args is a pointer to a slice of interface{} where the parsed UUID values will be appended.
+//
+// Returns the next argument index (argIndex + 1) and an error if any input is invalid.
+//
+// Example usage:
+//
+//	var conditions []string
+//	var args []interface{}
+//	argIndex := 1
+//
+//	argIndex, err := BuildColumnInUuidCondition("uuid1,uuid2", "event_uuid", argIndex, &conditions, &args)
+//	if err != nil {
+//	    return err
+//	}
+//
+// This will produce a condition similar to:
+//
+//	(event_uuid = ANY($1::uuid[]))
+//
+// with args containing ["uuid1", "uuid2"]
 func BuildColumnInIntCondition(
 	idsInput interface{},
 	expr string,
@@ -331,6 +357,68 @@ func BuildColumnInIntCondition(
 	*conditions = append(*conditions, condition)
 
 	*args = append(*args, app.IntSliceToCsv(ids))
+
+	return argIndex + 1, nil
+}
+
+func BuildColumnInUuidCondition(
+	uuidsInput interface{},
+	expr string,
+	argIndex int,
+	conditions *[]string,
+	args *[]interface{},
+) (int, error) {
+
+	var uuids []string
+
+	switch v := uuidsInput.(type) {
+
+	case string:
+		v = strings.TrimSpace(v)
+		if v == "" {
+			return argIndex, nil
+		}
+
+		parts := strings.Split(v, ",")
+		for _, raw := range parts {
+			u := strings.TrimSpace(raw)
+			if u == "" {
+				continue
+			}
+
+			if !grains_uuid.IsValidUuidv7(u) {
+				return argIndex, fmt.Errorf("invalid uuid: %s", u)
+			}
+
+			uuids = append(uuids, u)
+		}
+
+	case []string:
+		for _, raw := range v {
+			u := strings.TrimSpace(raw)
+			if u == "" {
+				continue
+			}
+
+			if !grains_uuid.IsValidUuidv7(u) {
+				return argIndex, fmt.Errorf("invalid uuid: %s", u)
+			}
+
+			uuids = append(uuids, u)
+		}
+
+	default:
+		return argIndex, fmt.Errorf("unsupported input type: %T", uuidsInput)
+	}
+
+	if len(uuids) == 0 {
+		return argIndex, nil
+	}
+
+	condition := fmt.Sprintf("(%s = ANY($%d::uuid[]))", expr, argIndex)
+	*conditions = append(*conditions, condition)
+
+	*args = append(*args, uuids)
 
 	return argIndex + 1, nil
 }

@@ -66,10 +66,12 @@ space_info AS (
         s.uuid AS space_uuid,
         s.name AS space_name,
         s.venue_uuid,
-        COUNT(DISTINCT ed.uuid) FILTER (WHERE ed.start_date > $3) AS upcoming_event_count
+        COUNT(DISTINCT COALESCE(ed.uuid, e.uuid)) AS upcoming_event_count
     FROM {{schema}}.space s
-    LEFT JOIN {{schema}}.event e ON e.space_uuid = s.uuid
-    LEFT JOIN {{schema}}.event_date ed ON ed.event_uuid = e.uuid
+    -- Prefer upcoming event_dates
+    LEFT JOIN {{schema}}.event_date ed ON ed.space_uuid = s.uuid AND ed.start_date > $3
+    -- Fallback to events that have no event_date
+    LEFT JOIN {{schema}}.event e  ON e.space_uuid = s.uuid
     GROUP BY s.uuid, s.name, s.venue_uuid
 ),
 
@@ -93,13 +95,13 @@ venue_info AS (
         COALESCE(vp.can_release_event, false) AS can_release_event,
         COALESCE(SUM(s.upcoming_event_count), 0) AS upcoming_event_count,
         COALESCE(
-        json_agg(
-            json_build_object(
-                'uuid', s.space_uuid,
-                'name', s.space_name,
-                'upcoming_event_count', s.upcoming_event_count
-            )
-        ) FILTER (WHERE s.space_uuid IS NOT NULL),
+            json_agg(
+                json_build_object(
+                    'uuid', s.space_uuid,
+                    'name', s.space_name,
+                    'upcoming_event_count', s.upcoming_event_count
+                )
+            ) FILTER (WHERE s.space_uuid IS NOT NULL),
         '[]'::json
     ) AS spaces
     FROM {{schema}}.venue v

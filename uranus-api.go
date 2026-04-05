@@ -213,10 +213,10 @@ func main() {
 
 	// Event
 	adminRoute.GET("/event/:eventUuid", apiHandler.AdminGetEvent)
-	adminRoute.POST("/delete/event/:eventUuid", apiHandler.AdminDeleteEvent)                    // TODO: check!
-	adminRoute.POST("/event/:eventUuid/date", apiHandler.AdminUpsertEventDate)                  // TODO: check!
-	adminRoute.PUT("/event/:eventUuid/date/:dateUuid", apiHandler.AdminUpsertEventDate)         // TODO: check!
-	adminRoute.POST("/delete/event/:eventUuid/date/:dateUuid", apiHandler.AdminDeleteEventDate) // TODO: check!
+	adminRoute.POST("/event/:eventUuid/date", apiHandler.AdminUpsertEventDate)          // TODO: check!
+	adminRoute.PUT("/event/:eventUuid/date/:dateUuid", apiHandler.AdminUpsertEventDate) // TODO: check!
+	adminRoute.DELETE("/event/:eventUuid", apiHandler.AdminDeleteEvent)
+	adminRoute.DELETE("/event/:eventUuid/date/:dateUuid", apiHandler.AdminDeleteEventDate)
 
 	adminRoute.POST("/event/initial", apiHandler.AdminInitialEvent)
 	adminRoute.POST("/event/create", apiHandler.AdminCreateEvent)

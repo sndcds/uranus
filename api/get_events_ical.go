@@ -41,11 +41,11 @@ func (h *ApiHandler) GetEventsICS(gc *gin.Context) {
 		var typesJSON []byte
 
 		err := rows.Scan(
-			&e.EventDateId,
-			&e.Id,
-			&e.OrganizationId,
-			&e.VenueId,
-			&e.SpaceId,
+			&e.DateUuid,
+			&e.Uuid,
+			&e.OrgUuid,
+			&e.VenueUuid,
+			&e.SpaceUuid,
 			&e.StartDate,
 			&e.StartTime,
 			&e.EndDate,
@@ -61,7 +61,7 @@ func (h *ApiHandler) GetEventsICS(gc *gin.Context) {
 			&typesJSON,
 			&e.Languages,
 			&e.Tags,
-			&e.OrganizationName,
+			&e.OrgName,
 			&e.ImageUuid,
 			&e.VenueName,
 			&e.VenueCity,
@@ -159,7 +159,7 @@ func buildEventsICS(events []eventResponse, host string) (string, error) {
 	for _, e := range events {
 		start, end, allDay, err := deriveEventTimes(e)
 		if err != nil {
-			debugf("Skipping event %d due to time parse error: %v", e.EventDateId, err)
+			debugf("Skipping event %d due to time parse error: %v", e.DateUuid, err)
 			continue
 		}
 
@@ -310,7 +310,7 @@ func ensureEndAfterStart(start, end time.Time) time.Time {
 }
 
 func buildEventUID(e eventResponse, host string) string {
-	return fmt.Sprintf("eventdate-%d@%s", e.EventDateId, sanitizeHost(host))
+	return fmt.Sprintf("eventdate-%d@%s", e.DateUuid, sanitizeHost(host))
 }
 
 func buildEventDescription(e eventResponse) string {
@@ -320,7 +320,7 @@ func buildEventDescription(e eventResponse) string {
 		parts = append(parts, s)
 	}
 
-	parts = append(parts, "Veranstalter: "+e.OrganizationName)
+	parts = append(parts, "Veranstalter: "+e.OrgName)
 
 	if s := stringPtrValue(e.SpaceName); s != "" {
 		parts = append(parts, "Raum: "+s)
