@@ -83,7 +83,7 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 			apiRequest.Error(http.StatusNotFound, "event not found")
 			return
 		}
-		debugf("1: %s", err.Error())
+		debugf(err.Error())
 		apiRequest.InternalServerError()
 		apiRequest.SetMeta("error_type", "event")
 		return
@@ -92,9 +92,9 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 	// Event Types
 	rows, err := h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventTypes, eventUuid, lang)
 	if err != nil {
-		debugf("2: %s", err.Error())
-		apiRequest.InternalServerError()
+		debugf(err.Error())
 		apiRequest.SetMeta("error_type", "event-types")
+		apiRequest.InternalServerError()
 		return
 	}
 	defer rows.Close()
@@ -107,7 +107,7 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 	// Event Images
 	rows, err = h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventImages, eventUuid)
 	if err != nil {
-		debugf("3: %s", err.Error())
+		debugf(err.Error())
 		apiRequest.InternalServerError()
 		apiRequest.SetMeta("error_type", "event-images")
 		return
@@ -123,7 +123,7 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 	// Event Links
 	rows, err = h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventLinks, eventUuid)
 	if err != nil {
-		debugf("4: %s", err.Error())
+		debugf(err.Error())
 		apiRequest.InternalServerError()
 		apiRequest.SetMeta("error_type", "event-links")
 		return
@@ -138,7 +138,7 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 	// Dates
 	rows, err = h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventDates, eventUuid)
 	if err != nil {
-		debugf("5: %s", err.Error())
+		debugf(err.Error())
 		apiRequest.InternalServerError()
 		apiRequest.SetMeta("error_type", "event-dates")
 		return
@@ -177,7 +177,7 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 		)
 
 		if err != nil {
-			debugf("6: %s", err.Error())
+			debugf(err.Error())
 			apiRequest.DatabaseError()
 			return
 		}

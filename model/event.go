@@ -68,7 +68,7 @@ type VenueInfo struct {
 
 type EventDate struct {
 	Uuid                         string   `json:"uuid"`
-	EventId                      int      `json:"event_id"`
+	EventUuid                    string   `json:"event_uuid"`
 	EventReleaseStatus           string   `json:"release_status"`
 	StartDate                    string   `json:"start_date"`
 	StartTime                    string   `json:"start_time"`
@@ -76,7 +76,7 @@ type EventDate struct {
 	EndTime                      *string  `json:"end_time,omitempty"`
 	EntryTime                    *string  `json:"entry_time,omitempty"`
 	Duration                     *int     `json:"duration,omitempty"`
-	VenueId                      *int     `json:"venue_id"`
+	VenueUuid                    *string  `json:"venue_uuid"`
 	VenueName                    *string  `json:"venue_name,omitempty"`
 	VenueStreet                  *string  `json:"venue_street,omitempty"`
 	VenueHouseNumber             *string  `json:"venue_house_number,omitempty"`
@@ -93,7 +93,7 @@ type EventDate struct {
 	VenueLogoUrl                 *string  `json:"venue_logo_url,omitempty"`
 	VenueLightThemeLogoUrl       *string  `json:"venue_light_theme_logo_url,omitempty"`
 	VenueDarkThemeLogoUrl        *string  `json:"venue_dark_theme_logo_url,omitempty"`
-	SpaceId                      *int     `json:"space_id,omitempty"`
+	SpaceUuid                    *string  `json:"space_uuid,omitempty"`
 	SpaceName                    *string  `json:"space_name,omitempty"`
 	SpaceWebLink                 *string  `json:"space_web_link,omitempty"`
 	TotalCapacity                *int     `json:"total_capacity,omitempty"`
@@ -105,7 +105,7 @@ type EventDate struct {
 }
 
 type EventDetails struct {
-	Id                int         `json:"id"`
+	Uuid              string      `json:"uuid"`
 	ReleaseStatus     *string     `json:"release_status,omitempty"`
 	Title             string      `json:"title"`
 	Subtitle          *string     `json:"subtitle,omitempty"`
@@ -113,9 +113,9 @@ type EventDetails struct {
 	Summary           *string     `json:"summary,omitempty"`
 	Languages         []string    `json:"languages,omitempty"`
 	Tags              []string    `json:"tags,omitempty"`
-	OrganizationId    int         `json:"organization_id"`
-	OrganizationName  string      `json:"organization_name"`
-	OrganizationUrl   *string     `json:"organization_website,omitempty"`
+	OrgUuid           string      `json:"org_uuid"`
+	OrgName           string      `json:"org_name"`
+	OrgUrl            *string     `json:"org_web_link,omitempty"`
 	Image             *Image      `json:"image,omitempty"`       // nested struct for the JSON image
 	EventTypes        []EventType `json:"event_types,omitempty"` // typed slice
 	EventLinks        []WebLink   `json:"event_links,omitempty"` // typed slice

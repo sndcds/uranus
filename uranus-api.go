@@ -100,9 +100,9 @@ func main() {
 
 	publicRoute.GET("/event/release-status-i18n", apiHandler.GetEventReleaseStatusI18n)
 
-	publicRoute.GET("/events", apiHandler.GetEvents)                          // TODO: check!
+	publicRoute.GET("/events", apiHandler.GetEvents)
+	publicRoute.GET("/events/type-summary", apiHandler.GetEventTypeSummary)
 	publicRoute.GET("/events/ics", apiHandler.GetEventsICS)                   // TODO: check!
-	publicRoute.GET("/events/type-summary", apiHandler.GetEventTypeSummary)   // TODO: check!
 	publicRoute.GET("/events/venue-summary", apiHandler.GetEventVenueSummary) // TODO: check!
 	publicRoute.GET("/events/geojson", apiHandler.GetEventsGeoJSON)           // TODO: Reduce data
 

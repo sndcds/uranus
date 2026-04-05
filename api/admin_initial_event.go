@@ -61,7 +61,7 @@ func (h *ApiHandler) AdminInitialEvent(gc *gin.Context) {
 		return nil
 	})
 	if txErr != nil {
-		debugf("1 ... %s", txErr.Error())
+		debugf(txErr.Error())
 		apiRequest.Error(txErr.Code, txErr.Error())
 		return
 	}

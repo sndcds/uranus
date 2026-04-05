@@ -1,7 +1,7 @@
 WITH target_event AS (
     SELECT *
     FROM {{schema}}.event
-    WHERE uuid = $1
+    WHERE uuid = $1::uuid
 )
 SELECT
     ed.uuid AS event_date_uuid,
@@ -15,7 +15,7 @@ SELECT
     TO_CHAR(ed.entry_time, 'HH24:MI') AS entry_time,
     ed.duration,
 
-    -- Venue logic: prefer event_date.venue_id, fallback to event.venue_id
+    -- Venue logic: prefer event_date.venue_uuid, fallback to event.venue_uuid
     v.uuid AS venue_uuid,
     v.name AS venue_name,
     v.street AS venue_street,
@@ -31,7 +31,7 @@ SELECT
     light_theme_logo.light_theme_logo_uuid AS venue_light_theme_logo_uuid,
     dark_theme_logo.dark_theme_logo_uuid AS venue_dark_theme_logo_uuid,
 
-    -- Space logic: take from event_date only if event_date.venue_id exists, else NULL
+    -- Space logic: take from event_date only if event_date.venue_uuid exists, else NULL
     s.uuid AS space_uuid,
     s.name AS space_name,
     s.total_capacity AS space_total_capacity,

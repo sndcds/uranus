@@ -11,15 +11,15 @@ import (
 )
 
 func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
-	ctx := gc.Request.Context()
 	apiRequest := grains_api.NewRequest(gc, "get-event-by-date-id")
+	ctx := gc.Request.Context()
 
-	eventId, ok := ParamInt(gc, "eventId")
-	if !ok {
-		apiRequest.Error(http.StatusBadRequest, "eventId is required")
+	eventUuid := gc.Param("eventUuid")
+	if eventUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "eventUuid is required")
 		return
 	}
-	apiRequest.SetMeta("event_id", eventId)
+	apiRequest.SetMeta("event_uuid", eventUuid)
 
 	dateUuid := gc.Param("dateUuid")
 	if dateUuid == "" {
@@ -32,7 +32,7 @@ func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 	apiRequest.SetMeta("language", lang)
 
 	// Query event-level data without event dates
-	eventRow, err := h.DbPool.Query(ctx, app.UranusInstance.SqlGetEvent, eventId, lang)
+	eventRow, err := h.DbPool.Query(ctx, app.UranusInstance.SqlGetEvent, eventUuid, lang)
 	if err != nil {
 		debugf("GetEventByDateId err 1: %v", err)
 		apiRequest.DatabaseError()
@@ -51,7 +51,7 @@ func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 	var eventLinksJSON []byte
 
 	err = eventRow.Scan(
-		&event.Id,
+		&event.Uuid,
 		&event.ReleaseStatus,
 		&event.Title,
 		&event.Subtitle,
@@ -69,9 +69,9 @@ func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 		&event.MinPrice,
 		&event.MaxPrice,
 		&event.VisitorInfoFlags,
-		&event.OrganizationId,
-		&event.OrganizationName,
-		&event.OrganizationUrl,
+		&event.OrgUuid,
+		&event.OrgName,
+		&event.OrgUrl,
 		&imageJSON,
 		&eventTypesJSON,
 		&eventLinksJSON,
@@ -112,7 +112,7 @@ func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 	}
 
 	// Query all event dates
-	dateRows, err := h.DbPool.Query(ctx, app.UranusInstance.SqlGetEventDates, eventId)
+	dateRows, err := h.DbPool.Query(ctx, app.UranusInstance.SqlGetEventDates, eventUuid)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -126,7 +126,7 @@ func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 		var edd model.EventDate
 		err := dateRows.Scan(
 			&edd.Uuid,
-			&edd.EventId,
+			&edd.EventUuid,
 			&edd.EventReleaseStatus,
 			&edd.StartDate,
 			&edd.StartTime,
@@ -134,7 +134,7 @@ func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 			&edd.EndTime,
 			&edd.EntryTime,
 			&edd.Duration,
-			&edd.VenueId,
+			&edd.VenueUuid,
 			&edd.VenueName,
 			&edd.VenueStreet,
 			&edd.VenueHouseNumber,
@@ -148,7 +148,7 @@ func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 			&edd.VenueLogoImageUuid,
 			&edd.VenueLightThemeLogoImageUuid,
 			&edd.VenueDarkThemeLogoImageUuid,
-			&edd.SpaceId,
+			&edd.SpaceUuid,
 			&edd.SpaceName,
 			&edd.TotalCapacity,
 			&edd.SeatingCapacity,

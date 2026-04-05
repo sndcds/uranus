@@ -43,11 +43,9 @@ func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
 	}
 	query += " ORDER BY LOWER(name) ASC"
 
-	fmt.Println(query)
-
 	rows, err := h.DbPool.Query(ctx, query, args...)
 	if err != nil {
-		debugf("1")
+		debugf(err.Error())
 		apiRequest.DatabaseError()
 		return
 	}

@@ -41,10 +41,10 @@ SELECT
 FROM {{schema}}.event e
 JOIN {{schema}}.organization o ON o.uuid = e.org_uuid
 
--- Venue (fallback logic if event has venue_id)
+-- Venue (fallback logic if event has venue_uuid)
 LEFT JOIN {{schema}}.venue v ON v.uuid = e.venue_uuid
 
--- Space (fallback logic if event has space_id)
+-- Space (fallback logic if event has space_uuid)
 LEFT JOIN {{schema}}.space s ON s.uuid = e.space_uuid
 
 -- Main image: first pluto_image linked as 'main', include license info
@@ -82,7 +82,7 @@ LEFT JOIN LATERAL (
     LEFT JOIN {{schema}}.genre_type gt
     ON gt.genre_id = etl.genre_id
     AND gt.iso_639_1 = $2
-    WHERE etl.event_id = $1
+    WHERE etl.event_uuid = $1::uuid
 ) et_data ON TRUE
 
 -- Event URLs
@@ -98,4 +98,4 @@ LEFT JOIN LATERAL (
     WHERE eu.event_uuid = e.uuid
 ) link_data ON TRUE
 
-WHERE e.uuid = $1
+WHERE e.uuid = $1::uuid

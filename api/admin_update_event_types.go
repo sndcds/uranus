@@ -40,7 +40,7 @@ func (h *ApiHandler) AdminUpdateEventTypes(gc *gin.Context) {
 		debugf(eventUuid)
 		_, err := tx.Exec(ctx, deleteQuery, eventUuid)
 		if err != nil {
-			debugf("1: %s", err.Error())
+			debugf(err.Error())
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
 				Err:  fmt.Errorf("failed to delete existing type-genre links: %v", err),
@@ -57,7 +57,6 @@ func (h *ApiHandler) AdminUpdateEventTypes(gc *gin.Context) {
 			}
 			_, err = tx.Exec(ctx, insertQuery, eventUuid, pair.TypeId, genreId)
 			if err != nil {
-				debugf("2: %s", err.Error())
 				return &ApiTxError{
 					Code: http.StatusInternalServerError,
 					Err:  fmt.Errorf("failed to insert type_id=%d, genre_id=%d: %v", pair.TypeId, pair.GenreId, err),
@@ -67,7 +66,6 @@ func (h *ApiHandler) AdminUpdateEventTypes(gc *gin.Context) {
 
 		err = RefreshEventProjections(ctx, tx, "event", []string{eventUuid})
 		if err != nil {
-			debugf("3: %s", err.Error())
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
 				Err:  fmt.Errorf("refresh projection tables failed: %v", err),
@@ -77,6 +75,7 @@ func (h *ApiHandler) AdminUpdateEventTypes(gc *gin.Context) {
 		return nil
 	})
 	if txErr != nil {
+		debugf(txErr.Error())
 		apiRequest.DatabaseError()
 		return
 	}

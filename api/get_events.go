@@ -90,7 +90,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 		"title": {}, "city": {}, "event_types": {}, "tags": {},
 		"accessibility": {}, "visitor_infos": {}, "age": {}, "price": {},
 		"lon": {}, "lat": {}, "radius": {}, "offset": {}, "limit": {},
-		"last_event_start_at": {}, "last_event_date_id": {},
+		"last_event_start_at": {}, "last_event_date_uuid": {},
 		"language": {},
 	}
 
@@ -350,8 +350,6 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-events")
 	ctx := gc.Request.Context()
 
-	debugf("1")
-
 	dateConditions, conditionsStr, limitClause, args, _, err := h.buildEventFilters(gc)
 	if err != nil {
 		debugf("buildEventFilters err: %v", err)
@@ -359,27 +357,14 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		return
 	}
 
-	debugf("2")
 	query := app.UranusInstance.SqlGetEventsProjected
-	debugf("2a")
 	query = strings.Replace(query, "{{date_conditions}}", dateConditions, 1)
-	debugf("2b")
 	query = strings.Replace(query, "{{conditions}}", conditionsStr, 1)
-	debugf("2c")
 	query = strings.Replace(query, "{{limit}}", limitClause, 1)
-	debugf("2d")
-
-	debugf("limitClause: %s", limitClause)
-
-	debugf(query)
-	// Print all args
-	for i, arg := range args {
-		debugf("Arg[%d]: %#v", i, arg)
-	}
 
 	rows, err := h.DbPool.Query(ctx, query, args...)
 	if err != nil {
-		debugf("2e: %s", err.Error())
+		debugf(err.Error())
 		apiRequest.InternalServerError()
 		return
 	}
@@ -429,12 +414,11 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			&e.VisitorInfoFlags,
 		)
 		if err != nil {
-			debugf("2: %s", err.Error())
+			debugf(err.Error())
 			apiRequest.InternalServerError()
 			return
 		}
 
-		debugf("3")
 		// Convert types JSON
 		var rawTypes [][]int
 		if len(typesJSON) > 0 {
@@ -454,18 +438,15 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		} else {
 			e.EventTypes = []eventType{}
 		}
-		debugf("4")
 
 		if e.ImageUuid != nil {
 			path := ImageUrl(*e.ImageUuid)
 			e.ImagePath = &path
 		}
 
-		debugf("5")
 		events = append(events, e)
 	}
 
-	debugf("6")
 	if len(events) == 0 {
 		response := eventsResponse{
 			Events:            events,
@@ -476,7 +457,6 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		return
 	}
 
-	debugf("6")
 	lastEvent := events[len(events)-1]
 	lastEventStartAt := lastEvent.StartDate + "T" + lastEvent.StartTime
 	lastEventDateUuid := lastEvent.DateUuid
@@ -490,55 +470,65 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 }
 
 func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "get-events-type-summary")
+
 	// Build filters from query params (same as GetEvents)
 	dateConditions, conditionsStr, _, args, _, err := h.buildEventFilters(gc)
 	if err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		apiRequest.Error(http.StatusBadRequest, "filter error")
 		return
 	}
 
 	// Construct final SQL
 	query := fmt.Sprintf(`
-		SELECT
-			(elem->>0)::int AS type_id,
-			COUNT(edp.event_date_uuid) AS date_count
-		FROM %s.event_date_projection edp
-		JOIN %s.event_projection ep ON ep.event_uuid = edp.event_uuid
-		CROSS JOIN LATERAL jsonb_array_elements(ep.types) AS elem
-		WHERE ep.release_status IN ('released', 'cancelled', 'deferred', 'rescheduled')    
-		AND {{date_conditions}}
-		{{conditions}}
+		SELECT type_id, COUNT(*) AS date_count
+		FROM (
+			SELECT edp.event_date_uuid, (elem->>0)::int AS type_id
+			FROM %s.event_date_projection edp
+			JOIN %s.event_projection ep ON ep.event_uuid = edp.event_uuid
+			CROSS JOIN LATERAL jsonb_array_elements(ep.types) AS elem
+			WHERE ep.release_status IN ('released', 'cancelled', 'deferred', 'rescheduled')
+			AND {{date_conditions}}
+			{{conditions}}
+			GROUP BY edp.event_date_uuid, (elem->>0)::int
+		) AS grouped
 		GROUP BY type_id
 		ORDER BY date_count DESC`,
 		h.DbSchema, h.DbSchema)
 
 	query = strings.Replace(query, "{{date_conditions}}", dateConditions, 1)
 	query = strings.Replace(query, "{{conditions}}", conditionsStr, 1)
-	// query = strings.Replace(query, "{{limit}}", limitClause, 1)
+
+	debugf(query)
 
 	rows, err := h.DbPool.Query(gc.Request.Context(), query, args...)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		debugf(err.Error())
+		apiRequest.InternalServerError()
 		return
 	}
 	defer rows.Close()
 
 	type summaryEntry struct {
 		TypeId    int `json:"type_id"`
-		DateCount int `json:"date_count"`
+		DateCount int `json:"count"`
 	}
 
 	var summary []summaryEntry
 	for rows.Next() {
 		var s summaryEntry
-		if err := rows.Scan(&s.TypeId, &s.DateCount); err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		err := rows.Scan(&s.TypeId, &s.DateCount)
+		if err != nil {
+			debugf(err.Error())
+			apiRequest.InternalServerError()
 			return
 		}
 		summary = append(summary, s)
 	}
 
-	gc.JSON(http.StatusOK, gin.H{"summary": summary})
+	apiRequest.Success(http.StatusOK, gin.H{
+		"summary": summary,
+	}, "")
 }
 
 func (h *ApiHandler) GetEventVenueSummary(gc *gin.Context) {
