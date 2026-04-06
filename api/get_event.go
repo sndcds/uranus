@@ -53,11 +53,13 @@ func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 	err = eventRow.Scan(
 		&event.Uuid,
 		&event.ReleaseStatus,
+		&event.ContentLanguage,
 		&event.Title,
 		&event.Subtitle,
 		&event.Description,
 		&event.Summary,
 		&event.ParticipationInfo,
+		&event.OnlineLink,
 		&event.MeetingPoint,
 		&event.Languages,
 		&event.Tags,
@@ -68,10 +70,11 @@ func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 		&event.PriceType,
 		&event.MinPrice,
 		&event.MaxPrice,
+		&event.TicketFlags,
 		&event.VisitorInfoFlags,
 		&event.OrgUuid,
 		&event.OrgName,
-		&event.OrgUrl,
+		&event.OrgWebLink,
 		&imageJSON,
 		&eventTypesJSON,
 		&eventLinksJSON,
@@ -84,30 +87,30 @@ func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 
 	// Unmarshal image JSON
 	if len(imageJSON) > 0 {
-		var img model.Image
-		err := json.Unmarshal(imageJSON, &img)
+		var image model.Image
+		err := json.Unmarshal(imageJSON, &image)
 		if err != nil {
 			apiRequest.SetMeta("image_error", "invalid JSON")
 		} else {
-			event.Image = &img
+			event.Image = &image
 		}
 	}
 
 	// Unmarshal event types
 	if len(eventTypesJSON) > 0 {
-		var types []model.EventType
-		err = json.Unmarshal(eventTypesJSON, &types)
+		var eventTypes []model.EventType
+		err = json.Unmarshal(eventTypesJSON, &eventTypes)
 		if err == nil {
-			event.EventTypes = types
+			event.EventTypes = eventTypes
 		}
 	}
 
 	// Unmarshal event URLs
 	if len(eventLinksJSON) > 0 {
-		var links []model.WebLink
-		err = json.Unmarshal(eventLinksJSON, &links)
+		var eventLinks []model.WebLink
+		err = json.Unmarshal(eventLinksJSON, &eventLinks)
 		if err == nil {
-			event.EventLinks = links
+			event.EventLinks = eventLinks
 		}
 	}
 
@@ -180,9 +183,9 @@ func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 		if edd.Uuid == dateUuid {
 			tmp := edd
 			selectedDate = &tmp
+		} else {
+			furtherDates = append(furtherDates, edd)
 		}
-
-		furtherDates = append(furtherDates, edd)
 	}
 
 	event.Date = selectedDate

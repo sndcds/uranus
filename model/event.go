@@ -107,6 +107,7 @@ type EventDate struct {
 type EventDetails struct {
 	Uuid              string      `json:"uuid"`
 	ReleaseStatus     *string     `json:"release_status,omitempty"`
+	ContentLanguage   *string     `json:"content_language,omitempty"`
 	Title             string      `json:"title"`
 	Subtitle          *string     `json:"subtitle,omitempty"`
 	Description       *string     `json:"description,omitempty"`
@@ -115,7 +116,7 @@ type EventDetails struct {
 	Tags              []string    `json:"tags,omitempty"`
 	OrgUuid           string      `json:"org_uuid"`
 	OrgName           string      `json:"org_name"`
-	OrgUrl            *string     `json:"org_web_link,omitempty"`
+	OrgWebLink        *string     `json:"org_web_link,omitempty"`
 	Image             *Image      `json:"image,omitempty"`       // nested struct for the JSON image
 	EventTypes        []EventType `json:"event_types,omitempty"` // typed slice
 	EventLinks        []WebLink   `json:"event_links,omitempty"` // typed slice
@@ -128,13 +129,15 @@ type EventDetails struct {
 	PriceType         *string     `json:"price_type,omitempty"`
 	MinPrice          *float64    `json:"min_price,omitempty"`
 	MaxPrice          *float64    `json:"max_price,omitempty"`
+	TicketFlags       []string    `json:"ticket_flags,omitempty"`
 	VisitorInfoFlags  *string     `json:"visitor_info_flags,omitempty"`
 	ParticipationInfo *string     `json:"participation_info,omitempty"`
 	MeetingPoint      *string     `json:"meeting_point,omitempty"`
+	OnlineLink        *string     `json:"online_link,omitempty"`
 }
 
 type AdminEvent struct {
-	Uuid                 string           `json:"id"`
+	Uuid                 string           `json:"uuid"`
 	ExternalId           *string          `json:"external_id,omitempty"`
 	SourceLink           *string          `json:"source_link,omitempty"`
 	ReleaseStatus        string           `json:"release_status"`

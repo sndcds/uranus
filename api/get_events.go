@@ -239,7 +239,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 
 	if orgUuidsStr != "" {
 		argIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
-			orgUuidsStr, "ep.org_id", argIndex, &conditions, &args)
+			orgUuidsStr, "ep.org_uuid", argIndex, &conditions, &args)
 		if errBuild != nil {
 			return "", "", "", nil, 0, errBuild
 		}
@@ -247,7 +247,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 
 	if venueUuidsStr != "" {
 		argIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
-			venueUuidsStr, "COALESCE(edp.venue_id, ep.venue_id)", argIndex, &conditions, &args)
+			venueUuidsStr, "COALESCE(edp.venue_uuid, ep.venue_uuid)", argIndex, &conditions, &args)
 		if errBuild != nil {
 			return "", "", "", nil, 0, errBuild
 		}
@@ -255,7 +255,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 
 	if spaceUuidsStr != "" {
 		argIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
-			spaceUuidsStr, "COALESCE(edp.space_id, ep.space_id)", argIndex, &conditions, &args)
+			spaceUuidsStr, "COALESCE(edp.space_uuid, ep.space_uuid)", argIndex, &conditions, &args)
 		if errBuild != nil {
 			return "", "", "", nil, 0, errBuild
 		}
@@ -361,6 +361,11 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	query = strings.Replace(query, "{{date_conditions}}", dateConditions, 1)
 	query = strings.Replace(query, "{{conditions}}", conditionsStr, 1)
 	query = strings.Replace(query, "{{limit}}", limitClause, 1)
+
+	debugf("query: %s", query)
+	for i, a := range args {
+		fmt.Printf("args[%d] = %#v\n", i, a)
+	}
 
 	rows, err := h.DbPool.Query(ctx, query, args...)
 	if err != nil {

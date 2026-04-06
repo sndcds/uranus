@@ -131,7 +131,7 @@ func main() {
 	publicRoute.GET("/choosable-license-types", apiHandler.GetChoosableLicenseTypes)
 	publicRoute.GET("/choosable-countries", apiHandler.GetChoosableCountries)
 	publicRoute.GET("/choosable-states", apiHandler.GetChoosableStates)
-	publicRoute.GET("/choosable-languages", apiHandler.GetChoosableLanguages)            // TODO: check!
+	publicRoute.GET("/choosable-languages", apiHandler.GetChoosableLanguages)
 	publicRoute.GET("/choosable-price-types", apiHandler.GetChoosablePriceTypes)         // TODO: check!
 	publicRoute.GET("/choosable-currencies", apiHandler.GetChoosableCurrencies)          // TODO: check!
 	publicRoute.GET("/choosable-event-ocassions", apiHandler.GetChoosableEventOccasions) // TODO: check!
