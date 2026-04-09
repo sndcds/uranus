@@ -93,7 +93,7 @@ venue_info AS (
         COALESCE(vp.can_edit_event, false) AS can_edit_event,
         COALESCE(vp.can_delete_event, false) AS can_delete_event,
         COALESCE(vp.can_release_event, false) AS can_release_event,
-        COALESCE(SUM(s.upcoming_event_count), 0) AS upcoming_event_count,
+        COUNT(DISTINCT COALESCE(ed.uuid, e.uuid)) AS upcoming_event_count,
         COALESCE(
             json_agg(
                 json_build_object(
@@ -106,6 +106,8 @@ venue_info AS (
     ) AS spaces
     FROM {{schema}}.venue v
     LEFT JOIN space_info s ON s.venue_uuid = v.uuid
+    LEFT JOIN {{schema}}.event_date ed ON ed.venue_uuid = v.uuid AND ed.start_date > $3
+    LEFT JOIN {{schema}}.event e  ON e.venue_uuid = v.uuid
     LEFT JOIN editable_venues ev ON ev.venue_uuid = v.uuid
     LEFT JOIN venue_permissions vp ON vp.venue_uuid = v.uuid
 

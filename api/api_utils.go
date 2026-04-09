@@ -12,11 +12,9 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-var debug = true
-
 func debugf(format string, args ...any) {
-	if debug {
-		fmt.Printf("[DEBUG] "+format+"\n", args...)
+	if app.UranusInstance.Config.DebugLevel == 1 {
+		fmt.Printf("[Uranus API debug] "+format+"\n", args...)
 	}
 }
 

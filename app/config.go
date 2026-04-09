@@ -10,6 +10,7 @@ import (
 type Config struct {
 	Verbose                 bool     `json:"verbose"`
 	DevMode                 bool     `json:"dev_mode"`
+	DebugLevel              int      `json:"debug_level"`
 	Port                    int      `json:"port"`
 	BaseApiUrl              string   `json:"base_api_url"`
 	ICSDomain               string   `json:"ics_domain"`
@@ -49,6 +50,7 @@ func (config Config) Print() {
 	fmt.Println("app Config")
 	fmt.Printf("  verbose: %t\n", config.Verbose)
 	fmt.Printf("  dev_mode: %t\n", config.DevMode)
+	fmt.Printf("  debug_level: %t\n", config.DevMode)
 	fmt.Printf("  port: %d\n", config.Port)
 	fmt.Printf("  supported_languages: %v\n", config.SupportedLanguages)
 	fmt.Printf("  base_api_url: %s\n", config.BaseApiUrl)
