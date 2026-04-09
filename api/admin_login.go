@@ -21,11 +21,13 @@ func (h *ApiHandler) Login(gc *gin.Context) {
 	// Parse credentials
 	err := gc.BindJSON(&userCredentials)
 	if err != nil {
+		debugf(err.Error())
 		apiRequest.Error(http.StatusUnauthorized, "invalid credentials")
 		return
 	}
 
 	if userCredentials.Email == "" || userCredentials.Password == "" {
+		debugf(err.Error())
 		apiRequest.Error(http.StatusUnauthorized, "invalid email or password")
 		return
 	}
@@ -47,11 +49,13 @@ func (h *ApiHandler) Login(gc *gin.Context) {
 		&user.IsActive,
 	)
 	if err != nil {
+		debugf(err.Error())
 		apiRequest.Error(http.StatusUnauthorized, "login error")
 		return
 	}
 
 	if !user.IsActive || app.ComparePasswords(*user.PasswordHash, userCredentials.Password) != nil {
+		debugf(err.Error())
 		apiRequest.Error(http.StatusUnauthorized, "login failed")
 		return
 	}
@@ -67,7 +71,7 @@ func (h *ApiHandler) Login(gc *gin.Context) {
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
 	accessTokenStr, err := accessToken.SignedString(app.UranusInstance.JwtKey)
 	if err != nil {
-		debugf("Failed to sign access token for user with uuid %s: %v", user.Uuid, err)
+		debugf(err.Error())
 		apiRequest.InternalServerError()
 		return
 	}
@@ -83,7 +87,7 @@ func (h *ApiHandler) Login(gc *gin.Context) {
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
 	refreshTokenStr, err := refreshToken.SignedString(app.UranusInstance.JwtKey)
 	if err != nil {
-		debugf("Failed to sign refresh token for user with uuid %s: %v", user.Uuid, err)
+		debugf(err.Error())
 		apiRequest.InternalServerError()
 		return
 	}
@@ -97,6 +101,7 @@ func (h *ApiHandler) Login(gc *gin.Context) {
 		"theme":         user.Theme,
 		"access_token":  accessTokenStr,
 		"refresh_token": refreshTokenStr,
+		"avatar_url":    app.GetAvatarURL(h.Config.BaseApiUrl, h.Config.ProfileImageDir, user.Uuid, 64),
 	}, "login successful")
 }
 

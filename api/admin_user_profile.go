@@ -3,13 +3,12 @@ package api
 import (
 	"fmt"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/grains/grains_api"
+	"github.com/sndcds/uranus/app"
 	"github.com/sndcds/uranus/model"
 )
 
@@ -24,17 +23,17 @@ func (h *ApiHandler) AdminGetUserProfile(gc *gin.Context) {
         WHERE uuid = $1`,
 		"{{schema}}", h.DbSchema, 1)
 
-	var resp model.UserProfileResponse
-	resp.UserUUID = userUuid
+	var profile model.UserProfileResponse
+	profile.UserUUID = userUuid
 	row := h.DbPool.QueryRow(ctx, query, userUuid)
 	err := row.Scan(
-		&resp.Email,
-		&resp.Username,
-		&resp.DisplayName,
-		&resp.FirstName,
-		&resp.LastName,
-		&resp.Locale,
-		&resp.Theme)
+		&profile.Email,
+		&profile.Username,
+		&profile.DisplayName,
+		&profile.FirstName,
+		&profile.LastName,
+		&profile.Locale,
+		&profile.Theme)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			apiRequest.NotFound("user not found")
@@ -45,14 +44,9 @@ func (h *ApiHandler) AdminGetUserProfile(gc *gin.Context) {
 		return
 	}
 
-	imageDir := h.Config.ProfileImageDir
-	avatarFilePath := filepath.Join(imageDir, fmt.Sprintf("profile_img_%s_%d.webp", userUuid, 64))
-	if _, err := os.Stat(avatarFilePath); err == nil {
-		url := fmt.Sprintf("%s/api/user/%s/avatar/64", h.Config.BaseApiUrl, userUuid)
-		resp.AvatarURL = &url
-	}
+	profile.AvatarUrl = app.GetAvatarURL(h.Config.BaseApiUrl, h.Config.ProfileImageDir, userUuid, 64)
 
-	apiRequest.Success(http.StatusOK, resp, "")
+	apiRequest.Success(http.StatusOK, profile, "")
 }
 
 func (h *ApiHandler) AdminUpdateUserProfile(gc *gin.Context) {

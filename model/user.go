@@ -11,6 +11,7 @@ type User struct {
 	Locale       *string `json:"locale"`
 	Theme        *string `json:"theme"`
 	IsActive     bool    `json:"is_active"`
+	AvatarUrl    *string `json:"avatar_url"`
 }
 
 type UserCredentials struct {
@@ -27,5 +28,5 @@ type UserProfileResponse struct {
 	LastName    *string `json:"last_name"`
 	Locale      *string `json:"locale"`
 	Theme       *string `json:"theme"`
-	AvatarURL   *string `json:"avatar_url"`
+	AvatarUrl   *string `json:"avatar_url"`
 }
