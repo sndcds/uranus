@@ -199,7 +199,7 @@ INSERT INTO %[1]s.event_projection (
     event_uuid, org_uuid, venue_uuid, space_uuid, release_status,
     title, subtitle, description, summary, image_uuid, languages, tags, categories, types,
     source_link, online_link, occasion_type_id, max_attendees, min_age, max_age,
-    participation_info, meeting_point, ticket_flags,
+    participation_info, meeting_point, ticket_flags, ticket_link,
 	price_type, currency, min_price, max_price, visitor_info_flags,
     external_id, custom, style, search_text,
     org_name, org_contact_email, org_contact_phone, org_link,
@@ -238,6 +238,7 @@ SELECT DISTINCT ON (e.uuid)
     e.participation_info,
     e.meeting_point,
     e.ticket_flags,
+    e.ticket_link,
     e.price_type,
     e.currency,
     e.min_price,
@@ -312,6 +313,7 @@ ON CONFLICT (event_uuid) DO UPDATE SET
     participation_info = EXCLUDED.participation_info,
     meeting_point = EXCLUDED.meeting_point,
     ticket_flags = EXCLUDED.ticket_flags,
+    ticket_link = EXCLUDED.ticket_link,
     price_type = EXCLUDED.price_type,
     currency = EXCLUDED.currency,
     min_price = EXCLUDED.min_price,
@@ -343,7 +345,7 @@ ON CONFLICT (event_uuid) DO UPDATE SET
     space_accessibility_summary = EXCLUDED.space_accessibility_summary,
     space_accessibility_flags = EXCLUDED.space_accessibility_flags,
     space_description = EXCLUDED.space_description,
-    modified_at = NOW();
+    modified_at = NOW()
 `, app.UranusInstance.Config.DbSchema)
 
 		eventDateProjectionUpsertSql = fmt.Sprintf(`
@@ -434,7 +436,7 @@ ON CONFLICT (event_date_uuid) DO UPDATE SET
     availability_status_id = EXCLUDED.availability_status_id,
     accessibility_info = EXCLUDED.accessibility_info,
     custom = EXCLUDED.custom,
-    modified_at = NOW();
+    modified_at = NOW()
 `, app.UranusInstance.Config.DbSchema)
 	})
 }

@@ -13,8 +13,8 @@ import (
 )
 
 func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
-	ctx := gc.Request.Context()
 	apiRequest := grains_api.NewRequest(gc, "admin-update-event-fields")
+	ctx := gc.Request.Context()
 
 	eventUuid := gc.Param("eventUuid")
 	if eventUuid == "" {
@@ -42,22 +42,17 @@ func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 		MaxPrice          NullableField[float64]  `json:"max_price"`
 		Currency          NullableField[string]   `json:"currency"`
 		TicketFlags       *[]string               `json:"ticket_flags"`
+		TicketLink        NullableField[string]   `json:"ticket_link"`
 		VisitorInfoFlags  NullableField[string]   `json:"visitor_info_flags"`
 	}
 
 	decoder := json.NewDecoder(gc.Request.Body)
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&payload); err != nil {
+		debugf(err.Error())
 		apiRequest.PayloadError()
 		return
 	}
-
-	/* Former version
-	if err := gc.ShouldBindJSON(&payload); err != nil {
-		apiRequest.PayloadError()
-		return
-	}
-	*/
 
 	setClauses := []string{}
 	args := []interface{}{}
@@ -81,6 +76,7 @@ func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 	argPos = addUpdateClauseNullable("max_price", payload.MaxPrice, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("currency", payload.Currency, &setClauses, &args, argPos)
 	argPos = addUpdateClauseStringSliceField("ticket_flags", payload.TicketFlags, &setClauses, &args, argPos)
+	argPos = addUpdateClauseNullable("ticket_link", payload.TicketLink, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("visitor_info_flags", payload.VisitorInfoFlags, &setClauses, &args, argPos)
 
 	if len(setClauses) == 0 {
@@ -100,7 +96,6 @@ func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		res, err := tx.Exec(ctx, query, args...)
 		if err != nil {
-			debugf(err.Error())
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
 				Err:  fmt.Errorf("failed to update event: %v", err),

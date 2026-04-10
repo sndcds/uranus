@@ -40,6 +40,7 @@ SELECT
     e.min_price,
     e.max_price,
     e.ticket_flags,
+    e.ticket_link,
     e.currency,
     cu.name AS currency_name,
     e.visitor_info_flags,

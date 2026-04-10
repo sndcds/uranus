@@ -23,6 +23,7 @@ SELECT
     o.uuid AS org_uuid,
     o.name AS org_name,
     o.web_link AS org_link,
+    org_logos,
 
     CASE
         WHEN main_image.uuid IS NULL THEN NULL
@@ -67,6 +68,22 @@ LEFT JOIN LATERAL (
     WHERE pil.context = 'event' AND pil.context_uuid = e.uuid AND pil.identifier = 'main'
     LIMIT 1
 ) main_image ON TRUE
+
+LEFT JOIN LATERAL (
+    SELECT
+        COALESCE(
+            jsonb_object_agg(
+            pil.identifier,
+            pi.uuid::text
+        ),
+        '{}'::jsonb
+        ) AS org_logos
+    FROM {{schema}}.pluto_image_link pil
+    JOIN {{schema}}.pluto_image pi ON pi.uuid = pil.pluto_image_uuid
+    WHERE pil.context = 'organization'
+    AND pil.context_uuid = o.uuid
+    AND pil.identifier = ANY(ARRAY['main_logo', 'dark_theme_logo', 'light_theme_logo' ])
+) org_logos ON TRUE
 
 -- Event types
 LEFT JOIN LATERAL (

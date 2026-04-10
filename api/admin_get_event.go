@@ -71,6 +71,7 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 		&event.MinPrice,
 		&event.MaxPrice,
 		&event.TicketFlags,
+		&event.TicketLink,
 		&event.Currency,
 		&event.CurrencyName,
 		&event.VisitorInfoFlags,
