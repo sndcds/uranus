@@ -58,7 +58,7 @@ func (h *ApiHandler) CheckOrganizationPermission(
 	orgUuid string,
 	perm app.Permission,
 ) *ApiTxError {
-	organizationPermissions, err := h.GetUserOrganizationPermissions(gc, tx, userUuid, orgUuid)
+	organizationPermissions, err := h.GetUserOrganizationPermissionsTx(gc, tx, userUuid, orgUuid)
 	if err != nil {
 		return &ApiTxError{
 			Code: http.StatusInternalServerError,
@@ -85,7 +85,7 @@ func (h *ApiHandler) CheckOrganizationAllPermissions(
 	orgUuid string,
 	permMask app.Permission,
 ) *ApiTxError {
-	orgPermissions, err := h.GetUserOrganizationPermissions(gc, tx, userUuid, orgUuid)
+	orgPermissions, err := h.GetUserOrganizationPermissionsTx(gc, tx, userUuid, orgUuid)
 	if err != nil {
 		return &ApiTxError{
 			Code: http.StatusInternalServerError,
@@ -103,8 +103,8 @@ func (h *ApiHandler) CheckOrganizationAllPermissions(
 	return nil
 }
 
-// GetUserOrganizationPermissions returns the permissions a user has for an organization.
-func (h *ApiHandler) GetUserOrganizationPermissions(
+// GetUserOrganizationPermissionsTx returns the permissions a user has for an organization.
+func (h *ApiHandler) GetUserOrganizationPermissionsTx(
 	gc *gin.Context,
 	tx pgx.Tx,
 	userUuid string,

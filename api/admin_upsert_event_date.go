@@ -56,7 +56,7 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 				return ApiErrInternal("internal organizationId failed")
 			}
 
-			permissions, err := h.GetUserOrganizationPermissions(gc, tx, userUuid, orgUuid)
+			permissions, err := h.GetUserOrganizationPermissionsTx(gc, tx, userUuid, orgUuid)
 			if err != nil {
 				return ApiErrInternal("%v", err)
 			}

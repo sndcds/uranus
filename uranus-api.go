@@ -93,7 +93,10 @@ func main() {
 	// Serve all files in ./static under /static
 	router.Static("/api/info", "./static")
 
+	//
 	// Public endpoints
+	//
+
 	publicRoute := router.Group("/api")
 
 	publicRoute.GET("/health", apiHandler.GetHealth)
@@ -153,8 +156,13 @@ func main() {
 	publicRoute.POST("/forgot-password", apiHandler.ForgotPassword) // TODO: check!
 	publicRoute.POST("/reset-password", apiHandler.ResetPassword)   // TODO: check!
 
+	//
 	// Authorized endpoints, user must be logged in
+	//
+
 	adminRoute := router.Group("/api/admin", app.JWTMiddleware) // TODO: check!
+
+	adminRoute.GET("/event/:eventUuid/date/:dateUuid", apiHandler.GetEventByDateUuid)
 
 	adminRoute.GET("/permissions/list", apiHandler.AdminGetPermissionsList) // TODO: check!
 

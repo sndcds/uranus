@@ -102,4 +102,4 @@ LEFT JOIN LATERAL (
 ) link_data ON TRUE
 
 WHERE e.uuid = $1::uuid
-AND e.release_status IN ('released', 'cancelled', 'deferred', 'rescheduled')
+AND e.release_status = ANY($3)

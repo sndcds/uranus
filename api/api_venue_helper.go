@@ -11,7 +11,7 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-func (h *ApiHandler) GetUserEffectiveVenuePermissions(
+func (h *ApiHandler) GetUserEffectiveVenuePermissionsTx(
 	gc *gin.Context,
 	tx pgx.Tx,
 	userUuid string,
@@ -41,7 +41,7 @@ func (h *ApiHandler) GetUserEffectiveVenuePermissions(
 	return app.Permission(result.Int64), nil
 }
 
-func (h *ApiHandler) IsSpaceInVenue(
+func (h *ApiHandler) IsSpaceInVenueTx(
 	gc *gin.Context,
 	tx pgx.Tx,
 	spaceUuid string,

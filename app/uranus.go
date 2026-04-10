@@ -36,6 +36,7 @@ type Uranus struct {
 	SqlGetEventsGeoJSON                 string
 	SqlGetUserOrganizationPermissions   string
 	SqlGetUserEffectiveVenuePermissions string
+	SqlGetUserEventPermissions          string
 	SqlGetAdminOrganization             string
 	SqlInsertOrganization               string
 	SqlUpdateOrganization               string
@@ -271,6 +272,7 @@ func (app *Uranus) PrepareSql() error {
 
 		{"sql/admin-get-user-organization-permissions.sql", &app.SqlGetUserOrganizationPermissions, nil},
 		{"sql/admin-get-user-effective-venue-permissions.sql", &app.SqlGetUserEffectiveVenuePermissions, nil},
+		{"sql/admin-get-user-event-permissions.sql", &app.SqlGetUserEventPermissions, nil},
 
 		{"sql/admin-get-organization.sql", &app.SqlGetAdminOrganization, nil},
 		{"sql/admin-insert-organization.sql", &app.SqlInsertOrganization, nil},

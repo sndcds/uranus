@@ -175,7 +175,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 
 		// Check if user can create an event in 'eventPayload.VenueId'
 		if payload.VenueUuid != nil {
-			venuePermissions, err := h.GetUserEffectiveVenuePermissions(gc, tx, userUuid, *payload.VenueUuid)
+			venuePermissions, err := h.GetUserEffectiveVenuePermissionsTx(gc, tx, userUuid, *payload.VenueUuid)
 			if err != nil {
 				debugf("Error: %v", err)
 				return &ApiTxError{Code: http.StatusForbidden, Err: err}
@@ -245,7 +245,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		for _, d := range payload.Dates {
 			if d.VenueUuid != nil {
 				// Check if user can create an event in 'd.VenueId'
-				venuePermissions, err := h.GetUserEffectiveVenuePermissions(gc, tx, userUuid, *d.VenueUuid)
+				venuePermissions, err := h.GetUserEffectiveVenuePermissionsTx(gc, tx, userUuid, *d.VenueUuid)
 				if err != nil {
 					return &ApiTxError{Code: http.StatusInternalServerError, Err: err}
 				}
@@ -255,7 +255,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 				}
 
 				if d.SpaceUuid != nil {
-					spaceOK, err := h.IsSpaceInVenue(gc, tx, *d.SpaceUuid, *d.VenueUuid)
+					spaceOK, err := h.IsSpaceInVenueTx(gc, tx, *d.SpaceUuid, *d.VenueUuid)
 					if err != nil {
 						return &ApiTxError{Code: http.StatusInternalServerError, Err: err}
 					}

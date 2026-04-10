@@ -32,7 +32,7 @@ func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 	lang := gc.DefaultQuery("lang", "en")
 
 	// Fetch event + date info from DB
-	eventRow, err := h.DbPool.Query(ctx, app.UranusInstance.SqlGetEvent, eventId, gc.DefaultQuery("lang", "en"))
+	eventRow, err := h.DbPool.Query(ctx, app.UranusInstance.SqlGetEvent, eventId, lang, publicStatuses)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

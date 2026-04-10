@@ -10,11 +10,21 @@ import (
 	"github.com/sndcds/uranus/model"
 )
 
+var publicStatuses = []string{
+	"released",
+	"cancelled",
+	"deferred",
+	"rescheduled",
+}
+
 func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-event-by-date-id")
 	ctx := gc.Request.Context()
+	userUuid := h.userUuid(gc)
+	debugf("GetEventByDateUuid")
 
 	eventUuid := gc.Param("eventUuid")
+	debugf("eventUuid: %s", eventUuid)
 	if eventUuid == "" {
 		apiRequest.Error(http.StatusBadRequest, "eventUuid is required")
 		return
@@ -22,17 +32,43 @@ func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 	apiRequest.SetMeta("event_uuid", eventUuid)
 
 	dateUuid := gc.Param("dateUuid")
+	debugf("dateUuid: %s", dateUuid)
 	if dateUuid == "" {
 		apiRequest.Error(http.StatusBadRequest, "dateUuid is required")
 		return
 	}
 	apiRequest.SetMeta("date_uuid", dateUuid)
 
+	debugf("1")
+	usedStatuses := publicStatuses
+	hasUserUuid := len(userUuid) > 0
+	if hasUserUuid {
+		debugf("2")
+		permissions, err := h.GetUserEventPermissions(gc, userUuid, dateUuid)
+		if err != nil {
+			debugf(err.Error())
+			apiRequest.InternalServerError()
+			return
+		}
+		if permissions.HasAny(app.PermEditEvent | app.PermDeleteEvent | app.PermReleaseEvent | app.PermViewEventInsights) {
+			usedStatuses = []string{
+				"draft",
+				"review",
+				"released",
+				"cancelled",
+				"deferred",
+				"rescheduled",
+			}
+		}
+	}
+	debugf("userUuid: %s, len: %d\n", userUuid, len(userUuid))
+	debugf("usedStatuses: %v\n", usedStatuses)
+
 	lang := gc.DefaultQuery("lang", "en")
 	apiRequest.SetMeta("language", lang)
 
 	// Query event-level data without event dates
-	eventRow, err := h.DbPool.Query(ctx, app.UranusInstance.SqlGetEvent, eventUuid, lang)
+	eventRow, err := h.DbPool.Query(ctx, app.UranusInstance.SqlGetEvent, eventUuid, lang, usedStatuses)
 	if err != nil {
 		debugf("GetEventByDateId err 1: %v", err)
 		apiRequest.DatabaseError()
