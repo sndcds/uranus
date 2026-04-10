@@ -19,6 +19,7 @@ SELECT
     e.min_price,
     e.max_price,
     e.ticket_flags,
+    e.ticket_link,
     e.visitor_info_flags,
     o.uuid AS org_uuid,
     o.name AS org_name,

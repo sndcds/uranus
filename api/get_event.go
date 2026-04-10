@@ -101,6 +101,7 @@ func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 		&event.MinPrice,
 		&event.MaxPrice,
 		&event.TicketFlags,
+		&event.TicketLink,
 		&event.VisitorInfoFlags,
 		&event.OrgUuid,
 		&event.OrgName,

@@ -131,6 +131,7 @@ type EventDetails struct {
 	MinPrice          *float64          `json:"min_price,omitempty"`
 	MaxPrice          *float64          `json:"max_price,omitempty"`
 	TicketFlags       []string          `json:"ticket_flags,omitempty"`
+	TicketLink        *string           `json:"ticket_link,omitempty"`
 	VisitorInfoFlags  *string           `json:"visitor_info_flags,omitempty"`
 	ParticipationInfo *string           `json:"participation_info,omitempty"`
 	MeetingPoint      *string           `json:"meeting_point,omitempty"`
