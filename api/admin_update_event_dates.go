@@ -68,29 +68,9 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 			}
 		}
 
-		/*
-			    TODO: Check!
-				if len(idsInPayload) == 0 {
-					// No Id´s, delete all dates for this event
-					query := fmt.Sprintf(`DELETE FROM %s.event_date WHERE event_id = $1`, h.DbSchema)
-					debugf("query: %s", query)
-					_, err := tx.Exec(ctx, query, eventId)
-					if err != nil {
-						debugf(err.Error())
-						return &ApiTxError{
-							Code: http.StatusInternalServerError,
-							Err:  errors.New("delete all event dates failed"),
-						}
-					}
-					return nil
-				}
-		*/
-
 		query := fmt.Sprintf(
 			`DELETE FROM %s.event_date WHERE event_uuid = $1::uuid AND NOT (uuid = ANY($2::uuid[]))`,
 			h.DbSchema)
-		debugf("query: %s", query)
-		debugf("uuidsInPayload: %s", uuidsInPayload)
 		_, err := tx.Exec(ctx, query, eventUuid, uuidsInPayload)
 		if err != nil {
 			return &ApiTxError{
@@ -117,7 +97,6 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 					userUuid,
 				)
 				if err != nil {
-					debugf("err: %v", err)
 					return &ApiTxError{
 						Code: http.StatusInternalServerError,
 						Err:  fmt.Errorf("update date failed: %w", err),
@@ -147,7 +126,6 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 					userUuid,
 				)
 				if err != nil {
-					debugf("err: %v", err)
 					return &ApiTxError{
 						Code: http.StatusInternalServerError,
 						Err:  fmt.Errorf("insert date failed: %w", err),
@@ -157,10 +135,8 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 		}
 
 		// Refresh projections
-		debugf("eventUuid: %s", eventUuid)
 		err = RefreshEventProjections(ctx, tx, "event", []string{eventUuid})
 		if err != nil {
-			debugf("err x: %v", err)
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
 				Err:  fmt.Errorf("refresh projections failed: %w", err),
@@ -170,6 +146,7 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 		return nil
 	})
 	if txErr != nil {
+		debugf(txErr.Error())
 		apiRequest.Error(txErr.Code, txErr.Error())
 		return
 	}

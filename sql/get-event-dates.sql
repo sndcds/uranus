@@ -61,10 +61,10 @@ LEFT JOIN LATERAL (
     SELECT pi.uuid AS main_logo_uuid
     FROM {{schema}}.pluto_image_link pil
     JOIN {{schema}}.pluto_image pi
-      ON pi.uuid = pil.pluto_image_uuid
+    ON pi.uuid = pil.pluto_image_uuid
     WHERE pil.context = 'venue'
-      AND pil.context_uuid = v.uuid
-      AND pil.identifier = 'main_logo'
+    AND pil.context_uuid = v.uuid
+    AND pil.identifier = 'main_logo'
     LIMIT 1
 ) venue_logo ON true
 
@@ -73,10 +73,10 @@ LEFT JOIN LATERAL (
     SELECT pi.uuid AS light_theme_logo_uuid
     FROM {{schema}}.pluto_image_link pil
     JOIN {{schema}}.pluto_image pi
-      ON pi.uuid = pil.pluto_image_uuid
+    ON pi.uuid = pil.pluto_image_uuid
     WHERE pil.context = 'venue'
-      AND pil.context_uuid = v.uuid
-      AND pil.identifier = 'light_theme_logo'
+    AND pil.context_uuid = v.uuid
+    AND pil.identifier = 'light_theme_logo'
     LIMIT 1
 ) light_theme_logo ON true
 
@@ -85,11 +85,12 @@ LEFT JOIN LATERAL (
     SELECT pi.uuid AS dark_theme_logo_uuid
     FROM {{schema}}.pluto_image_link pil
     JOIN {{schema}}.pluto_image pi
-      ON pi.uuid = pil.pluto_image_uuid
+    ON pi.uuid = pil.pluto_image_uuid
     WHERE pil.context = 'venue'
-      AND pil.context_uuid = v.uuid
-      AND pil.identifier = 'dark_theme_logo'
+    AND pil.context_uuid = v.uuid
+    AND pil.identifier = 'dark_theme_logo'
     LIMIT 1
 ) dark_theme_logo ON true
 
+WHERE ed.start_date >= CURRENT_DATE
 ORDER BY ed.start_date, ed.start_time

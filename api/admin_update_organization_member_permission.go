@@ -117,7 +117,7 @@ func (h *ApiHandler) AdminUpdateOrganizationMemberPermissions(gc *gin.Context) {
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusUnauthorized,
-				Err:  fmt.Errorf("Failed to get organization member link, %v", err),
+				Err:  fmt.Errorf("failed to get organization member link, %v", err),
 			}
 		}
 
@@ -125,12 +125,12 @@ func (h *ApiHandler) AdminUpdateOrganizationMemberPermissions(gc *gin.Context) {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return &ApiTxError{
 					Code: http.StatusNoContent,
-					Err:  fmt.Errorf("Failed to check membership, %s", err.Error()),
+					Err:  fmt.Errorf("failed to check membership, %s", err.Error()),
 				}
 			} else {
 				return &ApiTxError{
 					Code: http.StatusInternalServerError,
-					Err:  fmt.Errorf("Failed to check membership, %s", err.Error()),
+					Err:  fmt.Errorf("failed to check membership, %s", err.Error()),
 				}
 			}
 		}

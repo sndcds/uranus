@@ -144,7 +144,7 @@ func (h *ApiHandler) Refresh(gc *gin.Context) {
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, newClaims)
 	accessTokenStr, err := accessToken.SignedString(app.UranusInstance.JwtKey)
 	if err != nil {
-		debugf("Failed to sign new access token for user_uuid=%s: %v", claims.UserUuid, err)
+		debugf("failed to sign new access token for user_uuid=%s: %v", claims.UserUuid, err)
 		apiRequest.InternalServerError()
 		return
 	}

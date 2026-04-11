@@ -87,7 +87,7 @@ func (h *ApiHandler) AdminGetOrganizationTeam(gc *gin.Context) {
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
-				Err:  fmt.Errorf("Failed to fetch invited members: %s", err.Error()),
+				Err:  fmt.Errorf("failed to fetch invited members: %s", err.Error()),
 			}
 		}
 		defer rows.Close()
@@ -98,7 +98,7 @@ func (h *ApiHandler) AdminGetOrganizationTeam(gc *gin.Context) {
 			if err != nil {
 				return &ApiTxError{
 					Code: http.StatusInternalServerError,
-					Err:  fmt.Errorf("Failed to scan invited members: %s", err.Error()),
+					Err:  fmt.Errorf("failed to scan invited members: %s", err.Error()),
 				}
 			}
 			invitedMembers = append(invitedMembers, m)

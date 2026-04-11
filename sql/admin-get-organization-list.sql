@@ -45,9 +45,9 @@ final_data AS (
         COALESCE(vc.venue_count, 0) AS venue_count,
         COALESCE(sc.space_count, 0) AS space_count,
         COALESCE(uol.permissions, 0) AS uer_permissions,
-        main_logo_link.pluto_image_uuid AS main_logo_uuid,
-        dark_theme_logo_link.pluto_image_uuid AS dark_theme_logo_uuid,
-        light_theme_logo_link.pluto_image_uuid AS light_theme_logo_uuid
+        main_logo_link.pluto_image_uuid AS logo_uuid,
+        light_theme_logo_link.pluto_image_uuid AS light_theme_logo_uuid,
+        dark_theme_logo_link.pluto_image_uuid AS dark_theme_logo_uuid
     FROM organization_access oa
     JOIN {{schema}}.organization o ON o.uuid = oa.org_uuid
     LEFT JOIN upcoming_events ae ON ae.org_uuid = o.uuid
@@ -76,8 +76,8 @@ SELECT
     venue_count,
     space_count,
     uer_permissions,
-    main_logo_uuid,
-    dark_theme_logo_uuid,
-    light_theme_logo_uuid
+    logo_uuid,
+    light_theme_logo_uuid,
+    dark_theme_logo_uuid
 FROM final_data
 ORDER BY LOWER(name)

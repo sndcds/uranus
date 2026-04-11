@@ -33,6 +33,10 @@ func (h *ApiHandler) AdminGetOrganizationList(gc *gin.Context) {
 	}
 	defer rows.Close()
 
+	var logUuid *string
+	var lightThemeLogoUuid *string
+	var darkThemeLogoUuid *string
+
 	var result organizationListResponse
 	var userPermissions app.Permission
 	for rows.Next() {
@@ -46,16 +50,31 @@ func (h *ApiHandler) AdminGetOrganizationList(gc *gin.Context) {
 			&e.VenueCount,
 			&e.SpaceCount,
 			&userPermissions,
-			&e.MainLogoUuid,
-			&e.DarkThemeLogoUuid,
-			&e.LightThemeLogoUuid,
+			&logUuid,
+			&lightThemeLogoUuid,
+			&darkThemeLogoUuid,
 		); err != nil {
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
+
+		if logUuid != nil {
+			url := ImageUrl(*logUuid)
+			e.LogoUrl = &url
+		}
+		if lightThemeLogoUuid != nil {
+			url := ImageUrl(*lightThemeLogoUuid)
+			e.LightThemeLogoUrl = &url
+		}
+		if darkThemeLogoUuid != nil {
+			url := ImageUrl(*darkThemeLogoUuid)
+			e.DarkThemeLogoUrl = &url
+		}
+
 		e.CanEditOrg = userPermissions.Has(app.PermEditOrganization)
 		e.CanDeleteOrg = userPermissions.Has(app.PermDeleteOrganization)
 		e.CanManageTeam = userPermissions.Has(app.PermManageTeam)
+
 		result.Organizations = append(result.Organizations, e)
 	}
 

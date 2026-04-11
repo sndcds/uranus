@@ -33,7 +33,7 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 	// Convert the struct to JSON for debugging/logging
 	reqJSON, err := json.MarshalIndent(req, "", "  ")
 	if err != nil {
-		fmt.Println("Failed to marshal req:", err)
+		fmt.Println("failed to marshal req:", err)
 	} else {
 		fmt.Println(string(reqJSON))
 	}

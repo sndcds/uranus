@@ -48,7 +48,7 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 	// Generate a token
 	token, err := generateResetToken()
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate token"})
 		return
 	}
 
@@ -61,7 +61,7 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 	expiryHour := 1
 	_, err = h.DbPool.Exec(ctx, query, userID, token, time.Now().Add(time.Duration(expiryHour)*time.Hour))
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save token"})
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save token"})
 		return
 	}
 
@@ -70,7 +70,7 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 	messageQuery := fmt.Sprintf(`SELECT subject, template FROM %s.system_email_template WHERE context = 'reset-email' AND iso_639_1 = $1`, h.DbSchema)
 	_, err = h.DbPool.Exec(gc, messageQuery, lang)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate email"})
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate email"})
 		return
 	}
 	var subject string
@@ -131,7 +131,7 @@ func (h *ApiHandler) ResetPassword(gc *gin.Context) {
 	// Hash the password
 	hashed, err := app.EncryptPassword(req.NewPassword)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
 		return
 	}
 
@@ -144,7 +144,7 @@ func (h *ApiHandler) ResetPassword(gc *gin.Context) {
 
 	_, err = tx.Exec(ctx, updateUserQuery, hashed, userId)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password"})
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update password"})
 		return
 	}
 
@@ -152,7 +152,7 @@ func (h *ApiHandler) ResetPassword(gc *gin.Context) {
 	updateTokenQuery := fmt.Sprintf(`UPDATE %s.password_reset SET used = TRUE WHERE token = $1`, h.DbSchema)
 	_, err = tx.Exec(ctx, updateTokenQuery, req.Token)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to mark token used"})
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to mark token used"})
 		return
 	}
 

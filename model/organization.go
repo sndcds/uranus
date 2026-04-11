@@ -47,7 +47,7 @@ type OrganizationListItem struct {
 	CanEditOrg          bool    `json:"can_edit_org"`
 	CanDeleteOrg        bool    `json:"can_delete_org"`
 	CanManageTeam       bool    `json:"can_manage_team"`
-	MainLogoUuid        *string `json:"main_logo_uuid"`
-	DarkThemeLogoUuid   *string `json:"dark_theme_logo_uuid"`
-	LightThemeLogoUuid  *string `json:"light_theme_logo_uuid"`
+	LogoUrl             *string `json:"logo_url,omitempty"`
+	LightThemeLogoUrl   *string `json:"light_theme_logo_url,omitempty"`
+	DarkThemeLogoUrl    *string `json:"dark_theme_logo_url,omitempty"`
 }

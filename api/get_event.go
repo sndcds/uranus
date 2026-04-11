@@ -118,10 +118,10 @@ func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 	}
 
 	// Unmarshal organization logos
-	if len(orgLogosJSON) > 0 {
+	if len(orgLogosJSON) > 0 && string(orgLogosJSON) != "null" {
 		err = json.Unmarshal(orgLogosJSON, &event.OrgLogos)
 		if err != nil {
-			apiRequest.SetMeta("logo_error", "invalid JSON")
+			apiRequest.SetMeta("logo_error", err.Error())
 		}
 	}
 
