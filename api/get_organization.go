@@ -22,6 +22,7 @@ func (h *ApiHandler) GetOrganization(gc *gin.Context) {
 	query := app.UranusInstance.SqlGetOrganization
 	rows, err := h.DbPool.Query(ctx, query, orgUuid)
 	if err != nil {
+		debugf(err.Error())
 		apiRequest.InternalServerError()
 		return
 	}
@@ -35,6 +36,7 @@ func (h *ApiHandler) GetOrganization(gc *gin.Context) {
 	fieldDescriptions := rows.FieldDescriptions()
 	values, err := rows.Values()
 	if err != nil {
+		debugf(err.Error())
 		apiRequest.InternalServerError()
 		return
 	}

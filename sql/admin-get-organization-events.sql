@@ -60,6 +60,12 @@ SELECT
             OR COALESCE((uvl.permissions & (1<<27)) <> 0, FALSE)
     ) AS can_release_event,
 
+    (
+        COALESCE((uel.permissions & (1<<28)) <> 0, FALSE)
+            OR COALESCE((uol.permissions & (1<<28)) <> 0, FALSE)
+            OR COALESCE((uvl.permissions & (1<<28)) <> 0, FALSE)
+    ) AS can_view_event_insights,
+
     -- Time series
     ROW_NUMBER() OVER (
         PARTITION BY e.uuid

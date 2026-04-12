@@ -7,4 +7,4 @@ SELECT
     oml.created_at,
     oml.modified_at
 FROM {{schema}}.organization_member_link oml
-WHERE oml.uuid = $1
+WHERE oml.user_uuid = $1::uuid

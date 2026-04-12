@@ -14,12 +14,15 @@ import (
 // Verified: 2026-01-12, Roald
 
 func (h *ApiHandler) AdminGetUserEventNotifications(gc *gin.Context) {
-	ctx := gc.Request.Context()
 	apiRequest := grains_api.NewRequest(gc, "admin-get-user-event-notifications")
+	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 
 	releaseDateDaysLeft := 14
 	firstEventDateDaysLeft := 30
+
+	flagMode := "any"
+	permissionsMask := app.PermEditEvent
 
 	// For a given user, this query returns all unreleased or draft/review events from organizations
 	// they belong to, along with the event’s earliest and latest dates, the number of days until release,
@@ -27,7 +30,14 @@ func (h *ApiHandler) AdminGetUserEventNotifications(gc *gin.Context) {
 	// and applies optional look-ahead windows for release dates or event dates.
 	query := app.UranusInstance.SqlAdminGetUserEventNotifications
 
-	rows, err := h.DbPool.Query(ctx, query, userUuid, releaseDateDaysLeft, firstEventDateDaysLeft)
+	rows, err := h.DbPool.Query(
+		ctx,
+		query,
+		userUuid,
+		releaseDateDaysLeft,
+		firstEventDateDaysLeft,
+		flagMode,
+		permissionsMask)
 	if err != nil {
 		debugf(err.Error())
 		apiRequest.InternalServerError()
@@ -50,8 +60,7 @@ func (h *ApiHandler) AdminGetUserEventNotifications(gc *gin.Context) {
 			&notification.EarliestEventDate,
 			&notification.LatestEventDate,
 			&notification.DaysUntilRelease,
-			&notification.DaysUntilEvent,
-		)
+			&notification.DaysUntilEvent)
 		if err != nil {
 			debugf(err.Error())
 			apiRequest.InternalServerError()

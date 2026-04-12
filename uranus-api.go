@@ -188,8 +188,8 @@ func main() {
 	adminRoute.GET("/user/choosable-event-venues", apiHandler.AdminGetChoosableUserEventVenues)
 
 	// Organisation
-	adminRoute.GET("/organization/:orgUuid/member/:memberId/permissions", apiHandler.AdminGetOrganizationMemberPermissions)    // TODO: check!
-	adminRoute.PUT("/organization/:orgUuid/member/:memberId/permissions", apiHandler.AdminUpdateOrganizationMemberPermissions) // TODO: check!
+	adminRoute.GET("/organization/:orgUuid/member/:memberUuid/permissions", apiHandler.AdminGetOrganizationMemberPermissions)
+	adminRoute.PUT("/organization/:orgUuid/member/:memberUuid/permissions", apiHandler.AdminUpdateOrganizationMemberPermissions) // TODO: check!
 
 	adminRoute.POST("/organization/create", apiHandler.AdminCreateOrganization)
 	adminRoute.GET("/organization/:orgUuid", apiHandler.AdminGetOrganization)

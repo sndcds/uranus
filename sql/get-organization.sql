@@ -11,15 +11,12 @@ SELECT
     postal_code,
     city,
     country,
-    holding_organization_id,
+    holding_org_uuid,
     legal_form,
     nonprofit,
     address_addition,
     state,
     ST_X(point) AS lon,
-    ST_Y(point) AS lat,
-    image_main_logo_uuid::text,
-    image_light_mode_logo_uuid::text,
-    image_dark_mode_logo_uuid::text
+    ST_Y(point) AS lat
 FROM {{schema}}.organization
 WHERE uuid = $1

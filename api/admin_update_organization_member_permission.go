@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
 	"github.com/sndcds/uranus/model"
 )
@@ -63,18 +64,19 @@ import (
 //   - 404 Not Found: Target member does not exist in the organization.
 //   - 500 Internal Server Error: Database or transaction failure.
 func (h *ApiHandler) AdminUpdateOrganizationMemberPermissions(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "admin-update-organization-member-permissions")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 
 	orgUuid := gc.Param("orgUuid")
 	if orgUuid == "" {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "orgUuid is required"})
+		apiRequest.Error(http.StatusBadRequest, "orgUuid is required")
 		return
 	}
 
 	memberUuid := gc.Param("memberUuid")
 	if memberUuid == "" {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "memberUuid is required"})
+		apiRequest.Error(http.StatusBadRequest, "memberUuid is required")
 		return
 	}
 
@@ -83,18 +85,18 @@ func (h *ApiHandler) AdminUpdateOrganizationMemberPermissions(gc *gin.Context) {
 		Enabled bool `json:"enabled"`
 	}
 	if err := gc.ShouldBindJSON(&inputReq); err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+		debugf(err.Error())
+		apiRequest.InvalidJSONInput()
 		return
 	}
 	if inputReq.Bit < 0 || inputReq.Bit > 63 {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "bit must be between 0 and 63"})
+		apiRequest.Error(http.StatusBadRequest, "bit must be between 0 and 63")
 		return
 	}
 
 	var updatedPermissions int64
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-
 		txErr := h.CheckOrganizationPermission(gc, tx, userUuid, orgUuid, app.PermManagePermissions)
 		if txErr != nil {
 			return txErr
@@ -104,8 +106,7 @@ func (h *ApiHandler) AdminUpdateOrganizationMemberPermissions(gc *gin.Context) {
 		var orgMemberLink model.OrganizationMemberLink
 		orgMemberLink.UserUuid = memberUuid
 		err := tx.QueryRow(
-			ctx, app.UranusInstance.SqlAdminGetOrganizationMemberLink,
-			memberUuid).
+			ctx, app.UranusInstance.SqlAdminGetOrganizationMemberLink, memberUuid).
 			Scan(
 				&orgMemberLink.OrgUuid,
 				&orgMemberLink.UserUuid,
@@ -147,13 +148,13 @@ func (h *ApiHandler) AdminUpdateOrganizationMemberPermissions(gc *gin.Context) {
 
 		// Perform the bitwise update
 		bitUpdateQuery := fmt.Sprintf(`
-UPDATE %s.user_organization_link
-SET permissions = CASE
-	WHEN $1 THEN permissions | (1::bigint << $2)
-	ELSE permissions & ~(1::bigint << $2)
-END
-WHERE user_id = $3 AND organization_id = $4
-RETURNING permissions`,
+			UPDATE %s.user_organization_link
+			SET permissions = CASE
+				WHEN $1 THEN permissions | (1::bigint << $2)
+				ELSE permissions & ~(1::bigint << $2)
+			END
+			WHERE user_uuid = $3::uuid AND org_uuid = $4::uuid
+			RETURNING permissions`,
 			h.DbSchema)
 
 		err = tx.QueryRow(
@@ -175,9 +176,10 @@ RETURNING permissions`,
 		return nil
 	})
 	if txErr != nil {
-		gc.JSON(txErr.Code, gin.H{"error": txErr.Error()})
+		debugf(txErr.Error())
+		apiRequest.InternalServerError()
 		return
 	}
 
-	gc.JSON(http.StatusOK, gin.H{"permissions": updatedPermissions})
+	apiRequest.SuccessNoData(http.StatusOK, "updated permissions")
 }

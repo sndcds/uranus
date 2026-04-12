@@ -85,6 +85,7 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 				&e.CanEditEvent,
 				&e.CanDeleteEvent,
 				&e.CanReleaseEvent,
+				&e.CanViewEventInsights,
 				&e.SeriesIndex,
 				&e.SeriesTotal,
 			)

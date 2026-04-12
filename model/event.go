@@ -228,31 +228,32 @@ type AdminEventDate struct {
 }
 
 type AdminListEvent struct {
-	Uuid            string      `json:"uuid"`
-	DateUuid        *string     `json:"date_uuid"`
-	ReleaseStatus   *string     `json:"release_status"`
-	ReleaseDate     *string     `json:"release_date,omitempty"`
-	Categories      *[]int      `json:"categories,omitempty"`
-	CanEditEvent    bool        `json:"can_edit_event"`
-	CanDeleteEvent  bool        `json:"can_delete_event"`
-	CanReleaseEvent bool        `json:"can_release_event"`
-	OrgUuid         string      `json:"org_uuid"`
-	OrgName         *string     `json:"org_name"`
-	VenueUuid       *string     `json:"venue_uuid,omitempty"`
-	VenueName       *string     `json:"venue_name,omitempty"`
-	SpaceUuid       *string     `json:"space_uuid,omitempty"`
-	SpaceName       *string     `json:"space_name,omitempty"`
-	ImageUuid       *string     `json:"image_uuid,omitempty"`
-	ImageUrl        *string     `json:"image_url,omitempty"`
-	SeriesIndex     int         `json:"series_index,omitempty"`
-	SeriesTotal     int         `json:"series_total,omitempty"`
-	StartDate       *string     `json:"start_date"`
-	StartTime       *string     `json:"start_time"`
-	EndDate         *string     `json:"end_date,omitempty"`
-	EndTime         *string     `json:"end_time,omitempty"`
-	Title           string      `json:"title"`
-	Subtitle        *string     `json:"subtitle,omitempty"`
-	EventTypes      []EventType `json:"event_types,omitempty"`
+	Uuid                 string      `json:"uuid"`
+	DateUuid             *string     `json:"date_uuid"`
+	ReleaseStatus        *string     `json:"release_status"`
+	ReleaseDate          *string     `json:"release_date,omitempty"`
+	Categories           *[]int      `json:"categories,omitempty"`
+	CanEditEvent         bool        `json:"can_edit_event"`
+	CanDeleteEvent       bool        `json:"can_delete_event"`
+	CanReleaseEvent      bool        `json:"can_release_event"`
+	CanViewEventInsights bool        `json:"can_view_event_insights"`
+	OrgUuid              string      `json:"org_uuid"`
+	OrgName              *string     `json:"org_name"`
+	VenueUuid            *string     `json:"venue_uuid,omitempty"`
+	VenueName            *string     `json:"venue_name,omitempty"`
+	SpaceUuid            *string     `json:"space_uuid,omitempty"`
+	SpaceName            *string     `json:"space_name,omitempty"`
+	ImageUuid            *string     `json:"image_uuid,omitempty"`
+	ImageUrl             *string     `json:"image_url,omitempty"`
+	SeriesIndex          int         `json:"series_index,omitempty"`
+	SeriesTotal          int         `json:"series_total,omitempty"`
+	StartDate            *string     `json:"start_date"`
+	StartTime            *string     `json:"start_time"`
+	EndDate              *string     `json:"end_date,omitempty"`
+	EndTime              *string     `json:"end_time,omitempty"`
+	Title                string      `json:"title"`
+	Subtitle             *string     `json:"subtitle,omitempty"`
+	EventTypes           []EventType `json:"event_types,omitempty"`
 }
 
 // UserEventNotification contains a single event notification
