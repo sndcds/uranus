@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
@@ -87,6 +88,7 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 	emailContent := strings.Replace(template, "{{link}}", resetUrl, -1)
 	emailContent = strings.Replace(emailContent, "{{expiry_hours}}", strconv.Itoa(expiryHour), -1)
 	go func() {
+		// TODO: Use sendEmailWithTimeout()
 		sendEmailErr := sendEmail(req.EmailAddress, subject, emailContent)
 		if sendEmailErr != nil {
 			gc.JSON(http.StatusBadRequest, gin.H{
@@ -166,6 +168,25 @@ func generateResetToken() (string, error) {
 		return "", err
 	}
 	return base64.URLEncoding.EncodeToString(b), nil
+}
+
+func sendEmailWithTimeout(to, subject, htmlContent string, timeout time.Duration) error {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	errCh := make(chan error, 1)
+
+	go func() {
+		errCh <- sendEmail(to, subject, htmlContent)
+	}()
+
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("send email timeout: %w", ctx.Err())
+
+	case err := <-errCh:
+		return err
+	}
 }
 
 func sendEmail(to, subject string, htmlContent string) error {

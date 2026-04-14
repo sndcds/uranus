@@ -18,7 +18,6 @@ func main() {
 	configFileName := flag.String("config", "config.json", "Path to config file")
 	verbose := flag.Bool("verbose", false, "Enable verbose logging")
 	flag.Parse()
-	fmt.Println("Config file:", *configFileName)
 
 	grains_api.Init(grains_api.Config{
 		ServiceName: "Uranus API",
@@ -200,10 +199,10 @@ func main() {
 	adminRoute.GET("/organization/:orgUuid/venues", apiHandler.AdminGetOrganizationVenues)
 	adminRoute.GET("/organization/:orgUuid/events", apiHandler.AdminGetOrganizationEvents)
 
-	adminRoute.GET("/organization/:orgUuid/team", apiHandler.AdminGetOrganizationTeam)                              // TODO: check!
-	adminRoute.POST("/organization/:orgUuid/team/invite", apiHandler.AdminOrganizationTeamInvite)                   // TODO: check!
+	adminRoute.GET("/organization/:orgUuid/team", apiHandler.AdminGetOrganizationTeam)
+	adminRoute.POST("/organization/:orgUuid/team/invite", apiHandler.AdminOrganizationTeamInvite)
+	adminRoute.POST("/organization/team/invite/accept", apiHandler.AdminOrganizationTeamInviteAccept)
 	adminRoute.DELETE("/organization/:orgUuid/team/member/:memberId", apiHandler.AdminDeleteOrganizationTeamMember) // TODO: check!
-	adminRoute.POST("/organization/team/invite/accept", apiHandler.AdminOrganizationTeamInviteAccept)               // TODO: check!
 
 	// Venue
 	adminRoute.GET("/venue/:venueUuid", apiHandler.AdminGetVenue)
@@ -244,6 +243,7 @@ func main() {
 	// Pluto Image
 	adminRoute.POST("/image/:context/:contextUuid/:identifier", apiHandler.AdminUpsertPlutoImage)
 	adminRoute.DELETE("/image/:context/:contextUuid/:identifier", apiHandler.AdminDeletePlutoImage)
+	adminRoute.GET("/image/cleanup", apiHandler.AdminCleanupImages)
 
 	/*
 		fmt.Println("Gin mode:", gin.Mode())

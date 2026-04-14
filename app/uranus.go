@@ -22,59 +22,62 @@ import (
 // TODO: Review code
 
 type Uranus struct {
-	Version                             string
-	APIName                             string
-	APIVersion                          string
-	MainDbPool                          *pgxpool.Pool
-	Config                              Config
-	SqlGetOrganization                  string
-	SqlGetVenue                         string
-	SqlGetEvent                         string
-	SqlGetEventDates                    string
-	SqlGetEventsProjected               string
-	SqlGetEventsTypeSummary             string
-	SqlGetEventsGeoJSON                 string
-	SqlGetUserOrganizationPermissions   string
-	SqlGetUserEffectiveVenuePermissions string
-	SqlGetUserEventPermissions          string
-	SqlGetAdminOrganization             string
-	SqlInsertOrganization               string
-	SqlUpdateOrganization               string
-	SqlAdminGetVenue                    string
-	SqlInsertVenue                      string
-	SqlUpdateVenue                      string
-	SqlAdminGetSpace                    string
-	SqlInsertSpace                      string
-	SqlUpdateSpace                      string
-	SqlAdminGetEvent                    string
-	SqlAdminGetEventTypes               string
-	SqlAdminGetEventImages              string
-	SqlAdminGetEventLinks               string
-	SqlAdminGetEventDates               string
-	SqlAdminInsertEventDate             string
-	SqlAdminUpdateEventDate             string
-	SqlAdminDeleteEvent                 string
-	SqlEventTypeGenreLookup             string
-	SqlChoosableOrganizationVenues      string
-	SqlChoosableVenueSpaces             string
-	SqlChoosableEventTypes              string
-	SqlChoosableEventGenres             string
-	SqlGetGeojsonVenues                 string
-	SqlAdminGetOrganizationList         string
-	SqlAdminGetOrganizationVenues       string
-	SqlAdminGetOrganizationEvents       string
-	SqlAdminGetOrganizationMemberLink   string
-	SqlAdminGetOrganizationMembers      string
-	SqlAdminGetPermissionList           string
-	SqlQueryUserOrgEventsOverview       string
-	SqlAdminGetUserEventNotifications   string
-	SqlAdminChoosableOrganizations      string
-	SqlAdminChoosableUserEventVenues    string
-	SqlAdminEvent                       string
-	SqlAdminSpacesForEvent              string
-	SqlInsertPlutoImage                 string
-	SqlUpdatePlutoImageMeta             string
-	JwtKey                              []byte `json:"jwt_secret"`
+	Version                                     string
+	APIName                                     string
+	APIVersion                                  string
+	MainDbPool                                  *pgxpool.Pool
+	Config                                      Config
+	SqlGetOrganization                          string
+	SqlGetVenue                                 string
+	SqlGetEvent                                 string
+	SqlGetEventDates                            string
+	SqlGetEventsProjected                       string
+	SqlGetEventsTypeSummary                     string
+	SqlGetEventsGeoJSON                         string
+	SqlGetUserOrganizationPermissions           string
+	SqlGetUserEffectiveVenuePermissions         string
+	SqlGetUserEventPermissions                  string
+	SqlGetAdminOrganization                     string
+	SqlInsertOrganization                       string
+	SqlUpdateOrganization                       string
+	SqlAdminInvitedOrganizationTeamMember       string
+	SqlAdminInsertInvitedOrganizationTeamMember string
+	SqlAdminGetVenue                            string
+	SqlInsertVenue                              string
+	SqlUpdateVenue                              string
+	SqlAdminGetSpace                            string
+	SqlInsertSpace                              string
+	SqlUpdateSpace                              string
+	SqlAdminGetEvent                            string
+	SqlAdminGetEventTypes                       string
+	SqlAdminGetEventImages                      string
+	SqlAdminGetEventLinks                       string
+	SqlAdminGetEventDates                       string
+	SqlAdminInsertEventDate                     string
+	SqlAdminUpdateEventDate                     string
+	SqlAdminDeleteEvent                         string
+	SqlEventTypeGenreLookup                     string
+	SqlChoosableOrganizationVenues              string
+	SqlChoosableVenueSpaces                     string
+	SqlChoosableEventTypes                      string
+	SqlChoosableEventGenres                     string
+	SqlGetGeojsonVenues                         string
+	SqlAdminGetOrganizationList                 string
+	SqlAdminGetOrganizationVenues               string
+	SqlGetSystemEmailTemplate                   string
+	SqlAdminGetOrganizationEvents               string
+	SqlAdminGetOrganizationMemberLink           string
+	SqlAdminGetOrganizationMembers              string
+	SqlAdminGetPermissionList                   string
+	SqlQueryUserOrgEventsOverview               string
+	SqlAdminGetUserEventNotifications           string
+	SqlAdminChoosableOrganizations              string
+	SqlAdminChoosableUserEventVenues            string
+	SqlAdminEvent                               string
+	SqlAdminSpacesForEvent                      string
+	SqlInsertPlutoImage                         string
+	SqlUpdatePlutoImageMeta                     string
+	JwtKey                                      []byte `json:"jwt_secret"`
 }
 
 var UranusInstance *Uranus
@@ -93,25 +96,17 @@ func Initialize(configFilePath string) (*Uranus, error) {
 	}
 	defer file.Close()
 
+	// Initialize and check configuration
+	uranus.Config = DefaultConfig()
 	if err := json.NewDecoder(file).Decode(&uranus.Config); err != nil {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
-
-	// Check configuration
 
 	if len(uranus.Config.SupportedLanguages) == 0 {
 		return nil, fmt.Errorf("configuration error: at least one language must be set in 'supported_languages'")
 	}
 
 	uranus.Config.ProfileImageQuality = ClampFloat32(uranus.Config.ProfileImageQuality, 30, 100)
-
-	if uranus.Config.PlutoImageMaxFileSize == 0 {
-		uranus.Config.PlutoImageMaxFileSize = 10 * 1014 * 1024 // 10 Mb
-	}
-
-	if uranus.Config.PlutoImageMaxPx == 0 {
-		uranus.Config.PlutoImageMaxPx = 1920
-	}
 
 	uranus.Log("initialize database")
 	if err := uranus.InitMainDB(); err != nil {
@@ -132,6 +127,7 @@ func Initialize(configFilePath string) (*Uranus, error) {
 }
 
 func (uranus *Uranus) CheckAllDatabaseConsistency(ctx context.Context) error {
+
 	tables := []struct {
 		FlagTable  string
 		TopicTable string
@@ -149,18 +145,15 @@ func (uranus *Uranus) CheckAllDatabaseConsistency(ctx context.Context) error {
 	var allErrors []string
 
 	for _, t := range tables {
-		fmt.Printf("Checking tables: %s / %s\n", t.FlagTable, t.TopicTable)
+		fmt.Printf("Checking tables: %s and %s\n", t.FlagTable, t.TopicTable)
 
 		res, err := database.DatabaseFlagsCheckI18nConsistency(ctx, uranus.MainDbPool, t.FlagTable, t.TopicTable, uranus.Config.SupportedLanguages)
-
-		// Always safe to access res because we ensure DatabaseFlagsCheckI18nConsistency returns non-nil
-		fmt.Printf("Flags checked: %d, Topics checked: %d\n", res.FlagCount, res.TopicCount)
-
 		if err != nil {
-			allErrors = append(allErrors, fmt.Sprintf("Inconsistencies in %s / %s:\n%s",
-				t.FlagTable, t.TopicTable, strings.Join(res.Inconsistencies, "\n")))
-		} else {
-			fmt.Printf("✅ %s / %s consistent\n", t.FlagTable, t.TopicTable)
+			allErrors = append(allErrors, fmt.Sprintf("Inconsistencies in %s / %s:\n", t.FlagTable, t.TopicTable))
+		}
+
+		if res != nil {
+			fmt.Printf("Flags checked: %d, Topics checked: %d\n", res.FlagCount, res.TopicCount)
 		}
 	}
 
@@ -277,6 +270,8 @@ func (app *Uranus) PrepareSql() error {
 		{"sql/admin-get-organization.sql", &app.SqlGetAdminOrganization, nil},
 		{"sql/admin-insert-organization.sql", &app.SqlInsertOrganization, nil},
 		{"sql/admin-update-organization.sql", &app.SqlUpdateOrganization, nil},
+		{"sql/admin-invited-organization-team-member.sql", &app.SqlAdminInvitedOrganizationTeamMember, nil},
+		{"sql/admin-insert-invited-organization-team-member.sql", &app.SqlAdminInsertInvitedOrganizationTeamMember, nil},
 
 		{"sql/admin-get-venue.sql", &app.SqlAdminGetVenue, nil},
 		{"sql/admin-insert-venue.sql", &app.SqlInsertVenue, nil},
@@ -311,6 +306,8 @@ func (app *Uranus) PrepareSql() error {
 		{"sql/admin-get-permission-list.sql", &app.SqlAdminGetPermissionList, nil},
 
 		{"sql/admin-get-organization-venues.sql", &app.SqlAdminGetOrganizationVenues, nil},
+
+		{"sql/get-system-email-template.sql", &app.SqlGetSystemEmailTemplate, nil},
 
 		{"sql/insert-pluto-image.sql", &app.SqlInsertPlutoImage, nil},
 		{"sql/update-pluto-image-meta.sql", &app.SqlUpdatePlutoImageMeta, nil},

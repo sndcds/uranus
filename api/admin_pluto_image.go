@@ -117,6 +117,16 @@ func (h *ApiHandler) AdminUpsertPlutoImage(gc *gin.Context) {
 	apiRequest.SuccessNoData(plutoUpsertImageResult.HttpStatus, plutoUpsertImageResult.Message)
 }
 
+func (h *ApiHandler) AdminCleanupImages(gc *gin.Context) {
+	err := pluto.CleanupImages(gc.Request.Context())
+	if err != nil {
+		gc.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	gc.JSON(200, gin.H{"status": "cleanup done"})
+}
+
 func validatorByContext(context string) (pluto.ImageIdentifierValidator, error) {
 	switch context {
 	case "organization":

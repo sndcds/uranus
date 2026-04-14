@@ -54,23 +54,23 @@ func (h *ApiHandler) AdminUpdateUserProfile(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 
-	var req struct {
-		Username    string `json:"username" binding:"required"`
-		DisplayName string `json:"display_name" binding:"required"`
-		FirstName   string `json:"first_name" binding:"required"`
-		LastName    string `json:"last_name" binding:"required"`
-		Email       string `json:"email" binding:"required"`
-		Locale      string `json:"locale" binding:"required"`
-		Theme       string `json:"theme" binding:"required"`
+	var payload struct {
+		Email       string  `json:"email" binding:"required"`
+		Username    *string `json:"username"`
+		DisplayName *string `json:"display_name"`
+		FirstName   *string `json:"first_name"`
+		LastName    *string `json:"last_name"`
+		Locale      string  `json:"locale" binding:"required"`
+		Theme       string  `json:"theme" binding:"required"`
 	}
 
-	if err := gc.ShouldBindJSON(&req); err != nil {
+	if err := gc.ShouldBindJSON(&payload); err != nil {
 		apiRequest.InvalidJSONInput()
 		return
 	}
 
 	// TODO: implement full email validation
-	if !strings.Contains(req.Email, "@") {
+	if !strings.Contains(payload.Email, "@") {
 		apiRequest.Error(http.StatusBadRequest, "invalid email")
 		return
 	}
@@ -78,7 +78,7 @@ func (h *ApiHandler) AdminUpdateUserProfile(gc *gin.Context) {
 	checkQuery := fmt.Sprintf(`SELECT uuid FROM %s.user WHERE email = $1`, h.DbSchema)
 
 	var existingUserUuid string
-	err := h.DbPool.QueryRow(ctx, checkQuery, req.Email).Scan(&existingUserUuid)
+	err := h.DbPool.QueryRow(ctx, checkQuery, payload.Email).Scan(&existingUserUuid)
 
 	if err != nil && err != pgx.ErrNoRows {
 		debugf(err.Error())
@@ -107,13 +107,13 @@ func (h *ApiHandler) AdminUpdateUserProfile(gc *gin.Context) {
 	_, err = h.DbPool.Exec(
 		ctx,
 		updateQuery,
-		req.Email,
-		req.Username,
-		req.DisplayName,
-		req.FirstName,
-		req.LastName,
-		req.Locale,
-		req.Theme,
+		payload.Email,
+		payload.Username,
+		payload.DisplayName,
+		payload.FirstName,
+		payload.LastName,
+		payload.Locale,
+		payload.Theme,
 		userUuid,
 	)
 	if err != nil {

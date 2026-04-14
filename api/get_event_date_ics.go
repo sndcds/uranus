@@ -95,7 +95,7 @@ func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 	}
 	location := formatAddress(selectedDate)
 
-	uid := fmt.Sprintf("%d-%d@%s", eventId, dateId, h.Config.ICSDomain)
+	uid := fmt.Sprintf("%d-%d@%s", eventId, dateId, h.Config.IcsDomain)
 	dtStamp := time.Now().UTC().Format("20060102T150405Z")
 
 	prodId := fmt.Sprintf("-//Uranus//%s", strings.ToUpper(lang))
