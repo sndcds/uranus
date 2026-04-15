@@ -11,33 +11,27 @@ import (
 )
 
 func (h *ApiHandler) UpdateSpaceFields(gc *gin.Context) {
-	ctx := gc.Request.Context()
 	apiRequest := grains_api.NewRequest(gc, "admin-update-space-fields")
+	ctx := gc.Request.Context()
 
-	spaceId, ok := ParamInt(gc, "spaceId")
-	if !ok {
-		apiRequest.Error(http.StatusBadRequest, "spaceId is required")
+	spaceUuid := gc.Param("spaceUuid")
+	if spaceUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "spaceUuid is required")
 		return
 	}
-	apiRequest.SetMeta("space_id", spaceId)
+	apiRequest.SetMeta("space_id", spaceUuid)
 
 	var payload struct {
-		Name                  NullableField[string]  `json:"name"`
-		Description           NullableField[string]  `json:"description"`
-		TotalCapacity         NullableField[int]     `json:"total_capacity"`
-		SeatingCapacity       NullableField[int]     `json:"seating_capacity"`
-		SpaceType             NullableField[string]  `json:"space_type"`
-		BuildingLevel         NullableField[int]     `json:"building_level"`
-		WebsiteLink           NullableField[string]  `json:"website_link"`
-		AccessibilitySummary  NullableField[string]  `json:"accessibility_summary"`
-		AccessibilityFlags    NullableField[string]  `json:"accessibility_flags"`
-		AreaSqm               NullableField[float64] `json:"area_sqm"`
-		EnvironmentalFeatures NullableField[int64]   `json:"environmental_features"`
-		AudioFeatures         NullableField[int64]   `json:"audio_features"`
-		PresentationFeatures  NullableField[int64]   `json:"presentation_features"`
-		LightingFeatures      NullableField[int64]   `json:"lighting_features"`
-		ClimateFeatures       NullableField[int64]   `json:"climate_features"`
-		MiscFeatures          NullableField[int64]   `json:"misc_features"`
+		Name                 NullableField[string]  `json:"name"`
+		Description          NullableField[string]  `json:"description"`
+		TotalCapacity        NullableField[int]     `json:"total_capacity"`
+		SeatingCapacity      NullableField[int]     `json:"seating_capacity"`
+		SpaceType            NullableField[string]  `json:"space_type"`
+		BuildingLevel        NullableField[int]     `json:"building_level"`
+		WebLink              NullableField[string]  `json:"web_link"`
+		AccessibilitySummary NullableField[string]  `json:"accessibility_summary"`
+		AccessibilityFlags   NullableField[string]  `json:"accessibility_flags"`
+		AreaSqm              NullableField[float64] `json:"area_sqm"`
 	}
 
 	if err := gc.ShouldBindJSON(&payload); err != nil {
@@ -55,16 +49,10 @@ func (h *ApiHandler) UpdateSpaceFields(gc *gin.Context) {
 	argPos = addUpdateClauseNullable("seating_capacity", payload.SeatingCapacity, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("space_type", payload.SpaceType, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("building_level", payload.BuildingLevel, &setClauses, &args, argPos)
-	argPos = addUpdateClauseNullable("website_link", payload.WebsiteLink, &setClauses, &args, argPos)
+	argPos = addUpdateClauseNullable("web_link", payload.WebLink, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("accessibility_summary", payload.AccessibilitySummary, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("accessibility_flags", payload.AccessibilityFlags, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("area_sqm", payload.AreaSqm, &setClauses, &args, argPos)
-	argPos = addUpdateClauseNullable("environmental_features", payload.EnvironmentalFeatures, &setClauses, &args, argPos)
-	argPos = addUpdateClauseNullable("audio_features", payload.AudioFeatures, &setClauses, &args, argPos)
-	argPos = addUpdateClauseNullable("presentation_features", payload.PresentationFeatures, &setClauses, &args, argPos)
-	argPos = addUpdateClauseNullable("lighting_features", payload.LightingFeatures, &setClauses, &args, argPos)
-	argPos = addUpdateClauseNullable("climate_features", payload.ClimateFeatures, &setClauses, &args, argPos)
-	argPos = addUpdateClauseNullable("misc_features", payload.MiscFeatures, &setClauses, &args, argPos)
 
 	if len(setClauses) == 0 {
 		apiRequest.SuccessNoData(http.StatusOK, "no fields updated")
@@ -72,31 +60,31 @@ func (h *ApiHandler) UpdateSpaceFields(gc *gin.Context) {
 	}
 	apiRequest.SetMeta("field_count", len(setClauses))
 
-	query := fmt.Sprintf(`UPDATE %s.space SET %s WHERE id = $%d`,
+	query := fmt.Sprintf(`UPDATE %s.space SET %s WHERE uuid = $%d::uuid`,
 		h.DbSchema,
 		strings.Join(setClauses, ", "),
 		argPos, // Last placeholder is for WHERE id
 	)
 
-	args = append(args, spaceId) // eventId is the last parameter
+	args = append(args, spaceUuid) // spaceUuid is the last parameter
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		res, err := tx.Exec(ctx, query, args...)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
-				Err:  fmt.Errorf("failed to update event: %v", err),
+				Err:  fmt.Errorf("failed to update space: %v", err),
 			}
 		}
 
 		if res.RowsAffected() == 0 {
 			return &ApiTxError{
 				Code: http.StatusNotFound,
-				Err:  fmt.Errorf("event not found"),
+				Err:  fmt.Errorf("space not found"),
 			}
 		}
 
-		err = RefreshEventProjections(ctx, tx, "space", []int{spaceId})
+		err = RefreshEventProjections(ctx, tx, "space", []string{spaceUuid})
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
@@ -107,6 +95,7 @@ func (h *ApiHandler) UpdateSpaceFields(gc *gin.Context) {
 		return nil
 	})
 	if txErr != nil {
+		debugf(txErr.Error())
 		apiRequest.DatabaseError()
 		return
 	}

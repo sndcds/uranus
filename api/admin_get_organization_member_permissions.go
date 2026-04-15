@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
 )
 
@@ -20,44 +21,44 @@ import (
 // Verified: 2026-01-11, Roald
 
 func (h *ApiHandler) AdminGetOrganizationMemberPermissions(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "admin-get-organization-member-permissions")
 	ctx := gc.Request.Context()
-	userId := h.userId(gc)
+	userUuid := h.userUuid(gc)
 
-	memberId, ok := ParamInt(gc, "memberId") // Id of the user whose permissions are being requested
-	if !ok {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "userId is required"})
+	memberUuid := gc.Param("memberUuid")
+	if memberUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "memberUuid is required")
 		return
 	}
 
-	organizationId, ok := ParamInt(gc, "organizationId")
-	if !ok {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "contextId is required"})
+	orgUuid := gc.Param("orgUuid")
+	if orgUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "orgUuid is required")
 		return
 	}
 
-	var memberUserId int
+	var memberUserUuid string
 	var memberUserDisplayName *string
 	var permissions int64
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-
-		txErr := h.CheckOrganizationPermission(gc, tx, userId, organizationId, app.PermManagePermissions)
+		txErr := h.CheckOrganizationPermission(gc, tx, userUuid, orgUuid, app.PermManagePermissions)
 		if txErr != nil {
 			return txErr
 		}
 
 		userIdQuery := fmt.Sprintf(`
-SELECT oml.user_id, u.display_name
-FROM %s.organization_member_link oml
-JOIN %s.user u ON u.id = oml.user_id
-WHERE oml.organization_id = $1 AND oml.id = $2`,
+			SELECT oml.user_uuid, u.display_name
+			FROM %s.organization_member_link oml
+			JOIN %s.user u ON u.uuid = oml.user_uuid
+			WHERE oml.org_uuid = $1::uuid AND oml.user_uuid = $2::uuid`,
 			h.DbSchema, h.DbSchema)
-		err := tx.QueryRow(ctx, userIdQuery, organizationId, memberId).Scan(&memberUserId, &memberUserDisplayName)
+		err := tx.QueryRow(ctx, userIdQuery, orgUuid, memberUuid).Scan(&memberUserUuid, &memberUserDisplayName)
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return &ApiTxError{
 					Code: http.StatusNotFound,
-					Err:  fmt.Errorf("No member with id %d found in organization %d", memberId, organizationId),
+					Err:  fmt.Errorf("No member with id %d found in organization %d", memberUuid, orgUuid),
 				}
 			}
 			return &ApiTxError{
@@ -67,15 +68,15 @@ WHERE oml.organization_id = $1 AND oml.id = $2`,
 		}
 
 		query := fmt.Sprintf(
-			`SELECT permissions FROM %s.user_organization_link WHERE user_id = $1 AND organization_id = $2`,
+			`SELECT permissions FROM %s.user_organization_link WHERE user_uuid = $1::uuid AND org_uuid = $2::uuid`,
 			h.DbSchema)
 
-		err = tx.QueryRow(ctx, query, memberUserId, organizationId).Scan(&permissions)
+		err = tx.QueryRow(ctx, query, memberUserUuid, orgUuid).Scan(&permissions)
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return &ApiTxError{
 					Code: http.StatusNotFound,
-					Err:  fmt.Errorf("No permissions found for user %d in organization %d", memberUserId, organizationId),
+					Err:  fmt.Errorf("No permissions found for user %d in organization %d", memberUserUuid, orgUuid),
 				}
 			}
 			return &ApiTxError{
@@ -87,15 +88,16 @@ WHERE oml.organization_id = $1 AND oml.id = $2`,
 		return nil
 	})
 	if txErr != nil {
-		gc.JSON(txErr.Code, gin.H{"error": txErr.Error()})
+		debugf(txErr.Error())
+		apiRequest.InternalServerError()
 		return
 	}
 
-	gc.JSON(
-		http.StatusOK,
+	apiRequest.Success(http.StatusOK,
 		gin.H{
-			"user_id":           memberUserId,
+			"user_uuid":         memberUserUuid,
 			"user_display_name": memberUserDisplayName,
 			"permissions":       permissions,
-		})
+		},
+		"")
 }

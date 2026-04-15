@@ -32,7 +32,7 @@ func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 	lang := gc.DefaultQuery("lang", "en")
 
 	// Fetch event + date info from DB
-	eventRow, err := h.DbPool.Query(ctx, app.UranusInstance.SqlGetEvent, eventId, gc.DefaultQuery("lang", "en"))
+	eventRow, err := h.DbPool.Query(ctx, app.UranusInstance.SqlGetEvent, eventId, lang, publicStatuses)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -95,7 +95,7 @@ func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 	}
 	location := formatAddress(selectedDate)
 
-	uid := fmt.Sprintf("%d-%d@%s", eventId, dateId, h.Config.ICSDomain)
+	uid := fmt.Sprintf("%d-%d@%s", eventId, dateId, h.Config.IcsDomain)
 	dtStamp := time.Now().UTC().Format("20060102T150405Z")
 
 	prodId := fmt.Sprintf("-//Uranus//%s", strings.ToUpper(lang))

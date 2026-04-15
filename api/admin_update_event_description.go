@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -15,9 +16,9 @@ type eventDescriptionRequest struct {
 func (h *ApiHandler) AdminUpdateEventDescription(gc *gin.Context) {
 	ctx := gc.Request.Context()
 
-	eventId, ok := ParamInt(gc, "eventId")
-	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "event Id is required"})
+	eventUuid := gc.Param("eventUuid")
+	if eventUuid == "" {
+		gc.JSON(http.StatusBadRequest, gin.H{"error": "eventUuid is required"})
 		return
 	}
 
@@ -30,7 +31,7 @@ func (h *ApiHandler) AdminUpdateEventDescription(gc *gin.Context) {
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		query := fmt.Sprintf(`UPDATE %s.event SET description = $2 WHERE id = $1`, h.DbSchema)
 
-		cmdTag, err := h.DbPool.Exec(ctx, query, eventId, req.Description)
+		cmdTag, err := h.DbPool.Exec(ctx, query, eventUuid, req.Description)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
@@ -42,11 +43,11 @@ func (h *ApiHandler) AdminUpdateEventDescription(gc *gin.Context) {
 		if rowsAffected == 0 {
 			return &ApiTxError{
 				Code: http.StatusNotFound,
-				Err:  fmt.Errorf("event not found"),
+				Err:  errors.New("event not found"),
 			}
 		}
 
-		err = RefreshEventProjections(ctx, tx, "event", []int{eventId})
+		err = RefreshEventProjections(ctx, tx, "event", []string{eventUuid})
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
@@ -62,7 +63,7 @@ func (h *ApiHandler) AdminUpdateEventDescription(gc *gin.Context) {
 	}
 
 	gc.JSON(http.StatusOK, gin.H{
-		"message":  "event description updated successfully",
-		"event_id": eventId,
+		"message":    "event description updated successfully",
+		"event_uuid": eventUuid,
 	})
 }

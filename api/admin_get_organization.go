@@ -16,19 +16,20 @@ import (
 // Verified: 2026-01-12, Roald
 
 func (h *ApiHandler) AdminGetOrganization(gc *gin.Context) {
-	ctx := gc.Request.Context()
-	userId := h.userId(gc)
 	apiRequest := grains_api.NewRequest(gc, "admin-get-organization")
+	ctx := gc.Request.Context()
+	userUuid := h.userUuid(gc)
 
-	organizationId := gc.Param("organizationId")
-	if organizationId == "" {
-		apiRequest.Error(http.StatusBadRequest, "organizationId is required")
+	orgUuid := gc.Param("orgUuid")
+	if orgUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "parameter orgUuid is required")
 		return
 	}
 
 	query := app.UranusInstance.SqlGetAdminOrganization
-	rows, err := h.DbPool.Query(ctx, query, organizationId, userId)
+	rows, err := h.DbPool.Query(ctx, query, orgUuid, userUuid)
 	if err != nil {
+		debugf(err.Error())
 		apiRequest.Error(http.StatusInternalServerError, "query failed (#1)")
 		return
 	}

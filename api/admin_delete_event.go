@@ -9,31 +9,31 @@ import (
 )
 
 func (h *ApiHandler) AdminDeleteEvent(gc *gin.Context) {
-	ctx := gc.Request.Context()
-	userId := h.userId(gc)
 	apiRequest := grains_api.NewRequest(gc, "admin-delete-event")
+	ctx := gc.Request.Context()
+	userUuid := h.userUuid(gc)
 
-	err := h.VerifyUserPassword(gc, userId)
+	err := h.VerifyUserPassword(gc, userUuid)
 	if err != nil {
 		apiRequest.Error(http.StatusUnauthorized, err.Error())
 		return
 	}
 
-	eventId, ok := ParamInt(gc, "eventId")
-	if !ok {
-		apiRequest.Error(http.StatusBadRequest, "eventId is required")
+	eventUuid := gc.Param("eventUuid")
+	if eventUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "eventUuid is required")
 		return
 	}
-	apiRequest.SetMeta("event_id", eventId)
+	apiRequest.SetMeta("event_uuid", eventUuid)
 
-	cmdTag, err := h.DbPool.Exec(ctx, app.UranusInstance.SqlAdminGetEvent, eventId)
+	cmdTag, err := h.DbPool.Exec(ctx, app.UranusInstance.SqlAdminDeleteEvent, eventUuid)
 	if err != nil {
-		apiRequest.Error(http.StatusInternalServerError, "failed to delete event")
+		apiRequest.InternalServerError()
 		return
 	}
 
 	if cmdTag.RowsAffected() == 0 {
-		apiRequest.Error(http.StatusNotFound, "event not found")
+		apiRequest.NotFound("event not found")
 		return
 	}
 

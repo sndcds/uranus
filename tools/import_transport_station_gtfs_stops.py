@@ -40,13 +40,13 @@ def import_transport_stations(
 
     insert_sql = """
     INSERT INTO uranus.transport_station (
-        name, geo_pos, gtfs_station_code, gtfs_location_type,
+        name, point, gtfs_station_code, gtfs_location_type,
         city, country, gtfs_parent_station, gtfs_wheelchair_boarding, gtfs_zone_id
     ) VALUES %s
     ON CONFLICT (gtfs_station_code) DO UPDATE
     SET
         name = EXCLUDED.name,
-        geo_pos = EXCLUDED.geo_pos,
+        point = EXCLUDED.point,
         gtfs_location_type = EXCLUDED.gtfs_location_type,
         city = EXCLUDED.city,
         country = EXCLUDED.country,

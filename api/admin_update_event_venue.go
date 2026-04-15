@@ -1,33 +1,36 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/sndcds/grains/grains_api"
 )
 
 func (h *ApiHandler) AdminUpdateEventVenue(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "admin-update-event-venue")
 	ctx := gc.Request.Context()
-	apiResponseType := "admin-update-event-venue"
 
-	eventId, ok := ParamInt(gc, "eventId")
-	if !ok {
-		JSONError(gc, apiResponseType, http.StatusBadRequest, "eventId is required")
+	eventUuid := gc.Param("eventUuid")
+	if eventUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "eventUuid is required")
 		return
 	}
 
 	var payload struct {
-		VenueId      *int    `json:"venue_id"`
-		SpaceId      *int    `json:"space_id"`
+		VenueUuid    *string `json:"venue_uuid"`
+		SpaceUuid    *string `json:"space_uuid"`
 		MeetingPoint *string `json:"meeting_point"`
 		OnlineLink   *string `json:"online_link"`
 	}
 
 	if err := gc.ShouldBindJSON(&payload); err != nil {
-		JSONPayloadError(gc, apiResponseType)
+		debugf(err.Error())
+		apiRequest.PayloadError()
 		return
 	}
 
@@ -35,19 +38,19 @@ func (h *ApiHandler) AdminUpdateEventVenue(gc *gin.Context) {
 	args := []interface{}{}
 	argPos := 1
 
-	if payload.VenueId != nil {
-		setClauses = append(setClauses, fmt.Sprintf("venue_id = $%d", argPos))
-		args = append(args, *payload.VenueId)
+	if payload.VenueUuid != nil {
+		setClauses = append(setClauses, fmt.Sprintf("venue_uuid = $%d::uuid", argPos))
+		args = append(args, *payload.VenueUuid)
 		argPos++
 	}
 
-	if payload.SpaceId != nil {
-		setClauses = append(setClauses, fmt.Sprintf("space_id = $%d", argPos))
-		args = append(args, *payload.SpaceId) // actual number
+	if payload.SpaceUuid != nil {
+		setClauses = append(setClauses, fmt.Sprintf("space_uuid = $%d::uuid", argPos))
+		args = append(args, *payload.SpaceUuid) // Actual number
 		argPos++
 	} else {
-		// explicitly set NULL
-		setClauses = append(setClauses, fmt.Sprintf("space_id = $%d", argPos))
+		// Explicitly set NULL
+		setClauses = append(setClauses, fmt.Sprintf("space_uuid = $%d::uuid", argPos))
 		args = append(args, nil)
 		argPos++
 	}
@@ -65,45 +68,43 @@ func (h *ApiHandler) AdminUpdateEventVenue(gc *gin.Context) {
 	}
 
 	if len(setClauses) == 0 {
-		JSONError(gc, apiResponseType, http.StatusBadRequest, "no fields to update")
+		apiRequest.Error(http.StatusBadRequest, "no fields to update")
 		return
 	}
 
-	query := fmt.Sprintf(`UPDATE %s.event SET %s WHERE id = $%d`,
+	query := fmt.Sprintf(`UPDATE %s.event SET %s WHERE uuid = $%d::uuid`,
 		h.DbSchema,
 		strings.Join(setClauses, ", "),
-		argPos, // Last placeholder is for WHERE id
+		argPos, // Last placeholder is for WHERE uuid
 	)
 
-	args = append(args, eventId) // eventId is the last parameter
-	fmt.Println("query", query)
-	fmt.Println("args", args)
+	args = append(args, eventUuid) // eventUuid is the last parameter
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		// Handle venue/space update
 		// Check if the space belongs to the venue
-		if payload.SpaceId != nil && payload.VenueId != nil {
+		if payload.SpaceUuid != nil && payload.VenueUuid != nil {
 			spaceExists := false
-			if payload.SpaceId != nil {
-				query := fmt.Sprintf(`SELECT EXISTS(SELECT 1 FROM %s.space WHERE id=$1 AND venue_id=$2)`, h.DbSchema)
-				if err := tx.QueryRow(ctx, query, *payload.SpaceId, *payload.VenueId).Scan(&spaceExists); err != nil {
+			if payload.SpaceUuid != nil {
+				query := fmt.Sprintf(`SELECT EXISTS(SELECT 1 FROM %s.space WHERE uuid=$1::uuid AND venue_uuid=$2::uuid)`, h.DbSchema)
+				if err := tx.QueryRow(ctx, query, *payload.SpaceUuid, *payload.VenueUuid).Scan(&spaceExists); err != nil {
 					return &ApiTxError{
 						Code: http.StatusInternalServerError,
-						Err:  fmt.Errorf("space doesnt belong to a venue"),
+						Err:  errors.New("space doesnt belong to a venue"),
 					}
 				}
 
 				if !spaceExists {
 					return &ApiTxError{
 						Code: http.StatusBadRequest,
-						Err:  fmt.Errorf("space %d does not belong to venue %d", *payload.SpaceId, *payload.VenueId),
+						Err:  fmt.Errorf("space %d does not belong to venue %d", *payload.SpaceUuid, *payload.VenueUuid),
 					}
 				}
 			}
-		} else if payload.SpaceId != nil && payload.VenueId == nil {
+		} else if payload.SpaceUuid != nil && payload.VenueUuid == nil {
 			return &ApiTxError{
 				Code: http.StatusBadRequest,
-				Err:  fmt.Errorf("cannot update space without venueId"),
+				Err:  errors.New("cannot update space without venueUuid"),
 			}
 		}
 
@@ -118,11 +119,11 @@ func (h *ApiHandler) AdminUpdateEventVenue(gc *gin.Context) {
 		if res.RowsAffected() == 0 {
 			return &ApiTxError{
 				Code: http.StatusNotFound,
-				Err:  fmt.Errorf("event not found"),
+				Err:  errors.New("event not found"),
 			}
 		}
 
-		err = RefreshEventProjections(ctx, tx, "event", []int{eventId})
+		err = RefreshEventProjections(ctx, tx, "event", []string{eventUuid})
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
@@ -133,9 +134,10 @@ func (h *ApiHandler) AdminUpdateEventVenue(gc *gin.Context) {
 		return nil
 	})
 	if txErr != nil {
-		JSONDatabaseError(gc, apiResponseType)
+		debugf(txErr.Error())
+		apiRequest.DatabaseError()
 		return
 	}
 
-	JSONSuccessNoData(gc, apiResponseType)
+	apiRequest.SuccessNoData(http.StatusOK, "")
 }

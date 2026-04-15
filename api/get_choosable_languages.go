@@ -5,15 +5,18 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
 )
 
 // TODO: Review code
 
 func (h *ApiHandler) GetChoosableLanguages(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "get-choosable-languages")
 	ctx := gc.Request.Context()
 
 	lang := gc.DefaultQuery("lang", "en")
+	apiRequest.SetMeta("language", lang)
 
 	query := fmt.Sprintf(
 		`SELECT code_iso_639_1, name FROM %s.language WHERE name_iso_639_1 = $1 ORDER BY name`,
@@ -22,7 +25,8 @@ func (h *ApiHandler) GetChoosableLanguages(gc *gin.Context) {
 
 	rows, err := h.DbPool.Query(ctx, query, lang)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		debugf(err.Error())
+		apiRequest.InternalServerError()
 		return
 	}
 	defer rows.Close()
@@ -36,26 +40,29 @@ func (h *ApiHandler) GetChoosableLanguages(gc *gin.Context) {
 
 	for rows.Next() {
 		var language Language
-		if err := rows.Scan(
+		err := rows.Scan(
 			&language.Id,
 			&language.Name,
-		); err != nil {
-			fmt.Println(err.Error())
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		)
+		if err != nil {
+			debugf(err.Error())
+			apiRequest.InternalServerError()
 			return
 		}
 		languages = append(languages, language)
 	}
 
-	if err := rows.Err(); err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	err = rows.Err()
+	if err != nil {
+		debugf(err.Error())
+		apiRequest.InvalidJSONInput()
 		return
 	}
 
 	if len(languages) == 0 {
-		gc.JSON(http.StatusOK, []Language{})
+		apiRequest.Success(http.StatusOK, []Language{}, "")
 		return
 	}
 
-	gc.JSON(http.StatusOK, languages)
+	apiRequest.Success(http.StatusOK, languages, "")
 }

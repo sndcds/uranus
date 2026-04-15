@@ -11,8 +11,8 @@ import (
 )
 
 type affectedQueries struct {
-	EventIds     string
-	EventDateIds string
+	EventUuids     string
+	EventDateUuids string
 }
 
 var (
@@ -30,79 +30,82 @@ func RefreshEventProjections(
 	ctx context.Context,
 	tx pgx.Tx,
 	sourceTable string,
-	ids []int,
+	uuids []string,
 ) error {
-	if len(ids) == 0 {
+	if len(uuids) == 0 {
 		return nil
 	}
 
 	initQueries()
 
-	ids = uniqueInts(ids)
+	uuids = uniqueStrings(uuids)
+
+	fmt.Println("uuids:", uuids)
 
 	q, ok := queries[sourceTable]
 	if !ok {
+		debugf("unsupported source table: %s", sourceTable)
 		return fmt.Errorf("unsupported source table: %s", sourceTable)
 	}
 
 	// Refresh events
-	if q.EventIds != "" {
-		eventIds, err := fetchIds(ctx, tx, q.EventIds, ids)
+	if q.EventUuids != "" {
+		debugf("upsertEventProjection ...")
+		eventUuids, err := fetchUuids(ctx, tx, q.EventUuids, uuids)
 		if err != nil {
 			return err
 		}
-		if len(eventIds) > 0 {
-			err := upsertEventProjection(ctx, tx, eventIds)
+		if len(eventUuids) > 0 {
+			err := upsertEventProjection(ctx, tx, eventUuids)
 			if err != nil {
 				debugf("Error updating event projection: %v", err)
 				return err
 			}
 		}
-		fmt.Println("eventIds:", eventIds)
+		fmt.Println("eventUuids:", eventUuids)
 	}
 
 	// Refresh event dates
-	if q.EventDateIds != "" {
-		eventDateIds, err := fetchIds(ctx, tx, q.EventDateIds, ids)
+	if q.EventDateUuids != "" {
+		debugf("upsertEventDateProjection ...")
+		eventDateUuids, err := fetchUuids(ctx, tx, q.EventDateUuids, uuids)
 		if err != nil {
 			return err
 		}
-		if len(eventDateIds) > 0 {
-			err := upsertEventDateProjection(ctx, tx, eventDateIds)
+		if len(eventDateUuids) > 0 {
+			err := upsertEventDateProjection(ctx, tx, eventDateUuids)
 			if err != nil {
 				debugf("Error updating event date projection: %v", err)
 				return err
 			}
 		}
-		fmt.Println("eventDateIds:", eventDateIds)
+		fmt.Println("eventDateUuids:", eventDateUuids)
 	}
 
 	return nil
 }
 
-func RefreshEventProjectionsCallback(entity string, ids []int) pluto.TxFunc {
+func RefreshEventProjectionsCallback(entity string, uuids []string) pluto.TxFunc {
 	return func(ctx context.Context, tx pgx.Tx) error {
-		return RefreshEventProjections(ctx, tx, entity, ids)
+		return RefreshEventProjections(ctx, tx, entity, uuids)
 	}
 }
 
-func upsertEventProjection(ctx context.Context, tx pgx.Tx, eventIds []int) error {
-	if len(eventIds) == 0 {
+func upsertEventProjection(ctx context.Context, tx pgx.Tx, eventUuids []string) error {
+	if len(eventUuids) == 0 {
 		return nil
 	}
 	initProjectionSql()
-	_, err := tx.Exec(ctx, eventProjectionUpsertSql, eventIds)
+	_, err := tx.Exec(ctx, eventProjectionUpsertSql, eventUuids)
 	return err
 }
 
-func upsertEventDateProjection(ctx context.Context, tx pgx.Tx, eventDateIds []int) error {
-	if len(eventDateIds) == 0 {
+func upsertEventDateProjection(ctx context.Context, tx pgx.Tx, eventDateUuids []string) error {
+	if len(eventDateUuids) == 0 {
 		return nil
 	}
 	initProjectionSql()
-
-	// fmt.Println("UpsertEventProjection eventDateProjectionUpsertSql:", eventDateProjectionUpsertSql)
-	_, err := tx.Exec(ctx, eventDateProjectionUpsertSql, eventDateIds)
+	_, err := tx.Exec(ctx, eventDateProjectionUpsertSql, eventDateUuids)
 	return err
 }
 
@@ -111,78 +114,78 @@ func initQueries() {
 		schema := app.UranusInstance.Config.DbSchema
 		queries = map[string]affectedQueries{
 			"organization": {
-				EventIds: fmt.Sprintf(`
-					SELECT id
+				EventUuids: fmt.Sprintf(`
+					SELECT uuid
 					FROM %s.event
-					WHERE organization_id = ANY($1)
+					WHERE org_uuid = ANY($1::uuid[])
 				`, schema),
 
-				EventDateIds: fmt.Sprintf(`
-					SELECT ed.id
+				EventDateUuids: fmt.Sprintf(`
+					SELECT ed.uuid
 					FROM %s.event_date ed
-					JOIN %s.event e ON e.id = ed.event_id
-					WHERE e.organization_id = ANY($1)
+					JOIN %s.event e ON e.uuid = ed.event_uuid
+					WHERE e.org_uuid = ANY($1::uuid[])
 				`, schema, schema),
 			},
 
 			"venue": {
-				EventIds: fmt.Sprintf(`
-					SELECT id
+				EventUuids: fmt.Sprintf(`
+					SELECT uuid
 					FROM %s.event
-					WHERE venue_id = ANY($1)
+					WHERE venue_uuid = ANY($1::uuid[])
 				`, schema),
 
-				EventDateIds: fmt.Sprintf(`
-					SELECT id
+				EventDateUuids: fmt.Sprintf(`
+					SELECT uuid
 					FROM %s.event_date
-					WHERE venue_id = ANY($1)
+					WHERE venue_uuid = ANY($1::uuid[])
 				`, schema),
 			},
 
 			"space": {
-				EventIds: fmt.Sprintf(`
-					SELECT id
+				EventUuids: fmt.Sprintf(`
+					SELECT uuid
 					FROM %s.event
-					WHERE space_id = ANY($1)
+					WHERE space_uuid = ANY($1::uuid[])
 				`, schema),
 
-				EventDateIds: fmt.Sprintf(`
-					SELECT id
+				EventDateUuids: fmt.Sprintf(`
+					SELECT uuid
 					FROM %s.event_date
-					WHERE space_id = ANY($1)
+					WHERE space_uuid = ANY($1::uuid[])
 				`, schema),
 			},
 
-			"pluto_image": {
-				EventIds: fmt.Sprintf(`
-					SELECT id
+			"pluto_image": { // TODO: relation to pluto_image
+				EventUuids: fmt.Sprintf(`
+					SELECT uuid
 					FROM %s.event
-					WHERE image_ids[1] = ANY($1)
+					WHERE image_ids[1] = ANY($1::uuid[])
 				`, schema),
 
-				EventDateIds: "", // image does not affect event_date
+				EventDateUuids: "", // image does not affect event_date
 			},
 
 			"event": {
-				EventIds: fmt.Sprintf(`
-					SELECT id
+				EventUuids: fmt.Sprintf(`
+					SELECT uuid
 					FROM %s.event
-					WHERE id = ANY($1)
+					WHERE uuid = ANY($1::uuid[])
 				`, schema),
 
-				EventDateIds: fmt.Sprintf(`
-					SELECT id
+				EventDateUuids: fmt.Sprintf(`
+					SELECT uuid
 					FROM %s.event_date
-					WHERE event_id = ANY($1)
+					WHERE event_uuid = ANY($1::uuid[])
 				`, schema),
 			},
 
 			"event_date": {
-				EventIds: "", // event_date update only affects itself, not the parent event
-				EventDateIds: fmt.Sprintf(`
-					SELECT id
+				EventUuids: "", // event_date update only affects itself, not the parent event
+				EventDateUuids: fmt.Sprintf(`
+					SELECT uuid
 					FROM %s.event_date
-					WHERE id = ANY($1)
+					WHERE uuid = ANY($1::uuid[])
 				`, schema),
 			},
 		}
@@ -193,40 +196,40 @@ func initProjectionSql() {
 	initProjectionQueries.Do(func() {
 		eventProjectionUpsertSql = fmt.Sprintf(`
 INSERT INTO %[1]s.event_projection (
-    event_id, organization_id, venue_id, space_id, release_status,
-    title, subtitle, description, summary, image_id, languages, tags, categories, types,
-    source_url, online_link, occasion_type_id, max_attendees, min_age, max_age,
-    participation_info, meeting_point, ticket_flags,
+    event_uuid, org_uuid, venue_uuid, space_uuid, release_status,
+    title, subtitle, description, summary, image_uuid, languages, tags, categories, types,
+    source_link, online_link, occasion_type_id, max_attendees, min_age, max_age,
+    participation_info, meeting_point, ticket_flags, ticket_link,
 	price_type, currency, min_price, max_price, visitor_info_flags,
     external_id, custom, style, search_text,
-    organization_name, organization_contact_email, organization_contact_phone, organization_website_link,
+    org_name, org_contact_email, org_contact_phone, org_link,
     venue_name, venue_street, venue_house_number, venue_postal_code, venue_city,
-    venue_country, venue_state, venue_geo_pos, venue_website_link,
+    venue_country, venue_state, venue_point, venue_link,
     space_name, space_total_capacity, space_seating_capacity, space_type,
-    space_building_level, space_website_link, space_accessibility_summary,
+    space_building_level, space_link, space_accessibility_summary,
     space_accessibility_flags, space_description,
     created_at, modified_at
 )
-SELECT DISTINCT ON (e.id)
-    e.id,
-    e.organization_id,
-    e.venue_id,
-    e.space_id,
+SELECT DISTINCT ON (e.uuid)
+    e.uuid,
+    e.org_uuid,
+    e.venue_uuid,
+    e.space_uuid,
     e.release_status,
     e.title,
     e.subtitle,
     e.description,
     e.summary,
-    main_image.pluto_image_id AS image_id, -- << refactored here
+    main_image.pluto_image_uuid AS image_uuid,
     e.languages,
     e.tags,
     e.categories,
     COALESCE(
         (SELECT jsonb_agg(jsonb_build_array(type_id, genre_id))
-         FROM %[1]s.event_type_link etl WHERE etl.event_id = e.id),
+         FROM %[1]s.event_type_link etl WHERE etl.event_uuid = e.uuid),
         '[]'::jsonb
     ),
-    e.source_url,
+    e.source_link,
     e.online_link,
     e.occasion_type_id,
     e.max_attendees,
@@ -235,6 +238,7 @@ SELECT DISTINCT ON (e.id)
     e.participation_info,
     e.meeting_point,
     e.ticket_flags,
+    e.ticket_link,
     e.price_type,
     e.currency,
     e.min_price,
@@ -247,7 +251,7 @@ SELECT DISTINCT ON (e.id)
     o.name,
     o.contact_email,
     o.contact_phone,
-    o.website_link,
+    o.web_link,
     v.name AS venue_name,
     v.street AS venue_street,
     v.house_number AS venue_house_number,
@@ -255,52 +259,52 @@ SELECT DISTINCT ON (e.id)
     v.city AS venue_city,
     v.country AS venue_country,
     v.state AS venue_state,
-    v.geo_pos AS venue_geo_pos,
-    v.website_link AS venue_website_link,
+    v.point AS venue_point,
+    v.web_link AS venue_web_link,
     s.name,
     s.total_capacity,
     s.seating_capacity,
     s.space_type,
     s.building_level,
-    s.website_link,
+    s.web_link,
     s.accessibility_summary,
     s.accessibility_flags,
     s.description,
     NOW(),
     NOW()
 FROM %[1]s.event e
-LEFT JOIN %[1]s.organization o ON o.id = e.organization_id
-LEFT JOIN %[1]s.venue v ON v.id = e.venue_id
-LEFT JOIN %[1]s.space s ON s.id = e.space_id
-JOIN %[1]s.event_date ed ON ed.event_id = e.id
+LEFT JOIN %[1]s.organization o ON o.uuid = e.org_uuid
+LEFT JOIN %[1]s.venue v ON v.uuid = e.venue_uuid
+LEFT JOIN %[1]s.space s ON s.uuid = e.space_uuid
+JOIN %[1]s.event_date ed ON ed.event_uuid = e.uuid
 
 -- fetch main image
 LEFT JOIN LATERAL (
-    SELECT pil.pluto_image_id
+    SELECT pil.pluto_image_uuid
     FROM %[1]s.pluto_image_link pil
     WHERE pil.context = 'event'
-      AND pil.context_id = e.id
+      AND pil.context_uuid = e.uuid
       AND pil.identifier = 'main'
     LIMIT 1
 ) main_image ON TRUE
 
-WHERE e.id = ANY($1)
+WHERE e.uuid = ANY($1::uuid[])
   AND ed.start_date >= CURRENT_DATE
-ON CONFLICT (event_id) DO UPDATE SET
-    organization_id = EXCLUDED.organization_id,
-    venue_id = EXCLUDED.venue_id,
-    space_id = EXCLUDED.space_id,
+ON CONFLICT (event_uuid) DO UPDATE SET
+    org_uuid = EXCLUDED.org_uuid,
+    venue_uuid = EXCLUDED.venue_uuid,
+    space_uuid = EXCLUDED.space_uuid,
     release_status = EXCLUDED.release_status,
     title = EXCLUDED.title,
     subtitle = EXCLUDED.subtitle,
     description = EXCLUDED.description,
     summary = EXCLUDED.summary,
-    image_id = EXCLUDED.image_id,
+    image_uuid = EXCLUDED.image_uuid,
     languages = EXCLUDED.languages,
     tags = EXCLUDED.tags,
     categories = EXCLUDED.categories,
     types = EXCLUDED.types,
-    source_url = EXCLUDED.source_url,
+    source_link = EXCLUDED.source_link,
     online_link = EXCLUDED.online_link,
     occasion_type_id = EXCLUDED.occasion_type_id,
     max_attendees = EXCLUDED.max_attendees,
@@ -309,6 +313,7 @@ ON CONFLICT (event_id) DO UPDATE SET
     participation_info = EXCLUDED.participation_info,
     meeting_point = EXCLUDED.meeting_point,
     ticket_flags = EXCLUDED.ticket_flags,
+    ticket_link = EXCLUDED.ticket_link,
     price_type = EXCLUDED.price_type,
     currency = EXCLUDED.currency,
     min_price = EXCLUDED.min_price,
@@ -318,10 +323,10 @@ ON CONFLICT (event_id) DO UPDATE SET
     custom = EXCLUDED.custom,
     style = EXCLUDED.style,
     search_text = EXCLUDED.search_text,
-    organization_name = EXCLUDED.organization_name,
-    organization_contact_email = EXCLUDED.organization_contact_email,
-    organization_contact_phone = EXCLUDED.organization_contact_phone,
-    organization_website_link = EXCLUDED.organization_website_link,
+    org_name = EXCLUDED.org_name,
+    org_contact_email = EXCLUDED.org_contact_email,
+    org_contact_phone = EXCLUDED.org_contact_phone,
+    org_link = EXCLUDED.org_link,
     venue_name = EXCLUDED.venue_name,
     venue_street = EXCLUDED.venue_street,
     venue_house_number = EXCLUDED.venue_house_number,
@@ -329,28 +334,28 @@ ON CONFLICT (event_id) DO UPDATE SET
     venue_city = EXCLUDED.venue_city,
     venue_country = EXCLUDED.venue_country,
     venue_state = EXCLUDED.venue_state,
-    venue_geo_pos = EXCLUDED.venue_geo_pos,
-    venue_website_link = EXCLUDED.venue_website_link,
+    venue_point = EXCLUDED.venue_point,
+    venue_link = EXCLUDED.venue_link,
     space_name = EXCLUDED.space_name,
     space_total_capacity = EXCLUDED.space_total_capacity,
     space_seating_capacity = EXCLUDED.space_seating_capacity,
     space_type = EXCLUDED.space_type,
     space_building_level = EXCLUDED.space_building_level,
-    space_website_link = EXCLUDED.space_website_link,
+    space_link = EXCLUDED.space_link,
     space_accessibility_summary = EXCLUDED.space_accessibility_summary,
     space_accessibility_flags = EXCLUDED.space_accessibility_flags,
     space_description = EXCLUDED.space_description,
-    modified_at = NOW();
+    modified_at = NOW()
 `, app.UranusInstance.Config.DbSchema)
 
 		eventDateProjectionUpsertSql = fmt.Sprintf(`
 INSERT INTO %[1]s.event_date_projection (
-    event_date_id, event_id, venue_id, space_id,
+    event_date_uuid, event_uuid, venue_uuid, space_uuid,
     venue_name, venue_street, venue_house_number,
     venue_postal_code, venue_city, venue_country,
-    venue_state, venue_geo_pos, venue_website_link,
+    venue_state, venue_point, venue_link,
     space_name, space_total_capacity, space_seating_capacity,
-    space_type, space_building_level, space_website_link,
+    space_type, space_building_level, space_link,
     space_accessibility_summary, space_accessibility_flags,
     space_description,
     start_date, start_time,
@@ -359,11 +364,11 @@ INSERT INTO %[1]s.event_date_projection (
     ticket_link, availability_status_id,
     accessibility_info, custom, created_at, modified_at
 )
-SELECT DISTINCT ON (ed.id)
-    ed.id,
-    ed.event_id,
-    ed.venue_id,
-    ed.space_id,
+SELECT DISTINCT ON (ed.uuid)
+    ed.uuid,
+    ed.event_uuid,
+    ed.venue_uuid,
+    ed.space_uuid,
     v.name,
     v.street,
     v.house_number,
@@ -371,14 +376,14 @@ SELECT DISTINCT ON (ed.id)
     v.city,
     v.country,
     v.state,
-    v.geo_pos,
-    v.website_link,
+    v.point,
+    v.web_link,
     s.name,
     s.total_capacity,
     s.seating_capacity,
     s.space_type,
     s.building_level,
-    s.website_link,
+    s.web_link,
     s.accessibility_summary,
     s.accessibility_flags,
     s.description,
@@ -396,13 +401,12 @@ SELECT DISTINCT ON (ed.id)
     NOW(),
     NOW()
 FROM %[1]s.event_date ed
-LEFT JOIN %[1]s.venue v ON v.id = ed.venue_id
-LEFT JOIN %[1]s.space s ON s.id = ed.space_id
-WHERE ed.id = ANY($1)
-AND ed.start_date >= CURRENT_DATE
-ON CONFLICT (event_date_id) DO UPDATE SET
-    venue_id = EXCLUDED.venue_id,
-    space_id = EXCLUDED.space_id,
+LEFT JOIN %[1]s.venue v ON v.uuid = ed.venue_uuid
+LEFT JOIN %[1]s.space s ON s.uuid = ed.space_uuid
+WHERE ed.uuid = ANY($1::uuid[])
+ON CONFLICT (event_date_uuid) DO UPDATE SET
+    venue_uuid = EXCLUDED.venue_uuid,
+    space_uuid = EXCLUDED.space_uuid,
     venue_name = EXCLUDED.venue_name,
     venue_street = EXCLUDED.venue_street,
     venue_house_number = EXCLUDED.venue_house_number,
@@ -410,14 +414,14 @@ ON CONFLICT (event_date_id) DO UPDATE SET
     venue_city = EXCLUDED.venue_city,
     venue_country = EXCLUDED.venue_country,
     venue_state = EXCLUDED.venue_state,
-    venue_geo_pos = EXCLUDED.venue_geo_pos,
-    venue_website_link = EXCLUDED.venue_website_link,
+    venue_point = EXCLUDED.venue_point,
+    venue_link = EXCLUDED.venue_link,
     space_name = EXCLUDED.space_name,
     space_total_capacity = EXCLUDED.space_total_capacity,
     space_seating_capacity = EXCLUDED.space_seating_capacity,
     space_type = EXCLUDED.space_type,
     space_building_level = EXCLUDED.space_building_level,
-    space_website_link = EXCLUDED.space_website_link,
+    space_link = EXCLUDED.space_link,
     space_accessibility_summary = EXCLUDED.space_accessibility_summary,
     space_accessibility_flags = EXCLUDED.space_accessibility_flags,
     space_description = EXCLUDED.space_description,
@@ -432,31 +436,35 @@ ON CONFLICT (event_date_id) DO UPDATE SET
     availability_status_id = EXCLUDED.availability_status_id,
     accessibility_info = EXCLUDED.accessibility_info,
     custom = EXCLUDED.custom,
-    modified_at = NOW();
+    modified_at = NOW()
 `, app.UranusInstance.Config.DbSchema)
 	})
 }
 
-func fetchIds(
+func fetchUuids(
 	ctx context.Context,
 	tx pgx.Tx,
 	query string,
-	ids []int,
-) ([]int, error) {
+	uuids []string,
+) ([]string, error) {
 
-	rows, err := tx.Query(ctx, query, ids)
+	rows, err := tx.Query(ctx, query, uuids)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var result []int
+	var result []string
 	for rows.Next() {
-		var id int
-		if err := rows.Scan(&id); err != nil {
+		var uuid *string
+		err = rows.Scan(&uuid)
+		if err != nil {
 			return nil, err
 		}
-		result = append(result, id)
+
+		if uuid != nil {
+			result = append(result, *uuid)
+		}
 	}
 	return result, nil
 }
@@ -465,6 +473,18 @@ func uniqueInts(ids []int) []int {
 	seen := make(map[int]struct{}, len(ids))
 	out := make([]int, 0, len(ids))
 	for _, id := range ids {
+		if _, ok := seen[id]; !ok {
+			seen[id] = struct{}{}
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
+func uniqueStrings(uuids []string) []string {
+	seen := make(map[string]struct{}, len(uuids))
+	out := make([]string, 0, len(uuids))
+	for _, id := range uuids {
 		if _, ok := seen[id]; !ok {
 			seen[id] = struct{}{}
 			out = append(out, id)

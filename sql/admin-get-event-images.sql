@@ -1,5 +1,5 @@
 SELECT
-    pi.id,
+    pi.uuid,
     pil.identifier,
     pi.focus_x,
     pi.focus_y,
@@ -8,5 +8,5 @@ SELECT
     pi.creator_name AS creator,
     pi.license AS license
 FROM {{schema}}.pluto_image_link pil
-JOIN {{schema}}.pluto_image pi ON pi.id = pil.pluto_image_id
-WHERE pil.context = 'event' AND pil.context_id = $1
+JOIN {{schema}}.pluto_image pi ON pi.uuid = pil.pluto_image_uuid
+WHERE pil.context = 'event' AND pil.context_uuid = $1

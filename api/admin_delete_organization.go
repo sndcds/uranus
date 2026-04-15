@@ -9,26 +9,27 @@ import (
 )
 
 func (h *ApiHandler) AdminDeleteOrganization(gc *gin.Context) {
-	ctx := gc.Request.Context()
-	userId := h.userId(gc)
 	apiRequest := grains_api.NewRequest(gc, "admin-delete-organization")
+	ctx := gc.Request.Context()
+	userUuid := h.userUuid(gc)
 
-	err := h.VerifyUserPassword(gc, userId)
+	err := h.VerifyUserPassword(gc, userUuid)
 	if err != nil {
 		apiRequest.Error(http.StatusUnauthorized, err.Error())
 		return
 	}
 
-	organizationId, ok := ParamInt(gc, "organizationId")
-	if !ok {
-		apiRequest.Error(http.StatusBadRequest, "invalid organizationId")
+	orgUuid := gc.Param("orgUuid")
+	if orgUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "orgUuid is required")
 		return
 	}
-	apiRequest.SetMeta("organization_id", organizationId)
+	apiRequest.SetMeta("org_uuid", orgUuid)
 
-	query := fmt.Sprintf(`DELETE FROM %s.organization WHERE id = $1`, h.DbSchema)
-	cmdTag, err := h.DbPool.Exec(ctx, query, organizationId)
+	query := fmt.Sprintf(`DELETE FROM %s.organization WHERE uuid = $1::uuid`, h.DbSchema)
+	cmdTag, err := h.DbPool.Exec(ctx, query, orgUuid)
 	if err != nil {
+		debugf(err.Error())
 		apiRequest.Error(http.StatusInternalServerError, "failed to delete organization")
 		return
 	}

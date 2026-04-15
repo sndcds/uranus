@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -11,181 +12,235 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5"
+	"github.com/sndcds/grains/grains_api"
+	"github.com/sndcds/grains/grains_uuid"
 	"github.com/sndcds/uranus/app"
+	"github.com/sndcds/uranus/model"
 )
 
-// TODO: Review code
-
 // Permission to use endpoint checked, 2026-01-11, Roald
+
 func (h *ApiHandler) Signup(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "signup")
+	ctx := gc.Request.Context()
 	lang := gc.DefaultQuery("lang", "en")
 
-	// Parse incoming JSON
-	var req struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
+	var userCredentials model.UserCredentials
 
-	if err := gc.BindJSON(&req); err != nil || req.Email == "" || req.Password == "" {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "email and password required"})
-		return
-	}
-
-	// Validate
-	if !app.IsValidEmail(req.Email) {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid email"})
-	}
-
-	// Encrypt password
-	passwordHash, err := app.EncryptPassword(req.Password)
+	err := gc.BindJSON(&userCredentials)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to encrypt password"})
+		apiRequest.InvalidJSONInput()
 		return
 	}
 
-	// Check if user already exists
-	var exists bool
-	checkQuery := fmt.Sprintf("SELECT EXISTS(SELECT 1 FROM %s.user WHERE email_address = $1)", h.DbSchema)
-	err = h.DbPool.QueryRow(gc, checkQuery, req.Email).Scan(&exists)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
-		return
-	}
-	if exists {
-		gc.JSON(http.StatusConflict, gin.H{"error": "user already exists"})
+	if userCredentials.Email == "" || userCredentials.Password == "" {
+		apiRequest.Error(http.StatusBadRequest, "email and password required")
 		return
 	}
 
-	// Insert new user
-	var newUserId int
-	insertQuery := fmt.Sprintf(`
-		INSERT INTO %s.user (email_address, password_hash)
-		VALUES ($1, $2)
-		RETURNING id`,
-		h.DbSchema)
-
-	err = h.DbPool.QueryRow(gc, insertQuery, req.Email, passwordHash).Scan(&newUserId)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create user"})
+	if !app.IsValidEmail(userCredentials.Email) {
+		apiRequest.Error(http.StatusBadRequest, "invalid email")
 		return
 	}
 
-	// Generate token and send email to users
-	expiryHour := 1
-	signupExp := time.Now().Add(time.Duration(expiryHour) * time.Hour)
-	signupClaims := &app.Claims{
-		UserId: newUserId,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(signupExp),
-		},
-	}
-	signupToken := jwt.NewWithClaims(jwt.SigningMethodHS256, signupClaims)
-	signupTokenString, err := signupToken.SignedString([]byte(h.Config.JwtSecret))
+	passwordHash, err := app.EncryptPassword(userCredentials.Password)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate token"})
+		debugf(err.Error())
+		apiRequest.InternalServerError()
 		return
 	}
 
-	updateQuery := fmt.Sprintf(`UPDATE %s.user SET activate_token = $1 WHERE id = $2`, h.DbSchema)
-	_, err = h.DbPool.Exec(gc, updateQuery, signupTokenString, newUserId)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create user"})
-		return
-	}
+	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 
-	messageQuery := fmt.Sprintf(`SELECT subject, template FROM %s.system_email_template WHERE context = 'activate-email' AND iso_639_1 = $1`, h.DbSchema)
-	_, err = h.DbPool.Exec(gc, messageQuery, lang)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create user"})
-		return
-	}
-	var subject string
-	var template string
-	err = h.DbPool.QueryRow(gc, messageQuery, lang).Scan(&subject, &template)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			gc.JSON(http.StatusNotFound, gin.H{"error": "email template not found"})
-		} else {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get email template"})
+		// Check if user already exists
+		var exists bool
+		checkQuery := fmt.Sprintf("SELECT EXISTS(SELECT 1 FROM %s.user WHERE email = $1)", h.DbSchema)
+		err = tx.QueryRow(ctx, checkQuery, userCredentials.Email).Scan(&exists)
+		if err != nil {
+			debugf(err.Error())
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  errors.New("internal server error"),
+			}
 		}
+		if exists {
+			debugf(err.Error())
+			return &ApiTxError{
+				Code: http.StatusConflict,
+				Err:  errors.New("user already exists"),
+			}
+		}
+
+		userUuid, err := grains_uuid.Uuidv7String()
+		if err != nil {
+			debugf(err.Error())
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  errors.New("uuid creation error"),
+			}
+		}
+
+		insertQuery := fmt.Sprintf(`INSERT INTO %s.user (uuid, email, password_hash) VALUES ($1::uuid, $2, $3)`, h.DbSchema)
+		_, err = tx.Exec(ctx, insertQuery, userUuid, userCredentials.Email, passwordHash)
+		if err != nil {
+			debugf(err.Error())
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  errors.New("internal server error"),
+			}
+		}
+
+		// Generate token and send email to users
+		expiryHour := 1
+		signupExp := time.Now().Add(time.Duration(expiryHour) * time.Hour)
+		signupClaims := &app.Claims{
+			UserUuid: userUuid,
+			RegisteredClaims: jwt.RegisteredClaims{
+				ExpiresAt: jwt.NewNumericDate(signupExp),
+			},
+		}
+		signupToken := jwt.NewWithClaims(jwt.SigningMethodHS256, signupClaims)
+		signupTokenString, err := signupToken.SignedString([]byte(h.Config.JwtSecret))
+		if err != nil {
+			debugf(err.Error())
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  errors.New("internal server error"),
+			}
+		}
+
+		updateQuery := fmt.Sprintf(`UPDATE %s.user SET activate_token = $1 WHERE uuid = $2::uuid`, h.DbSchema)
+		_, err = tx.Exec(ctx, updateQuery, signupTokenString, userUuid)
+		if err != nil {
+			debugf(err.Error())
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  errors.New("internal server error"),
+			}
+		}
+
+		messageQuery := fmt.Sprintf(`SELECT subject, template FROM %s.system_email_template WHERE context = 'activate-email' AND iso_639_1 = $1`, h.DbSchema)
+		_, err = tx.Exec(gc, messageQuery, lang)
+		if err != nil {
+			debugf(err.Error())
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  errors.New("internal server error"),
+			}
+		}
+		var subject string
+		var template string
+		err = tx.QueryRow(ctx, messageQuery, lang).Scan(&subject, &template)
+		if err != nil {
+			debugf(err.Error())
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  errors.New("internal server error"),
+			}
+		}
+
+		expiryHour = 1
+		signupUrl := gc.Request.Referer() + "app/activate/account?token=" + signupTokenString
+		emailMessage := strings.Replace(template, "{{link}}", signupUrl, -1)
+		emailMessage = strings.Replace(emailMessage, "{{expiry_hours}}", strconv.Itoa(expiryHour), -1)
+
+		// Create a context with timeout for sending email
+		emailCtx, cancel := context.WithTimeout(ctx, 10*time.Second) // 10s timeout
+		defer cancel()
+
+		err = sendEmailWithContext(emailCtx, userCredentials.Email, subject, emailMessage)
+		if err != nil {
+			debugf(err.Error())
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  errors.New("internal server error"),
+			}
+		}
+
+		apiRequest.SetMeta("user_uuid", userUuid)
+		return nil
+	})
+	if txErr != nil {
+		debugf(txErr.Error())
+		apiRequest.Error(txErr.Code, txErr.Error())
 		return
 	}
 
-	signupUrl := gc.Request.Referer() + "app/activate/account?token=" + signupTokenString
-	emailMessage := strings.Replace(template, "{{link}}", signupUrl, -1)
-	emailMessage = strings.Replace(emailMessage, "{{expiry_hours}}", strconv.Itoa(expiryHour), -1)
+	apiRequest.SuccessNoData(http.StatusCreated, "user registered successfully")
+}
+
+func sendEmailWithContext(ctx context.Context, to, subject, body string) error {
+	done := make(chan error, 1)
 	go func() {
-		sendEmailErr := sendEmail(req.Email, subject, emailMessage)
-		if sendEmailErr != nil {
-			gc.JSON(http.StatusOK, gin.H{
-				"message":    "Unable to send reset email.",
-				"error_code": -1,
-			})
-		}
+		done <- sendEmail(to, subject, body) // your existing sendEmail
 	}()
 
-	gc.JSON(http.StatusCreated, gin.H{
-		"message": "user created successfully",
-		"user_id": newUserId,
-	})
+	select {
+	case err := <-done:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 // Permission to use endpoint checked, 2026-01-11, Roald
 func (h *ApiHandler) Activate(gc *gin.Context) {
-	var req struct {
+	apiRequest := grains_api.NewRequest(gc, "signup")
+
+	var reqeustData struct {
 		Token string `json:"token"`
 	}
-	if err := gc.BindJSON(&req); err != nil || req.Token == "" {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "token required"})
+	if err := gc.BindJSON(&reqeustData); err != nil || reqeustData.Token == "" {
+		apiRequest.Error(http.StatusBadRequest, "token required")
 		return
 	}
 
 	// Parse JWT token using the same signing method
-	token, err := jwt.ParseWithClaims(req.Token, &app.Claims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(reqeustData.Token, &app.Claims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return []byte(h.Config.JwtSecret), nil
 	})
 	if err != nil {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
+		apiRequest.Error(http.StatusUnauthorized, "invalid or expired token")
 		return
 	}
 
 	// Extract claims
 	claims, ok := token.Claims.(*app.Claims)
 	if !ok || !token.Valid {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
+		apiRequest.Error(http.StatusUnauthorized, "invalid token")
 		return
 	}
 
-	userId := claims.UserId
+	userUuid := claims.UserUuid
 
 	// Query stored activation token
 	var storedToken string
-	query := fmt.Sprintf(`SELECT activate_token FROM %s.user WHERE id = $1`, h.DbSchema)
-	err = h.DbPool.QueryRow(gc, query, userId).Scan(&storedToken)
+	query := fmt.Sprintf(`SELECT activate_token FROM %s.user WHERE uuid = $1`, h.DbSchema)
+	err = h.DbPool.QueryRow(gc, query, userUuid).Scan(&storedToken)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			gc.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+			apiRequest.Error(http.StatusNotFound, "user not found")
 		} else {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
+			apiRequest.Error(http.StatusInternalServerError, "database error")
 		}
 		return
 	}
 
 	// Compare tokens
-	if storedToken != req.Token {
-		gc.JSON(http.StatusUnauthorized, gin.H{"error": "token mismatch"})
+	if storedToken != reqeustData.Token {
+		apiRequest.Error(http.StatusUnauthorized, "token mismatch")
 		return
 	}
 
 	// Activate account
-	updateQuery := fmt.Sprintf(`UPDATE %s.user SET is_active = true, activate_token = NULL WHERE id = $1`, h.DbSchema)
-	if _, err := h.DbPool.Exec(gc, updateQuery, userId); err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to activate user"})
+	updateQuery := fmt.Sprintf(`UPDATE %s.user SET is_active = true, activate_token = NULL WHERE uuid = $1`, h.DbSchema)
+	if _, err := h.DbPool.Exec(gc, updateQuery, userUuid); err != nil {
+		apiRequest.Error(http.StatusInternalServerError, "failed to activate user")
 		return
 	}
 
-	gc.JSON(http.StatusOK, gin.H{"message": "account successfully activated"})
+	apiRequest.SuccessNoData(http.StatusOK, "account successfully activated")
 }

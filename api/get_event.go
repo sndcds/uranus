@@ -10,31 +10,60 @@ import (
 	"github.com/sndcds/uranus/model"
 )
 
-func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
-	ctx := gc.Request.Context()
+var publicStatuses = []string{
+	"released",
+	"cancelled",
+	"deferred",
+	"rescheduled",
+}
+
+func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-event-by-date-id")
+	ctx := gc.Request.Context()
+	userUuid := h.userUuid(gc)
 
-	eventId, ok := ParamInt(gc, "eventId")
-	if !ok {
-		apiRequest.Error(http.StatusBadRequest, "eventId is required")
+	eventUuid := gc.Param("eventUuid")
+	if eventUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "eventUuid is required")
 		return
 	}
-	apiRequest.SetMeta("event_id", eventId)
+	apiRequest.SetMeta("event_uuid", eventUuid)
 
-	dateId, ok := ParamInt(gc, "dateId")
-	if !ok {
-		apiRequest.Error(http.StatusBadRequest, "dateId is required")
+	dateUuid := gc.Param("dateUuid")
+	if dateUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "dateUuid is required")
 		return
 	}
-	apiRequest.SetMeta("date_id", dateId)
+	apiRequest.SetMeta("date_uuid", dateUuid)
+
+	usedStatuses := publicStatuses
+	hasUserUuid := len(userUuid) > 0
+	if hasUserUuid {
+		permissions, err := h.GetUserEventPermissions(gc, userUuid, dateUuid)
+		if err != nil {
+			debugf(err.Error())
+			apiRequest.InternalServerError()
+			return
+		}
+		if permissions.HasAny(app.PermEditEvent | app.PermDeleteEvent | app.PermReleaseEvent | app.PermViewEventInsights) {
+			usedStatuses = []string{
+				"draft",
+				"review",
+				"released",
+				"cancelled",
+				"deferred",
+				"rescheduled",
+			}
+		}
+	}
 
 	lang := gc.DefaultQuery("lang", "en")
 	apiRequest.SetMeta("language", lang)
 
 	// Query event-level data without event dates
-	eventRow, err := h.DbPool.Query(ctx, app.UranusInstance.SqlGetEvent, eventId, lang)
+	eventRow, err := h.DbPool.Query(ctx, app.UranusInstance.SqlGetEvent, eventUuid, lang, usedStatuses)
 	if err != nil {
-		debugf("GetEventByDateId err 1: %v", err)
+		debugf(err.Error())
 		apiRequest.DatabaseError()
 		return
 	}
@@ -47,17 +76,20 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 
 	var event model.EventDetails
 	var imageJSON []byte
+	var orgLogosJSON []byte
 	var eventTypesJSON []byte
 	var eventLinksJSON []byte
 
 	err = eventRow.Scan(
-		&event.Id,
+		&event.Uuid,
 		&event.ReleaseStatus,
+		&event.ContentLanguage,
 		&event.Title,
 		&event.Subtitle,
 		&event.Description,
 		&event.Summary,
 		&event.ParticipationInfo,
+		&event.OnlineLink,
 		&event.MeetingPoint,
 		&event.Languages,
 		&event.Tags,
@@ -68,53 +100,65 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 		&event.PriceType,
 		&event.MinPrice,
 		&event.MaxPrice,
+		&event.TicketFlags,
+		&event.TicketLink,
 		&event.VisitorInfoFlags,
-		&event.OrganizationId,
-		&event.OrganizationName,
-		&event.OrganizationUrl,
+		&event.OrgUuid,
+		&event.OrgName,
+		&event.OrgWebLink,
+		&orgLogosJSON,
 		&imageJSON,
 		&eventTypesJSON,
 		&eventLinksJSON,
 	)
 	if err != nil {
-		debugf("GetEventByDateId err 2: %v", err)
+		debugf(err.Error())
 		apiRequest.DatabaseError()
 		return
 	}
 
+	// Unmarshal organization logos
+	if len(orgLogosJSON) > 0 && string(orgLogosJSON) != "null" {
+		err = json.Unmarshal(orgLogosJSON, &event.OrgLogos)
+		if err != nil {
+			apiRequest.SetMeta("logo_error", err.Error())
+		}
+	}
+
 	// Unmarshal image JSON
 	if len(imageJSON) > 0 {
-		var img model.Image
-		err := json.Unmarshal(imageJSON, &img)
+		var image model.Image
+		err = json.Unmarshal(imageJSON, &image)
 		if err != nil {
 			apiRequest.SetMeta("image_error", "invalid JSON")
 		} else {
-			event.Image = &img
+			event.Image = &image
 		}
 	}
 
 	// Unmarshal event types
 	if len(eventTypesJSON) > 0 {
-		var types []model.EventType
-		err = json.Unmarshal(eventTypesJSON, &types)
+		var eventTypes []model.EventType
+		err = json.Unmarshal(eventTypesJSON, &eventTypes)
 		if err == nil {
-			event.EventTypes = types
+			event.EventTypes = eventTypes
 		}
 	}
 
 	// Unmarshal event URLs
 	if len(eventLinksJSON) > 0 {
-		var links []model.WebLink
-		err = json.Unmarshal(eventLinksJSON, &links)
+		var eventLinks []model.WebLink
+		err = json.Unmarshal(eventLinksJSON, &eventLinks)
 		if err == nil {
-			event.EventLinks = links
+			event.EventLinks = eventLinks
 		}
 	}
 
 	// Query all event dates
-	dateRows, err := h.DbPool.Query(ctx, app.UranusInstance.SqlGetEventDates, eventId)
+	dateRows, err := h.DbPool.Query(ctx, app.UranusInstance.SqlGetEventDates, eventUuid)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		debugf(err.Error())
+		apiRequest.InternalServerError()
 		return
 	}
 	defer dateRows.Close()
@@ -125,8 +169,8 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 	for dateRows.Next() {
 		var edd model.EventDate
 		err := dateRows.Scan(
-			&edd.Id,
-			&edd.EventId,
+			&edd.Uuid,
+			&edd.EventUuid,
 			&edd.EventReleaseStatus,
 			&edd.StartDate,
 			&edd.StartTime,
@@ -134,7 +178,7 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 			&edd.EndTime,
 			&edd.EntryTime,
 			&edd.Duration,
-			&edd.VenueId,
+			&edd.VenueUuid,
 			&edd.VenueName,
 			&edd.VenueStreet,
 			&edd.VenueHouseNumber,
@@ -144,16 +188,16 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 			&edd.VenueState,
 			&edd.VenueLon,
 			&edd.VenueLat,
-			&edd.VenueWebsiteUrl,
-			&edd.VenueLogoImageId,
-			&edd.VenueLightThemeLogoImageId,
-			&edd.VenueDarkThemeLogoImageId,
-			&edd.SpaceId,
+			&edd.VenueWebLink,
+			&edd.VenueLogoImageUuid,
+			&edd.VenueLightThemeLogoImageUuid,
+			&edd.VenueDarkThemeLogoImageUuid,
+			&edd.SpaceUuid,
 			&edd.SpaceName,
 			&edd.TotalCapacity,
 			&edd.SeatingCapacity,
 			&edd.BuildingLevel,
-			&edd.SpaceWebsiteUrl,
+			&edd.SpaceWebLink,
 			&edd.AccessibilityFlags,
 			&edd.AccessibilitySummary,
 			&edd.AccessibilityInfo,
@@ -164,25 +208,25 @@ func (h *ApiHandler) GetEventByDateId(gc *gin.Context) {
 		}
 
 		// Generate VenueLogoUrl if logo exists
-		if edd.VenueLogoImageId != nil {
-			url := ImageUrl(*edd.VenueLogoImageId)
+		if edd.VenueLogoImageUuid != nil {
+			url := ImageUrl(*edd.VenueLogoImageUuid)
 			edd.VenueLogoUrl = &url
 		}
-		if edd.VenueLightThemeLogoImageId != nil {
-			url := ImageUrl(*edd.VenueLightThemeLogoImageId)
+		if edd.VenueLightThemeLogoImageUuid != nil {
+			url := ImageUrl(*edd.VenueLightThemeLogoImageUuid)
 			edd.VenueLightThemeLogoUrl = &url
 		}
-		if edd.VenueDarkThemeLogoImageId != nil {
-			url := ImageUrl(*edd.VenueDarkThemeLogoImageId)
+		if edd.VenueDarkThemeLogoImageUuid != nil {
+			url := ImageUrl(*edd.VenueDarkThemeLogoImageUuid)
 			edd.VenueDarkThemeLogoUrl = &url
 		}
 
-		if edd.Id == dateId {
+		if edd.Uuid == dateUuid {
 			tmp := edd
 			selectedDate = &tmp
+		} else {
+			furtherDates = append(furtherDates, edd)
 		}
-
-		furtherDates = append(furtherDates, edd)
 	}
 
 	event.Date = selectedDate

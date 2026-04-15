@@ -12,7 +12,7 @@ import (
 
 func (h *ApiHandler) AdminGetMessages(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := h.userId(gc)
+	userUuid := h.userUuid(gc)
 
 	query := fmt.Sprintf(`
 		SELECT id, from_user_id, created_at, is_read, subject, message
@@ -21,7 +21,7 @@ func (h *ApiHandler) AdminGetMessages(gc *gin.Context) {
 		ORDER BY created_at DESC
 	`, h.DbSchema)
 
-	rows, err := h.DbPool.Query(ctx, query, userId)
+	rows, err := h.DbPool.Query(ctx, query, userUuid)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("query failed: %v", err)})
 		return

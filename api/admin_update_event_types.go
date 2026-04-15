@@ -6,15 +6,16 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/sndcds/grains/grains_api"
 )
 
 func (h *ApiHandler) AdminUpdateEventTypes(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "admin-update-event-types")
 	ctx := gc.Request.Context()
-	apiResponseType := "admin-update-event-types"
 
-	eventId, ok := ParamInt(gc, "eventId")
-	if !ok {
-		JSONError(gc, apiResponseType, http.StatusBadRequest, "eventId is required")
+	eventUuid := gc.Param("eventUuid")
+	if eventUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "eventUuid is required")
 		return
 	}
 
@@ -27,15 +28,19 @@ func (h *ApiHandler) AdminUpdateEventTypes(gc *gin.Context) {
 
 	var req eventTypesRequest
 	if err := gc.ShouldBindJSON(&req); err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		debugf(err.Error())
+		apiRequest.PayloadError()
 		return
 	}
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		// Delete existing type-genre links
-		deleteQuery := fmt.Sprintf(`DELETE FROM %s.event_type_link WHERE event_id = $1`, h.DbSchema)
-		_, err := tx.Exec(ctx, deleteQuery, eventId)
+		deleteQuery := fmt.Sprintf(`DELETE FROM %s.event_type_link WHERE event_uuid = $1::uuid`, h.DbSchema)
+		debugf(deleteQuery)
+		debugf(eventUuid)
+		_, err := tx.Exec(ctx, deleteQuery, eventUuid)
 		if err != nil {
+			debugf(err.Error())
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
 				Err:  fmt.Errorf("failed to delete existing type-genre links: %v", err),
@@ -43,14 +48,14 @@ func (h *ApiHandler) AdminUpdateEventTypes(gc *gin.Context) {
 		}
 
 		// Insert new type-genre pairs
-		insertQuery := fmt.Sprintf(`INSERT INTO %s.event_type_link (event_id, type_id, genre_id) VALUES ($1, $2, $3)`, h.DbSchema)
+		insertQuery := fmt.Sprintf(`INSERT INTO %s.event_type_link (event_uuid, type_id, genre_id) VALUES ($1::uuid, $2, $3)`, h.DbSchema)
 
 		for _, pair := range req.Types {
 			genreId := 0
 			if pair.GenreId != nil {
 				genreId = *pair.GenreId
 			}
-			_, err = tx.Exec(ctx, insertQuery, eventId, pair.TypeId, genreId)
+			_, err = tx.Exec(ctx, insertQuery, eventUuid, pair.TypeId, genreId)
 			if err != nil {
 				return &ApiTxError{
 					Code: http.StatusInternalServerError,
@@ -59,7 +64,7 @@ func (h *ApiHandler) AdminUpdateEventTypes(gc *gin.Context) {
 			}
 		}
 
-		err = RefreshEventProjections(ctx, tx, "event", []int{eventId})
+		err = RefreshEventProjections(ctx, tx, "event", []string{eventUuid})
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
@@ -70,9 +75,10 @@ func (h *ApiHandler) AdminUpdateEventTypes(gc *gin.Context) {
 		return nil
 	})
 	if txErr != nil {
-		JSONDatabaseError(gc, apiResponseType)
+		debugf(txErr.Error())
+		apiRequest.DatabaseError()
 		return
 	}
 
-	JSONSuccessNoData(gc, apiResponseType)
+	apiRequest.SuccessNoData(http.StatusOK, "")
 }

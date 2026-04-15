@@ -53,44 +53,42 @@ func IsVenueImageIdentifier(identifier string) bool {
 
 func (h *ApiHandler) UpsertImage(
 	gc *gin.Context,
-	plutoImageId int,
+	plutoImageUuid string,
 	context string,
-	contextId int,
+	contextUuid string,
 	identifier string,
-) (int, error) {
+) error {
 	ctx := gc.Request.Context()
 
 	query := fmt.Sprintf(`
 		INSERT INTO %s.pluto_image_link
-			(pluto_image_id, context, context_id, identifier)
+			(pluto_image_uuid, context, context_uuid, identifier)
 		VALUES ($1, $2, $3, $4)
-		ON CONFLICT (context, context_id, identifier)
+		ON CONFLICT (context, context_uuid, identifier)
 		DO UPDATE SET
-			pluto_image_id = EXCLUDED.pluto_image_id
-		RETURNING id
+			pluto_image_uuid = EXCLUDED.pluto_image_uuid
 	`, h.DbSchema)
 
-	var plutoImageLinkId int
-	err := h.DbPool.QueryRow(
+	_, err := h.DbPool.Exec(
 		ctx,
 		query,
-		plutoImageId,
+		plutoImageUuid,
 		context,
-		contextId,
+		contextUuid,
 		identifier,
-	).Scan(&plutoImageLinkId)
+	)
 
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return plutoImageId, nil
+	return nil
 }
 
-func ImageUrl(imageID int) string {
+func ImageUrl(imageUuid string) string {
 	return fmt.Sprintf(
-		"%s/api/image/%d",
+		"%s/api/image/%s",
 		app.UranusInstance.Config.BaseApiUrl,
-		imageID,
+		imageUuid,
 	)
 }

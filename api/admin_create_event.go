@@ -32,12 +32,12 @@ type eventPayload struct {
 	Subtitle          *string                           `json:"subtitle"`
 	Summary           *string                           `json:"summary"`
 	Tags              []string                          `json:"tags"`
-	SourceUrl         *string                           `json:"source_url"`
+	SourceLink        *string                           `json:"source_links"`
 	OnlineLink        *string                           `json:"online_link"`
-	OrganizationId    *int                              `json:"organization_id" binding:"required"`
-	OrganizationKey   *string                           `json:"organization_key" binding:"required"`
-	VenueId           *int                              `json:"venue_id"`
-	SpaceId           *int                              `json:"space_id"`
+	OrgUuid           *string                           `json:"org_id" binding:"required"`
+	OrgKey            *string                           `json:"org_key" binding:"required"`
+	VenueUuid         *string                           `json:"venue_id"`
+	SpaceUuid         *string                           `json:"space_id"`
 	ExternalId        *string                           `json:"external_id"`
 	ParticipationInfo *string                           `json:"participation_info"`
 	OccasionTypeId    *int                              `json:"occasion_type_id"`
@@ -60,7 +60,7 @@ type eventPayload struct {
 
 func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := h.userId(gc)
+	userUuid := h.userUuid(gc)
 	apiRequest := grains_api.NewRequest(gc, "create-event")
 
 	// TODO: Implement test mode without commit the transaction
@@ -157,25 +157,25 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		return
 	}
 
-	if payload.OrganizationId == nil {
+	if payload.OrgUuid == nil {
 		debugf("payload.OrganizationId == nil")
 		apiRequest.Error(http.StatusBadRequest, "organizationId is required")
 		return
 	}
 
-	var newEventId int
+	var newEventUuid string
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		txErr := h.CheckOrganizationAllPermissions(
-			gc, tx, userId, *payload.OrganizationId,
+			gc, tx, userUuid, *payload.OrgUuid,
 			app.PermChooseAsEventOrganization|app.PermAddEvent)
 		if txErr != nil {
 			return txErr
 		}
 
 		// Check if user can create an event in 'eventPayload.VenueId'
-		if payload.VenueId != nil {
-			venuePermissions, err := h.GetUserEffectiveVenuePermissions(gc, tx, userId, *payload.VenueId)
+		if payload.VenueUuid != nil {
+			venuePermissions, err := h.GetUserEffectiveVenuePermissionsTx(gc, tx, userUuid, *payload.VenueUuid)
 			if err != nil {
 				debugf("Error: %v", err)
 				return &ApiTxError{Code: http.StatusForbidden, Err: err}
@@ -206,9 +206,9 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 
 		err = tx.QueryRow(
 			ctx, query,
-			payload.OrganizationId,
-			payload.VenueId,
-			payload.SpaceId,
+			payload.OrgUuid,
+			payload.VenueUuid,
+			payload.SpaceUuid,
 			payload.ExternalId,
 			payload.ReleaseStatus,
 			payload.Categories,
@@ -217,12 +217,12 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			payload.Description,
 			payload.Summary,
 			payload.Languages,
-			userId,
-		).Scan(&newEventId)
+			userUuid,
+		).Scan(&newEventUuid)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusForbidden,
-				Err:  fmt.Errorf("failed to insert event: %v, userId: %d", err, userId),
+				Err:  fmt.Errorf("failed to insert event: %v, userUuid: %d", err, userUuid),
 			}
 		}
 
@@ -243,26 +243,26 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		query = strings.Replace(insertDateQuery, "{{schema}}", h.DbSchema, 1)
 
 		for _, d := range payload.Dates {
-			if d.VenueId != nil {
+			if d.VenueUuid != nil {
 				// Check if user can create an event in 'd.VenueId'
-				venuePermissions, err := h.GetUserEffectiveVenuePermissions(gc, tx, userId, *d.VenueId)
+				venuePermissions, err := h.GetUserEffectiveVenuePermissionsTx(gc, tx, userUuid, *d.VenueUuid)
 				if err != nil {
 					return &ApiTxError{Code: http.StatusInternalServerError, Err: err}
 				}
 				if !venuePermissions.Has(app.PermChooseVenue) {
-					debugf("Forbidden userId %d, venueId: %d", userId, *d.VenueId)
+					debugf("Forbidden userId %d, venueId: %d", userUuid, *d.VenueUuid)
 					return ApiErrForbidden("")
 				}
 
-				if d.SpaceId != nil {
-					spaceOK, err := h.IsSpaceInVenue(gc, tx, *d.SpaceId, *d.VenueId)
+				if d.SpaceUuid != nil {
+					spaceOK, err := h.IsSpaceInVenueTx(gc, tx, *d.SpaceUuid, *d.VenueUuid)
 					if err != nil {
 						return &ApiTxError{Code: http.StatusInternalServerError, Err: err}
 					}
 					if !spaceOK {
 						return &ApiTxError{
 							Code: http.StatusInternalServerError,
-							Err:  fmt.Errorf("invalid venue/space combination"),
+							Err:  errors.New("invalid venue/space combination"),
 						}
 					}
 				}
@@ -270,16 +270,16 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 
 			_, err = tx.Exec(
 				ctx, query,
-				newEventId,
-				d.VenueId,
-				d.SpaceId,
+				newEventUuid,
+				d.VenueUuid,
+				d.SpaceUuid,
 				d.StartDate,
 				d.StartTime,
 				d.EndDate,
 				d.EndTime,
 				d.EntryTime,
 				d.AllDay,
-				userId)
+				userUuid)
 			if err != nil {
 				debugf("Error: %v", err)
 				return &ApiTxError{
@@ -296,7 +296,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		query = strings.Replace(queryTemplate, "{{schema}}", h.DbSchema, 1)
 
 		for _, pair := range payload.TypeGenrePairs {
-			_, err := tx.Exec(ctx, query, newEventId, pair.TypeId, pair.GenreId)
+			_, err := tx.Exec(ctx, query, newEventUuid, pair.TypeId, pair.GenreId)
 			if err != nil {
 				return &ApiTxError{
 					Code: http.StatusInternalServerError,
@@ -308,7 +308,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		// TODO: Insert languages
 		// TODO: Insert tags
 
-		err = RefreshEventProjections(ctx, tx, "event", []int{newEventId})
+		err = RefreshEventProjections(ctx, tx, "event", []string{newEventUuid})
 		if err != nil {
 			debugf("Error: %v", err)
 			return &ApiTxError{
@@ -317,7 +317,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 			}
 		}
 
-		err = RefreshEventProjections(ctx, tx, "event", []int{newEventId})
+		err = RefreshEventProjections(ctx, tx, "event", []string{newEventUuid})
 		if err != nil {
 			debugf("Error: %v", err)
 			return &ApiTxError{
@@ -333,7 +333,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		return
 	}
 
-	apiRequest.Success(http.StatusCreated, gin.H{"created_event_id": newEventId}, "")
+	apiRequest.Success(http.StatusCreated, gin.H{"created_event_id": newEventUuid}, "")
 }
 
 // Validate validates the eventPayload struct
@@ -376,7 +376,7 @@ func (e *eventPayload) Validate() error {
 	}
 
 	// Validate SourceUrl (optional)
-	if err := app.ValidateOptionalUrl("source_url", e.SourceUrl); err != nil {
+	if err := app.ValidateOptionalUrl("source_link", e.SourceLink); err != nil {
 		errs = append(errs, err.Error())
 	}
 
@@ -386,9 +386,9 @@ func (e *eventPayload) Validate() error {
 	}
 
 	// Validate OrganizationId (permissons to use this will be checked in the actual sql)
-	if e.OrganizationId == nil {
+	if e.OrgUuid == nil {
 		errs = append(errs, "organization_id is required")
-	} else if *e.OrganizationId < 0 {
+	} else if *e.OrgUuid == "" {
 		errs = append(errs, "organization_id is invalid")
 	}
 
@@ -540,7 +540,7 @@ func (e *eventPayload) Validate() error {
 }
 
 func (e *eventPayload) hasVenue() bool {
-	return e.VenueId != nil
+	return e.VenueUuid != nil
 }
 
 func isBeforeToday(dateStr string) (bool, error) {

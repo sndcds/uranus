@@ -6,7 +6,7 @@ SET
     nonprofit = $5,
     contact_email = $6,
     contact_phone = $7,
-    website_link = $8,
+    web_link = $8,
     street = $9,
     house_number = $10,
     postal_code = $11,
@@ -14,6 +14,6 @@ SET
     country = $13,
     state = $14,
     address_addition = $15,
-    geo_pos = ST_SetSRID(ST_MakePoint($16, $17), 4326),
+    point = ST_SetSRID(ST_MakePoint($16, $17), 4326),
     modified_by = $18
-WHERE id = $1
+WHERE uuid = $1

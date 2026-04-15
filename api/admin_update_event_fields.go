@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -12,15 +13,15 @@ import (
 )
 
 func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
-	ctx := gc.Request.Context()
 	apiRequest := grains_api.NewRequest(gc, "admin-update-event-fields")
+	ctx := gc.Request.Context()
 
-	eventId, ok := ParamInt(gc, "eventId")
-	if !ok {
-		apiRequest.Error(http.StatusBadRequest, "eventId is required")
+	eventUuid := gc.Param("eventUuid")
+	if eventUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "eventUuid is required")
 		return
 	}
-	apiRequest.SetMeta("event_id", eventId)
+	apiRequest.SetMeta("event_uuid", eventUuid)
 
 	var payload struct {
 		ReleaseStatus     NullableField[string]   `json:"release_status"`
@@ -41,22 +42,17 @@ func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 		MaxPrice          NullableField[float64]  `json:"max_price"`
 		Currency          NullableField[string]   `json:"currency"`
 		TicketFlags       *[]string               `json:"ticket_flags"`
+		TicketLink        NullableField[string]   `json:"ticket_link"`
 		VisitorInfoFlags  NullableField[string]   `json:"visitor_info_flags"`
 	}
 
 	decoder := json.NewDecoder(gc.Request.Body)
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&payload); err != nil {
+		debugf(err.Error())
 		apiRequest.PayloadError()
 		return
 	}
-
-	/* Former version
-	if err := gc.ShouldBindJSON(&payload); err != nil {
-		apiRequest.PayloadError()
-		return
-	}
-	*/
 
 	setClauses := []string{}
 	args := []interface{}{}
@@ -80,6 +76,7 @@ func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 	argPos = addUpdateClauseNullable("max_price", payload.MaxPrice, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("currency", payload.Currency, &setClauses, &args, argPos)
 	argPos = addUpdateClauseStringSliceField("ticket_flags", payload.TicketFlags, &setClauses, &args, argPos)
+	argPos = addUpdateClauseNullable("ticket_link", payload.TicketLink, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("visitor_info_flags", payload.VisitorInfoFlags, &setClauses, &args, argPos)
 
 	if len(setClauses) == 0 {
@@ -88,13 +85,13 @@ func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 	}
 	apiRequest.SetMeta("field_count", len(setClauses))
 
-	query := fmt.Sprintf(`UPDATE %s.event SET %s WHERE id = $%d`,
+	query := fmt.Sprintf(`UPDATE %s.event SET %s WHERE uuid = $%d::uuid`,
 		h.DbSchema,
 		strings.Join(setClauses, ", "),
 		argPos, // Last placeholder is for WHERE id
 	)
 
-	args = append(args, eventId) // eventId is the last parameter
+	args = append(args, eventUuid) // eventId is the last parameter
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		res, err := tx.Exec(ctx, query, args...)
@@ -108,11 +105,11 @@ func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 		if res.RowsAffected() == 0 {
 			return &ApiTxError{
 				Code: http.StatusNotFound,
-				Err:  fmt.Errorf("event not found"),
+				Err:  errors.New("event not found"),
 			}
 		}
 
-		err = RefreshEventProjections(ctx, tx, "event", []int{eventId})
+		err = RefreshEventProjections(ctx, tx, "event", []string{eventUuid})
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
@@ -123,6 +120,7 @@ func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 		return nil
 	})
 	if txErr != nil {
+		debugf(txErr.Error())
 		apiRequest.DatabaseError()
 		return
 	}

@@ -11,8 +11,8 @@ import (
 )
 
 func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
-	ctx := gc.Request.Context()
 	apiRequest := grains_api.NewRequest(gc, "choosable-venues")
+	ctx := gc.Request.Context()
 
 	nameStr, _ := GetContextParam(gc, "name")
 	latStr, _ := GetContextParam(gc, "lat")
@@ -29,7 +29,7 @@ func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
 		return
 	}
 
-	argIndex, errBuild = sql_utils.BuildGeoRadiusCondition(lonStr, latStr, radiusStr, "geo_pos", argIndex, &conditions, &args)
+	argIndex, errBuild = sql_utils.BuildGeoRadiusCondition(lonStr, latStr, radiusStr, "point", argIndex, &conditions, &args)
 	if errBuild != nil {
 		apiRequest.InternalServerError()
 		return
@@ -37,24 +37,23 @@ func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
 
 	debugf("argIndex = %d", argIndex)
 	debugf("len(conditions) = %d", len(conditions))
-	query := fmt.Sprintf("SELECT id, name, city, state, country FROM %s.venue", h.DbSchema)
+	query := fmt.Sprintf("SELECT uuid, name, city, state, country FROM %s.venue", h.DbSchema)
 	if len(conditions) > 0 {
 		query += " WHERE " + strings.Join(conditions, " AND ")
 	}
 	query += " ORDER BY LOWER(name) ASC"
 
-	fmt.Println(query)
-
 	rows, err := h.DbPool.Query(ctx, query, args...)
 	if err != nil {
-		debugf("1")
+		debugf(err.Error())
 		apiRequest.DatabaseError()
 		return
 	}
 	defer rows.Close()
 
+	// TODO: Rename temp struct
 	type Venue struct {
-		Id      int64   `json:"id"`
+		Uuid    string  `json:"uuid"`
 		Name    *string `json:"name"`
 		City    *string `json:"city,omitempty"`
 		State   *string `json:"state,omitempty"`
@@ -66,7 +65,7 @@ func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
 	for rows.Next() {
 		var venue Venue
 		if err := rows.Scan(
-			&venue.Id,
+			&venue.Uuid,
 			&venue.Name,
 			&venue.City,
 			&venue.State,

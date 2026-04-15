@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -8,18 +9,19 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/grains/grains_api"
+	"github.com/sndcds/grains/grains_uuid"
 	"github.com/sndcds/uranus/app"
 )
 
 func (h *ApiHandler) AdminCreateSpace(gc *gin.Context) {
-	ctx := gc.Request.Context()
-	userId := h.userId(gc)
 	apiRequest := grains_api.NewRequest(gc, "admin-create-space")
+	ctx := gc.Request.Context()
+	userUuid := h.userUuid(gc)
 
 	type Payload struct {
-		OrganizationId int    `json:"organization_id" binding:"required"`
-		VenueId        int    `json:"venue_id" binding:"required"`
-		SpaceName      string `json:"space_name" binding:"required"`
+		OrgUuid   string `json:"org_uuid" binding:"required"`
+		VenueUuid string `json:"venue_uuid" binding:"required"`
+		SpaceName string `json:"space_name" binding:"required"`
 	}
 	payload, ok := grains_api.DecodeJSONBody[Payload](gc, apiRequest)
 	if !ok {
@@ -32,29 +34,28 @@ func (h *ApiHandler) AdminCreateSpace(gc *gin.Context) {
 		return
 	}
 
-	apiRequest.Metadata["prganization_id"] = payload.OrganizationId
-	apiRequest.Metadata["venue_id"] = payload.VenueId
+	apiRequest.Metadata["org_uuid"] = payload.OrgUuid
+	apiRequest.Metadata["venue_uuid"] = payload.VenueUuid
 	apiRequest.Metadata["space_name"] = spaceName
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-
 		txErr := h.CheckOrganizationAllPermissions(
-			gc, tx, userId, payload.OrganizationId,
+			gc, tx, userUuid, payload.OrgUuid,
 			app.PermAddSpace)
 		if txErr != nil {
 			return txErr
 		}
 
-		newSpaceId := -1
-		query := fmt.Sprintf(`INSERT INTO %s.space (venue_id, name) VALUES ($1, $2) RETURNING id`, h.DbSchema)
-		err := tx.QueryRow(ctx, query, payload.VenueId, spaceName).Scan(&newSpaceId)
+		spaceUuid, err := grains_uuid.Uuidv7String()
+		apiRequest.Metadata["space_uuid"] = spaceUuid
+		query := fmt.Sprintf(`INSERT INTO %s.space (uuid, venue_uuid, name) VALUES ($1::uuid, $2::uuid, $3)`, h.DbSchema)
+		_, err = tx.Exec(ctx, query, spaceUuid, payload.VenueUuid, spaceName)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
-				Err:  fmt.Errorf("Internal server error"),
+				Err:  errors.New("Internal server error"),
 			}
 		}
-		apiRequest.Metadata["space_id"] = newSpaceId
 		return nil
 	})
 	if txErr != nil {

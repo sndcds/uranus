@@ -9,19 +9,20 @@ import (
 )
 
 func (h *ApiHandler) GetOrganization(gc *gin.Context) {
-	ctx := gc.Request.Context()
 	apiRequest := grains_api.NewRequest(gc, "get-organization")
+	ctx := gc.Request.Context()
 
-	organizationId, ok := ParamInt(gc, "organizationId")
-	if !ok {
-		apiRequest.Error(http.StatusBadRequest, "organizationId is required")
+	orgUuid := gc.Param("orgUuid")
+	if orgUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "parameter orgUuid is required")
 		return
 	}
-	apiRequest.SetMeta("organizationId", organizationId)
+	apiRequest.SetMeta("org_uuid", orgUuid)
 
 	query := app.UranusInstance.SqlGetOrganization
-	rows, err := h.DbPool.Query(ctx, query, organizationId)
+	rows, err := h.DbPool.Query(ctx, query, orgUuid)
 	if err != nil {
+		debugf(err.Error())
 		apiRequest.InternalServerError()
 		return
 	}
@@ -35,6 +36,7 @@ func (h *ApiHandler) GetOrganization(gc *gin.Context) {
 	fieldDescriptions := rows.FieldDescriptions()
 	values, err := rows.Values()
 	if err != nil {
+		debugf(err.Error())
 		apiRequest.InternalServerError()
 		return
 	}

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
@@ -33,7 +34,7 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 
 	// Look up user
 	query := fmt.Sprintf(
-		"SELECT id FROM %s.user WHERE email_address = $1",
+		"SELECT id FROM %s.user WHERE email = $1",
 		h.DbSchema,
 	)
 
@@ -48,7 +49,7 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 	// Generate a token
 	token, err := generateResetToken()
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate token"})
 		return
 	}
 
@@ -61,7 +62,7 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 	expiryHour := 1
 	_, err = h.DbPool.Exec(ctx, query, userID, token, time.Now().Add(time.Duration(expiryHour)*time.Hour))
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save token"})
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save token"})
 		return
 	}
 
@@ -70,7 +71,7 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 	messageQuery := fmt.Sprintf(`SELECT subject, template FROM %s.system_email_template WHERE context = 'reset-email' AND iso_639_1 = $1`, h.DbSchema)
 	_, err = h.DbPool.Exec(gc, messageQuery, lang)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate email"})
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate email"})
 		return
 	}
 	var subject string
@@ -87,6 +88,7 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 	emailContent := strings.Replace(template, "{{link}}", resetUrl, -1)
 	emailContent = strings.Replace(emailContent, "{{expiry_hours}}", strconv.Itoa(expiryHour), -1)
 	go func() {
+		// TODO: Use sendEmailWithTimeout()
 		sendEmailErr := sendEmail(req.EmailAddress, subject, emailContent)
 		if sendEmailErr != nil {
 			gc.JSON(http.StatusBadRequest, gin.H{
@@ -131,7 +133,7 @@ func (h *ApiHandler) ResetPassword(gc *gin.Context) {
 	// Hash the password
 	hashed, err := app.EncryptPassword(req.NewPassword)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
 		return
 	}
 
@@ -144,7 +146,7 @@ func (h *ApiHandler) ResetPassword(gc *gin.Context) {
 
 	_, err = tx.Exec(ctx, updateUserQuery, hashed, userId)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password"})
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update password"})
 		return
 	}
 
@@ -152,7 +154,7 @@ func (h *ApiHandler) ResetPassword(gc *gin.Context) {
 	updateTokenQuery := fmt.Sprintf(`UPDATE %s.password_reset SET used = TRUE WHERE token = $1`, h.DbSchema)
 	_, err = tx.Exec(ctx, updateTokenQuery, req.Token)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to mark token used"})
+		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to mark token used"})
 		return
 	}
 
@@ -168,8 +170,27 @@ func generateResetToken() (string, error) {
 	return base64.URLEncoding.EncodeToString(b), nil
 }
 
+func sendEmailWithTimeout(to, subject, htmlContent string, timeout time.Duration) error {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	errCh := make(chan error, 1)
+
+	go func() {
+		errCh <- sendEmail(to, subject, htmlContent)
+	}()
+
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("send email timeout: %w", ctx.Err())
+
+	case err := <-errCh:
+		return err
+	}
+}
+
 func sendEmail(to, subject string, htmlContent string) error {
-	from := app.UranusInstance.Config.AuthReplyEmailAddress
+	from := app.UranusInstance.Config.AuthReplyEmail
 	userName := app.UranusInstance.Config.AuthSmtpLogin
 	password := app.UranusInstance.Config.AuthSmtpPassword
 	smtpHost := app.UranusInstance.Config.AuthSmtpHost

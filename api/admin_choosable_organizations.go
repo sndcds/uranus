@@ -11,13 +11,12 @@ import (
 // PermissionNote: Only returns choosable organizations for the authenticated user.
 // PermissionChecks: Unnecessary.
 // Verified: 2026-01-12, Roald
-
 func (h *ApiHandler) AdminGetChoosableOrganizations(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	userId := h.userId(gc)
+	userUuid := h.userUuid(gc)
 
 	query := app.UranusInstance.SqlAdminChoosableOrganizations
-	rows, err := h.DbPool.Query(ctx, query, userId)
+	rows, err := h.DbPool.Query(ctx, query, userUuid)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -25,7 +24,7 @@ func (h *ApiHandler) AdminGetChoosableOrganizations(gc *gin.Context) {
 	defer rows.Close()
 
 	type Organization struct {
-		Id   int64   `json:"id"`
+		Uuid string  `json:"uuid"`
 		Name *string `json:"name"`
 	}
 
@@ -33,7 +32,7 @@ func (h *ApiHandler) AdminGetChoosableOrganizations(gc *gin.Context) {
 
 	for rows.Next() {
 		var organization Organization
-		err := rows.Scan(&organization.Id, &organization.Name)
+		err := rows.Scan(&organization.Uuid, &organization.Name)
 		if err != nil {
 			fmt.Println(err.Error())
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

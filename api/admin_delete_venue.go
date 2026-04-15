@@ -9,27 +9,28 @@ import (
 )
 
 func (h *ApiHandler) AdminDeleteVenue(gc *gin.Context) {
-	ctx := gc.Request.Context()
-	userId := h.userId(gc)
 	apiRequest := grains_api.NewRequest(gc, "admin-delete-venue")
+	ctx := gc.Request.Context()
+	userUuid := h.userUuid(gc)
 
-	err := h.VerifyUserPassword(gc, userId)
+	err := h.VerifyUserPassword(gc, userUuid)
 	if err != nil {
 		apiRequest.Error(http.StatusUnauthorized, err.Error())
 		return
 	}
 
-	venueId, ok := ParamInt(gc, "venueId")
-	if !ok {
-		apiRequest.Error(http.StatusUnauthorized, "venueId is required")
+	venueUuid := gc.Param("venueUuid")
+	if venueUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "venueUuid is required")
 		return
 	}
-	apiRequest.SetMeta("venueId", venueId)
+	apiRequest.SetMeta("venue_uuid", venueUuid)
 
-	query := fmt.Sprintf(`DELETE FROM %s.venue WHERE id = $1`, h.DbSchema)
-	cmdTag, err := h.DbPool.Exec(ctx, query, venueId)
+	query := fmt.Sprintf(`DELETE FROM %s.venue WHERE uuid = $1::uuid`, h.DbSchema)
+	cmdTag, err := h.DbPool.Exec(ctx, query, venueUuid)
 	if err != nil {
-		apiRequest.Error(http.StatusInternalServerError, "failed to delete venue")
+		debugf(err.Error())
+		apiRequest.InternalServerError()
 		return
 	}
 

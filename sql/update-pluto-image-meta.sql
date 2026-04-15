@@ -7,4 +7,4 @@ SET
     description = $5,
     focus_x = $6,
     focus_y = $7
-WHERE id = $8
+WHERE uuid = $8

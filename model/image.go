@@ -1,7 +1,7 @@
 package model
 
 type Image struct {
-	Id                 int      `json:"id"`
+	Uuid               string   `json:"uuid"`
 	Identifier         string   `json:"identifier"`
 	Url                string   `json:"url"`
 	Alt                *string  `json:"alt,omitempty"`

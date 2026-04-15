@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -21,8 +22,8 @@ type eventType struct {
 
 // eventResponse is the JSON structure for each event
 type eventResponse struct {
-	EventDateId             int         `json:"event_date_id"`
-	Id                      int         `json:"id"` // event_id
+	Uuid                    string      `json:"uuid"`
+	DateUuid                string      `json:"date_uuid"`
 	Title                   string      `json:"title"`
 	Subtitle                *string     `json:"subtitle"`
 	StartDate               string      `json:"start_date"`
@@ -33,10 +34,10 @@ type eventResponse struct {
 	Duration                *int        `json:"duration,omitempty"`
 	AllDay                  *bool       `json:"all_day,omitempty"`
 	TicketLink              *string     `json:"ticket_link,omitempty"`
-	SpaceId                 *int        `json:"space_id,omitempty"`
+	SpaceUuid               *string     `json:"space_uuid,omitempty"`
 	SpaceName               *string     `json:"space_name,omitempty"`
 	SpaceAccessibilityFlags *string     `json:"space_accessibility_flags,omitempty"`
-	VenueId                 *int        `json:"venue_id,omitempty"`
+	VenueUuid               *string     `json:"venue_uuid,omitempty"`
 	VenueName               *string     `json:"venue_name,omitempty"`
 	VenueCity               *string     `json:"venue_city,omitempty"`
 	VenueStreet             *string     `json:"venue_street,omitempty"`
@@ -46,10 +47,10 @@ type eventResponse struct {
 	VenueCountry            *string     `json:"venue_country,omitempty"`
 	VenueLat                *float64    `json:"venue_lat,omitempty"`
 	VenueLon                *float64    `json:"venue_lon,omitempty"`
-	ImageId                 *int        `json:"image_id,omitempty"`
+	ImageUuid               *string     `json:"image_uuid,omitempty"`
 	ImagePath               *string     `json:"image_path,omitempty"`
-	OrganizationId          int         `json:"organization_id"`
-	OrganizationName        string      `json:"organization_name"`
+	OrgUuid                 string      `json:"org_uuid"`
+	OrgName                 string      `json:"org_name"`
 	Categories              []int       `json:"categories,omitempty"`
 	EventTypes              []eventType `json:"event_types,omitempty"`
 	Languages               []string    `json:"languages"`
@@ -58,6 +59,12 @@ type eventResponse struct {
 	MaxAge                  *int        `json:"max_age"`
 	VisitorInfoFlags        *string     `json:"visitor_info_flags,omitempty"`
 	ReleaseStatus           *string     `json:"release_status,omitempty"`
+}
+
+type eventsResponse struct {
+	Events            []eventResponse `json:"events"`
+	LastEventDateUuid *string         `json:"last_event_date_uuid"`
+	LastEventStartAt  *string         `json:"last_event_start_at"`
 }
 
 // buildEventFilters parses all query parameters from the context
@@ -77,38 +84,37 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 ) {
 
 	allowed := map[string]struct{}{
-		"categories": {}, "past": {}, "start": {}, "end": {}, "time": {}, "search": {},
+		"categories": {}, "start": {}, "end": {}, "time": {}, "search": {},
 		"events": {}, "venues": {}, "spaces": {}, "space_types": {},
 		"organizations": {}, "countries": {}, "postal_code": {},
 		"title": {}, "city": {}, "event_types": {}, "tags": {},
 		"accessibility": {}, "visitor_infos": {}, "age": {}, "price": {},
 		"lon": {}, "lat": {}, "radius": {}, "offset": {}, "limit": {},
-		"last_event_start_at": {}, "last_event_date_id": {},
+		"last_event_start_at": {}, "last_event_date_uuid": {},
 		"language": {},
 	}
 
 	validationErr := validateAllowedQueryParams(gc, allowed)
 	if validationErr != nil {
-		return "", "", "", nil, 0, fmt.Errorf(validationErr.Error())
+		return "", "", "", nil, 0, errors.New(validationErr.Error())
 	}
 	args = []interface{}{}
 	argIndex = 1
 	var conditions []string
 
-	_, hasPast := GetContextParam(gc, "past")
 	// languagesStr, _ := GetContextParam(gc, "language") // TODO: Implement language support!
 	categoriesStr, hasCategories := GetContextParam(gc, "categories")
 	startStr, _ := GetContextParam(gc, "start")
 	endStr, _ := GetContextParam(gc, "end")
 	lastEventStartAt, _ := GetContextParam(gc, "last_event_start_at")
-	lastEventDateId := GetContextParamIntDefault(gc, "last_event_date_id", 0)
+	lastEventDateUuid, _ := GetContextParam(gc, "last_event_date_uuid")
 	timeStr, _ := GetContextParam(gc, "time")
 	searchStr, _ := GetContextParam(gc, "search")
-	eventIdsStr, _ := GetContextParam(gc, "events")
-	venueIdsStr, _ := GetContextParam(gc, "venues")
-	spaceIdsStr, _ := GetContextParam(gc, "spaces")
+	eventUuidsStr, _ := GetContextParam(gc, "events")
+	venueUuidsStr, _ := GetContextParam(gc, "venues")
+	spaceUuidsStr, _ := GetContextParam(gc, "spaces")
 	spaceTypesStr, _ := GetContextParam(gc, "space_types")
-	organizationIdsStr, _ := GetContextParam(gc, "organizations")
+	orgUuidsStr, _ := GetContextParam(gc, "organizations")
 	countryCodesStr, _ := GetContextParam(gc, "countries")
 	postalCodeStr, _ := GetContextParam(gc, "postal_code")
 	titleStr, _ := GetContextParam(gc, "title")
@@ -144,7 +150,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 		dateConditionCount++
 	} else if startStr != "" {
 		return "", "", "", nil, 0, fmt.Errorf("start %s has invalid format", startStr)
-	} else if !hasPast {
+	} else {
 		dateConditions += "edp.event_start_at >= CURRENT_DATE"
 		dateConditionCount++
 	}
@@ -160,14 +166,17 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 		return "", "", "", nil, 0, fmt.Errorf("end %s has invalid format", endStr)
 	}
 
+	debugf("lastEventDateUuid: %s", lastEventDateUuid)
 	if lastEventStartAt != "" {
 		if dateConditionCount > 0 {
 			dateConditions += " AND "
 		}
-		dateConditions += "(edp.event_start_at, edp.event_date_id) > ($" + strconv.Itoa(argIndex) + "::timestamptz, $" + strconv.Itoa(argIndex+1) + "::int)"
-		args = append(args, lastEventStartAt, lastEventDateId)
+		dateConditions += "(edp.event_start_at, edp.event_date_uuid) > ($" + strconv.Itoa(argIndex) + "::timestamptz, $" + strconv.Itoa(argIndex+1) + "::uuid)"
+		args = append(args, lastEventStartAt, lastEventDateUuid)
 		argIndex += 2
 	}
+
+	debugf("dateConditions: %s", dateConditions)
 
 	// Other conditions
 	argIndex, errBuild = sql_utils.BuildTimeCondition(
@@ -220,33 +229,33 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 		return "", "", "", nil, 0, errBuild
 	}
 
-	if eventIdsStr != "" {
-		argIndex, errBuild = sql_utils.BuildColumnInIntCondition(
-			eventIdsStr, "edp.event_id", argIndex, &conditions, &args)
+	if eventUuidsStr != "" {
+		argIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
+			eventUuidsStr, "edp.event_uuid", argIndex, &conditions, &args)
 		if errBuild != nil {
 			return "", "", "", nil, 0, errBuild
 		}
 	}
 
-	if organizationIdsStr != "" {
-		argIndex, errBuild = sql_utils.BuildColumnInIntCondition(
-			organizationIdsStr, "ep.organization_id", argIndex, &conditions, &args)
+	if orgUuidsStr != "" {
+		argIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
+			orgUuidsStr, "ep.org_uuid", argIndex, &conditions, &args)
 		if errBuild != nil {
 			return "", "", "", nil, 0, errBuild
 		}
 	}
 
-	if venueIdsStr != "" {
-		argIndex, errBuild = sql_utils.BuildColumnInIntCondition(
-			venueIdsStr, "COALESCE(edp.venue_id, ep.venue_id)", argIndex, &conditions, &args)
+	if venueUuidsStr != "" {
+		argIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
+			venueUuidsStr, "COALESCE(edp.venue_uuid, ep.venue_uuid)", argIndex, &conditions, &args)
 		if errBuild != nil {
 			return "", "", "", nil, 0, errBuild
 		}
 	}
 
-	if spaceIdsStr != "" {
-		argIndex, errBuild = sql_utils.BuildColumnInIntCondition(
-			spaceIdsStr, "COALESCE(edp.space_id, ep.space_id)", argIndex, &conditions, &args)
+	if spaceUuidsStr != "" {
+		argIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
+			spaceUuidsStr, "COALESCE(edp.space_uuid, ep.space_uuid)", argIndex, &conditions, &args)
 		if errBuild != nil {
 			return "", "", "", nil, 0, errBuild
 		}
@@ -265,7 +274,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 
 	argIndex, errBuild = sql_utils.BuildGeoRadiusCondition(
 		lonStr, latStr, radiusStr,
-		"COALESCE(edp.venue_geo_pos, ep.venue_geo_pos)",
+		"COALESCE(edp.venue_point, ep.venue_point)",
 		argIndex, &conditions, &args)
 	if errBuild != nil {
 		return "", "", "", nil, 0, errBuild
@@ -338,11 +347,13 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 }
 
 func (h *ApiHandler) GetEvents(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "get-events")
 	ctx := gc.Request.Context()
 
 	dateConditions, conditionsStr, limitClause, args, _, err := h.buildEventFilters(gc)
 	if err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		debugf("buildEventFilters err: %v", err)
+		apiRequest.Error(http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -351,17 +362,15 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	query = strings.Replace(query, "{{conditions}}", conditionsStr, 1)
 	query = strings.Replace(query, "{{limit}}", limitClause, 1)
 
-	if true {
-		fmt.Println(query)
-		fmt.Printf("ARGS (%d):\n", len(args))
-		for i, arg := range args {
-			fmt.Printf("  $%d = %#v (type %T)\n", i+1, arg, arg)
-		}
+	debugf("query: %s", query)
+	for i, a := range args {
+		fmt.Printf("args[%d] = %#v\n", i, a)
 	}
 
 	rows, err := h.DbPool.Query(ctx, query, args...)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("query failed: %v", err)})
+		debugf(err.Error())
+		apiRequest.InternalServerError()
 		return
 	}
 	defer rows.Close()
@@ -372,11 +381,11 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		var e eventResponse
 		var typesJSON []byte
 		err := rows.Scan(
-			&e.EventDateId,
-			&e.Id,
-			&e.OrganizationId,
-			&e.VenueId,
-			&e.SpaceId,
+			&e.DateUuid,
+			&e.Uuid,
+			&e.OrgUuid,
+			&e.VenueUuid,
+			&e.SpaceUuid,
 			&e.StartDate,
 			&e.StartTime,
 			&e.EndDate,
@@ -392,8 +401,8 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			&typesJSON,
 			&e.Languages,
 			&e.Tags,
-			&e.OrganizationName,
-			&e.ImageId,
+			&e.OrgName,
+			&e.ImageUuid,
 			&e.VenueName,
 			&e.VenueCity,
 			&e.VenueStreet,
@@ -410,15 +419,18 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			&e.VisitorInfoFlags,
 		)
 		if err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("scan failed: %v", err)})
+			debugf(err.Error())
+			apiRequest.InternalServerError()
 			return
 		}
 
 		// Convert types JSON
 		var rawTypes [][]int
 		if len(typesJSON) > 0 {
-			if err := json.Unmarshal(typesJSON, &rawTypes); err != nil {
-				gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("json unmarshal failed (types): %v", err)})
+			err := json.Unmarshal(typesJSON, &rawTypes)
+			if err != nil {
+				debugf(err.Error())
+				apiRequest.InternalServerError()
 				return
 			}
 			e.EventTypes = make([]eventType, len(rawTypes))
@@ -432,8 +444,8 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			e.EventTypes = []eventType{}
 		}
 
-		if e.ImageId != nil {
-			path := ImageUrl(*e.ImageId)
+		if e.ImageUuid != nil {
+			path := ImageUrl(*e.ImageUuid)
 			e.ImagePath = &path
 		}
 
@@ -441,75 +453,87 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	}
 
 	if len(events) == 0 {
-		gc.JSON(http.StatusOK, gin.H{
-			"events":              []eventResponse{},
-			"last_event_start_at": nil,
-			"last_event_date_id":  nil,
-		})
+		response := eventsResponse{
+			Events:            events,
+			LastEventDateUuid: nil,
+			LastEventStartAt:  nil,
+		}
+		apiRequest.Success(http.StatusOK, response, "")
 		return
 	}
 
 	lastEvent := events[len(events)-1]
 	lastEventStartAt := lastEvent.StartDate + "T" + lastEvent.StartTime
-	lastEventDateId := lastEvent.EventDateId
+	lastEventDateUuid := lastEvent.DateUuid
+	response := eventsResponse{
+		Events:            events,
+		LastEventDateUuid: &lastEventDateUuid,
+		LastEventStartAt:  &lastEventStartAt,
+	}
 
-	gc.JSON(http.StatusOK, gin.H{
-		"events":              events,
-		"last_event_start_at": lastEventStartAt,
-		"last_event_date_id":  lastEventDateId,
-	})
+	apiRequest.Success(http.StatusOK, response, "")
 }
 
 func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "get-events-type-summary")
+
 	// Build filters from query params (same as GetEvents)
 	dateConditions, conditionsStr, _, args, _, err := h.buildEventFilters(gc)
 	if err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		apiRequest.Error(http.StatusBadRequest, "filter error")
 		return
 	}
 
 	// Construct final SQL
 	query := fmt.Sprintf(`
-SELECT
-    (elem->>0)::int AS type_id,
-    COUNT(edp.event_date_id) AS date_count
-FROM %s.event_date_projection edp
-JOIN %s.event_projection ep ON ep.event_id = edp.event_id
-CROSS JOIN LATERAL jsonb_array_elements(ep.types) AS elem
-WHERE ep.release_status IN ('released', 'cancelled', 'deferred', 'rescheduled')    
-AND {{date_conditions}}
-{{conditions}}
-GROUP BY type_id
-ORDER BY date_count DESC`,
+		SELECT type_id, COUNT(*) AS date_count
+		FROM (
+			SELECT edp.event_date_uuid, (elem->>0)::int AS type_id
+			FROM %s.event_date_projection edp
+			JOIN %s.event_projection ep ON ep.event_uuid = edp.event_uuid
+			CROSS JOIN LATERAL jsonb_array_elements(ep.types) AS elem
+			WHERE ep.release_status IN ('released', 'cancelled', 'deferred', 'rescheduled')
+			AND {{date_conditions}}
+			{{conditions}}
+			GROUP BY edp.event_date_uuid, (elem->>0)::int
+		) AS grouped
+		GROUP BY type_id
+		ORDER BY date_count DESC`,
 		h.DbSchema, h.DbSchema)
 
 	query = strings.Replace(query, "{{date_conditions}}", dateConditions, 1)
 	query = strings.Replace(query, "{{conditions}}", conditionsStr, 1)
-	// query = strings.Replace(query, "{{limit}}", limitClause, 1)
+
+	debugf(query)
 
 	rows, err := h.DbPool.Query(gc.Request.Context(), query, args...)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		debugf(err.Error())
+		apiRequest.InternalServerError()
 		return
 	}
 	defer rows.Close()
 
 	type summaryEntry struct {
-		TypeID    int `json:"type_id"`
-		DateCount int `json:"date_count"`
+		TypeId    int `json:"type_id"`
+		DateCount int `json:"count"`
 	}
 
 	var summary []summaryEntry
 	for rows.Next() {
 		var s summaryEntry
-		if err := rows.Scan(&s.TypeID, &s.DateCount); err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		err := rows.Scan(&s.TypeId, &s.DateCount)
+		if err != nil {
+			debugf(err.Error())
+			apiRequest.InternalServerError()
 			return
 		}
 		summary = append(summary, s)
 	}
 
-	gc.JSON(http.StatusOK, gin.H{"summary": summary})
+	apiRequest.Success(http.StatusOK, gin.H{
+		"summary": summary,
+	}, "")
 }
 
 func (h *ApiHandler) GetEventVenueSummary(gc *gin.Context) {
@@ -529,26 +553,26 @@ func (h *ApiHandler) GetEventVenueSummary(gc *gin.Context) {
 	}
 
 	query := fmt.Sprintf(`
-SELECT jsonb_agg(
-    jsonb_build_object(
-        'venue_id', venue_id,
-        'venue_name', venue_name,
-        'date_count', date_count
-    )
-    ORDER BY venue_name ASC
-) AS venues
-FROM (
-    SELECT
-        COALESCE(edp.venue_id, ep.venue_id) AS venue_id,
-        COALESCE(edp.venue_name, ep.venue_name) AS venue_name,
-        COUNT(edp.event_date_id) AS date_count
-    FROM %s.event_date_projection edp
-    JOIN %s.event_projection ep
-      ON ep.event_id = edp.event_id
-    WHERE %s
-    GROUP BY COALESCE(edp.venue_id, ep.venue_id),
-             COALESCE(edp.venue_name, ep.venue_name)
-) AS venue_counts`,
+		SELECT jsonb_agg(
+			jsonb_build_object(
+				'venue_uuid', venue_uuid,
+				'venue_name', venue_name,
+				'date_count', date_count
+			)
+			ORDER BY venue_name ASC
+		) AS venues
+		FROM (
+			SELECT
+				COALESCE(edp.venue_uuid, ep.venue_uuid) AS venue_uuid,
+				COALESCE(edp.venue_name, ep.venue_name) AS venue_name,
+				COUNT(edp.event_date_uuid) AS date_count
+			FROM %s.event_date_projection edp
+			JOIN %s.event_projection ep
+			  ON ep.event_uuid = edp.event_uuid
+			WHERE %s
+			GROUP BY COALESCE(edp.venue_uuid, ep.venue_uuid),
+					 COALESCE(edp.venue_name, ep.venue_name)
+		) AS venue_counts`,
 		h.DbSchema, h.DbSchema, strings.Join(conds, " AND "))
 
 	var jsonResult []byte
@@ -569,8 +593,8 @@ FROM (
 }
 
 func (h *ApiHandler) GetEventsGeoJSON(gc *gin.Context) {
-	ctx := gc.Request.Context()
 	apiRequest := grains_api.NewRequest(gc, "get-events-geojson")
+	ctx := gc.Request.Context()
 
 	// Build SQL
 	dateConditions, conditionsStr, limitClause, args, _, err := h.buildEventFilters(gc)
@@ -600,17 +624,17 @@ func (h *ApiHandler) GetEventsGeoJSON(gc *gin.Context) {
 
 	// Event scan type
 	type EventResponse struct {
-		EventDateId  int      `json:"event_date_id"`
-		EventId      int      `json:"event_id"`
-		VenueId      *int     `json:"venue_id"`
-		VenueName    *string  `json:"venue_name"`
-		VenueCity    *string  `json:"venue_city"`
-		VenueCountry *string  `json:"venue_country"`
-		VenueLat     *float64 `json:"venue_lat"`
-		VenueLon     *float64 `json:"venue_lon"`
-		Title        string   `json:"title"`
-		StartDate    string   `json:"start_date"`
-		StartTime    *string  `json:"start_time"`
+		EventDateUuid string   `json:"event_date_uuid"`
+		EventUuid     string   `json:"event_uuid"`
+		VenueUuid     *string  `json:"venue_uuid"`
+		VenueName     *string  `json:"venue_name"`
+		VenueCity     *string  `json:"venue_city"`
+		VenueCountry  *string  `json:"venue_country"`
+		VenueLat      *float64 `json:"venue_lat"`
+		VenueLon      *float64 `json:"venue_lon"`
+		Title         string   `json:"title"`
+		StartDate     string   `json:"start_date"`
+		StartTime     *string  `json:"start_time"`
 	}
 
 	type VenueEvents struct {
@@ -621,16 +645,16 @@ func (h *ApiHandler) GetEventsGeoJSON(gc *gin.Context) {
 		EventCount int             `json:"event_count"`
 	}
 
-	venues := make(map[int]*VenueEvents)
+	venues := make(map[string]*VenueEvents)
 
 	var events []EventResponse
 
 	for rows.Next() {
 		var e EventResponse
 		if err := rows.Scan(
-			&e.EventDateId,
-			&e.EventId,
-			&e.VenueId,
+			&e.EventDateUuid,
+			&e.EventUuid,
+			&e.VenueUuid,
 			&e.VenueName,
 			&e.VenueCity,
 			&e.VenueCountry,
@@ -648,14 +672,14 @@ func (h *ApiHandler) GetEventsGeoJSON(gc *gin.Context) {
 		events = append(events, e)
 
 		// Skip events without a venue
-		if e.VenueId == nil {
+		if e.VenueUuid == nil {
 			continue
 		}
 
-		if e.VenueId != nil {
-			vId := *e.VenueId
-			if _, exists := venues[vId]; !exists {
-				venues[vId] = &VenueEvents{
+		if e.VenueUuid != nil {
+			vUuid := *e.VenueUuid
+			if _, exists := venues[vUuid]; !exists {
+				venues[vUuid] = &VenueEvents{
 					Name:   derefString(e.VenueName, ""),
 					Lon:    e.VenueLon,
 					Lat:    e.VenueLat,
@@ -664,8 +688,8 @@ func (h *ApiHandler) GetEventsGeoJSON(gc *gin.Context) {
 				}
 			}
 
-			venues[vId].Events = append(venues[vId].Events, e)
-			venues[vId].EventCount = len(venues[vId].Events)
+			venues[vUuid].Events = append(venues[vUuid].Events, e)
+			venues[vUuid].EventCount = len(venues[vUuid].Events)
 		}
 	}
 
@@ -681,14 +705,14 @@ func (h *ApiHandler) GetEventsGeoJSON(gc *gin.Context) {
 	if lastEvent.StartTime != nil {
 		lastEventStartAt += "T" + *lastEvent.StartTime
 	}
-	lastEventDateId := lastEvent.EventDateId
+	lastEventDateUuid := lastEvent.EventDateUuid
 
 	apiRequest.Success(
 		http.StatusOK,
 		gin.H{
-			"venues":              venues,
-			"last_event_start_at": lastEventStartAt,
-			"last_event_date_id":  lastEventDateId,
+			"venues":               venues,
+			"last_event_start_at":  lastEventStartAt,
+			"last_event_date_uuid": lastEventDateUuid,
 		},
 		"",
 	)

@@ -10,15 +10,15 @@ import (
 )
 
 type upsertSpaceReq struct {
-	SpaceId              *int    `json:"space_id"`
-	VenueId              *int    `json:"venue_id"`
+	SpaceUuid            *string `json:"space_uuid"`
+	VenueUuid            *string `json:"venue_uuid"`
 	Name                 *string `json:"name"`
 	Description          *string `json:"description"`
-	SpaceTypeID          *int    `json:"space_type_id"`
+	SpaceTypeId          *int    `json:"space_type_id"`
 	BuildingLevel        *int    `json:"building_level"`
 	TotalCapacity        *int    `json:"total_capacity"`
 	SeatingCapacity      *int    `json:"seating_capacity"`
-	WebsiteLink          *string `json:"website_link"`
+	WebLink              *string `json:"web_link"`
 	AccessibilityFlags   *string `json:"accessibility_flags"` // Comes as string, as 64 bit int is not supported in JSON
 	AccessibilitySummary *string `json:"accessibility_summary"`
 }
@@ -32,7 +32,7 @@ func (h *ApiHandler) AdminUpsertSpace(gc *gin.Context) {
 		return
 	}
 
-	if req.SpaceId == nil && req.VenueId == nil {
+	if req.SpaceUuid == nil && req.VenueUuid == nil {
 		gc.JSON(
 			http.StatusBadRequest,
 			gin.H{"error": "venueId is required when creating a space"},
@@ -40,26 +40,26 @@ func (h *ApiHandler) AdminUpsertSpace(gc *gin.Context) {
 		return
 	}
 
-	var spaceId int
+	var spaceUuid string
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 
-		if req.SpaceId == nil {
+		if req.SpaceUuid == nil {
 			// Create
 			err := tx.QueryRow(
 				ctx,
 				app.UranusInstance.SqlInsertSpace,
-				req.VenueId,
+				req.VenueUuid,
 				req.Name,
 				req.Description,
-				req.SpaceTypeID,
+				req.SpaceTypeId,
 				req.BuildingLevel,
 				req.TotalCapacity,
 				req.SeatingCapacity,
-				req.WebsiteLink,
+				req.WebLink,
 				req.AccessibilityFlags,
 				req.AccessibilitySummary,
-			).Scan(&spaceId)
+			).Scan(&spaceUuid)
 
 			if err != nil {
 				return &ApiTxError{
@@ -70,19 +70,19 @@ func (h *ApiHandler) AdminUpsertSpace(gc *gin.Context) {
 
 		} else {
 			// Update
-			spaceId = *req.SpaceId
+			spaceUuid = *req.SpaceUuid
 
 			_, err := tx.Exec(
 				ctx,
 				app.UranusInstance.SqlUpdateSpace,
-				spaceId,
+				spaceUuid,
 				req.Name,
 				req.Description,
-				req.SpaceTypeID,
+				req.SpaceTypeId,
 				req.BuildingLevel,
 				req.TotalCapacity,
 				req.SeatingCapacity,
-				req.WebsiteLink,
+				req.WebLink,
 				req.AccessibilityFlags,
 				req.AccessibilitySummary,
 			)
@@ -95,7 +95,7 @@ func (h *ApiHandler) AdminUpsertSpace(gc *gin.Context) {
 			}
 		}
 
-		if err := RefreshEventProjections(ctx, tx, "space", []int{spaceId}); err != nil {
+		if err := RefreshEventProjections(ctx, tx, "space", []string{spaceUuid}); err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
 				Err:  fmt.Errorf("refresh projection tables failed: %w", err),
@@ -112,6 +112,6 @@ func (h *ApiHandler) AdminUpsertSpace(gc *gin.Context) {
 
 	gc.JSON(http.StatusOK, gin.H{
 		"message": "Space upserted successfully",
-		"id":      spaceId,
+		"uuid":    spaceUuid,
 	})
 }

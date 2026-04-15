@@ -11,17 +11,17 @@ import (
 
 // GetVenue returns a venue by Id with spaces and organization
 func (h *ApiHandler) GetVenue(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "admin-get-venue")
 	ctx := gc.Request.Context()
-	apiRequest := grains_api.NewRequest(gc, "ger-venue")
 
 	// Structs for nested data
 	type SpaceResult struct {
-		Id              int      `json:"id"`
+		Uuid            *string  `json:"uuid"`
 		Name            *string  `json:"name,omitempty"`
 		TotalCapacity   *int     `json:"total_capacity,omitempty"`
 		SeatingCapacity *int     `json:"seating_capacity,omitempty"`
 		BuildingLevel   *int     `json:"building_level,omitempty"`
-		WebsiteLink     *string  `json:"website_link,omitempty"`
+		WebLink         *string  `json:"web_link,omitempty"`
 		Description     *string  `json:"description,omitempty"`
 		AreaSqm         *float64 `json:"area_sqm,omitempty"`
 		SpaceType       *string  `json:"space_type,omitempty"`
@@ -30,15 +30,15 @@ func (h *ApiHandler) GetVenue(gc *gin.Context) {
 	}
 
 	type OrganizationResult struct {
-		Id          int     `json:"id"`
-		Name        *string `json:"name,omitempty"`
-		WebsiteLink *string `json:"website_link,omitempty"`
-		City        *string `json:"city,omitempty"`
-		Country     *string `json:"country,omitempty"`
+		Uuid    *string `json:"uuid"`
+		Name    *string `json:"name,omitempty"`
+		WebLink *string `json:"web_link,omitempty"`
+		City    *string `json:"city,omitempty"`
+		Country *string `json:"country,omitempty"`
 	}
 
 	type VenueResult struct {
-		Id                   int                 `json:"id"`
+		Uuid                 *string             `json:"id"`
 		Name                 *string             `json:"name,omitempty"`
 		Type                 *string             `json:"type,omitempty"`
 		TypeName             *string             `json:"type_name,omitempty"`
@@ -55,7 +55,7 @@ func (h *ApiHandler) GetVenue(gc *gin.Context) {
 		State                *string             `json:"state,omitempty"`
 		ContactEmail         *string             `json:"contact_email,omitempty"`
 		ContactPhone         *string             `json:"contact_phone,omitempty"`
-		WebsiteLink          *string             `json:"website_link,omitempty"`
+		WebLink              *string             `json:"web_link,omitempty"`
 		TicketLink           *string             `json:"ticket_link,omitempty"`
 		TicketInfo           *string             `json:"ticket_info,omitempty"`
 		Lon                  *float64            `json:"lon,omitempty"`
@@ -66,9 +66,9 @@ func (h *ApiHandler) GetVenue(gc *gin.Context) {
 		Spaces               []SpaceResult       `json:"spaces,omitempty"`
 	}
 
-	venueId, ok := ParamInt(gc, "venueId")
-	if !ok {
-		apiRequest.Error(http.StatusBadRequest, "venue Id is required")
+	venueUuid := gc.Param("venueUuid")
+	if venueUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "venueUuid is required")
 		return
 	}
 
@@ -77,7 +77,7 @@ func (h *ApiHandler) GetVenue(gc *gin.Context) {
 
 	query := app.UranusInstance.SqlGetVenue
 
-	row := h.DbPool.QueryRow(ctx, query, venueId, lang)
+	row := h.DbPool.QueryRow(ctx, query, venueUuid, lang)
 
 	// Temporary variables for SQL scan
 	var venue VenueResult
@@ -85,7 +85,7 @@ func (h *ApiHandler) GetVenue(gc *gin.Context) {
 	var spacesJSON []byte
 
 	err := row.Scan(
-		&venue.Id,
+		&venue.Uuid,
 		&venue.Name,
 		&venue.Type,
 		&venue.TypeName,
@@ -102,29 +102,29 @@ func (h *ApiHandler) GetVenue(gc *gin.Context) {
 		&venue.State,
 		&venue.ContactEmail,
 		&venue.ContactPhone,
-		&venue.WebsiteLink,
+		&venue.WebLink,
 		&venue.TicketLink,
 		&venue.TicketInfo,
 		&venue.Lon,
 		&venue.Lat,
 		&venue.AccessibilityFlags,
 		&venue.AccessibilitySummary,
-		&org.Id,
+		&org.Uuid,
 		&org.Name,
-		&org.WebsiteLink,
+		&org.WebLink,
 		&org.City,
 		&org.Country,
 		&spacesJSON,
 	)
 	if err != nil {
-		debugf("GetVenue error: %v", err)
+		debugf(err.Error())
 		apiRequest.SetMeta("err_code", "1001")
 		apiRequest.InternalServerError()
 		return
 	}
 
 	// Assign organization if any fields are non-nil
-	if org.Name != nil || org.WebsiteLink != nil || org.City != nil || org.Country != nil {
+	if org.Name != nil || org.WebLink != nil || org.City != nil || org.Country != nil {
 		venue.Organization = &org
 	}
 

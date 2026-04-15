@@ -8,24 +8,25 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/model"
 )
 
-// TODO: Code review
-
-func (h *ApiHandler) AdminGetTodos(gc *gin.Context) {
+func (h *ApiHandler) AdminUserGetTodos(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "admin-get-user-todos")
 	ctx := gc.Request.Context()
-	userId := h.userId(gc)
+	userUuid := h.userUuid(gc)
 
 	query := fmt.Sprintf(`
-    	SELECT id, title, description, due_date, completed
+    	SELECT id, title, description, due_date, completed, importance
     	FROM %s.todo
-    	WHERE user_id = $1
+    	WHERE user_uuid = $1
     	ORDER BY due_date IS NULL, due_date DESC, id DESC`,
 		h.DbSchema)
-	rows, err := h.DbPool.Query(ctx, query, userId)
+	rows, err := h.DbPool.Query(ctx, query, userUuid)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("query failed: %v", err)})
+		debugf(err.Error())
+		apiRequest.InternalServerError()
 		return
 	}
 	defer rows.Close()
@@ -34,118 +35,126 @@ func (h *ApiHandler) AdminGetTodos(gc *gin.Context) {
 
 	for rows.Next() {
 		var todo model.Todo
-		if err := rows.Scan(
+		err := rows.Scan(
 			&todo.Id,
 			&todo.Title,
 			&todo.Description,
 			&todo.DueDate,
 			&todo.Completed,
-		); err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("scan failed: %v", err)})
+			&todo.Importance,
+		)
+		if err != nil {
+			debugf(err.Error())
+			apiRequest.InternalServerError()
 			return
 		}
 		todos = append(todos, todo)
 	}
 
 	if rows.Err() != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("rows error: %v", rows.Err())})
+		debugf(rows.Err().Error())
+		apiRequest.InternalServerError()
 		return
 	}
 
-	gc.JSON(http.StatusOK, gin.H{
-		"todos":       todos,
-		"total_count": len(todos),
-	})
+	apiRequest.Success(http.StatusOK, gin.H{"todos": todos, "total_count": len(todos)}, "")
 }
 
 func (h *ApiHandler) AdminGetTodo(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "admin-get-user-todo")
 	ctx := gc.Request.Context()
-	userId := h.userId(gc)
+	userUuid := h.userUuid(gc)
 
 	todoId, ok := ParamInt(gc, "todoId")
 	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "tidiId is required"})
+		apiRequest.Error(http.StatusBadRequest, "todoId is required")
 		return
 	}
 
-	query := fmt.Sprintf(`SELECT id, title, description, due_date FROM %s.todo WHERE user_id = $1 AND id = $2`, h.DbSchema)
+	query := fmt.Sprintf(`SELECT id, title, description, due_date,completed, importance FROM %s.todo WHERE user_uuid = $1 AND id = $2`, h.DbSchema)
 	var todo model.Todo
-	err := h.DbPool.QueryRow(ctx, query, userId, todoId).Scan(
+	err := h.DbPool.QueryRow(ctx, query, userUuid, todoId).Scan(
 		&todo.Id,
 		&todo.Title,
 		&todo.Description,
 		&todo.DueDate,
+		&todo.Completed,
+		&todo.Importance,
 	)
 	if err != nil {
+		debugf(err.Error())
 		if err == pgx.ErrNoRows {
-			gc.JSON(http.StatusNotFound, gin.H{"error": "todo not found"})
+			apiRequest.Error(http.StatusNotFound, "todo not found")
 		} else {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("query failed: %v", err)})
+			apiRequest.InternalServerError()
 		}
 		return
 	}
 
-	gc.JSON(http.StatusOK, gin.H{"todo": todo})
+	apiRequest.Success(http.StatusOK, gin.H{"todo": todo}, "")
 }
 
 func (h *ApiHandler) AdminUpsertTodo(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "upsert-user-todo")
 	ctx := gc.Request.Context()
-	userId := h.userId(gc)
+	userUuid := h.userUuid(gc)
 
-	type Incoming struct {
+	var req struct {
 		Id          int     `json:"id"`
-		Completed   *bool   `json:"completed"`
 		Title       *string `json:"title"`
 		Description *string `json:"description"`
 		DueDate     *string `json:"due_date"`
+		Completed   *bool   `json:"completed"`
+		Importance  *string `json:"importance"`
 	}
 
-	var payload Incoming
-	if err := gc.ShouldBindJSON(&payload); err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := gc.ShouldBindJSON(&req); err != nil {
+		debugf(err.Error())
+		apiRequest.InvalidJSONInput()
 		return
 	}
 
 	// Parse due_date
 	var duePtr *time.Time
-	if payload.DueDate != nil && *payload.DueDate != "" {
-		t, err := time.Parse("2006-01-02", *payload.DueDate)
+	if req.DueDate != nil && *req.DueDate != "" {
+		t, err := time.Parse("2006-01-02", *req.DueDate)
 		if err != nil {
-			gc.JSON(http.StatusBadRequest, gin.H{"error": "invalid due_date format (YYYY-MM-DD)"})
+			apiRequest.Error(http.StatusBadRequest, "due_date_format_error")
+			return
+		}
+		if t.Before(time.Now()) {
+			apiRequest.Error(http.StatusBadRequest, "due_date_in_past_error")
 			return
 		}
 		duePtr = &t
 	}
 
 	// Insert a new entry
-	if payload.Id < 0 {
-		query := fmt.Sprintf(`
-			INSERT INTO %s.todo
-				(user_id, title, description, due_date, completed)
-			VALUES ($1, $2, $3, $4, $5)
-			RETURNING id
-		`, h.DbSchema)
+	if req.Id < 0 {
+		query := fmt.Sprintf(
+			`INSERT INTO %s.todo (user_uuid, title, description, due_date, completed, importance)
+			VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+			h.DbSchema)
 
-		var newId int
+		var newTodoId int
 		err := h.DbPool.QueryRow(
 			ctx,
 			query,
-			userId,
-			payload.Title,
-			payload.Description,
+			userUuid,
+			req.Title,
+			req.Description,
 			duePtr,
-			payload.Completed,
-		).Scan(&newId)
+			req.Completed,
+			req.Importance,
+		).Scan(&newTodoId)
 
 		if err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			debugf(err.Error())
+			apiRequest.InternalServerError()
 			return
 		}
 
-		gc.JSON(http.StatusOK, gin.H{
-			"message": "Todo created successfully",
-			"id":      newId,
-		})
+		apiRequest.SuccessNoData(http.StatusOK, "todo created successfully")
 		return
 	}
 
@@ -154,84 +163,88 @@ func (h *ApiHandler) AdminUpsertTodo(gc *gin.Context) {
 	args := []interface{}{}
 	argIdx := 1
 
-	if payload.Completed != nil {
-		setClauses = append(setClauses, fmt.Sprintf("completed = $%d", argIdx))
-		args = append(args, *payload.Completed)
-		argIdx++
-	}
-
-	if payload.Title != nil {
+	if req.Title != nil {
 		setClauses = append(setClauses, fmt.Sprintf("title = $%d", argIdx))
-		args = append(args, *payload.Title)
+		args = append(args, *req.Title)
 		argIdx++
 	}
 
-	if payload.Description != nil {
+	if req.Description != nil {
 		setClauses = append(setClauses, fmt.Sprintf("description = $%d", argIdx))
-		args = append(args, *payload.Description)
+		args = append(args, *req.Description)
 		argIdx++
 	}
 
-	if payload.DueDate != nil {
+	if req.DueDate != nil {
 		setClauses = append(setClauses, fmt.Sprintf("due_date = $%d", argIdx))
 		args = append(args, duePtr)
 		argIdx++
 	}
 
+	if req.Completed != nil {
+		setClauses = append(setClauses, fmt.Sprintf("completed = $%d", argIdx))
+		args = append(args, *req.Completed)
+		argIdx++
+	}
+
+	if req.Importance != nil {
+		setClauses = append(setClauses, fmt.Sprintf("importance = $%d", argIdx))
+		args = append(args, *req.Importance)
+		argIdx++
+	}
+
 	if len(setClauses) == 0 {
-		gc.JSON(http.StatusOK, gin.H{"message": "nothing to update"})
+		apiRequest.SuccessNoData(http.StatusOK, "nothing to update")
 		return
 	}
 
-	query := fmt.Sprintf(`
-		UPDATE %s.todo
-		SET %s
-		WHERE user_id = $%d AND id = $%d
-	`, h.DbSchema, strings.Join(setClauses, ", "), argIdx, argIdx+1)
+	query := fmt.Sprintf(
+		`UPDATE %s.todo SET %s WHERE user_uuid = $%d AND id = $%d`,
+		h.DbSchema,
+		strings.Join(setClauses, ", "),
+		argIdx, argIdx+1)
 
-	args = append(args, userId, payload.Id)
+	fmt.Println(query)
+	args = append(args, userUuid, req.Id)
 
 	cmdTag, err := h.DbPool.Exec(ctx, query, args...)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		debugf(err.Error())
+		apiRequest.InternalServerError()
 		return
 	}
 
 	if cmdTag.RowsAffected() == 0 {
-		gc.JSON(http.StatusNotFound, gin.H{"error": "todo not found"})
+		apiRequest.Error(http.StatusNotFound, "todo not found")
 		return
 	}
 
-	gc.JSON(http.StatusOK, gin.H{
-		"id":      payload.Id,
-		"message": "Todo updated successfully",
-	})
+	apiRequest.SuccessNoData(http.StatusOK, "todo updated successfully")
 }
 
 func (h *ApiHandler) AdminDeleteTodo(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "delete-todo")
 	ctx := gc.Request.Context()
-	userId := h.userId(gc)
+	userUuid := h.userUuid(gc)
 
-	todoId, ok := ParamInt(gc, "todoId")
-	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "tidiId is required"})
+	totoId, hasTodoId := ParamInt(gc, "todoId")
+	if !hasTodoId {
+		apiRequest.Error(http.StatusBadRequest, "todoId is required")
 		return
 	}
 
-	query := fmt.Sprintf(`DELETE FROM %s.todo WHERE user_id = $1 AND id = $2`, h.DbSchema)
-	cmdTag, err := h.DbPool.Exec(ctx, query, userId, todoId)
+	query := fmt.Sprintf(`DELETE FROM %s.todo WHERE user_uuid = $1 AND id = $2`, h.DbSchema)
+	cmdTag, err := h.DbPool.Exec(ctx, query, userUuid, totoId)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("delete failed: %v", err)})
+		debugf(err.Error())
+		apiRequest.InternalServerError()
 		return
 	}
 
 	if cmdTag.RowsAffected() == 0 {
-		gc.JSON(http.StatusNotFound, gin.H{"error": "todo not found"})
+		apiRequest.Error(http.StatusNotFound, "todo not found")
 		return
 	}
 
-	gc.JSON(http.StatusOK, gin.H{
-		"message": "Todo deleted successfully",
-		"id":      todoId,
-	})
+	apiRequest.SuccessNoData(http.StatusOK, "todo deleted successfully")
 }

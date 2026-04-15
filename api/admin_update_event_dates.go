@@ -7,24 +7,26 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/sndcds/grains/grains_api"
+	"github.com/sndcds/grains/grains_uuid"
 	"github.com/sndcds/uranus/app"
 )
 
 func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "admin-update-event-dates")
 	ctx := gc.Request.Context()
-	apiResponseType := "admin-update-event-dates"
-	userId := h.userId(gc)
+	userUuid := h.userUuid(gc)
 
-	eventId, ok := ParamInt(gc, "eventId")
-	if !ok {
-		JSONError(gc, apiResponseType, http.StatusBadRequest, "eventId is required")
+	eventUuid := gc.Param("eventUuid")
+	if eventUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "eventUuid is required")
 		return
 	}
 
 	type datePayload struct {
-		DateId    *int    `json:"id"`
-		VenueId   *int    `json:"venue_id"`
-		SpaceId   *int    `json:"space_id"`
+		DateUuid  *string `json:"uuid"`
+		VenueUuid *string `json:"venue_uuid"`
+		SpaceUuid *string `json:"space_uuid"`
 		StartDate string  `json:"start_date" binding:"required"`
 		StartTime string  `json:"start_time" binding:"required"`
 		EndDate   *string `json:"end_date"`
@@ -40,7 +42,7 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 	}
 
 	if err := gc.ShouldBindJSON(&wrapper); err != nil {
-		JSONError(gc, apiResponseType, http.StatusBadRequest, err.Error())
+		apiRequest.PayloadError()
 		return
 	}
 
@@ -49,48 +51,27 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 	// Validate required fields
 	for i, d := range payload {
 		if strings.TrimSpace(d.StartDate) == "" {
-			JSONError(gc, apiResponseType, http.StatusBadRequest,
-				fmt.Sprintf("start_date is required (index %d)", i))
+			apiRequest.Error(http.StatusBadRequest, fmt.Sprintf("start_date is required (index %d)", i))
 			return
 		}
 		if strings.TrimSpace(d.StartTime) == "" {
-			JSONError(gc, apiResponseType, http.StatusBadRequest,
-				fmt.Sprintf("start_time is required (index %d)", i))
+			apiRequest.Error(http.StatusBadRequest, fmt.Sprintf("start_time is required (index %d)", i))
 			return
 		}
 	}
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-		idsInPayload := []int{}
+		uuidsInPayload := []string{}
 		for _, d := range payload {
-			if d.DateId != nil {
-				idsInPayload = append(idsInPayload, *d.DateId)
+			if d.DateUuid != nil {
+				uuidsInPayload = append(uuidsInPayload, *d.DateUuid)
 			}
 		}
 
-		/*
-			if len(idsInPayload) == 0 {
-				// No Id´s, delete all dates for this event
-				query := fmt.Sprintf(`DELETE FROM %s.event_date WHERE event_id = $1`, h.DbSchema)
-				debugf("query: %s", query)
-				_, err := tx.Exec(ctx, query, eventId)
-				if err != nil {
-					debugf(err.Error())
-					return &ApiTxError{
-						Code: http.StatusInternalServerError,
-						Err:  fmt.Errorf("delete all event dates failed"),
-					}
-				}
-				return nil
-			}
-		*/
-
 		query := fmt.Sprintf(
-			`DELETE FROM %s.event_date WHERE event_id = $1 AND NOT (id = ANY($2::int[]))`,
+			`DELETE FROM %s.event_date WHERE event_uuid = $1::uuid AND NOT (uuid = ANY($2::uuid[]))`,
 			h.DbSchema)
-		debugf("query: %s", query)
-		debugf("idsInPayload: %s", idsInPayload)
-		_, err := tx.Exec(ctx, query, eventId, idsInPayload)
+		_, err := tx.Exec(ctx, query, eventUuid, uuidsInPayload)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
@@ -99,13 +80,13 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 		}
 
 		for _, d := range payload {
-			if d.DateId != nil {
+			if d.DateUuid != nil {
 				// UPDATE
 				_, err := tx.Exec(ctx, app.UranusInstance.SqlAdminUpdateEventDate,
-					*d.DateId,
-					eventId,
-					d.VenueId,
-					d.SpaceId,
+					*d.DateUuid,
+					eventUuid,
+					d.VenueUuid,
+					d.SpaceUuid,
 					d.StartDate,
 					d.StartTime,
 					d.EndDate,
@@ -113,10 +94,9 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 					d.EntryTime,
 					d.Duration,
 					d.AllDay,
-					userId,
+					userUuid,
 				)
 				if err != nil {
-					debugf("err: %v", err)
 					return &ApiTxError{
 						Code: http.StatusInternalServerError,
 						Err:  fmt.Errorf("update date failed: %w", err),
@@ -124,10 +104,18 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 				}
 			} else {
 				// INSERT
-				_, err := tx.Exec(ctx, app.UranusInstance.SqlAdminInsertEventDate,
-					eventId,
-					d.VenueId,
-					d.SpaceId,
+				eventDateUuid, err := grains_uuid.Uuidv7String()
+				if err != nil {
+					return &ApiTxError{
+						Code: http.StatusInternalServerError,
+						Err:  fmt.Errorf("failed to generate uuid: %v", err),
+					}
+				}
+				_, err = tx.Exec(ctx, app.UranusInstance.SqlAdminInsertEventDate,
+					eventDateUuid,
+					eventUuid,
+					d.VenueUuid,
+					d.SpaceUuid,
 					d.StartDate,
 					d.StartTime,
 					d.EndDate,
@@ -135,10 +123,9 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 					d.EntryTime,
 					d.Duration,
 					d.AllDay,
-					userId,
+					userUuid,
 				)
 				if err != nil {
-					debugf("err: %v", err)
 					return &ApiTxError{
 						Code: http.StatusInternalServerError,
 						Err:  fmt.Errorf("insert date failed: %w", err),
@@ -148,8 +135,8 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 		}
 
 		// Refresh projections
-		if err := RefreshEventProjections(ctx, tx, "event", []int{eventId}); err != nil {
-			debugf("err: %v", err)
+		err = RefreshEventProjections(ctx, tx, "event", []string{eventUuid})
+		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
 				Err:  fmt.Errorf("refresh projections failed: %w", err),
@@ -159,11 +146,12 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 		return nil
 	})
 	if txErr != nil {
-		JSONError(gc, apiResponseType, txErr.Code, txErr.Error())
+		debugf(txErr.Error())
+		apiRequest.Error(txErr.Code, txErr.Error())
 		return
 	}
 
-	JSONSuccessNoData(gc, apiResponseType)
+	apiRequest.SuccessNoData(http.StatusOK, "")
 }
 
 // Convert []int to []interface{} for pgx Exec

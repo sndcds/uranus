@@ -2,19 +2,21 @@ package api
 
 import (
 	"encoding/json"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
 )
 
 func (h *ApiHandler) GetEventTypeGenreLookup(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	apiResponseType := "event-type-genre-lookup"
+	apiRequest := grains_api.NewRequest(gc, "event-type-genre-lookup")
 
-	query := app.UranusInstance.SqlTypeGenreLookup
+	query := app.UranusInstance.SqlEventTypeGenreLookup
 	rows, err := h.DbPool.Query(ctx, query)
 	if err != nil {
-		JSONDatabaseError(gc, apiResponseType)
+		apiRequest.DatabaseError()
 		return
 	}
 	defer rows.Close()
@@ -31,7 +33,7 @@ func (h *ApiHandler) GetEventTypeGenreLookup(gc *gin.Context) {
 		)
 
 		if err := rows.Scan(&lang, &types); err != nil {
-			JSONDatabaseError(gc, apiResponseType)
+			apiRequest.DatabaseError()
 			return
 		}
 
@@ -46,9 +48,9 @@ func (h *ApiHandler) GetEventTypeGenreLookup(gc *gin.Context) {
 	}
 
 	if err := rows.Err(); err != nil {
-		JSONDatabaseError(gc, apiResponseType)
+		apiRequest.DatabaseError()
 		return
 	}
 
-	JSONSuccess(gc, apiResponseType, result, nil)
+	apiRequest.Success(http.StatusOK, result, "")
 }

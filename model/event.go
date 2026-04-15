@@ -42,8 +42,8 @@ type EventDatePayload struct {
 	EntryTime            *string `json:"entry_time,omitempty"`
 	AllDay               *bool   `json:"all_day,omitempty"`
 	Duration             *int    `json:"duration,omitempty"`
-	VenueId              *int    `json:"venue_id,omitempty"`
-	SpaceId              *int    `json:"space_id,omitempty"`
+	VenueUuid            *string `json:"venue_uuid,omitempty"`
+	SpaceUuid            *string `json:"space_uuid,omitempty"`
 	TicketLink           *string `json:"ticket_link,omitempty"`
 	AvailabilityStatusId *int    `json:"availability_status_id,omitempty"`
 	AccessibilityInfo    *string `json:"accessibility_info,omitempty"`
@@ -57,92 +57,102 @@ type EventType struct {
 	GenreName *string `json:"genre_name,omitempty"`
 }
 
-type EventVenueInfo struct {
-	VenueId   int64   `json:"venue_id"`
+type VenueInfo struct {
+	VenueUuid string  `json:"venue_uuid"`
 	VenueName *string `json:"venue_name"`
-	SpaceId   *int64  `json:"space_id"`
+	SpaceUuid *string `json:"space_uuid"`
 	SpaceName *string `json:"space_name"`
 	City      *string `json:"city"`
 	Country   *string `json:"country"`
 }
 
 type EventDate struct {
-	Id                         int      `json:"id"`
-	EventId                    int      `json:"event_id"`
-	EventReleaseStatus         string   `json:"release_status"`
-	StartDate                  string   `json:"start_date"`
-	StartTime                  string   `json:"start_time"`
-	EndDate                    *string  `json:"end_date,omitempty"`
-	EndTime                    *string  `json:"end_time,omitempty"`
-	EntryTime                  *string  `json:"entry_time,omitempty"`
-	Duration                   *int     `json:"duration,omitempty"`
-	VenueId                    *int     `json:"venue_id"`
-	VenueName                  *string  `json:"venue_name,omitempty"`
-	VenueStreet                *string  `json:"venue_street,omitempty"`
-	VenueHouseNumber           *string  `json:"venue_house_number,omitempty"`
-	VenuePostalCode            *string  `json:"venue_postal_code,omitempty"`
-	VenueCity                  *string  `json:"venue_city,omitempty"`
-	VenueCountry               *string  `json:"venue_country,omitempty"`
-	VenueState                 *string  `json:"venue_state,omitempty"`
-	VenueLon                   *float32 `json:"venue_lon,omitempty"`
-	VenueLat                   *float32 `json:"venue_lat,omitempty"`
-	VenueWebsiteUrl            *string  `json:"venue_website,omitempty"`
-	VenueLogoImageId           *int     `json:"venue_logo_id,omitempty"`
-	VenueLightThemeLogoImageId *int     `json:"venue_light_theme_logo_id,omitempty"`
-	VenueDarkThemeLogoImageId  *int     `json:"venue_dark_theme_logo_id,omitempty"`
-	VenueLogoUrl               *string  `json:"venue_logo_url,omitempty"`
-	VenueLightThemeLogoUrl     *string  `json:"venue_light_theme_logo_url,omitempty"`
-	VenueDarkThemeLogoUrl      *string  `json:"venue_dark_theme_logo_url,omitempty"`
-	SpaceId                    *int     `json:"space_id,omitempty"`
-	SpaceName                  *string  `json:"space_name,omitempty"`
-	SpaceWebsiteUrl            *string  `json:"space_website,omitempty"`
-	TotalCapacity              *int     `json:"total_capacity,omitempty"`
-	SeatingCapacity            *int     `json:"seating_capacity,omitempty"`
-	BuildingLevel              *int     `json:"building_level,omitempty"`
-	AccessibilityFlags         *string  `json:"accessibility_flags,omitempty"`
-	AccessibilitySummary       *string  `json:"accessibility_summary,omitempty"`
-	AccessibilityInfo          *string  `json:"accessibility_info,omitempty"`
+	Uuid                         string   `json:"uuid"`
+	EventUuid                    string   `json:"event_uuid"`
+	EventReleaseStatus           string   `json:"release_status"`
+	StartDate                    string   `json:"start_date"`
+	StartTime                    string   `json:"start_time"`
+	EndDate                      *string  `json:"end_date,omitempty"`
+	EndTime                      *string  `json:"end_time,omitempty"`
+	EntryTime                    *string  `json:"entry_time,omitempty"`
+	Duration                     *int     `json:"duration,omitempty"`
+	VenueUuid                    *string  `json:"venue_uuid"`
+	VenueName                    *string  `json:"venue_name,omitempty"`
+	VenueStreet                  *string  `json:"venue_street,omitempty"`
+	VenueHouseNumber             *string  `json:"venue_house_number,omitempty"`
+	VenuePostalCode              *string  `json:"venue_postal_code,omitempty"`
+	VenueCity                    *string  `json:"venue_city,omitempty"`
+	VenueCountry                 *string  `json:"venue_country,omitempty"`
+	VenueState                   *string  `json:"venue_state,omitempty"`
+	VenueLon                     *float32 `json:"venue_lon,omitempty"`
+	VenueLat                     *float32 `json:"venue_lat,omitempty"`
+	VenueWebLink                 *string  `json:"venue_web_link,omitempty"`
+	VenueLogoImageUuid           *string  `json:"venue_logo_uuid,omitempty"`
+	VenueLightThemeLogoImageUuid *string  `json:"venue_light_theme_logo_uuid,omitempty"`
+	VenueDarkThemeLogoImageUuid  *string  `json:"venue_dark_theme_logo_uuid,omitempty"`
+	VenueLogoUrl                 *string  `json:"venue_logo_url,omitempty"`
+	VenueLightThemeLogoUrl       *string  `json:"venue_light_theme_logo_url,omitempty"`
+	VenueDarkThemeLogoUrl        *string  `json:"venue_dark_theme_logo_url,omitempty"`
+	SpaceUuid                    *string  `json:"space_uuid,omitempty"`
+	SpaceName                    *string  `json:"space_name,omitempty"`
+	SpaceWebLink                 *string  `json:"space_web_link,omitempty"`
+	TotalCapacity                *int     `json:"total_capacity,omitempty"`
+	SeatingCapacity              *int     `json:"seating_capacity,omitempty"`
+	BuildingLevel                *int     `json:"building_level,omitempty"`
+	AccessibilityFlags           *string  `json:"accessibility_flags,omitempty"`
+	AccessibilitySummary         *string  `json:"accessibility_summary,omitempty"`
+	AccessibilityInfo            *string  `json:"accessibility_info,omitempty"`
+}
+
+type EventOrgLogo struct {
+	UUID string `json:"uuid"`
+	URL  string `json:"url"`
 }
 
 type EventDetails struct {
-	Id                int         `json:"id"`
-	ReleaseStatus     *string     `json:"release_status,omitempty"`
-	Title             string      `json:"title"`
-	Subtitle          *string     `json:"subtitle,omitempty"`
-	Description       *string     `json:"description,omitempty"`
-	Summary           *string     `json:"summary,omitempty"`
-	Languages         []string    `json:"languages,omitempty"`
-	Tags              []string    `json:"tags,omitempty"`
-	OrganizationId    int         `json:"organization_id"`
-	OrganizationName  string      `json:"organization_name"`
-	OrganizationUrl   *string     `json:"organization_website,omitempty"`
-	Image             *Image      `json:"image,omitempty"`       // nested struct for the JSON image
-	EventTypes        []EventType `json:"event_types,omitempty"` // typed slice
-	EventLinks        []WebLink   `json:"event_links,omitempty"` // typed slice
-	Date              *EventDate  `json:"date,omitempty"`
-	FurtherDates      []EventDate `json:"further_dates,omitempty"`
-	MaxAttendees      *int        `json:"max_attendees,omitempty"`
-	MinAge            *int        `json:"min_age,omitempty"`
-	MaxAge            *int        `json:"max_age,omitempty"`
-	Currency          *string     `json:"currency,omitempty"`
-	PriceType         *string     `json:"price_type,omitempty"`
-	MinPrice          *float64    `json:"min_price,omitempty"`
-	MaxPrice          *float64    `json:"max_price,omitempty"`
-	VisitorInfoFlags  *string     `json:"visitor_info_flags,omitempty"`
-	ParticipationInfo *string     `json:"participation_info,omitempty"`
-	MeetingPoint      *string     `json:"meeting_point,omitempty"`
+	Uuid              string                  `json:"uuid"`
+	ReleaseStatus     *string                 `json:"release_status,omitempty"`
+	ContentLanguage   *string                 `json:"content_language,omitempty"`
+	Title             string                  `json:"title"`
+	Subtitle          *string                 `json:"subtitle,omitempty"`
+	Description       *string                 `json:"description,omitempty"`
+	Summary           *string                 `json:"summary,omitempty"`
+	Languages         []string                `json:"languages,omitempty"`
+	Tags              []string                `json:"tags,omitempty"`
+	OrgUuid           string                  `json:"org_uuid"`
+	OrgName           string                  `json:"org_name"`
+	OrgWebLink        *string                 `json:"org_web_link,omitempty"`
+	OrgLogos          map[string]EventOrgLogo `json:"org_logos"`
+	Image             *Image                  `json:"image,omitempty"`       // nested struct for the JSON image
+	EventTypes        []EventType             `json:"event_types,omitempty"` // typed slice
+	EventLinks        []WebLink               `json:"event_links,omitempty"` // typed slice
+	Date              *EventDate              `json:"date,omitempty"`
+	FurtherDates      []EventDate             `json:"further_dates,omitempty"`
+	MaxAttendees      *int                    `json:"max_attendees,omitempty"`
+	MinAge            *int                    `json:"min_age,omitempty"`
+	MaxAge            *int                    `json:"max_age,omitempty"`
+	Currency          *string                 `json:"currency,omitempty"`
+	PriceType         *string                 `json:"price_type,omitempty"`
+	MinPrice          *float64                `json:"min_price,omitempty"`
+	MaxPrice          *float64                `json:"max_price,omitempty"`
+	TicketFlags       []string                `json:"ticket_flags,omitempty"`
+	TicketLink        *string                 `json:"ticket_link,omitempty"`
+	VisitorInfoFlags  *string                 `json:"visitor_info_flags,omitempty"`
+	ParticipationInfo *string                 `json:"participation_info,omitempty"`
+	MeetingPoint      *string                 `json:"meeting_point,omitempty"`
+	OnlineLink        *string                 `json:"online_link,omitempty"`
 }
 
 type AdminEvent struct {
-	Id                   int              `json:"id"`
+	Uuid                 string           `json:"uuid"`
 	ExternalId           *string          `json:"external_id,omitempty"`
-	SourceUrl            *string          `json:"source_url,omitempty"`
+	SourceLink           *string          `json:"source_link,omitempty"`
 	ReleaseStatus        string           `json:"release_status"`
 	ReleaseDate          *string          `json:"release_date,omitempty"`
 	Categories           []int            `json:"categories,omitempty"`
 	ContentLanguage      *string          `json:"content_language,omitempty"`
-	OrganizationId       int              `json:"organization_id"`
-	OrganizationName     string           `json:"organization_name"`
+	OrgUuid              string           `json:"org_uuid"`
+	OrgName              string           `json:"org_name"`
 	Title                string           `json:"title"`
 	Subtitle             *string          `json:"subtitle,omitempty"`
 	Description          *string          `json:"description,omitempty"`
@@ -151,7 +161,7 @@ type AdminEvent struct {
 	EventLinks           []WebLink        `json:"event_links,omitempty"`
 	Tags                 []string         `json:"tags,omitempty"`
 	OccasionType         *int             `json:"occasion_type,omitempty"`
-	VenueId              *int             `json:"venue_id,omitempty"`
+	VenueUuid            *string          `json:"venue_uuid,omitempty"`
 	VenueName            *string          `json:"venue_name,omitempty"`
 	VenueStreet          *string          `json:"venue_street,omitempty"`
 	VenueHouseNumber     *string          `json:"venue_house_number,omitempty"`
@@ -161,7 +171,7 @@ type AdminEvent struct {
 	VenueState           *string          `json:"venue_state,omitempty"`
 	VenueLon             *float64         `json:"venue_lon,omitempty"`
 	VenueLat             *float64         `json:"venue_lat,omitempty"`
-	SpaceId              *int             `json:"space_id,omitempty"`
+	SpaceUuid            *string          `json:"space_uuid,omitempty"`
 	SpaceName            *string          `json:"space_name,omitempty"`
 	SpaceTotalCapacity   *int             `json:"space_total_capacity,omitempty"`
 	SpaceSeatingCapacity *int             `json:"space_seating_capacity,omitempty"`
@@ -177,6 +187,7 @@ type AdminEvent struct {
 	MinPrice             *float64         `json:"min_price,omitempty"`
 	MaxPrice             *float64         `json:"max_price,omitempty"`
 	TicketFlags          []string         `json:"ticket_flags,omitempty"`
+	TicketLink           *string          `json:"ticket_link,omitempty"`
 	Currency             *string          `json:"currency,omitempty"`
 	CurrencyName         *string          `json:"currency_name,omitempty"`
 	VisitorInfoFlags     *string          `json:"visitor_info_flags,omitempty"`
@@ -187,8 +198,8 @@ type AdminEvent struct {
 }
 
 type AdminEventDate struct {
-	Id                   int      `json:"id"`
-	EventId              int      `json:"event_id"`
+	Uuid                 string   `json:"uuid"`
+	EventUuid            string   `json:"event_uuid"`
 	StartDate            *string  `json:"start_date,omitempty"`
 	StartTime            *string  `json:"start_time,omitempty"`
 	EndDate              *string  `json:"end_date,omitempty"`
@@ -197,7 +208,7 @@ type AdminEventDate struct {
 	Duration             *int64   `json:"duration,omitempty"`
 	AllDay               *bool    `json:"all_day,omitempty"`
 	AccessibilityInfo    *string  `json:"accessibility_info,omitempty"`
-	VenueId              *int     `json:"venue_id,omitempty"`
+	VenueUuid            *string  `json:"venue_uuid,omitempty"`
 	VenueName            *string  `json:"venue_name,omitempty"`
 	VenueStreet          *string  `json:"venue_street,omitempty"`
 	VenueHouseNumber     *string  `json:"venue_house_number,omitempty"`
@@ -208,7 +219,7 @@ type AdminEventDate struct {
 	VenueLon             *float64 `json:"venue_lon,omitempty"`
 	VenueLat             *float64 `json:"venue_lat,omitempty"`
 	VenueLink            *string  `json:"venue_link,omitempty"`
-	SpaceId              *int     `json:"space_id,omitempty"`
+	SpaceUuid            *string  `json:"space_uuid,omitempty"`
 	SpaceName            *string  `json:"space_name,omitempty"`
 	SpaceTotalCapacity   *int     `json:"space_total_capacity,omitempty"`
 	SpaceSeatingCapacity *int     `json:"space_seating_capacity,omitempty"`
@@ -217,39 +228,40 @@ type AdminEventDate struct {
 }
 
 type AdminListEvent struct {
-	Id               int         `json:"id"`
-	DateId           *int        `json:"date_id"`
-	ReleaseStatus    *string     `json:"release_status"`
-	ReleaseDate      *string     `json:"release_date,omitempty"`
-	Categories       *[]int      `json:"categories,omitempty"`
-	CanEditEvent     bool        `json:"can_edit_event"`
-	CanDeleteEvent   bool        `json:"can_delete_event"`
-	CanReleaseEvent  bool        `json:"can_release_event"`
-	OrganizationId   int         `json:"organization_id"`
-	OrganizationName *string     `json:"organization_name"`
-	VenueId          *int        `json:"venue_id,omitempty"`
-	VenueName        *string     `json:"venue_name,omitempty"`
-	SpaceId          *int        `json:"space_id,omitempty"`
-	SpaceName        *string     `json:"space_name,omitempty"`
-	ImageId          *int        `json:"image_id,omitempty"`
-	ImageUrl         *string     `json:"image_url,omitempty"`
-	SeriesIndex      int         `json:"series_index,omitempty"`
-	SeriesTotal      int         `json:"series_total,omitempty"`
-	StartDate        *string     `json:"start_date"`
-	StartTime        *string     `json:"start_time"`
-	EndDate          *string     `json:"end_date,omitempty"`
-	EndTime          *string     `json:"end_time,omitempty"`
-	Title            string      `json:"title"`
-	Subtitle         *string     `json:"subtitle,omitempty"`
-	EventTypes       []EventType `json:"event_types,omitempty"`
+	Uuid                 string      `json:"uuid"`
+	DateUuid             *string     `json:"date_uuid"`
+	ReleaseStatus        *string     `json:"release_status"`
+	ReleaseDate          *string     `json:"release_date,omitempty"`
+	Categories           *[]int      `json:"categories,omitempty"`
+	CanEditEvent         bool        `json:"can_edit_event"`
+	CanDeleteEvent       bool        `json:"can_delete_event"`
+	CanReleaseEvent      bool        `json:"can_release_event"`
+	CanViewEventInsights bool        `json:"can_view_event_insights"`
+	OrgUuid              string      `json:"org_uuid"`
+	OrgName              *string     `json:"org_name"`
+	VenueUuid            *string     `json:"venue_uuid,omitempty"`
+	VenueName            *string     `json:"venue_name,omitempty"`
+	SpaceUuid            *string     `json:"space_uuid,omitempty"`
+	SpaceName            *string     `json:"space_name,omitempty"`
+	ImageUuid            *string     `json:"image_uuid,omitempty"`
+	ImageUrl             *string     `json:"image_url,omitempty"`
+	SeriesIndex          int         `json:"series_index,omitempty"`
+	SeriesTotal          int         `json:"series_total,omitempty"`
+	StartDate            *string     `json:"start_date"`
+	StartTime            *string     `json:"start_time"`
+	EndDate              *string     `json:"end_date,omitempty"`
+	EndTime              *string     `json:"end_time,omitempty"`
+	Title                string      `json:"title"`
+	Subtitle             *string     `json:"subtitle,omitempty"`
+	EventTypes           []EventType `json:"event_types,omitempty"`
 }
 
 // UserEventNotification contains a single event notification
 type UserEventNotification struct {
-	EventId           int        `json:"event_id"`
+	EventUuid         string     `json:"event_uuid"`
 	EventTitle        string     `json:"event_title"`
-	OrganizationId    int        `json:"organization_id"`
-	OrganizationName  *string    `json:"organization_name,omitempty"`
+	OrgUuid           string     `json:"org_uuid"`
+	OrgName           *string    `json:"org_name,omitempty"`
 	ReleaseDate       *time.Time `json:"release_date,omitempty"`
 	ReleaseStatus     string     `json:"release_status"`
 	EarliestEventDate *time.Time `json:"earliest_event_date,omitempty"`

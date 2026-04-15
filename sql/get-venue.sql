@@ -1,5 +1,5 @@
 SELECT
-    v.id,
+    v.uuid,
     v.name,
     v.type,
     vti.name AS type_name,
@@ -16,42 +16,42 @@ SELECT
     v.state,
     v.contact_email,
     v.contact_phone,
-    v.website_link,
+    v.web_link,
     v.ticket_link,
     v.ticket_info,
-    ST_X(v.geo_pos) AS lon,
-    ST_Y(v.geo_pos) AS lat,
+    ST_X(v.point) AS lon,
+    ST_Y(v.point) AS lat,
     v.accessibility_flags,
     v.accessibility_summary,
-    v.organization_id,
+    v.org_uuid,
 
     o.name AS org_name,
-    o.website_link AS org_website_link,
+    o.web_link AS org_web_link,
     o.city AS org_city,
     o.country AS org_country,
 
     COALESCE(
             json_agg(
                     json_build_object(
-                            'id', s.id,
+                            'uuid', s.uuid,
                             'name', s.name,
                             'total_capacity', s.total_capacity,
                             'seating_capacity', s.seating_capacity,
                             'building_level', s.building_level,
-                            'website_link', s.website_link,
+                            'web_link', s.web_link,
                             'description', s.description,
                             'area_sqm', s.area_sqm,
                             'space_type', s.space_type,
                             'space_type_name', sti.name,
                             'space_type_description', sti.description
                     )
-            ) FILTER (WHERE s.id IS NOT NULL),
+            ) FILTER (WHERE s.uuid IS NOT NULL),
             '[]'
     ) AS spaces
 
 FROM {{schema}}.venue v
-LEFT JOIN {{schema}}.organization o ON o.id = v.organization_id
-LEFT JOIN {{schema}}.space s ON s.venue_id = v.id
+LEFT JOIN {{schema}}.organization o ON o.uuid = v.org_uuid
+LEFT JOIN {{schema}}.space s ON s.venue_uuid = v.uuid
 
 LEFT JOIN {{schema}}.venue_type vt ON vt.key = v.type
 LEFT JOIN {{schema}}.venue_type_i18n vti
@@ -65,7 +65,7 @@ AND sti.iso_639_1 = $2
 
 WHERE v.id = $1
 GROUP BY
-    v.id,
-    o.id,
+    v.uuid,
+    o.uuid,
     vti.name,
     vti.description

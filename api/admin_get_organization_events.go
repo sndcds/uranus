@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
 	"github.com/sndcds/uranus/model"
 )
@@ -21,18 +22,18 @@ import (
 // Verified: 2026-01-12, Roald
 
 func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "get-user-organization-event-list")
 	ctx := gc.Request.Context()
-	userId := h.userId(gc)
-	apiResponseType := "user-organization-event-list"
+	userUuid := h.userUuid(gc)
 
-	organizationId, ok := ParamInt(gc, "organizationId")
-	if !ok {
-		JSONError(gc, apiResponseType, http.StatusBadRequest, "invalid organizationId")
+	orgUuid := gc.Param("orgUuid")
+	if orgUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "invalid orgUuid")
 		return
 	}
 
 	var events []model.AdminListEvent
-	var organizationPermissions app.Permission
+	var orgPermissions app.Permission
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		var err error
@@ -47,7 +48,7 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 			startDate = time.Now()
 		}
 
-		rows, err := tx.Query(ctx, app.UranusInstance.SqlAdminGetOrganizationEvents, organizationId, startDate, userId)
+		rows, err := tx.Query(ctx, app.UranusInstance.SqlAdminGetOrganizationEvents, orgUuid, startDate, userUuid)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
@@ -61,12 +62,12 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 		for rows.Next() {
 			var e model.AdminListEvent
 			err := rows.Scan(
-				&e.Id,
-				&e.DateId,
+				&e.Uuid,
+				&e.DateUuid,
 				&e.Title,
 				&e.Subtitle,
-				&e.OrganizationId,
-				&e.OrganizationName,
+				&e.OrgUuid,
+				&e.OrgName,
 				&e.StartDate,
 				&e.StartTime,
 				&e.EndDate,
@@ -74,16 +75,17 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 				&e.ReleaseStatus,
 				&e.ReleaseDate,
 				&e.Categories,
-				&e.VenueId,
+				&e.VenueUuid,
 				&e.VenueName,
-				&e.SpaceId,
+				&e.SpaceUuid,
 				&e.SpaceName,
-				&e.ImageId,
+				&e.ImageUuid,
 				&e.ImageUrl,
 				&eventTypesData,
 				&e.CanEditEvent,
 				&e.CanDeleteEvent,
 				&e.CanReleaseEvent,
+				&e.CanViewEventInsights,
 				&e.SeriesIndex,
 				&e.SeriesTotal,
 			)
@@ -99,7 +101,7 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 			events = append(events, e)
 		}
 
-		organizationPermissions, err = h.GetUserOrganizationPermissions(gc, tx, userId, organizationId)
+		orgPermissions, err = h.GetUserOrganizationPermissionsTx(gc, tx, userUuid, orgUuid)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
@@ -110,16 +112,12 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 		return nil
 	})
 	if txErr != nil {
-		debugf("API %s error: %s", apiResponseType, txErr.Error())
-		JSONError(gc, apiResponseType, http.StatusBadRequest, "transaction failed")
+		apiRequest.Error(txErr.Code, txErr.Error())
 		return
 	}
 
-	canAddEvent := organizationPermissions.Has(app.PermAddEvent)
-	metadata := map[string]interface{}{
-		"can_add_event": canAddEvent,
-		"total_events":  len(events),
-	}
-
-	JSONSuccess(gc, apiResponseType, events, metadata)
+	canAddEvent := orgPermissions.Has(app.PermAddEvent)
+	apiRequest.SetMeta("can_add_event", canAddEvent)
+	apiRequest.SetMeta("total_events", len(events))
+	apiRequest.Success(http.StatusOK, events, "")
 }

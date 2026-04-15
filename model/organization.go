@@ -3,10 +3,9 @@ package model
 import "time"
 
 type OrganizationMember struct {
-	MemberId     int        `json:"member_id"`
-	UserId       int        `json:"user_id"`
+	UserUuid     string     `json:"user_uuid"`
 	Email        string     `json:"email"`
-	UserName     *string    `json:"user_name"`
+	Username     *string    `json:"username"`
 	DisplayName  *string    `json:"display_name"`
 	AvatarUrl    *string    `json:"avatar_url"`
 	LastActiveAt *time.Time `json:"last_active_at"`
@@ -14,39 +13,41 @@ type OrganizationMember struct {
 }
 
 type InvitedOrganizationMember struct {
-	UserID    int       `json:"user_id"`
+	UserUuid  string    `json:"user_uuid"`
 	InvitedBy string    `json:"invited_by"`
 	InvitedAt time.Time `json:"invited_at"`
 	Email     string    `json:"email"`
 }
 
 type OrganizationMemberRole struct {
-	Id          int    `json:"id"`
+	Uuid        string `json:"uuid"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 }
 
 type OrganizationMemberLink struct {
-	Id              int        `json:"id"`
-	OrganizationId  int        `json:"organization_id"`
-	UserId          int        `json:"user_id"`
-	HasJoined       *bool      `json:"has_joined"`
-	InvitedByUserId *int       `json:"invited_by_user_id"`
-	InvitedAt       *time.Time `json:"invited_at"`
-	CreatedAt       *time.Time `json:"created_at"`
-	ModifiedAt      *time.Time `json:"modified_at"`
+	Uuid              string     `json:"uuid"`
+	OrgUuid           string     `json:"org_uuid"`
+	UserUuid          string     `json:"user_uuid"`
+	HasJoined         *bool      `json:"has_joined"`
+	InvitedByUserUuid *string    `json:"invited_by_user_uuid"`
+	InvitedAt         *time.Time `json:"invited_at"`
+	CreatedAt         *time.Time `json:"created_at"`
+	ModifiedAt        *time.Time `json:"modified_at"`
 }
 
-type OrganizationDashboardEntry struct {
-	OrganizationId        int64   `json:"organization_id"`
-	OrganizationName      string  `json:"organization_name"`
-	OrganizationCity      *string `json:"organization_city"`
-	OrganizationCountry   *string `json:"organization_country"`
-	TotalUpcomingEvents   int64   `json:"total_upcoming_events"`
-	VenueCount            int64   `json:"venue_count"`
-	SpaceCount            int64   `json:"space_count"`
-	CanEditOrganization   bool    `json:"can_edit_organization"`
-	CanDeleteOrganization bool    `json:"can_delete_organization"`
-	CanManageTeam         bool    `json:"can_manage_team"`
-	MainLogoImageId       *int    `json:"main_logo_image_id"`
+type OrganizationListItem struct {
+	Uuid                string  `json:"uuid"`
+	Name                string  `json:"name"`
+	City                *string `json:"city"`
+	Country             *string `json:"country"`
+	TotalUpcomingEvents int64   `json:"total_upcoming_events"`
+	VenueCount          int64   `json:"venue_count"`
+	SpaceCount          int64   `json:"space_count"`
+	CanEditOrg          bool    `json:"can_edit_org"`
+	CanDeleteOrg        bool    `json:"can_delete_org"`
+	CanManageTeam       bool    `json:"can_manage_team"`
+	LogoUrl             *string `json:"logo_url,omitempty"`
+	LightThemeLogoUrl   *string `json:"light_theme_logo_url,omitempty"`
+	DarkThemeLogoUrl    *string `json:"dark_theme_logo_url,omitempty"`
 }
