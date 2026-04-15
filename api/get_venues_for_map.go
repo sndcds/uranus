@@ -1,6 +1,7 @@
 package api
 
 import (
+	"math/rand"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -11,31 +12,36 @@ import (
 // TODO: Add query parameters for filtering
 
 func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
-	ctx := gc.Request.Context()
 	apiRequest := grains_api.NewRequest(gc, "get-venues-geojson")
+	ctx := gc.Request.Context()
 
 	lang := gc.DefaultQuery("lang", "en")
 	apiRequest.SetMeta("language", lang)
 
 	query := app.UranusInstance.SqlGetGeojsonVenues
 
-	// TODO: languageStr, default "en"
-	rows, err := h.DbPool.Query(ctx, query, "en")
+	rows, err := h.DbPool.Query(ctx, query, lang)
 	if err != nil {
 		apiRequest.InternalServerError()
 		return
 	}
 	defer rows.Close()
 
-	// Get column names
 	fieldDescriptions := rows.FieldDescriptions()
 	columnNames := make([]string, len(fieldDescriptions))
+
 	for i, fd := range fieldDescriptions {
 		columnNames[i] = string(fd.Name)
 	}
 
-	// Iterate over rows and build JSON
-	var venues []map[string]interface{}
+	type Feature struct {
+		Type       string                 `json:"type"`
+		Geometry   map[string]interface{} `json:"geometry"`
+		Properties map[string]interface{} `json:"properties"`
+	}
+
+	var features []Feature
+
 	for rows.Next() {
 		values, err := rows.Values()
 		if err != nil {
@@ -43,11 +49,38 @@ func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 			return
 		}
 
-		rowMap := make(map[string]interface{}, len(values))
+		props := make(map[string]interface{})
+		var lon, lat float64
+
 		for i, col := range columnNames {
-			rowMap[col] = values[i]
+			val := values[i]
+
+			switch col {
+			case "longitude", "lon", "lng":
+				if v, ok := val.(float64); ok {
+					lon = v
+				}
+			case "latitude", "lat":
+				if v, ok := val.(float64); ok {
+					lat = v
+				}
+			default:
+				props[col] = val
+			}
 		}
-		venues = append(venues, rowMap)
+
+		min := 1
+		max := 99
+		props["count"] = rand.Intn(max-min+1) + min
+
+		features = append(features, Feature{
+			Type: "Feature",
+			Geometry: map[string]interface{}{
+				"type":        "Point",
+				"coordinates": []float64{lon, lat},
+			},
+			Properties: props,
+		})
 	}
 
 	if rows.Err() != nil {
@@ -55,11 +88,16 @@ func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 		return
 	}
 
-	if len(venues) == 0 {
+	if len(features) == 0 {
 		apiRequest.NoContent("no venues found")
 		return
 	}
-	apiRequest.SetMeta("venues_count", len(venues))
 
-	apiRequest.Success(http.StatusOK, gin.H{"venues": venues}, "")
+	geojson := map[string]interface{}{
+		"type":     "FeatureCollection",
+		"features": features,
+	}
+
+	apiRequest.SetMeta("venues_count", len(features))
+	apiRequest.Success(http.StatusOK, geojson, "")
 }
