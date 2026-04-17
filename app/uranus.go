@@ -64,6 +64,7 @@ type Uranus struct {
 	SqlGetGeojsonVenues                         string
 	SqlAdminGetOrganizationList                 string
 	SqlAdminGetOrganizationVenues               string
+	SqlAdminGetOrganizationVenues1              string
 	SqlGetSystemEmailTemplate                   string
 	SqlAdminGetOrganizationEvents               string
 	SqlAdminGetOrganizationMemberLink           string
@@ -306,6 +307,7 @@ func (app *Uranus) PrepareSql() error {
 		{"sql/admin-get-permission-list.sql", &app.SqlAdminGetPermissionList, nil},
 
 		{"sql/admin-get-organization-venues.sql", &app.SqlAdminGetOrganizationVenues, nil},
+		{"sql/admin-get-organization-venues1.sql", &app.SqlAdminGetOrganizationVenues1, nil},
 
 		{"sql/get-system-email-template.sql", &app.SqlGetSystemEmailTemplate, nil},
 

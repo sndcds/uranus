@@ -24,8 +24,6 @@ func (h *ApiHandler) AdminGetChoosableUserEventVenues(gc *gin.Context) {
 	userUuid := h.userUuid(gc)
 
 	query := app.UranusInstance.SqlAdminChoosableUserEventVenues
-	debugf(query)
-	debugf(userUuid)
 	rows, err := h.DbPool.Query(ctx, query, userUuid)
 	if err != nil {
 		debugf(err.Error())

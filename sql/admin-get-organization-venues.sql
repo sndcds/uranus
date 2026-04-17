@@ -1,78 +1,22 @@
-WITH user_organization_access AS (
-    SELECT DISTINCT o.uuid AS org_uuid
-    FROM {{schema}}.organization o
-    JOIN {{schema}}.user_organization_link uol ON uol.org_uuid = o.uuid
-    WHERE uol.user_uuid = $1
-),
-
-user_venue_access AS (
-    SELECT DISTINCT v.org_uuid
-    FROM {{schema}}.venue v
-    JOIN {{schema}}.user_venue_link uvl ON uvl.venue_uuid = v.uuid
-    WHERE uvl.user_uuid = $1
-),
-
-accessible_organizations AS (
-    SELECT org_uuid FROM user_organization_access
-
-    UNION
-
-    SELECT org_uuid FROM user_venue_access
-),
-
-editable_venues AS (
-    SELECT v.uuid AS venue_uuid
-    FROM {{schema}}.venue v
-    JOIN {{schema}}.user_venue_link uvl ON uvl.venue_uuid = v.uuid
-    WHERE uvl.user_uuid = $1
-    AND (uvl.permissions &
-        ((1<<9)|(1<<10)|(1<<16)|(1<<17)|(1<<18)|(1<<24)|(1<<25)|(1<<26)|(1<<27))
-    ) <> 0
-
-    UNION
-
-    SELECT v.uuid AS venue_uuid
-    FROM {{schema}}.venue v
-    JOIN {{schema}}.user_organization_link uol ON uol.org_uuid = v.org_uuid
-    WHERE uol.user_uuid = $1
-    AND (uol.permissions &
-        ((1<<9)|(1<<10)|(1<<16)|(1<<17)|(1<<18)|(1<<24)|(1<<25)|(1<<26)|(1<<27))
-    ) <> 0
-),
-
-venue_permissions AS (
+WITH venue_permissions AS (
     SELECT
         v.uuid AS venue_uuid,
-        bool_or((uvl.permissions & (1<<8)) <> 0 OR (uol.permissions & (1<<8)) <> 0) AS can_add_venue,
-        bool_or((uvl.permissions & (1<<9)) <> 0 OR (uol.permissions & (1<<9)) <> 0) AS can_edit_venue,
-        bool_or((uvl.permissions & (1<<10)) <> 0 OR (uol.permissions & (1<<10)) <> 0) AS can_delete_venue,
-        bool_or((uvl.permissions & (1<<16)) <> 0 OR (uol.permissions & (1<<16)) <> 0) AS can_add_space,
-        bool_or((uvl.permissions & (1<<17)) <> 0 OR (uol.permissions & (1<<17)) <> 0) AS can_edit_space,
-        bool_or((uvl.permissions & (1<<18)) <> 0 OR (uol.permissions & (1<<18)) <> 0) AS can_delete_space,
-        bool_or((uvl.permissions & (1<<24)) <> 0 OR (uol.permissions & (1<<24)) <> 0) AS can_add_event,
-        bool_or((uvl.permissions & (1<<25)) <> 0 OR (uol.permissions & (1<<25)) <> 0) AS can_edit_event,
-        bool_or((uvl.permissions & (1<<26)) <> 0 OR (uol.permissions & (1<<26)) <> 0) AS can_delete_event,
-        bool_or((uvl.permissions & (1<<27)) <> 0 OR (uol.permissions & (1<<27)) <> 0) AS can_release_event
+        bool_or((uvl.permissions & (1<<8)) <> 0) OR bool_or((uol.permissions & (1<<8)) <> 0) AS can_add_venue,
+        bool_or((uvl.permissions & (1<<9)) <> 0) OR bool_or((uol.permissions & (1<<9)) <> 0) AS can_edit_venue,
+        bool_or((uvl.permissions & (1<<10)) <> 0) OR bool_or((uol.permissions & (1<<10)) <> 0) AS can_delete_venue,
+        bool_or((uvl.permissions & (1<<16)) <> 0) OR bool_or((uol.permissions & (1<<16)) <> 0) AS can_add_space,
+        bool_or((uvl.permissions & (1<<17)) <> 0) OR bool_or((uol.permissions & (1<<17)) <> 0) AS can_edit_space,
+        bool_or((uvl.permissions & (1<<18)) <> 0) OR bool_or((uol.permissions & (1<<18)) <> 0) AS can_delete_space,
+        bool_or((uvl.permissions & (1<<24)) <> 0) OR bool_or((uol.permissions & (1<<24)) <> 0) AS can_add_event,
+        bool_or((uvl.permissions & (1<<25)) <> 0) OR bool_or((uol.permissions & (1<<25)) <> 0) AS can_edit_event,
+        bool_or((uvl.permissions & (1<<26)) <> 0) OR bool_or((uol.permissions & (1<<26)) <> 0) AS can_delete_event,
+        bool_or((uvl.permissions & (1<<27)) <> 0) OR bool_or((uol.permissions & (1<<27)) <> 0) AS can_release_event
     FROM {{schema}}.venue v
     LEFT JOIN {{schema}}.user_venue_link uvl
     ON uvl.venue_uuid = v.uuid AND uvl.user_uuid = $1
     LEFT JOIN {{schema}}.user_organization_link uol
     ON uol.org_uuid = v.org_uuid AND uol.user_uuid = $1
     GROUP BY v.uuid
-),
-
-space_info AS (
-    SELECT
-        s.uuid AS space_uuid,
-        s.name AS space_name,
-        s.venue_uuid,
-        COUNT(DISTINCT COALESCE(ed.uuid, e.uuid)) AS upcoming_event_count
-    FROM {{schema}}.space s
-    -- Prefer upcoming event_dates
-    LEFT JOIN {{schema}}.event_date ed ON ed.space_uuid = s.uuid AND ed.start_date > $3
-    -- Fallback to events that have no event_date
-    LEFT JOIN {{schema}}.event e  ON e.space_uuid = s.uuid
-    GROUP BY s.uuid, s.name, s.venue_uuid
 ),
 
 venue_info AS (
@@ -93,22 +37,10 @@ venue_info AS (
         COALESCE(vp.can_edit_event, false) AS can_edit_event,
         COALESCE(vp.can_delete_event, false) AS can_delete_event,
         COALESCE(vp.can_release_event, false) AS can_release_event,
-        COUNT(DISTINCT COALESCE(ed.uuid, e.uuid)) AS upcoming_event_count,
-        COALESCE(
-            json_agg(
-                json_build_object(
-                    'uuid', s.space_uuid,
-                    'name', s.space_name,
-                    'upcoming_event_count', s.upcoming_event_count
-                )
-            ) FILTER (WHERE s.space_uuid IS NOT NULL),
-        '[]'::json
-    ) AS spaces
+        COUNT(DISTINCT ed.uuid) AS upcoming_event_count
     FROM {{schema}}.venue v
-    LEFT JOIN space_info s ON s.venue_uuid = v.uuid
     LEFT JOIN {{schema}}.event_date ed ON ed.venue_uuid = v.uuid AND ed.start_date > $3
     LEFT JOIN {{schema}}.event e  ON e.venue_uuid = v.uuid
-    LEFT JOIN editable_venues ev ON ev.venue_uuid = v.uuid
     LEFT JOIN venue_permissions vp ON vp.venue_uuid = v.uuid
 
     LEFT JOIN LATERAL (
@@ -122,7 +54,7 @@ venue_info AS (
     ) logos ON TRUE
 
     GROUP BY
-        v.uuid, v.name, v.org_uuid, ev.venue_uuid,
+        v.uuid, v.name, v.org_uuid,
         vp.can_add_venue, vp.can_edit_venue, vp.can_delete_venue,
         vp.can_add_space, vp.can_edit_space, vp.can_delete_space,
         vp.can_add_event, vp.can_edit_event, vp.can_delete_event, vp.can_release_event
@@ -131,11 +63,11 @@ venue_info AS (
 organization_permissions AS (
     SELECT
         o.uuid AS org_uuid,
-        bool_or((uol.permissions & (1<<0)) <> 0) AS can_edit_org,
-        bool_or((uol.permissions & (1<<1)) <> 0) AS can_delete_org,
-        bool_or((uol.permissions & (1<<8)) <> 0) AS can_add_venue,
-        bool_or((uol.permissions & (1<<16)) <> 0) AS can_add_space,
-        bool_or((uol.permissions & (1<<24)) <> 0) AS can_add_event
+        BOOL_OR((uol.permissions & (1<<0)) <> 0) AS can_edit_org,
+        BOOL_OR((uol.permissions & (1<<1)) <> 0) AS can_delete_org,
+        BOOL_OR((uol.permissions & (1<<8)) <> 0) AS can_add_venue,
+        BOOL_OR((uol.permissions & (1<<16)) <> 0) AS can_add_space,
+        BOOL_OR((uol.permissions & (1<<24)) <> 0) AS can_add_event
     FROM {{schema}}.organization o
     LEFT JOIN {{schema}}.user_organization_link uol
     ON uol.org_uuid = o.uuid AND uol.user_uuid = $1
@@ -173,18 +105,32 @@ organization_info AS (
                     'can_edit_event', vi.can_edit_event,
                     'can_delete_event', vi.can_delete_event,
                     'can_release_event', vi.can_release_event,
-                    'upcoming_event_count', vi.upcoming_event_count,
-                    'spaces', vi.spaces
+                    'upcoming_event_count', vi.upcoming_event_count
                 )
                 ORDER BY LOWER(vi.venue_name)
             ) FILTER (WHERE vi.venue_uuid IS NOT NULL),
             '[]'::json
         ) AS venues
-    FROM accessible_organizations ao
-    JOIN {{schema}}.organization o ON o.uuid = ao.org_uuid
+
+    FROM {{schema}}.organization o
     LEFT JOIN venue_info vi ON vi.org_uuid = o.uuid
     LEFT JOIN organization_permissions op ON op.org_uuid = o.uuid
     WHERE o.uuid = $2
+    AND (
+        EXISTS (
+            SELECT 1
+            FROM {{schema}}.user_organization_link uol
+            WHERE uol.user_uuid = $1
+            AND uol.org_uuid = o.uuid
+        )
+        OR EXISTS (
+            SELECT 1
+            FROM {{schema}}.user_venue_link uvl
+            JOIN {{schema}}.venue v ON v.uuid = uvl.venue_uuid
+            WHERE uvl.user_uuid = $1
+            AND v.org_uuid = o.uuid
+        )
+    )
     GROUP BY o.uuid, o.name
 )
 
