@@ -12,7 +12,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/shirou/gopsutil/v3 v3.24.5
-	github.com/sndcds/grains v0.0.3
+	github.com/sndcds/grains v0.0.4
 	golang.org/x/crypto v0.43.0
 )
 
