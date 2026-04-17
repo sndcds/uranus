@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/grains/grains_uuid"
+	"github.com/sndcds/grains/grains_validation"
 	"github.com/sndcds/uranus/app"
 	"github.com/sndcds/uranus/model"
 )
@@ -35,6 +36,12 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 
 	if userCredentials.Email == "" || userCredentials.Password == "" {
 		apiRequest.Error(http.StatusBadRequest, "email and password required")
+		return
+	}
+
+	err = grains_validation.ValidatePassword(userCredentials.Email, userCredentials.Password, 12)
+	if err != nil {
+		apiRequest.Error(http.StatusUnprocessableEntity, "password does not meet security requirements")
 		return
 	}
 
@@ -187,16 +194,16 @@ func sendEmailWithContext(ctx context.Context, to, subject, body string) error {
 func (h *ApiHandler) Activate(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "signup")
 
-	var reqeustData struct {
+	var requestData struct {
 		Token string `json:"token"`
 	}
-	if err := gc.BindJSON(&reqeustData); err != nil || reqeustData.Token == "" {
+	if err := gc.BindJSON(&requestData); err != nil || requestData.Token == "" {
 		apiRequest.Error(http.StatusBadRequest, "token required")
 		return
 	}
 
 	// Parse JWT token using the same signing method
-	token, err := jwt.ParseWithClaims(reqeustData.Token, &app.Claims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(requestData.Token, &app.Claims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
@@ -218,7 +225,7 @@ func (h *ApiHandler) Activate(gc *gin.Context) {
 
 	// Query stored activation token
 	var storedToken string
-	query := fmt.Sprintf(`SELECT activate_token FROM %s.user WHERE uuid = $1`, h.DbSchema)
+	query := fmt.Sprintf(`SELECT activate_token FROM %s.user WHERE uuid = $1::uuid`, h.DbSchema)
 	err = h.DbPool.QueryRow(gc, query, userUuid).Scan(&storedToken)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -230,13 +237,13 @@ func (h *ApiHandler) Activate(gc *gin.Context) {
 	}
 
 	// Compare tokens
-	if storedToken != reqeustData.Token {
+	if storedToken != requestData.Token {
 		apiRequest.Error(http.StatusUnauthorized, "token mismatch")
 		return
 	}
 
 	// Activate account
-	updateQuery := fmt.Sprintf(`UPDATE %s.user SET is_active = true, activate_token = NULL WHERE uuid = $1`, h.DbSchema)
+	updateQuery := fmt.Sprintf(`UPDATE %s.user SET is_active = true, activate_token = NULL WHERE uuid = $1::uuid`, h.DbSchema)
 	if _, err := h.DbPool.Exec(gc, updateQuery, userUuid); err != nil {
 		apiRequest.Error(http.StatusInternalServerError, "failed to activate user")
 		return

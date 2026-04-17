@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/smtp"
@@ -14,55 +13,54 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
 	"golang.org/x/net/idna"
 )
 
-// TODO: Review code
-
 func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "forgot-password")
+
 	var req struct {
-		EmailAddress string `json:"email"`
+		EmailAddress string `json:"email" binding:"required"`
 	}
+
 	if err := gc.ShouldBindJSON(&req); err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		apiRequest.Error(http.StatusBadRequest, "invalid request")
 		return
 	}
 
 	ctx := gc.Request.Context()
 	lang := gc.DefaultQuery("lang", "en")
 
-	// Look up user
-	query := fmt.Sprintf(
-		"SELECT id FROM %s.user WHERE email = $1",
-		h.DbSchema,
-	)
+	query := fmt.Sprintf("SELECT uuid FROM %s.user WHERE email = $1", h.DbSchema)
 
-	var userID int
-	err := h.DbPool.QueryRow(ctx, query, req.EmailAddress).Scan(&userID)
+	var userUuid string
+	err := h.DbPool.QueryRow(ctx, query, req.EmailAddress).Scan(&userUuid)
 	if err != nil {
-		// Always respond the same way to avoid leaking info
-		gc.JSON(http.StatusOK, gin.H{"message": "If an account exists, a reset link has been sent."})
+		debugf(err.Error())
+		apiRequest.InternalServerError()
 		return
 	}
 
-	// Generate a token
 	token, err := generateResetToken()
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate token"})
+		debugf(err.Error())
+		apiRequest.InternalServerError()
 		return
 	}
 
 	// Store token in DB with expiry
 	query = fmt.Sprintf(`
-		INSERT INTO %s.password_reset (user_id, token, expires_at)
-		VALUES ($1, $2, $3)`,
+		INSERT INTO %s.password_reset (user_uuid, token, expires_at)
+		VALUES ($1::uuid, $2, $3)`,
 		h.DbSchema)
 
 	expiryHour := 1
-	_, err = h.DbPool.Exec(ctx, query, userID, token, time.Now().Add(time.Duration(expiryHour)*time.Hour))
+	_, err = h.DbPool.Exec(ctx, query, userUuid, token, time.Now().Add(time.Duration(expiryHour)*time.Hour))
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save token"})
+		debugf(err.Error())
+		apiRequest.InternalServerError()
 		return
 	}
 
@@ -71,95 +69,112 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 	messageQuery := fmt.Sprintf(`SELECT subject, template FROM %s.system_email_template WHERE context = 'reset-email' AND iso_639_1 = $1`, h.DbSchema)
 	_, err = h.DbPool.Exec(gc, messageQuery, lang)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate email"})
+		debugf(err.Error())
+		apiRequest.InternalServerError()
 		return
 	}
 	var subject string
 	var template string
 	err = h.DbPool.QueryRow(gc, messageQuery, lang).Scan(&subject, &template)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			gc.JSON(http.StatusNotFound, gin.H{"error": "email template not found"})
-		} else {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get email template"})
-		}
+		debugf(err.Error())
+		apiRequest.InternalServerError()
 		return
 	}
 	emailContent := strings.Replace(template, "{{link}}", resetUrl, -1)
 	emailContent = strings.Replace(emailContent, "{{expiry_hours}}", strconv.Itoa(expiryHour), -1)
-	go func() {
-		// TODO: Use sendEmailWithTimeout()
-		sendEmailErr := sendEmail(req.EmailAddress, subject, emailContent)
-		if sendEmailErr != nil {
-			gc.JSON(http.StatusBadRequest, gin.H{
-				"message": "Unable to send reset email.",
-			})
-		}
-	}()
 
-	gc.JSON(http.StatusOK, gin.H{
-		"message":    "If an account exists, a reset link has been sent.",
-		"error_code": 0,
-	})
+	// Create a context with timeout for sending email
+	emailCtx, cancel := context.WithTimeout(ctx, 10*time.Second) // 10s timeout
+	defer cancel()
+
+	err = sendEmailWithContext(emailCtx, req.EmailAddress, subject, emailContent)
+	if err != nil {
+		debugf(err.Error())
+		apiRequest.InternalServerError()
+		return
+	}
+
+	apiRequest.SuccessNoData(http.StatusOK, "If an account exists, a reset link has been sent.")
 }
 
 func (h *ApiHandler) ResetPassword(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "reset-password")
+
+	debugf("ResetPassword")
+
 	var req struct {
-		Token       string `json:"token"`
-		NewPassword string `json:"new_password"`
+		Token       string `json:"token" binding:"required"`
+		NewPassword string `json:"new_password" binding:"required"`
 	}
 	if err := gc.ShouldBindJSON(&req); err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		debugf(err.Error())
+		apiRequest.InternalServerError()
 		return
 	}
 
 	ctx := gc.Request.Context()
 
-	var userId int
+	var userUuid string
 	var expiresAt time.Time
 	var used bool
 
-	query := fmt.Sprintf(`SELECT user_id, expires_at, used FROM %s.password_reset WHERE token = $1`, h.DbSchema)
+	query := fmt.Sprintf(`SELECT user_uuid, expires_at, used FROM %s.password_reset WHERE token = $1`, h.DbSchema)
+	debugf(query)
 	err := h.DbPool.QueryRow(
 		ctx,
 		query,
-		req.Token).Scan(&userId, &expiresAt, &used)
+		req.Token).Scan(&userUuid, &expiresAt, &used)
 	//	if err != nil || used || time.Now().UTC().After(expiresAt) {
-	if err != nil || used {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired token"})
+	if err != nil {
+		debugf(err.Error())
+		apiRequest.Error(http.StatusBadRequest, "invalid or expired token")
+		return
+	}
+	if used {
+		debugf("used!")
+		apiRequest.Error(http.StatusBadRequest, "invalid or expired token")
 		return
 	}
 
 	// Hash the password
 	hashed, err := app.EncryptPassword(req.NewPassword)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
+		debugf(err.Error())
+		apiRequest.InternalServerError()
 		return
 	}
 
-	// Update user password and mark token used
-	tx, _ := h.DbPool.Begin(ctx)
-	defer func() { _ = tx.Rollback(ctx) }()
+	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 
-	// Update user's password
-	updateUserQuery := fmt.Sprintf(`UPDATE %s.user SET password_hash = $1 WHERE id = $2`, h.DbSchema)
+		// Update user's password
+		updateUserQuery := fmt.Sprintf(`UPDATE %s.user SET password_hash = $1 WHERE uuid = $2::uuid`, h.DbSchema)
+		_, err = tx.Exec(ctx, updateUserQuery, hashed, userUuid)
+		if err != nil {
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  err,
+			}
+		}
 
-	_, err = tx.Exec(ctx, updateUserQuery, hashed, userId)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update password"})
+		// Mark the reset token as used
+		updateTokenQuery := fmt.Sprintf(`UPDATE %s.password_reset SET used = TRUE WHERE token = $1`, h.DbSchema)
+		_, err = tx.Exec(ctx, updateTokenQuery, req.Token)
+		if err != nil {
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  err,
+			}
+		}
+
+		return nil
+	})
+	if txErr != nil {
+		apiRequest.Error(txErr.Code, txErr.Error())
 		return
 	}
 
-	// Mark the reset token as used
-	updateTokenQuery := fmt.Sprintf(`UPDATE %s.password_reset SET used = TRUE WHERE token = $1`, h.DbSchema)
-	_, err = tx.Exec(ctx, updateTokenQuery, req.Token)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": "failed to mark token used"})
-		return
-	}
-
-	tx.Commit(ctx)
-	gc.JSON(http.StatusOK, gin.H{"message": "Password reset successful"})
+	apiRequest.SuccessNoData(http.StatusOK, "password reset successful.")
 }
 
 func generateResetToken() (string, error) {

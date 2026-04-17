@@ -151,7 +151,7 @@ func main() {
 
 	publicRoute.POST("/signup", apiHandler.Signup)
 	publicRoute.POST("/login", apiHandler.Login)
-	publicRoute.POST("/activate", apiHandler.Activate)              // TODO: check!
+	publicRoute.POST("/activate", apiHandler.Activate)
 	publicRoute.POST("/forgot-password", apiHandler.ForgotPassword) // TODO: check!
 	publicRoute.POST("/reset-password", apiHandler.ResetPassword)   // TODO: check!
 
