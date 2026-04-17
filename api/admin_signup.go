@@ -127,14 +127,6 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 		}
 
 		messageQuery := fmt.Sprintf(`SELECT subject, template FROM %s.system_email_template WHERE context = 'activate-email' AND iso_639_1 = $1`, h.DbSchema)
-		_, err = tx.Exec(gc, messageQuery, lang)
-		if err != nil {
-			debugf(err.Error())
-			return &ApiTxError{
-				Code: http.StatusInternalServerError,
-				Err:  errors.New("internal server error"),
-			}
-		}
 		var subject string
 		var template string
 		err = tx.QueryRow(ctx, messageQuery, lang).Scan(&subject, &template)
@@ -148,6 +140,7 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 
 		expiryHour = 1
 		signupUrl := gc.Request.Referer() + "app/activate/account?token=" + signupTokenString
+
 		emailMessage := strings.Replace(template, "{{link}}", signupUrl, -1)
 		emailMessage = strings.Replace(emailMessage, "{{expiry_hours}}", strconv.Itoa(expiryHour), -1)
 
