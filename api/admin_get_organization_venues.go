@@ -23,6 +23,25 @@ func (h *ApiHandler) AdminGetOrganizationVenues(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 
+	type SpaceInfo struct {
+		SpaceUuid      string `json:"space_uuid"`
+		SpaceName      string `json:"space_name"`
+		EventCount     int    `json:"event_count"`
+		CanEditSpace   bool   `json:"can_edit_space"`
+		CanDeleteSpace bool   `json:"can_delete_space"`
+	}
+
+	type VenueInfo struct {
+		VenueUuid          string      `json:"venue_uuid"`
+		VenueName          string      `json:"venue_name"`
+		EventCount         int         `json:"event_count"`
+		CanAddSpace        bool        `json:"can_add_space"`
+		MainLogoUuid       *string     `json:"main_logo_uuid"`
+		LightThemeLogoUuid *string     `json:"light_theme_logo_uuid"`
+		DarkThemeLogoUuid  *string     `json:"dark_theme_logo_uuid"`
+		Spaces             []SpaceInfo `json:"spaces"`
+	}
+
 	orgUuid := gc.Param("orgUuid")
 	if orgUuid == "" {
 		apiRequest.Error(http.StatusBadRequest, "invalid orgUuid")
@@ -31,7 +50,6 @@ func (h *ApiHandler) AdminGetOrganizationVenues(gc *gin.Context) {
 
 	var err error
 
-	// Start date for getting upcoming event counts
 	startStr := gc.Query("start")
 	var startDate time.Time
 	if startStr != "" {
@@ -43,35 +61,76 @@ func (h *ApiHandler) AdminGetOrganizationVenues(gc *gin.Context) {
 		startDate = time.Now() // fallback if param missing
 	}
 
-	row := h.DbPool.QueryRow(ctx, app.UranusInstance.SqlAdminGetOrganizationVenues, userUuid, orgUuid, startDate)
-	var jsonResult []byte
-	err = row.Scan(&jsonResult)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			apiRequest.Error(http.StatusForbidden, "user not linked to organization")
-			return
+	var venues []VenueInfo
+
+	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
+
+		rows, err := tx.Query(ctx, app.UranusInstance.SqlAdminGetOrganizationVenues, orgUuid, userUuid, startDate)
+		if err != nil {
+			debugf(err.Error())
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  errors.New("Internal server error"),
+			}
 		}
-		debugf(err.Error())
+		defer rows.Close()
+
+		var spacesJSON json.RawMessage
+		var permissions app.Permission
+
+		for rows.Next() {
+			var venue VenueInfo
+
+			err := rows.Scan(
+				&venue.VenueUuid,
+				&venue.VenueName,
+				&venue.MainLogoUuid,
+				&venue.DarkThemeLogoUuid,
+				&venue.LightThemeLogoUuid,
+				&spacesJSON,
+				&permissions,
+			)
+			if err != nil {
+				return &ApiTxError{
+					Code: http.StatusInternalServerError,
+					Err:  err,
+				}
+			}
+
+			if err := json.Unmarshal(spacesJSON, &venue.Spaces); err != nil {
+				return &ApiTxError{
+					Code: http.StatusInternalServerError,
+					Err:  err,
+				}
+			}
+
+			venue.CanAddSpace = permissions.Has(app.PermBitAddSpace)
+
+			for i := range venue.Spaces {
+				venue.Spaces[i].CanEditSpace = permissions.Has(app.PermBitEditSpace)
+				venue.Spaces[i].CanDeleteSpace = permissions.Has(app.PermBitDeleteSpace)
+				venue.EventCount += venue.Spaces[i].EventCount
+			}
+
+			venues = append(venues, venue)
+		}
+
+		return nil
+	})
+	if txErr != nil {
+		debugf(txErr.Error())
 		apiRequest.InternalServerError()
 		return
 	}
 
-	if len(jsonResult) == 0 || string(jsonResult) == "[]" {
-		apiRequest.Error(http.StatusForbidden, "user not linked to organization")
-		return
-	}
+	apiRequest.Success(http.StatusOK, gin.H{
+		"venues": venues,
+	}, "")
+}
 
-	// The SQL currently returns an array like: [{...}], so we unmarshal and return first element
-	var organizations []map[string]interface{}
-	if err := json.Unmarshal(jsonResult, &organizations); err != nil {
-		apiRequest.InvalidJSONInput()
-		return
+func deref(s *string) string {
+	if s == nil {
+		return ""
 	}
-
-	if len(organizations) == 0 {
-		apiRequest.Error(http.StatusForbidden, "user not linked to organization")
-		return
-	}
-
-	apiRequest.Success(http.StatusOK, organizations[0], "")
+	return *s
 }

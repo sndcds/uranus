@@ -72,19 +72,19 @@ LEFT JOIN LATERAL (
 
 LEFT JOIN LATERAL (
     SELECT
-    COALESCE(
-    jsonb_object_agg(
-    pil.identifier,
-    jsonb_build_object(
-    'uuid', pi.uuid::text,
-    'url', CASE
-    WHEN pi.uuid IS NULL THEN NULL
-    ELSE format('{{base_api_url}}/api/image/%s', pi.uuid)
-    END
-    )
-    ),
-    '{}'::jsonb
-    ) AS org_logos
+        COALESCE (
+            jsonb_object_agg(
+                pil.identifier,
+                jsonb_build_object(
+                    'uuid', pi.uuid::text,
+                    'url', CASE
+                    WHEN pi.uuid IS NULL THEN NULL
+                    ELSE format('{{base_api_url}}/api/image/%s', pi.uuid)
+                    END
+                )
+            ),
+        '{}'::jsonb
+        ) AS org_logos
     FROM {{schema}}.pluto_image_link pil
     JOIN {{schema}}.pluto_image pi
     ON pi.uuid = pil.pluto_image_uuid

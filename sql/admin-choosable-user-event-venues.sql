@@ -1,5 +1,4 @@
 WITH allowed_spaces AS (
-    -- A. From organization permission (all spaces)
     SELECT
         v.uuid AS venue_uuid,
         v.name AS venue_name,
@@ -15,7 +14,6 @@ WITH allowed_spaces AS (
 
     UNION
 
-    -- B. From venue permission (all spaces)
     SELECT
         v.uuid AS venue_uuid,
         v.name AS venue_name,
@@ -31,7 +29,6 @@ WITH allowed_spaces AS (
 
     UNION
 
-    -- C. From direct space permissions
     SELECT
         v.uuid AS venue_uuid,
         v.name AS venue_name,
