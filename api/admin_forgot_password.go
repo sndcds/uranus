@@ -211,14 +211,16 @@ func sendEmail(to, subject string, htmlContent string) error {
 	smtpHost := app.UranusInstance.Config.AuthSmtpHost
 	smtpPort := app.UranusInstance.Config.AuthSmtpPort // int
 
+	debugf("sendEmail from: %s", from)
 	asciiFrom, err := encodeEmailAddress(from)
 	if err != nil {
-		return fmt.Errorf("unable to send email: %s", err.Error())
+		return fmt.Errorf("unable to send email 1: %s", err.Error())
 	}
 
+	debugf("sendEmail to: %s", to)
 	asciiTo, err := encodeEmailAddress(to)
 	if err != nil {
-		return fmt.Errorf("unable to send email: %s", err.Error())
+		return fmt.Errorf("unable to send email 2: %s", err.Error())
 	}
 
 	// Encode subject in Base64 for UTF-8
@@ -238,7 +240,7 @@ func sendEmail(to, subject string, htmlContent string) error {
 
 	err = smtp.SendMail(addr, auth, userName, []string{to}, message)
 	if err != nil {
-		return fmt.Errorf("unable to send email: %s", err.Error())
+		return fmt.Errorf("unable to send email 3: %s", err.Error())
 	}
 
 	return nil
