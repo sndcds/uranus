@@ -151,11 +151,7 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 		emailMessage := strings.Replace(template, "{{link}}", signupUrl, -1)
 		emailMessage = strings.Replace(emailMessage, "{{expiry_hours}}", strconv.Itoa(expiryHour), -1)
 
-		// Create a context with timeout for sending email
-		emailCtx, cancel := context.WithTimeout(ctx, 10*time.Second) // 10s timeout
-		defer cancel()
-
-		err = sendEmailWithContext(emailCtx, userCredentials.Email, subject, emailMessage)
+		err = sendEmailWithTimeout(userCredentials.Email, subject, emailMessage, 20*time.Second)
 		if err != nil {
 			debugf(err.Error())
 			return &ApiTxError{
