@@ -23,6 +23,7 @@ require (
 	github.com/goccy/go-yaml v1.18.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
+	github.com/nbutton23/zxcvbn-go v0.0.0-20210217022336-fa2cb2858354 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
 	github.com/quic-go/quic-go v0.55.0 // indirect
@@ -67,5 +68,5 @@ require (
 	google.golang.org/protobuf v1.36.10 // indirect
 )
 
-// replace github.com/sndcds/grains => ../grains
-// replace github.com/sndcds/pluto => ../pluto
+replace github.com/sndcds/grains => ../grains
+replace github.com/sndcds/pluto => ../pluto
