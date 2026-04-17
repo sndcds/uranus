@@ -11,7 +11,7 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-func (h *ApiHandler) GetOrganizationUuidByEvenUuid(
+func (h *ApiHandler) GetOrganizationUuidByEvenUuidTx(
 	gc *gin.Context,
 	tx pgx.Tx,
 	eventUuid string,
@@ -29,7 +29,7 @@ func (h *ApiHandler) GetOrganizationUuidByEvenUuid(
 	return orgUuid, nil
 }
 
-func (h *ApiHandler) GetOrganizationIdByEventDateId(
+func (h *ApiHandler) GetOrganizationIdByEventDateIdTx(
 	gc *gin.Context,
 	tx pgx.Tx,
 	eventDateId int,
@@ -49,9 +49,9 @@ func (h *ApiHandler) GetOrganizationIdByEventDateId(
 	return organizationId, nil
 }
 
-// CheckOrganizationPermission verifies if a user has a specific permission
+// CheckOrganizationPermissionTx verifies if a user has a specific permission
 // in the given organization. Returns an ApiTxError if the check fails.
-func (h *ApiHandler) CheckOrganizationPermission(
+func (h *ApiHandler) CheckOrganizationPermissionTx(
 	gc *gin.Context,
 	tx pgx.Tx,
 	userUuid string,
@@ -76,9 +76,9 @@ func (h *ApiHandler) CheckOrganizationPermission(
 	return nil
 }
 
-// CheckOrganizationAllPermissions verifies if a user has all of the specified
+// CheckAllOrganizationPermissionsTx verifies if a user has all of the specified
 // permissions in the given organization. Returns an ApiTxError if the check fails.
-func (h *ApiHandler) CheckOrganizationAllPermissions(
+func (h *ApiHandler) CheckAllOrganizationPermissionsTx(
 	gc *gin.Context,
 	tx pgx.Tx,
 	userUuid string,

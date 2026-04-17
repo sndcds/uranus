@@ -91,7 +91,7 @@ SELECT
     p.permissions
 
 FROM {{schema}}.organization o
-LEFT JOIN {{schema}}.venue v
+JOIN {{schema}}.venue v
 ON v.org_uuid = o.uuid
 
 LEFT JOIN venue_images vi

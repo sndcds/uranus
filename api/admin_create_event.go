@@ -166,7 +166,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	var newEventUuid string
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-		txErr := h.CheckOrganizationAllPermissions(
+		txErr := h.CheckAllOrganizationPermissionsTx(
 			gc, tx, userUuid, *payload.OrgUuid,
 			app.PermChooseAsEventOrganization|app.PermAddEvent)
 		if txErr != nil {
