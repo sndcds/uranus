@@ -24,6 +24,7 @@ func (h *ApiHandler) AdminGetOrganizationVenues(gc *gin.Context) {
 	userUuid := h.userUuid(gc)
 
 	type SpaceInfo struct {
+		SpaceUuid      string `json:"space_uuid"`
 		SpaceName      string `json:"space_name"`
 		EventCount     int    `json:"event_count"`
 		CanEditSpace   bool   `json:"can_edit_space"`
@@ -64,7 +65,7 @@ func (h *ApiHandler) AdminGetOrganizationVenues(gc *gin.Context) {
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 
-		rows, err := tx.Query(ctx, app.UranusInstance.SqlAdminGetOrganizationVenues1, orgUuid, userUuid, startDate)
+		rows, err := tx.Query(ctx, app.UranusInstance.SqlAdminGetOrganizationVenues, orgUuid, userUuid, startDate)
 		if err != nil {
 			debugf(err.Error())
 			return &ApiTxError{
