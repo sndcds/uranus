@@ -39,7 +39,7 @@ func (h *ApiHandler) AdminCreateSpace(gc *gin.Context) {
 	apiRequest.Metadata["space_name"] = spaceName
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-		txErr := h.CheckOrganizationAllPermissions(
+		txErr := h.CheckAllOrganizationPermissionsTx(
 			gc, tx, userUuid, payload.OrgUuid,
 			app.PermAddSpace)
 		if txErr != nil {

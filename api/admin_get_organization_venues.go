@@ -32,9 +32,11 @@ func (h *ApiHandler) AdminGetOrganizationVenues(gc *gin.Context) {
 	}
 
 	type VenueInfo struct {
-		VenueUuid          string      `json:"venue_uuid"`
-		VenueName          string      `json:"venue_name"`
+		VenueUuid          *string     `json:"venue_uuid"`
+		VenueName          *string     `json:"venue_name"`
 		EventCount         int         `json:"event_count"`
+		CanEditVenue       bool        `json:"can_edit_venue"`
+		CanDeleteVenue     bool        `json:"can_delete_venue"`
 		CanAddSpace        bool        `json:"can_add_space"`
 		MainLogoUuid       *string     `json:"main_logo_uuid"`
 		LightThemeLogoUuid *string     `json:"light_theme_logo_uuid"`
@@ -62,8 +64,14 @@ func (h *ApiHandler) AdminGetOrganizationVenues(gc *gin.Context) {
 	}
 
 	var venues []VenueInfo
+	var orgPermissions app.Permission
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
+
+		orgPermissions, err = h.GetUserOrganizationPermissionsTx(gc, tx, userUuid, orgUuid)
+		if err != nil {
+			return ApiErrInternal("%v", err)
+		}
 
 		rows, err := tx.Query(ctx, app.UranusInstance.SqlAdminGetOrganizationVenues, orgUuid, userUuid, startDate)
 		if err != nil {
@@ -76,10 +84,11 @@ func (h *ApiHandler) AdminGetOrganizationVenues(gc *gin.Context) {
 		defer rows.Close()
 
 		var spacesJSON json.RawMessage
-		var permissions app.Permission
+		var venuePermissions app.Permission
 
 		for rows.Next() {
 			var venue VenueInfo
+			debugf("row")
 
 			err := rows.Scan(
 				&venue.VenueUuid,
@@ -88,9 +97,10 @@ func (h *ApiHandler) AdminGetOrganizationVenues(gc *gin.Context) {
 				&venue.DarkThemeLogoUuid,
 				&venue.LightThemeLogoUuid,
 				&spacesJSON,
-				&permissions,
+				&venuePermissions,
 			)
 			if err != nil {
+				debugf(err.Error())
 				return &ApiTxError{
 					Code: http.StatusInternalServerError,
 					Err:  err,
@@ -104,11 +114,13 @@ func (h *ApiHandler) AdminGetOrganizationVenues(gc *gin.Context) {
 				}
 			}
 
-			venue.CanAddSpace = permissions.Has(app.PermBitAddSpace)
+			venue.CanEditVenue = venuePermissions.Has(app.PermBitEditVenue)
+			venue.CanDeleteVenue = venuePermissions.Has(app.PermBitDeleteVenue)
+			venue.CanAddSpace = venuePermissions.Has(app.PermBitAddSpace)
 
 			for i := range venue.Spaces {
-				venue.Spaces[i].CanEditSpace = permissions.Has(app.PermBitEditSpace)
-				venue.Spaces[i].CanDeleteSpace = permissions.Has(app.PermBitDeleteSpace)
+				venue.Spaces[i].CanEditSpace = venuePermissions.Has(app.PermBitEditSpace)
+				venue.Spaces[i].CanDeleteSpace = venuePermissions.Has(app.PermBitDeleteSpace)
 				venue.EventCount += venue.Spaces[i].EventCount
 			}
 
@@ -124,7 +136,8 @@ func (h *ApiHandler) AdminGetOrganizationVenues(gc *gin.Context) {
 	}
 
 	apiRequest.Success(http.StatusOK, gin.H{
-		"venues": venues,
+		"can_add_venue": orgPermissions.Has(app.PermAddVenue),
+		"venues":        venues,
 	}, "")
 }
 

@@ -97,7 +97,7 @@ func (h *ApiHandler) AdminUpdateOrganizationMemberPermissions(gc *gin.Context) {
 	var updatedPermissions int64
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-		txErr := h.CheckOrganizationPermission(gc, tx, userUuid, orgUuid, app.PermManagePermissions)
+		txErr := h.CheckOrganizationPermissionTx(gc, tx, userUuid, orgUuid, app.PermManagePermissions)
 		if txErr != nil {
 			return txErr
 		}

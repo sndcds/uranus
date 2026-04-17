@@ -28,7 +28,7 @@ func (h *ApiHandler) AdminGetOrganizationTeam(gc *gin.Context) {
 	invitedMembers := []model.InvitedOrganizationMember{}
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-		txErr := h.CheckOrganizationPermission(gc, tx, userUuid, orgUuid, app.PermManageTeam)
+		txErr := h.CheckOrganizationPermissionTx(gc, tx, userUuid, orgUuid, app.PermManageTeam)
 		if txErr != nil {
 			return txErr
 		}
