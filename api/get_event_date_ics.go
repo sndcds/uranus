@@ -8,121 +8,155 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
 )
 
-// TODO: Review code
-
 func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "get-event-date-ics")
 	ctx := gc.Request.Context()
 
-	// Parse parameters
-	eventId, ok := ParamInt(gc, "eventId")
-	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "event Id is required"})
-		return
-	}
-
-	dateId, ok := ParamInt(gc, "dateId")
-	if !ok {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": "date Id is required"})
+	dateUuid := gc.Param("dateUuid")
+	if dateUuid == "" {
+		apiRequest.Error(http.StatusBadRequest, "dateUuid is required")
 		return
 	}
 
 	lang := gc.DefaultQuery("lang", "en")
+	fmt.Println(lang)
 
-	// Fetch event + date info from DB
-	eventRow, err := h.DbPool.Query(ctx, app.UranusInstance.SqlGetEvent, eventId, lang, publicStatuses)
+	type EventDateICS struct {
+		EventDateUUID    string
+		VenueName        *string
+		VenueStreet      *string
+		VenueHouseNumber *string
+		VenueCity        *string
+		StartDate        *string
+		StartTime        *string
+		EndDate          *string
+		EndTime          *string
+		Title            *string
+		Subtitle         *string
+		Description      *string
+		OrgName          *string
+		OrgContactEmail  *string
+	}
+
+	var event EventDateICS
+	err := h.DbPool.QueryRow(ctx, app.UranusInstance.SqlGetEventDateICS, dateUuid).Scan(
+		&event.EventDateUUID,
+		&event.VenueName,
+		&event.VenueStreet,
+		&event.VenueHouseNumber,
+		&event.VenueCity,
+		&event.StartDate,
+		&event.StartTime,
+		&event.EndDate,
+		&event.EndTime,
+		&event.Title,
+		&event.Subtitle,
+		&event.Description,
+		&event.OrgName,
+		&event.OrgContactEmail,
+	)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	defer eventRow.Close()
-
-	if !eventRow.Next() {
-		gc.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
+		apiRequest.InternalServerError()
 		return
 	}
 
-	eventData := mapRowToMap(eventRow)
-
-	dateRows, err := h.DbPool.Query(ctx, app.UranusInstance.SqlGetEventDates, eventId)
-	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	defer dateRows.Close()
-
-	var selectedDate map[string]interface{}
-	for dateRows.Next() {
-		d := mapRowToMap(dateRows)
-		if intFromAny(d["event_date_id"]) == dateId {
-			selectedDate = d
-			break
+	str := func(p *string) string {
+		if p == nil {
+			return ""
 		}
+		return *p
 	}
 
-	if selectedDate == nil {
-		gc.JSON(http.StatusNotFound, gin.H{"error": "event date not found"})
-		return
-	}
-
-	startDate, _ := selectedDate["start_date"].(string)
-	startTime, _ := selectedDate["start_time"].(string)
-	endDate, _ := selectedDate["end_date"].(string)
-	endTime, _ := selectedDate["end_time"].(string)
-
-	fmt.Println("endDate:", endDate)
-	fmt.Println("endTime:", endTime)
+	startDate := str(event.StartDate)
+	startTime := str(event.StartTime)
+	endDate := str(event.EndDate)
+	endTime := str(event.EndTime)
 
 	dtStart := formatICSDatetime(startDate, startTime)
-	var dtEnd string
+
+	dtEnd := ""
 	if endDate != "" && endTime != "" {
 		dtEnd = formatICSDatetime(endDate, endTime)
-		// include DTEND in ICS
-	} else {
-		dtEnd = ""
-		// skip DTEND in ICS
 	}
-	fmt.Println("dtEnd:", dtEnd)
 
-	summary := fmt.Sprintf("%v", eventData["title"])
-	var description string
-	if subtitle, ok := eventData["subtitle"].(string); ok {
-		description = subtitle
-	} else {
-		description = "" // fallback if nil or not a string
+	debugf("dtStart: %s, dtEnd: %s", dtStart, dtEnd)
+
+	// Content
+
+	title := str(event.Title)
+	if title == "" {
+		title = "Event"
 	}
-	location := formatAddress(selectedDate)
 
-	uid := fmt.Sprintf("%d-%d@%s", eventId, dateId, h.Config.IcsDomain)
-	dtStamp := time.Now().UTC().Format("20060102T150405Z")
+	description := str(event.Description)
+	if sub := str(event.Subtitle); sub != "" {
+		description = sub + "\n\n" + description
+	}
 
-	prodId := fmt.Sprintf("-//Uranus//%s", strings.ToUpper(lang))
+	location := fmt.Sprintf("%s, %s %s, %s",
+		str(event.VenueName),
+		str(event.VenueStreet),
+		str(event.VenueHouseNumber),
+		str(event.VenueCity),
+	)
 
-	ics := strings.Join([]string{
-		"BEGIN:VCALENDAR",
-		"VERSION:2.0",
-		"PRODID:" + prodId,
-		"METHOD:PUBLISH",
-		"BEGIN:VEVENT",
-		"UID:" + uid,
-		"DTSTAMP:" + dtStamp,
-		"DTSTART:" + dtStart,
-		"DTEND:" + dtEnd,
-		"SUMMARY:" + escapeICSText(summary),
-		"DESCRIPTION:" + escapeICSText(description),
-		"LOCATION:" + location,
-		"END:VEVENT",
-		"END:VCALENDAR",
-	}, "\r\n")
-	ics = strings.Replace(ics, "DTEND:\r\n", "", 1)
+	// ICS fields
 
-	fmt.Println(ics)
+	// Floating time format
+	timeFormat := "20060102T150405"
 
-	// Return as downloadable file
-	gc.Header("Content-Type", "text/calendar")
-	gc.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.ics"`, summary))
+	uid := fmt.Sprintf("%s@%s", event.EventDateUUID, h.Config.IcsDomain)
+	dtStamp := time.Now().UTC().Format(timeFormat)
+
+	// Build ICS
+
+	var b strings.Builder
+
+	b.WriteString("BEGIN:VCALENDAR\r\n")
+	b.WriteString("VERSION:2.0\r\n")
+	b.WriteString("PRODID:-//Uranus//EN\r\n")
+	b.WriteString("METHOD:PUBLISH\r\n")
+
+	b.WriteString("BEGIN:VEVENT\r\n")
+	b.WriteString("UID:" + uid + "\r\n")
+	b.WriteString("DTSTAMP:" + dtStamp + "\r\n")
+	b.WriteString("DTSTART:" + dtStart + "\r\n")
+
+	start, err := time.Parse(timeFormat, dtStart)
+	if err == nil {
+		dtEnd = start.Add(time.Hour).Format(timeFormat)
+		b.WriteString("DTEND:" + dtEnd + "\r\n")
+	} else {
+		debugf(err.Error())
+	}
+
+	b.WriteString("SUMMARY:" + escapeICSText(title) + "\r\n")
+	b.WriteString("DESCRIPTION:" + escapeICSText(description) + "\r\n")
+	b.WriteString("LOCATION:" + escapeICSText(location) + "\r\n")
+
+	if email := str(event.OrgContactEmail); email != "" {
+		b.WriteString("ORGANIZER;CN=" + escapeICSText(str(event.OrgName)) +
+			":mailto:" + email + "\r\n")
+	}
+
+	b.WriteString("END:VEVENT\r\n")
+	b.WriteString("END:VCALENDAR\r\n")
+
+	ics := b.String()
+
+	// Response
+
+	filename := title
+	if filename == "" {
+		filename = "event"
+	}
+
+	gc.Header("Content-Type", "text/calendar; charset=utf-8")
+	gc.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.ics"`, filename))
 	gc.String(http.StatusOK, ics)
 }
 
@@ -151,7 +185,7 @@ func formatICSDatetime(dateStr, timeStr string) string {
 	}
 
 	// Convert to UTC for ICS
-	return t.UTC().Format("20060102T150405Z")
+	return t.Format("20060102T150405")
 }
 
 // escapeICSText escapes commas, semicolons, and newlines for ICS
