@@ -14,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/grains/grains_api"
+	"github.com/sndcds/grains/grains_validation"
 	"github.com/sndcds/uranus/app"
 	"golang.org/x/net/idna"
 )
@@ -100,67 +101,80 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 
 func (h *ApiHandler) ResetPassword(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "reset-password")
-
-	debugf("ResetPassword")
+	ctx := gc.Request.Context()
 
 	var req struct {
 		Token       string `json:"token" binding:"required"`
 		NewPassword string `json:"new_password" binding:"required"`
 	}
+
 	if err := gc.ShouldBindJSON(&req); err != nil {
 		debugf(err.Error())
 		apiRequest.InternalServerError()
 		return
 	}
 
-	ctx := gc.Request.Context()
-
 	var userUuid string
 	var expiresAt time.Time
-	var used bool
-
-	query := fmt.Sprintf(`SELECT user_uuid, expires_at, used FROM %s.password_reset WHERE token = $1`, h.DbSchema)
-	debugf(query)
-	err := h.DbPool.QueryRow(
-		ctx,
-		query,
-		req.Token).Scan(&userUuid, &expiresAt, &used)
-	//	if err != nil || used || time.Now().UTC().After(expiresAt) {
-	if err != nil {
-		debugf(err.Error())
-		apiRequest.Error(http.StatusBadRequest, "invalid or expired token")
-		return
-	}
-	if used {
-		debugf("used!")
-		apiRequest.Error(http.StatusBadRequest, "invalid or expired token")
-		return
-	}
-
-	// Hash the password
-	hashed, err := app.EncryptPassword(req.NewPassword)
-	if err != nil {
-		debugf(err.Error())
-		apiRequest.InternalServerError()
-		return
-	}
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 
-		// Update user's password
-		updateUserQuery := fmt.Sprintf(`UPDATE %s.user SET password_hash = $1 WHERE uuid = $2::uuid`, h.DbSchema)
-		_, err = tx.Exec(ctx, updateUserQuery, hashed, userUuid)
+		query := fmt.Sprintf(`SELECT user_uuid, expires_at FROM %s.password_reset WHERE token = $1`, h.DbSchema)
+		err := tx.QueryRow(
+			ctx,
+			query,
+			req.Token).Scan(&userUuid, &expiresAt)
 		if err != nil {
+			debugf("1")
+			return &ApiTxError{
+				Code: http.StatusBadRequest,
+				Err:  err,
+			}
+		}
+
+		var userEmail string
+		query = fmt.Sprintf(`SELECT email FROM %s.user WHERE uuid = $1::uuid`, h.DbSchema)
+		err = tx.QueryRow(ctx, query, userUuid).Scan(&userEmail)
+		if err != nil {
+			debugf("3")
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
 				Err:  err,
 			}
 		}
 
-		// Mark the reset token as used
-		updateTokenQuery := fmt.Sprintf(`UPDATE %s.password_reset SET used = TRUE WHERE token = $1`, h.DbSchema)
-		_, err = tx.Exec(ctx, updateTokenQuery, req.Token)
+		err = grains_validation.ValidatePassword(userEmail, req.NewPassword, 12)
 		if err != nil {
+			debugf("4")
+			return &ApiTxError{
+				Code: http.StatusUnprocessableEntity,
+				Err:  fmt.Errorf("password does not meet security requirements"),
+			}
+		}
+
+		hashed, err := app.EncryptPassword(req.NewPassword)
+		if err != nil {
+			debugf("5")
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  err,
+			}
+		}
+
+		updateUserQuery := fmt.Sprintf(`UPDATE %s.user SET password_hash = $1 WHERE uuid = $2::uuid`, h.DbSchema)
+		_, err = tx.Exec(ctx, updateUserQuery, hashed, userUuid)
+		if err != nil {
+			debugf("6")
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  err,
+			}
+		}
+
+		deleteQuery := fmt.Sprintf(`DELETE FROM %s.password_reset WHERE user_uuid = $1::uuid`, h.DbSchema)
+		_, err = tx.Exec(ctx, deleteQuery, userUuid)
+		if err != nil {
+			debugf("7")
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
 				Err:  err,
@@ -170,6 +184,7 @@ func (h *ApiHandler) ResetPassword(gc *gin.Context) {
 		return nil
 	})
 	if txErr != nil {
+		debugf(txErr.Error())
 		apiRequest.Error(txErr.Code, txErr.Error())
 		return
 	}

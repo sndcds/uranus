@@ -25,6 +25,8 @@ func main() {
 		TimeFormat:  "", // leave empty to use default RFC3339
 	})
 
+	// TODO: Validate required properties!
+
 	var err error
 	app.UranusInstance, err = app.Initialize(*configFileName)
 	if err != nil {
