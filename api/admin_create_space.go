@@ -1,7 +1,6 @@
 package api
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -25,6 +24,7 @@ func (h *ApiHandler) AdminCreateSpace(gc *gin.Context) {
 	}
 	payload, ok := grains_api.DecodeJSONBody[Payload](gc, apiRequest)
 	if !ok {
+		apiRequest.PayloadError()
 		return
 	}
 
@@ -39,26 +39,30 @@ func (h *ApiHandler) AdminCreateSpace(gc *gin.Context) {
 	apiRequest.Metadata["space_name"] = spaceName
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-		txErr := h.CheckAllOrganizationPermissionsTx(
-			gc, tx, userUuid, payload.OrgUuid,
+		txErr := h.CheckAllOrganizationPermissionsTx(gc, tx, userUuid, payload.OrgUuid,
 			app.PermAddSpace)
 		if txErr != nil {
+			debugf(txErr.Error())
 			return txErr
 		}
 
 		spaceUuid, err := grains_uuid.Uuidv7String()
 		apiRequest.Metadata["space_uuid"] = spaceUuid
-		query := fmt.Sprintf(`INSERT INTO %s.space (uuid, venue_uuid, name) VALUES ($1::uuid, $2::uuid, $3)`, h.DbSchema)
-		_, err = tx.Exec(ctx, query, spaceUuid, payload.VenueUuid, spaceName)
+		query := fmt.Sprintf(`
+			INSERT INTO %s.space (created_by, uuid, venue_uuid, name)
+			VALUES ($1::uuid, $2::uuid, $3::uuid, $4)`,
+			h.DbSchema)
+		_, err = tx.Exec(ctx, query, userUuid, spaceUuid, payload.VenueUuid, spaceName)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
-				Err:  errors.New("Internal server error"),
+				Err:  err,
 			}
 		}
 		return nil
 	})
 	if txErr != nil {
+		debugf(txErr.Error())
 		apiRequest.Error(txErr.Code, txErr.Error())
 		return
 	}
