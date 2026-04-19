@@ -30,6 +30,7 @@ type Uranus struct {
 	SqlGetOrganization                          string
 	SqlGetVenue                                 string
 	SqlGetEvent                                 string
+	SqlGetEventDateICS                          string
 	SqlGetEventDates                            string
 	SqlGetEventsProjected                       string
 	SqlGetEventsTypeSummary                     string
@@ -244,6 +245,7 @@ func (app *Uranus) PrepareSql() error {
 		// Public
 		{"sql/get-event.sql", &app.SqlGetEvent, nil},
 		{"sql/get-event-dates.sql", &app.SqlGetEventDates, nil},
+		{"sql/get-event-date-ics.sql", &app.SqlGetEventDateICS, nil},
 		{"sql/get-events-projected.sql", &app.SqlGetEventsProjected, nil},
 		{"sql/get-events-geojson.sql", &app.SqlGetEventsGeoJSON, nil},
 

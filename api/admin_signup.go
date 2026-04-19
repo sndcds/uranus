@@ -179,7 +179,6 @@ func sendEmailWithContext(ctx context.Context, to, subject, body string) error {
 	}
 }
 
-// Permission to use endpoint checked, 2026-01-11, Roald
 func (h *ApiHandler) Activate(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "signup")
 

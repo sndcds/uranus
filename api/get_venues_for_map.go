@@ -1,8 +1,8 @@
 package api
 
 import (
-	"math/rand"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sndcds/grains/grains_api"
@@ -18,10 +18,11 @@ func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 	lang := gc.DefaultQuery("lang", "en")
 	apiRequest.SetMeta("language", lang)
 
+	today := time.Now().UTC()
 	query := app.UranusInstance.SqlGetGeojsonVenues
-
-	rows, err := h.DbPool.Query(ctx, query, lang)
+	rows, err := h.DbPool.Query(ctx, query, today)
 	if err != nil {
+		debugf(err.Error())
 		apiRequest.InternalServerError()
 		return
 	}
@@ -56,22 +57,29 @@ func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 			val := values[i]
 
 			switch col {
-			case "longitude", "lon", "lng":
+			case "lon":
 				if v, ok := val.(float64); ok {
 					lon = v
 				}
-			case "latitude", "lat":
+			case "lat":
 				if v, ok := val.(float64); ok {
 					lat = v
+				}
+			case "count":
+				switch v := val.(type) {
+				case int:
+					props["count"] = v
+				case int64:
+					props["count"] = int(v)
+				case float64:
+					props["count"] = int(v)
+				default:
+					props["count"] = 0
 				}
 			default:
 				props[col] = val
 			}
 		}
-
-		min := 1
-		max := 99
-		props["count"] = rand.Intn(max-min+1) + min
 
 		features = append(features, Feature{
 			Type: "Feature",
@@ -84,6 +92,7 @@ func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 	}
 
 	if rows.Err() != nil {
+		debugf(rows.Err().Error())
 		apiRequest.InternalServerError()
 		return
 	}

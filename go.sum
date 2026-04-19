@@ -98,6 +98,7 @@ github.com/sndcds/grains v0.0.2-dev h1:DMD5wXI0gKbXTXU47/TqmTwteBO7YNd9hZyNQOViC
 github.com/sndcds/grains v0.0.2-dev/go.mod h1:J21Y/u2htEAXQ6RCi8oskyj5E39eazSAxctUUttzFC8=
 github.com/sndcds/grains v0.0.3 h1:6EgmPspqRlplyaVWSfTLlnmGA1ktrRLDMaeR3brbJZI=
 github.com/sndcds/grains v0.0.3/go.mod h1:J21Y/u2htEAXQ6RCi8oskyj5E39eazSAxctUUttzFC8=
+github.com/sndcds/grains v0.0.4 h1:coWGboVvSvD3mzvv5gcmEewBRn2E6GvLq3PHFpomnOQ=
 github.com/sndcds/grains v0.0.4/go.mod h1:3gCy8fcOb7fn7+2HA9nwRT4D/oP1PhG/NSWZ+CSIf0c=
 github.com/sndcds/pluto v0.4.1-dev h1:FT8dXgy9ieBPbcuV9uZKngNaoGIdQLK0k5IPWeyesco=
 github.com/sndcds/pluto v0.4.1-dev/go.mod h1:4usKacIDyf2Hb2btFtH0uakbtqeLyrc31chT7UYZ4dg=

@@ -25,6 +25,8 @@ func main() {
 		TimeFormat:  "", // leave empty to use default RFC3339
 	})
 
+	// TODO: Validate required properties!
+
 	var err error
 	app.UranusInstance, err = app.Initialize(*configFileName)
 	if err != nil {
@@ -104,12 +106,11 @@ func main() {
 
 	publicRoute.GET("/events", apiHandler.GetEvents)
 	publicRoute.GET("/events/type-summary", apiHandler.GetEventTypeSummary)
-	publicRoute.GET("/events/ics", apiHandler.GetEventsICS)                   // TODO: check!
 	publicRoute.GET("/events/venue-summary", apiHandler.GetEventVenueSummary) // TODO: check!
 	publicRoute.GET("/events/geojson", apiHandler.GetEventsGeoJSON)           // TODO: Reduce data
 
 	publicRoute.GET("/event/:eventUuid/date/:dateUuid", apiHandler.GetEventByDateUuid)
-	publicRoute.GET("/event/:eventUuid/date/:dateUuid/ics", apiHandler.GetEventDateICS) // TODO: check!
+	publicRoute.GET("/event/:eventUuid/date/:dateUuid/ics", apiHandler.GetEventDateICS)
 
 	publicRoute.GET("/venues/geojson", apiHandler.GetVenuesGeoJSON)
 
@@ -152,8 +153,8 @@ func main() {
 	publicRoute.POST("/signup", apiHandler.Signup)
 	publicRoute.POST("/login", apiHandler.Login)
 	publicRoute.POST("/activate", apiHandler.Activate)
-	publicRoute.POST("/forgot-password", apiHandler.ForgotPassword) // TODO: check!
-	publicRoute.POST("/reset-password", apiHandler.ResetPassword)   // TODO: check!
+	publicRoute.POST("/forgot-password", apiHandler.ForgotPassword)
+	publicRoute.POST("/reset-password", apiHandler.ResetPassword)
 
 	//
 	// Authorized endpoints, user must be logged in
