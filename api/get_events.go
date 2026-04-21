@@ -362,10 +362,12 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	query = strings.Replace(query, "{{conditions}}", conditionsStr, 1)
 	query = strings.Replace(query, "{{limit}}", limitClause, 1)
 
-	debugf("query: %s", query)
-	for i, a := range args {
-		fmt.Printf("args[%d] = %#v\n", i, a)
-	}
+	/*
+		debugf("query: %s", query)
+		for i, a := range args {
+			fmt.Printf("args[%d] = %#v\n", i, a)
+		}
+	*/
 
 	rows, err := h.DbPool.Query(ctx, query, args...)
 	if err != nil {

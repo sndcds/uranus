@@ -48,8 +48,11 @@ func (h *ApiHandler) AdminCreateOrganization(gc *gin.Context) {
 		}
 
 		apiImportToken := grains_token.GenerateUuid()
-		query := fmt.Sprintf(`INSERT INTO %s.organization (uuid, name, api_import_token) VALUES ($1::uuid, $2, $3)`, h.DbSchema)
-		_, err = tx.Exec(ctx, query, orgUuid, payload.Name, apiImportToken)
+		query := fmt.Sprintf(`
+			INSERT INTO %s.organization (uuid, created_by, name, api_import_token)
+			VALUES ($1::uuid, $2::uuid, $3, $4)`,
+			h.DbSchema)
+		_, err = tx.Exec(ctx, query, orgUuid, userUuid, payload.Name, apiImportToken)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
