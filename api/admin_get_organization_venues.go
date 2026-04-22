@@ -114,13 +114,13 @@ func (h *ApiHandler) AdminGetOrganizationVenues(gc *gin.Context) {
 				}
 			}
 
-			venue.CanEditVenue = venuePermissions.Has(app.PermBitEditVenue)
-			venue.CanDeleteVenue = venuePermissions.Has(app.PermBitDeleteVenue)
-			venue.CanAddSpace = venuePermissions.Has(app.PermBitAddSpace)
+			venue.CanEditVenue = venuePermissions.Has(app.PermEditVenue)
+			venue.CanDeleteVenue = venuePermissions.Has(app.PermDeleteVenue)
+			venue.CanAddSpace = venuePermissions.Has(app.PermAddSpace)
 
 			for i := range venue.Spaces {
-				venue.Spaces[i].CanEditSpace = venuePermissions.Has(app.PermBitEditSpace)
-				venue.Spaces[i].CanDeleteSpace = venuePermissions.Has(app.PermBitDeleteSpace)
+				venue.Spaces[i].CanEditSpace = venuePermissions.Has(app.PermEditSpace)
+				venue.Spaces[i].CanDeleteSpace = venuePermissions.Has(app.PermDeleteSpace)
 				venue.EventCount += venue.Spaces[i].EventCount
 			}
 
