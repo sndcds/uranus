@@ -19,6 +19,8 @@ require (
 require (
 	github.com/bytedance/gopkg v0.1.3 // indirect
 	github.com/disintegration/imaging v1.6.2 // indirect
+	github.com/ebitengine/purego v0.8.3 // indirect
+	github.com/gen2brain/avif v0.4.4 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/goccy/go-yaml v1.18.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
@@ -29,6 +31,7 @@ require (
 	github.com/quic-go/quic-go v0.55.0 // indirect
 	github.com/rwcarlsen/goexif v0.0.0-20190401172101-9e8deecbddbd // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
+	github.com/tetratelabs/wazero v1.9.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
