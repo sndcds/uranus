@@ -486,7 +486,7 @@ func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 		return
 	}
 
-	// Construct final SQL
+	// Event types count
 	query := fmt.Sprintf(`
 		SELECT type_id, COUNT(*) AS date_count
 		FROM (
@@ -506,7 +506,7 @@ func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 	query = strings.Replace(query, "{{date_conditions}}", dateConditions, 1)
 	query = strings.Replace(query, "{{conditions}}", conditionsStr, 1)
 
-	debugf(query)
+	// debugf(query)
 
 	rows, err := h.DbPool.Query(gc.Request.Context(), query, args...)
 	if err != nil {
@@ -533,8 +533,31 @@ func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 		summary = append(summary, s)
 	}
 
+	// Total count
+	totalQuery := fmt.Sprintf(`
+	    SELECT COUNT(DISTINCT edp.event_date_uuid) AS total_count
+	    FROM %s.event_date_projection edp
+	    JOIN %s.event_projection ep
+        ON ep.event_uuid = edp.event_uuid
+	    WHERE ep.release_status IN ('released', 'cancelled', 'deferred', 'rescheduled')
+	    AND {{date_conditions}}
+	    {{conditions}}`,
+		h.DbSchema, h.DbSchema)
+	totalQuery = strings.Replace(totalQuery, "{{date_conditions}}", dateConditions, 1)
+	totalQuery = strings.Replace(totalQuery, "{{conditions}}", conditionsStr, 1)
+
+	var totalCount int64
+	err = h.DbPool.QueryRow(gc.Request.Context(), totalQuery, args...).Scan(&totalCount)
+	if err != nil {
+		debugf(err.Error())
+		apiRequest.InternalServerError()
+		return
+
+	}
+
 	apiRequest.Success(http.StatusOK, gin.H{
-		"summary": summary,
+		"total_event_count": totalCount,
+		"summary":           summary,
 	}, "")
 }
 
