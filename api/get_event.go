@@ -39,7 +39,7 @@ func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 	usedStatuses := publicStatuses
 	hasUserUuid := len(userUuid) > 0
 	if hasUserUuid {
-		permissions, err := h.GetUserEventPermissions(gc, userUuid, dateUuid)
+		permissions, err := h.GetUserEventPermissions(gc, userUuid, eventUuid)
 		if err != nil {
 			debugf(err.Error())
 			apiRequest.InternalServerError()
