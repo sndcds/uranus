@@ -35,18 +35,18 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 	}
 
 	if userCredentials.Email == "" || userCredentials.Password == "" {
-		apiRequest.Error(http.StatusBadRequest, "email and password required")
+		apiRequest.Error(http.StatusBadRequest, "(#1) email and password required")
 		return
 	}
 
 	err = grains_validation.ValidatePassword(userCredentials.Email, userCredentials.Password, 12)
 	if err != nil {
-		apiRequest.Error(http.StatusUnprocessableEntity, "password does not meet security requirements")
+		apiRequest.Error(http.StatusUnprocessableEntity, "(#2) password does not meet security requirements")
 		return
 	}
 
 	if !app.IsValidEmail(userCredentials.Email) {
-		apiRequest.Error(http.StatusBadRequest, "invalid email")
+		apiRequest.Error(http.StatusBadRequest, "(#3) invalid email")
 		return
 	}
 
@@ -58,43 +58,26 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 	}
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-
 		// Check if user already exists
 		var exists bool
 		checkQuery := fmt.Sprintf("SELECT EXISTS(SELECT 1 FROM %s.user WHERE email = $1)", h.DbSchema)
 		err = tx.QueryRow(ctx, checkQuery, userCredentials.Email).Scan(&exists)
 		if err != nil {
-			debugf(err.Error())
-			return &ApiTxError{
-				Code: http.StatusInternalServerError,
-				Err:  errors.New("internal server error"),
-			}
+			return TxInternalError(nil)
 		}
 		if exists {
-			debugf(err.Error())
-			return &ApiTxError{
-				Code: http.StatusConflict,
-				Err:  errors.New("user already exists"),
-			}
+			return TxInternalError(nil)
 		}
 
 		userUuid, err := grains_uuid.Uuidv7String()
 		if err != nil {
-			debugf(err.Error())
-			return &ApiTxError{
-				Code: http.StatusInternalServerError,
-				Err:  errors.New("uuid creation error"),
-			}
+			return TxInternalError(nil)
 		}
 
 		insertQuery := fmt.Sprintf(`INSERT INTO %s.user (uuid, email, password_hash) VALUES ($1::uuid, $2, $3)`, h.DbSchema)
 		_, err = tx.Exec(ctx, insertQuery, userUuid, userCredentials.Email, passwordHash)
 		if err != nil {
-			debugf(err.Error())
-			return &ApiTxError{
-				Code: http.StatusInternalServerError,
-				Err:  errors.New("internal server error"),
-			}
+			return TxInternalError(nil)
 		}
 
 		// Generate token and send email to users
@@ -109,21 +92,13 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 		signupToken := jwt.NewWithClaims(jwt.SigningMethodHS256, signupClaims)
 		signupTokenString, err := signupToken.SignedString([]byte(h.Config.JwtSecret))
 		if err != nil {
-			debugf(err.Error())
-			return &ApiTxError{
-				Code: http.StatusInternalServerError,
-				Err:  errors.New("internal server error"),
-			}
+			return TxInternalError(nil)
 		}
 
 		updateQuery := fmt.Sprintf(`UPDATE %s.user SET activate_token = $1 WHERE uuid = $2::uuid`, h.DbSchema)
 		_, err = tx.Exec(ctx, updateQuery, signupTokenString, userUuid)
 		if err != nil {
-			debugf(err.Error())
-			return &ApiTxError{
-				Code: http.StatusInternalServerError,
-				Err:  errors.New("internal server error"),
-			}
+			return TxInternalError(nil)
 		}
 
 		messageQuery := fmt.Sprintf(`SELECT subject, template FROM %s.system_email_template WHERE context = 'activate-email' AND iso_639_1 = $1`, h.DbSchema)
@@ -131,11 +106,7 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 		var template string
 		err = tx.QueryRow(ctx, messageQuery, lang).Scan(&subject, &template)
 		if err != nil {
-			debugf(err.Error())
-			return &ApiTxError{
-				Code: http.StatusInternalServerError,
-				Err:  errors.New("internal server error"),
-			}
+			return TxInternalError(nil)
 		}
 
 		expiryHour = 1
@@ -146,11 +117,7 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 
 		err = sendEmailWithTimeout(userCredentials.Email, subject, emailMessage, 20*time.Second)
 		if err != nil {
-			debugf(err.Error())
-			return &ApiTxError{
-				Code: http.StatusInternalServerError,
-				Err:  errors.New("internal server error"),
-			}
+			return TxInternalError(nil)
 		}
 
 		apiRequest.SetMeta("user_uuid", userUuid)

@@ -19,12 +19,30 @@ type ApiHandler struct {
 }
 
 type ApiTxError struct {
-	Code int
-	Err  error
+	Code    int
+	Err     error
+	Message string
 }
 
 func (e *ApiTxError) Error() string {
-	return e.Err.Error()
+	if e.Message != "" {
+		return e.Message
+	}
+	if e.Err != nil {
+		return e.Err.Error()
+	}
+	return "unknown error"
+
+}
+
+func TxInternalError(err error) *ApiTxError {
+	// central logging point
+	debugf(err.Error())
+	return &ApiTxError{
+		Code:    http.StatusInternalServerError,
+		Err:     err,
+		Message: "internal server error",
+	}
 }
 
 func WithTransaction(ctx context.Context, db *pgxpool.Pool, fn func(tx pgx.Tx) *ApiTxError) *ApiTxError {

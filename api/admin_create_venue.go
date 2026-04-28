@@ -53,8 +53,11 @@ func (h *ApiHandler) AdminCreateVenue(gc *gin.Context) {
 			}
 		}
 
-		query := fmt.Sprintf(`INSERT INTO %s.venue (uuid, org_uuid, name) VALUES ($1::uuid, $2::uuid, $3)`, h.DbSchema)
-		_, err = tx.Exec(ctx, query, venueUuid, payload.OrgUuid, venueName)
+		query := fmt.Sprintf(`
+			INSERT INTO %s.venue (uuid, created_by, org_uuid, name)
+			VALUES ($1::uuid, $2::uuid, $3::uuid, $4)`,
+			h.DbSchema)
+		_, err = tx.Exec(ctx, query, venueUuid, userUuid, payload.OrgUuid, venueName)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,

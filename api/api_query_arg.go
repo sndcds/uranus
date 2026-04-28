@@ -36,6 +36,13 @@ func addUpdateClauseNullable[T any](fieldName string, value NullableField[T], se
 	return argPos
 }
 
+func addUpdateClauseUuid7(fieldName string, uuid string, setClauses *[]string, args *[]interface{}, argPos int) int {
+	*setClauses = append(*setClauses, fmt.Sprintf("%s = $%d::uuid", fieldName, argPos))
+	*args = append(*args, uuid)
+	argPos++
+	return argPos
+}
+
 func addUpdateClauseString(fieldName string, valuePtr *string, setClauses *[]string, args *[]interface{}, argPos int) int {
 	if valuePtr != nil {
 		*setClauses = append(*setClauses, fmt.Sprintf("%s = $%d", fieldName, argPos))

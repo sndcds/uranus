@@ -14,6 +14,7 @@ import (
 func (h *ApiHandler) UpdateVenueFields(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-update-venue-fields")
 	ctx := gc.Request.Context()
+	userUuid := h.userUuid(gc)
 
 	venueUuid := gc.Param("venueUuid")
 	if venueUuid == "" {
@@ -65,6 +66,7 @@ func (h *ApiHandler) UpdateVenueFields(gc *gin.Context) {
 	args := []interface{}{}
 	argPos := 1
 
+	argPos = addUpdateClauseUuid7("modified_by", userUuid, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("name", payload.Name, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("type", payload.Type, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("description", payload.Description, &setClauses, &args, argPos)
@@ -91,7 +93,7 @@ func (h *ApiHandler) UpdateVenueFields(gc *gin.Context) {
 		apiRequest.SuccessNoData(http.StatusOK, "no fields updated")
 		return
 	}
-	apiRequest.SetMeta("field_count", len(setClauses))
+	apiRequest.SetMeta("field_count", len(setClauses)-1) // subtract 1 for userUuid
 
 	query := fmt.Sprintf(`UPDATE %s.venue SET %s WHERE uuid = $%d::uuid`,
 		h.DbSchema,
@@ -99,15 +101,12 @@ func (h *ApiHandler) UpdateVenueFields(gc *gin.Context) {
 		argPos, // Last placeholder is for WHERE id
 	)
 
-	args = append(args, venueUuid) // eventId is the last parameter
+	args = append(args, venueUuid) // eventUuid is the last parameter
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		res, err := tx.Exec(ctx, query, args...)
 		if err != nil {
-			return &ApiTxError{
-				Code: http.StatusInternalServerError,
-				Err:  fmt.Errorf("failed to update event: %v", err),
-			}
+			return TxInternalError(nil)
 		}
 
 		if res.RowsAffected() == 0 {
@@ -119,10 +118,7 @@ func (h *ApiHandler) UpdateVenueFields(gc *gin.Context) {
 
 		err = RefreshEventProjections(ctx, tx, "venue", []string{venueUuid})
 		if err != nil {
-			return &ApiTxError{
-				Code: http.StatusInternalServerError,
-				Err:  errors.New("refresh projection tables failed"),
-			}
+			return TxInternalError(nil)
 		}
 
 		return nil
