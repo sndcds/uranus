@@ -7,12 +7,14 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-func (h *ApiHandler) GetUserEventPermissionsTx(
+// GetUserEventOrganizerPermissionsTx fetches a user's permission for the organizer of an event within a transaction.
+func (h *ApiHandler) GetUserEventOrganizerPermissionsTx(
 	gc *gin.Context,
 	tx pgx.Tx,
 	userUuid string,
-	dateUuid string,
+	eventUuid string,
 ) (app.Permission, error) {
+
 	ctx := gc.Request.Context()
 	var permissions pgtype.Int8
 
@@ -20,7 +22,7 @@ func (h *ApiHandler) GetUserEventPermissionsTx(
 		ctx,
 		app.UranusInstance.SqlGetUserEventPermissions,
 		userUuid,
-		dateUuid,
+		eventUuid,
 	).Scan(&permissions)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -36,10 +38,11 @@ func (h *ApiHandler) GetUserEventPermissionsTx(
 	return app.Permission(permissions.Int64), nil
 }
 
-func (h *ApiHandler) GetUserEventPermissions(
+// GetUserEventOrganizerPermissions fetches a user's permission for the organizer of an event.
+func (h *ApiHandler) GetUserEventOrganizerPermissions(
 	gc *gin.Context,
 	userUuid string,
-	dateUuid string,
+	eventUuid string,
 ) (app.Permission, error) {
 
 	ctx := gc.Request.Context()
@@ -49,7 +52,7 @@ func (h *ApiHandler) GetUserEventPermissions(
 		ctx,
 		app.UranusInstance.SqlGetUserEventPermissions,
 		userUuid,
-		dateUuid,
+		eventUuid,
 	).Scan(&permissions)
 
 	if err != nil {
