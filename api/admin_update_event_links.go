@@ -31,23 +31,17 @@ func (h *ApiHandler) AdminUpdateEventLinks(gc *gin.Context) {
 		SourceLink *string `json:"source_link"`
 	}
 
-	debugf("0")
 	var payload Payload
 	if err := gc.ShouldBindJSON(&payload); err != nil {
 		apiRequest.PayloadError()
 		return
 	}
 
-	debugf("1")
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-
-		debugf("2")
-		permissions, err := h.GetUserEventPermissionsTx(gc, tx, userUuid, eventUuid)
+		permissions, err := h.GetUserEventOrganizerPermissionsTx(gc, tx, userUuid, eventUuid)
 		if err != nil {
 			return TxInternalError(nil)
 		}
-		debugf("3")
-		debugf("permissions: %v", permissions)
 		if !permissions.Has(app.PermEditEvent) {
 			return &ApiTxError{
 				Code: http.StatusForbidden,
