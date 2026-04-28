@@ -125,60 +125,39 @@ func (h *ApiHandler) ResetPassword(gc *gin.Context) {
 			query,
 			req.Token).Scan(&userUuid, &expiresAt)
 		if err != nil {
-			debugf("1")
-			return &ApiTxError{
-				Code: http.StatusBadRequest,
-				Err:  err,
-			}
+			return TxInternalError(nil)
 		}
 
 		var userEmail string
 		query = fmt.Sprintf(`SELECT email FROM %s.user WHERE uuid = $1::uuid`, h.DbSchema)
 		err = tx.QueryRow(ctx, query, userUuid).Scan(&userEmail)
 		if err != nil {
-			debugf("3")
-			return &ApiTxError{
-				Code: http.StatusInternalServerError,
-				Err:  err,
-			}
+			return TxInternalError(nil)
 		}
 
 		err = grains_validation.ValidatePassword(userEmail, req.NewPassword, 12)
 		if err != nil {
-			debugf("4")
 			return &ApiTxError{
 				Code: http.StatusUnprocessableEntity,
-				Err:  fmt.Errorf("password does not meet security requirements"),
+				Err:  fmt.Errorf("(#1) password does not meet security requirements"),
 			}
 		}
 
 		hashed, err := app.EncryptPassword(req.NewPassword)
 		if err != nil {
-			debugf("5")
-			return &ApiTxError{
-				Code: http.StatusInternalServerError,
-				Err:  err,
-			}
+			return TxInternalError(nil)
 		}
 
 		updateUserQuery := fmt.Sprintf(`UPDATE %s.user SET password_hash = $1 WHERE uuid = $2::uuid`, h.DbSchema)
 		_, err = tx.Exec(ctx, updateUserQuery, hashed, userUuid)
 		if err != nil {
-			debugf("6")
-			return &ApiTxError{
-				Code: http.StatusInternalServerError,
-				Err:  err,
-			}
+			return TxInternalError(nil)
 		}
 
 		deleteQuery := fmt.Sprintf(`DELETE FROM %s.password_reset WHERE user_uuid = $1::uuid`, h.DbSchema)
 		_, err = tx.Exec(ctx, deleteQuery, userUuid)
 		if err != nil {
-			debugf("7")
-			return &ApiTxError{
-				Code: http.StatusInternalServerError,
-				Err:  err,
-			}
+			return TxInternalError(nil)
 		}
 
 		return nil
