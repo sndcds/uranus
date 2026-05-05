@@ -18,7 +18,7 @@ func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 
 	dateUuid := gc.Param("dateUuid")
 	if dateUuid == "" {
-		apiRequest.Error(http.StatusBadRequest, "dateUuid is required")
+		apiRequest.Required("dateUuid is required")
 		return
 	}
 

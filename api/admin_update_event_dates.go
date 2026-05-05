@@ -19,7 +19,7 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 
 	eventUuid := gc.Param("eventUuid")
 	if eventUuid == "" {
-		apiRequest.Error(http.StatusBadRequest, "eventUuid is required")
+		apiRequest.Required("eventUuid is required")
 		return
 	}
 
@@ -51,11 +51,11 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 	// Validate required fields
 	for i, d := range payload {
 		if strings.TrimSpace(d.StartDate) == "" {
-			apiRequest.Error(http.StatusBadRequest, fmt.Sprintf("start_date is required (index %d)", i))
+			apiRequest.Required(fmt.Sprintf("start_date is required (index %d)", i))
 			return
 		}
 		if strings.TrimSpace(d.StartTime) == "" {
-			apiRequest.Error(http.StatusBadRequest, fmt.Sprintf("start_time is required (index %d)", i))
+			apiRequest.Required(fmt.Sprintf("start_time is required (index %d)", i))
 			return
 		}
 	}

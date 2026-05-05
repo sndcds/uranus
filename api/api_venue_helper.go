@@ -16,7 +16,7 @@ func (h *ApiHandler) GetUserEffectiveVenuePermissionsTx(
 	tx pgx.Tx,
 	userUuid string,
 	venueUuid string,
-) (app.Permission, error) {
+) (app.Permissions, error) {
 	ctx := gc.Request.Context()
 	var result pgtype.Int8
 
@@ -38,7 +38,7 @@ func (h *ApiHandler) GetUserEffectiveVenuePermissionsTx(
 		return 0, nil
 	}
 
-	return app.Permission(result.Int64), nil
+	return app.Permissions(result.Int64), nil
 }
 
 func (h *ApiHandler) IsSpaceInVenueTx(

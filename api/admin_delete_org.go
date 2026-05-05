@@ -9,7 +9,7 @@ import (
 )
 
 func (h *ApiHandler) AdminDeleteOrganization(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "admin-delete-organization")
+	apiRequest := grains_api.NewRequest(gc, "admin-delete-org")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 
@@ -21,7 +21,7 @@ func (h *ApiHandler) AdminDeleteOrganization(gc *gin.Context) {
 
 	orgUuid := gc.Param("orgUuid")
 	if orgUuid == "" {
-		apiRequest.Error(http.StatusBadRequest, "orgUuid is required")
+		apiRequest.Required("orgUuid is required")
 		return
 	}
 	apiRequest.SetMeta("org_uuid", orgUuid)

@@ -21,19 +21,19 @@ import (
 // Verified: 2026-01-11, Roald
 
 func (h *ApiHandler) AdminGetOrganizationMemberPermissions(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "admin-get-organization-member-permissions")
+	apiRequest := grains_api.NewRequest(gc, "admin-get-org-member-permissions")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 
 	memberUuid := gc.Param("memberUuid")
 	if memberUuid == "" {
-		apiRequest.Error(http.StatusBadRequest, "memberUuid is required")
+		apiRequest.Required("memberUuid is required")
 		return
 	}
 
 	orgUuid := gc.Param("orgUuid")
 	if orgUuid == "" {
-		apiRequest.Error(http.StatusBadRequest, "orgUuid is required")
+		apiRequest.Required("orgUuid is required")
 		return
 	}
 
@@ -42,7 +42,7 @@ func (h *ApiHandler) AdminGetOrganizationMemberPermissions(gc *gin.Context) {
 	var permissions int64
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-		txErr := h.CheckOrganizationPermissionTx(gc, tx, userUuid, orgUuid, app.PermManagePermissions)
+		txErr := h.CheckOrganizationPermissionTx(gc, tx, userUuid, orgUuid, app.UserPermManagePermissions)
 		if txErr != nil {
 			return txErr
 		}

@@ -1,87 +1,97 @@
 package app
 
-type Permission uint64
+type Permissions uint64
 
 // TODO: Review code
 
 const (
 	// Organization permissions
-	PermBitEditOrganization          = 0
-	PermBitDeleteOrganization        = 1
-	PermBitChooseAsEventOrganization = 2
-	PermBitChooseAsEventPartner      = 3
-	PermBitReceiveOrganizationMsgs   = 4
-	PermBitManagePermissions         = 5
-	PermBitManageTeam                = 6
+	UserPermBitEditOrg              = 0
+	UserPermBitDeleteOrg            = 1
+	UserPermBitChooseAsEventOrg     = 2
+	UserPermBitChooseAsEventPartner = 3
+	UserPermBitReceiveOrgMsgs       = 4
+	UserPermBitManagePermissions    = 5
+	UserPermBitManageTeam           = 6
 
 	// Venue permissions
-	PermBitAddVenue    = 8
-	PermBitEditVenue   = 9
-	PermBitDeleteVenue = 10
-	PermBitChooseVenue = 11
+	UserPermBitAddVenue    = 8
+	UserPermBitEditVenue   = 9
+	UserPermBitDeleteVenue = 10
+	UserPermBitChooseVenue = 11
 
 	// Space permissions
-	PermBitAddSpace    = 16
-	PermBitEditSpace   = 17
-	PermBitDeleteSpace = 18
+	UserPermBitAddSpace    = 16
+	UserPermBitEditSpace   = 17
+	UserPermBitDeleteSpace = 18
 
 	// Event permissions
-	PermBitAddEvent          = 24
-	PermBitEditEvent         = 25
-	PermBitDeleteEvent       = 26
-	PermBitReleaseEvent      = 27
-	PermBitViewEventInsights = 28
+	UserPermBitAddEvent          = 24
+	UserPermBitEditEvent         = 25
+	UserPermBitDeleteEvent       = 26
+	UserPermBitReleaseEvent      = 27
+	UserPermBitViewEventInsights = 28
+
+	OrgPermBitChooseVenue    = 0
+	OrgPermBitChoosePartner  = 1
+	OrgPermBitChoosePromoter = 2
+	OrgPermBitSeeInsights    = 8
 )
 
 const (
 	// Organization permissions
-	PermEditOrganization          Permission = 1 << PermBitEditOrganization
-	PermDeleteOrganization        Permission = 1 << PermBitDeleteOrganization
-	PermChooseAsEventOrganization Permission = 1 << PermBitChooseAsEventOrganization
-	PermChooseAsEventPartner      Permission = 1 << PermBitChooseAsEventPartner
-	PermReceiveOrganizationMsgs   Permission = 1 << PermBitReceiveOrganizationMsgs
-	PermManagePermissions         Permission = 1 << PermBitManagePermissions
-	PermManageTeam                Permission = 1 << PermBitManageTeam
+	UserPermEditOrg              Permissions = 1 << UserPermBitEditOrg
+	UserPermDeleteOrg            Permissions = 1 << UserPermBitDeleteOrg
+	UserPermChooseAsEventOrg     Permissions = 1 << UserPermBitChooseAsEventOrg
+	UserPermChooseAsEventPartner Permissions = 1 << UserPermBitChooseAsEventPartner
+	UserPermReceiveOrgMsgs       Permissions = 1 << UserPermBitReceiveOrgMsgs
+	UserPermManagePermissions    Permissions = 1 << UserPermBitManagePermissions
+	UserPermManageTeam           Permissions = 1 << UserPermBitManageTeam
 
 	// Venue permissions
-	PermAddVenue    Permission = 1 << PermBitAddVenue
-	PermEditVenue   Permission = 1 << PermBitEditVenue
-	PermDeleteVenue Permission = 1 << PermBitDeleteVenue
-	PermChooseVenue Permission = 1 << PermBitChooseVenue
+	UserPermAddVenue    Permissions = 1 << UserPermBitAddVenue
+	UserPermEditVenue   Permissions = 1 << UserPermBitEditVenue
+	UserPermDeleteVenue Permissions = 1 << UserPermBitDeleteVenue
+	UserPermChooseVenue Permissions = 1 << UserPermBitChooseVenue
 
 	// Space permissions
-	PermAddSpace    Permission = 1 << PermBitAddSpace
-	PermEditSpace   Permission = 1 << PermBitEditSpace
-	PermDeleteSpace Permission = 1 << PermBitDeleteSpace
+	UserPermAddSpace    Permissions = 1 << UserPermBitAddSpace
+	UserPermEditSpace   Permissions = 1 << UserPermBitEditSpace
+	UserPermDeleteSpace Permissions = 1 << UserPermBitDeleteSpace
 
 	// Event permissions
-	PermAddEvent          Permission = 1 << PermBitAddEvent
-	PermEditEvent         Permission = 1 << PermBitEditEvent
-	PermDeleteEvent       Permission = 1 << PermBitDeleteEvent
-	PermReleaseEvent      Permission = 1 << PermBitReleaseEvent
-	PermViewEventInsights Permission = 1 << PermBitViewEventInsights
+	UserPermAddEvent          Permissions = 1 << UserPermBitAddEvent
+	UserPermEditEvent         Permissions = 1 << UserPermBitEditEvent
+	UserPermDeleteEvent       Permissions = 1 << UserPermBitDeleteEvent
+	UserPermReleaseEvent      Permissions = 1 << UserPermBitReleaseEvent
+	UserPermViewEventInsights Permissions = 1 << UserPermBitViewEventInsights
 
-	PermCombinationAdmin = 0b00011111000001110000111101111111
+	UserPermCombinationAdmin = 0b00011111000001110000111101111111
+
+	OrgPermChooseVenue    Permissions = 1 << OrgPermBitChooseVenue
+	OrgPermChoosePartner  Permissions = 1 << OrgPermBitChoosePartner
+	OrgPermChoosePromoter Permissions = 1 << OrgPermBitChoosePromoter
+	OrgPermSeeInsights    Permissions = 1 << OrgPermBitSeeInsights
 )
 
-func (p Permission) Has(flag Permission) bool {
+func (p Permissions) Has(flag Permissions) bool {
 	return p&flag != 0
 }
 
-func (p *Permission) Add(flag Permission) {
+func (p *Permissions) Add(flag Permissions) {
 	*p |= flag
 }
 
-func (p *Permission) Remove(flag Permission) {
+func (p *Permissions) Remove(flag Permissions) {
 	*p &^= flag
 }
 
 // HasAll checks if all bits in 'mask' are set in 'p'
-func (p Permission) HasAll(mask Permission) bool {
+func (p Permissions) HasAll(mask Permissions) bool {
 	return p&mask == mask
 }
 
 // HasAny checks if at least one bit in 'mask' is set in 'p'
-func (p Permission) HasAny(mask Permission) bool {
+func (p Permissions) HasAny(mask Permissions) bool {
 	return p&mask != 0
 }

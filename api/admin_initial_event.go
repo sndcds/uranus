@@ -38,7 +38,7 @@ func (h *ApiHandler) AdminInitialEvent(gc *gin.Context) {
 	apiRequest.Metadata["event_title"] = eventTitle
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-		txErr := h.CheckAllOrganizationPermissionsTx(gc, tx, userUuid, payload.OrgUuid, app.PermAddEvent)
+		txErr := h.CheckAllOrganizationPermissionsTx(gc, tx, userUuid, payload.OrgUuid, app.UserPermAddEvent)
 		if txErr != nil {
 			debugf(".... 1")
 			return txErr
@@ -66,5 +66,5 @@ func (h *ApiHandler) AdminInitialEvent(gc *gin.Context) {
 		return
 	}
 
-	apiRequest.SuccessNoData(http.StatusOK, "event successfully created")
+	apiRequest.SuccessNoData(http.StatusCreated, "event successfully created")
 }

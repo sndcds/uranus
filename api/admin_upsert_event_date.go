@@ -60,7 +60,7 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 			if err != nil {
 				return ApiErrInternal("%v", err)
 			}
-			if !permissions.HasAny(app.PermAddEvent | app.PermEditEvent) {
+			if !permissions.HasAny(app.UserPermAddEvent | app.UserPermEditEvent) {
 				return ApiErrForbidden("")
 			}
 

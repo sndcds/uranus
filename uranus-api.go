@@ -114,10 +114,11 @@ func main() {
 
 	publicRoute.GET("/venues/geojson", apiHandler.GetVenuesGeoJSON)
 
-	publicRoute.GET("/organization/:orgUuid", apiHandler.GetOrganization)
-	publicRoute.GET("/organizations", apiHandler.GetOrganizations)
+	publicRoute.GET("/org/:orgUuid", apiHandler.GetOrganization)
+	publicRoute.GET("/orgs", apiHandler.GetOrganizations)
 
 	publicRoute.GET("/venue/:venueUuid", apiHandler.GetVenue)
+	publicRoute.GET("/venue/:venueUuid/space/:spaceUuid/label", apiHandler.GetVenueSpaceLabel)
 
 	publicRoute.GET("/transport/stations", apiHandler.GetTransportStations)
 
@@ -139,11 +140,11 @@ func main() {
 	publicRoute.GET("/choosable-currencies", apiHandler.GetChoosableCurrencies)          // TODO: check!
 	publicRoute.GET("/choosable-event-ocassions", apiHandler.GetChoosableEventOccasions) // TODO: check!
 
-	publicRoute.GET("/choosable-venues", apiHandler.GetChoosableVenues)                                   // TODO: check!
-	publicRoute.GET("/choosable-organizations", apiHandler.GetChoosableOrganizations)                     // TODO: check!
-	publicRoute.GET("/choosable-venues/organization/:orgUuid", apiHandler.GetChoosableOrganizationVenues) // TODO: check!
-	publicRoute.GET("/choosable-spaces/venue/:venueUuid", apiHandler.GetChoosableVenueSpaces)             // TODO: check!
-	publicRoute.GET("/choosable-event-genres/event-type/:id", apiHandler.GetChoosableEventGenres)         // TODO: check!
+	publicRoute.GET("/choosable-venues", apiHandler.GetChoosableVenues)
+	publicRoute.GET("/choosable-orgs", apiHandler.GetChoosableOrgs)
+	publicRoute.GET("/choosable-venues/org/:orgUuid", apiHandler.GetChoosableOrganizationVenues)  // TODO: check!
+	publicRoute.GET("/choosable-spaces/venue/:venueUuid", apiHandler.GetChoosableVenueSpaces)     // TODO: check!
+	publicRoute.GET("/choosable-event-genres/event-type/:id", apiHandler.GetChoosableEventGenres) // TODO: check!
 
 	publicRoute.GET("/accessibility/flags", apiHandler.GetAccessibilityFlags) // TODO: check!
 
@@ -184,26 +185,35 @@ func main() {
 	adminRoute.POST("/user/send-message", apiHandler.AdminSendMessage) // TODO: check!
 
 	adminRoute.GET("/user/event/notifications", apiHandler.AdminGetUserEventNotifications)
-	adminRoute.GET("/user/choosable-organizations", apiHandler.AdminGetChoosableOrganizations) // TODO: check!
-	adminRoute.GET("/user/choosable-event-venues", apiHandler.AdminGetChoosableUserEventVenues)
+	adminRoute.GET("/user/choosable-orgs", apiHandler.AdminGetChoosableOrganizations)           // TODO: check!
+	adminRoute.GET("/user/choosable-event-venues", apiHandler.AdminGetChoosableUserEventVenues) // TODO: Unused, can be removed!
 
-	// Organisation
-	adminRoute.GET("/organization/:orgUuid/member/:memberUuid/permissions", apiHandler.AdminGetOrganizationMemberPermissions)
-	adminRoute.PUT("/organization/:orgUuid/member/:memberUuid/permissions", apiHandler.AdminUpdateOrganizationMemberPermissions) // TODO: check!
+	// Organization
+	adminRoute.GET("/org/:orgUuid/member/:memberUuid/permissions", apiHandler.AdminGetOrganizationMemberPermissions)
+	adminRoute.PUT("/org/:orgUuid/member/:memberUuid/permissions", apiHandler.AdminUpdateOrganizationMemberPermissions) // TODO: check!
 
-	adminRoute.POST("/organization/create", apiHandler.AdminCreateOrganization)
-	adminRoute.GET("/organization/:orgUuid", apiHandler.AdminGetOrganization)
-	adminRoute.PUT("/organization/:orgUuid/fields", apiHandler.UpdateOrganizationFields)
-	adminRoute.DELETE("/organization/:orgUuid", apiHandler.AdminDeleteOrganization)
+	adminRoute.POST("/org/create", apiHandler.AdminCreateOrganization)
+	adminRoute.GET("/org/:orgUuid", apiHandler.AdminGetOrganization)
+	adminRoute.PUT("/org/:orgUuid/fields", apiHandler.UpdateOrganizationFields)
+	adminRoute.DELETE("/org/:orgUuid", apiHandler.AdminDeleteOrganization)
 
-	adminRoute.GET("/organization/list", apiHandler.AdminGetOrganizationList)
-	adminRoute.GET("/organization/:orgUuid/venues", apiHandler.AdminGetOrganizationVenues)
-	adminRoute.GET("/organization/:orgUuid/events", apiHandler.AdminGetOrganizationEvents)
+	adminRoute.GET("/org/list", apiHandler.AdminGetOrganizationList)
+	adminRoute.GET("/org/:orgUuid/venues", apiHandler.AdminGetOrganizationVenues)
+	adminRoute.GET("/org/:orgUuid/events", apiHandler.AdminGetOrganizationEvents)
 
-	adminRoute.GET("/organization/:orgUuid/team", apiHandler.AdminGetOrganizationTeam)
-	adminRoute.POST("/organization/:orgUuid/team/invite", apiHandler.AdminOrganizationTeamInvite)
-	adminRoute.POST("/organization/team/invite/accept", apiHandler.AdminOrganizationTeamInviteAccept)
-	adminRoute.DELETE("/organization/:orgUuid/team/member/:memberId", apiHandler.AdminDeleteOrganizationTeamMember) // TODO: check!
+	adminRoute.GET("/org/:orgUuid/team", apiHandler.AdminGetOrganizationTeam)
+	adminRoute.POST("/org/:orgUuid/team/invite", apiHandler.AdminOrganizationTeamInvite)
+	adminRoute.POST("/org/team/invite/accept", apiHandler.AdminOrganizationTeamInviteAccept)
+	adminRoute.DELETE("/org/:orgUuid/team/member/:memberId", apiHandler.AdminDeleteOrganizationTeamMember) // TODO: check!
+	adminRoute.GET("/org/:orgUuid/choosable-venues", apiHandler.AdminGetOrgChoosableVenues)
+
+	// Partner
+	adminRoute.GET("/org/:orgUuid/partner/grants", apiHandler.AdminGetOrgPartnerGrants)
+	adminRoute.GET("/org/:orgUuid/partner/requests", apiHandler.AdminGetOrgPartnerRequest)
+	adminRoute.POST("/org/:orgUuid/partner/:partnerUuid/grants", apiHandler.AdminUpdateOrgPartnerGrants)
+	adminRoute.POST("/org/:orgUuid/partner/request", apiHandler.AdminInsertOrgPartnerRequest)
+	adminRoute.POST("/org/:orgUuid/partner/request/:partnerUuid/accept", apiHandler.AdminInsertOrgPartnerAccept)
+	adminRoute.POST("/org/:orgUuid/partner/request/:partnerUuid/reject", apiHandler.AdminInsertOrgPartnerReject)
 
 	// Venue
 	adminRoute.GET("/venue/:venueUuid", apiHandler.AdminGetVenue)

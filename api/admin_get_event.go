@@ -17,14 +17,14 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 
 	eventUuid := gc.Param("eventUuid")
 	if eventUuid == "" {
-		apiRequest.Error(http.StatusBadRequest, "eventUuid is required")
+		apiRequest.Required("eventUuid is required")
 		return
 	}
 
 	lang := gc.DefaultQuery("lang", "en")
 	apiRequest.SetMeta("language", lang)
 
-	permission := app.PermEditEvent | app.PermViewEventInsights
+	permission := app.UserPermEditEvent | app.UserPermViewEventInsights
 	row := h.DbPool.QueryRow(ctx, app.UranusInstance.SqlAdminGetEvent, eventUuid, lang, userUuid, permission)
 
 	// Basic Event

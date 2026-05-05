@@ -9,8 +9,8 @@ import (
 )
 
 func (h *ApiHandler) GetChoosableSpaceTypes(gc *gin.Context) {
-	ctx := gc.Request.Context()
 	apiRequest := grains_api.NewRequest(gc, "get-choosable-space-types")
+	ctx := gc.Request.Context()
 
 	// Get language from query parameter, default to "en"
 	lang := gc.DefaultQuery("lang", "en")

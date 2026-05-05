@@ -16,7 +16,7 @@ func (h *ApiHandler) AdminDeletePlutoImage(gc *gin.Context) {
 
 	contextUuid := gc.Param("contextUuid")
 	if contextUuid == "" {
-		apiRequest.Error(http.StatusBadRequest, "contextUuid is required")
+		apiRequest.Required("contextUuid is required")
 		return
 	}
 
@@ -34,7 +34,7 @@ func (h *ApiHandler) AdminDeletePlutoImage(gc *gin.Context) {
 
 	identifier := gc.Param("identifier")
 	if !validator(identifier) {
-		apiRequest.Error(http.StatusBadRequest, "unknown identifier")
+		apiRequest.Required("unknown identifier")
 		return
 	}
 
@@ -63,7 +63,7 @@ func (h *ApiHandler) AdminUpsertPlutoImage(gc *gin.Context) {
 
 	contextUuid := gc.Param("contextUuid")
 	if contextUuid == "" {
-		apiRequest.Error(http.StatusBadRequest, "contextUuid is required")
+		apiRequest.Required("contextUuid is required")
 		return
 	}
 	apiRequest.SetMeta("pluto_context_uuid", contextUuid)

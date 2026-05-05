@@ -24,14 +24,14 @@ func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 
 	eventUuid := gc.Param("eventUuid")
 	if eventUuid == "" {
-		apiRequest.Error(http.StatusBadRequest, "eventUuid is required")
+		apiRequest.Required("eventUuid is required")
 		return
 	}
 	apiRequest.SetMeta("event_uuid", eventUuid)
 
 	dateUuid := gc.Param("dateUuid")
 	if dateUuid == "" {
-		apiRequest.Error(http.StatusBadRequest, "dateUuid is required")
+		apiRequest.Required("dateUuid is required")
 		return
 	}
 	apiRequest.SetMeta("date_uuid", dateUuid)
@@ -45,7 +45,7 @@ func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 			apiRequest.InternalServerError()
 			return
 		}
-		if permissions.HasAny(app.PermEditEvent | app.PermDeleteEvent | app.PermReleaseEvent | app.PermViewEventInsights) {
+		if permissions.HasAny(app.UserPermEditEvent | app.UserPermDeleteEvent | app.UserPermReleaseEvent | app.UserPermViewEventInsights) {
 			usedStatuses = []string{
 				"draft",
 				"review",

@@ -18,7 +18,7 @@ func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 
 	eventUuid := gc.Param("eventUuid")
 	if eventUuid == "" {
-		apiRequest.Error(http.StatusBadRequest, "eventUuid is required")
+		apiRequest.Required("eventUuid is required")
 		return
 	}
 	apiRequest.SetMeta("event_uuid", eventUuid)

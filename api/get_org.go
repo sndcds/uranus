@@ -9,17 +9,17 @@ import (
 )
 
 func (h *ApiHandler) GetOrganization(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "get-organization")
+	apiRequest := grains_api.NewRequest(gc, "get-org")
 	ctx := gc.Request.Context()
 
 	orgUuid := gc.Param("orgUuid")
 	if orgUuid == "" {
-		apiRequest.Error(http.StatusBadRequest, "parameter orgUuid is required")
+		apiRequest.Required("parameter orgUuid is required")
 		return
 	}
 	apiRequest.SetMeta("org_uuid", orgUuid)
 
-	query := app.UranusInstance.SqlGetOrganization
+	query := app.UranusInstance.SqlGetOrg
 	rows, err := h.DbPool.Query(ctx, query, orgUuid)
 	if err != nil {
 		debugf(err.Error())

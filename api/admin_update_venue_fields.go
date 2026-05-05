@@ -18,7 +18,7 @@ func (h *ApiHandler) UpdateVenueFields(gc *gin.Context) {
 
 	venueUuid := gc.Param("venueUuid")
 	if venueUuid == "" {
-		apiRequest.Error(http.StatusBadRequest, "venueUuid is required")
+		apiRequest.Required("venueUuid is required")
 		return
 	}
 	apiRequest.SetMeta("venue_uuid", venueUuid)

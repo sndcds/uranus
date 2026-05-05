@@ -22,7 +22,7 @@ import (
 // Verified: 2026-01-12, Roald
 
 func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "get-user-organization-event-list")
+	apiRequest := grains_api.NewRequest(gc, "get-user-org-event-list")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 
@@ -33,7 +33,7 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 	}
 
 	var events []model.AdminListEvent
-	var orgPermissions app.Permission
+	var orgPermissions app.Permissions
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		var err error
@@ -48,7 +48,7 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 			startDate = time.Now()
 		}
 
-		rows, err := tx.Query(ctx, app.UranusInstance.SqlAdminGetOrganizationEvents, orgUuid, startDate, userUuid)
+		rows, err := tx.Query(ctx, app.UranusInstance.SqlAdminGetOrgEvents, orgUuid, startDate, userUuid)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
@@ -116,7 +116,7 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 		return
 	}
 
-	canAddEvent := orgPermissions.Has(app.PermAddEvent)
+	canAddEvent := orgPermissions.Has(app.UserPermAddEvent)
 	apiRequest.SetMeta("can_add_event", canAddEvent)
 	apiRequest.SetMeta("total_events", len(events))
 	apiRequest.Success(http.StatusOK, events, "")

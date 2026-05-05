@@ -18,7 +18,7 @@ func (h *ApiHandler) AdminUpdateEventLinks(gc *gin.Context) {
 
 	eventUuid := gc.Param("eventUuid")
 	if eventUuid == "" {
-		apiRequest.Error(http.StatusBadRequest, "eventUuid is required")
+		apiRequest.Required("eventUuid is required")
 		return
 	}
 
@@ -42,7 +42,7 @@ func (h *ApiHandler) AdminUpdateEventLinks(gc *gin.Context) {
 		if err != nil {
 			return TxInternalError(nil)
 		}
-		if !permissions.Has(app.PermEditEvent) {
+		if !permissions.Has(app.UserPermEditEvent) {
 			return &ApiTxError{
 				Code: http.StatusForbidden,
 				Err:  errors.New("(#1) event not found"),

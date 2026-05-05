@@ -22,7 +22,7 @@ func (h *ApiHandler) AdminGetUserEventNotifications(gc *gin.Context) {
 	firstEventDateDaysLeft := 30
 
 	flagMode := "any"
-	permissionsMask := app.PermEditEvent
+	permissionsMask := app.UserPermEditEvent
 
 	// For a given user, this query returns all unreleased or draft/review events from organizations
 	// they belong to, along with the event’s earliest and latest dates, the number of days until release,

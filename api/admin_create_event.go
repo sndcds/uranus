@@ -158,8 +158,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	}
 
 	if payload.OrgUuid == nil {
-		debugf("payload.OrganizationId == nil")
-		apiRequest.Error(http.StatusBadRequest, "organizationId is required")
+		apiRequest.Required("orgUuid is required")
 		return
 	}
 
@@ -168,7 +167,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		txErr := h.CheckAllOrganizationPermissionsTx(
 			gc, tx, userUuid, *payload.OrgUuid,
-			app.PermChooseAsEventOrganization|app.PermAddEvent)
+			app.UserPermChooseAsEventOrg|app.UserPermAddEvent)
 		if txErr != nil {
 			return txErr
 		}
@@ -180,7 +179,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 				debugf("Error: %v", err)
 				return &ApiTxError{Code: http.StatusForbidden, Err: err}
 			}
-			if !venuePermissions.Has(app.PermChooseVenue) {
+			if !venuePermissions.Has(app.UserPermChooseVenue) {
 				return ApiErrForbidden("")
 			}
 		}
@@ -249,7 +248,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 				if err != nil {
 					return &ApiTxError{Code: http.StatusInternalServerError, Err: err}
 				}
-				if !venuePermissions.Has(app.PermChooseVenue) {
+				if !venuePermissions.Has(app.UserPermChooseVenue) {
 					debugf("Forbidden userId %d, venueId: %d", userUuid, *d.VenueUuid)
 					return ApiErrForbidden("")
 				}
@@ -387,9 +386,9 @@ func (e *eventPayload) Validate() error {
 
 	// Validate OrganizationId (permissons to use this will be checked in the actual sql)
 	if e.OrgUuid == nil {
-		errs = append(errs, "organization_id is required")
+		errs = append(errs, "org_uuid is required")
 	} else if *e.OrgUuid == "" {
-		errs = append(errs, "organization_id is invalid")
+		errs = append(errs, "org_uuid is invalid")
 	}
 
 	// Validate VenueId

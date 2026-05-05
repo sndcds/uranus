@@ -32,7 +32,7 @@ type OrganizationTeamInviteInfo struct {
 }
 
 func (h *ApiHandler) AdminOrganizationTeamInvite(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "admin-organization-team-invite")
+	apiRequest := grains_api.NewRequest(gc, "admin-org-team-invite")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 
@@ -40,7 +40,7 @@ func (h *ApiHandler) AdminOrganizationTeamInvite(gc *gin.Context) {
 
 	orgUuid := gc.Param("orgUuid")
 	if orgUuid == "" {
-		apiRequest.Error(http.StatusBadRequest, "orgUuid is required")
+		apiRequest.Required("orgUuid is required")
 		return
 	}
 
@@ -64,7 +64,7 @@ func (h *ApiHandler) AdminOrganizationTeamInvite(gc *gin.Context) {
 
 		err := tx.QueryRow(
 			ctx,
-			app.UranusInstance.SqlAdminInvitedOrganizationTeamMember,
+			app.UranusInstance.SqlAdminInvitedOrgTeamMember,
 			orgUuid,
 			payload.Email).
 			Scan(
@@ -120,7 +120,7 @@ func (h *ApiHandler) AdminOrganizationTeamInvite(gc *gin.Context) {
 
 		_, err = tx.Exec(
 			ctx,
-			app.UranusInstance.SqlAdminInsertInvitedOrganizationTeamMember,
+			app.UranusInstance.SqlAdminInsertInvitedOrgTeamMember,
 			orgUuid,
 			invitedUserUuid,
 			tokenString,
@@ -172,7 +172,7 @@ func (h *ApiHandler) AdminOrganizationTeamInvite(gc *gin.Context) {
 }
 
 func (h *ApiHandler) AdminOrganizationTeamInviteAccept(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "admin-organization-team-invite-accept")
+	apiRequest := grains_api.NewRequest(gc, "admin-org-team-invite-accept")
 	ctx := gc.Request.Context()
 
 	debugf("AdminOrganizationTeamInviteAccept 1")

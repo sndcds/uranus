@@ -9,8 +9,8 @@ import (
 )
 
 func (h *ApiHandler) GetChoosableStates(gc *gin.Context) {
-	ctx := gc.Request.Context()
 	apiRequest := grains_api.NewRequest(gc, "choosable-states")
+	ctx := gc.Request.Context()
 
 	countryCode := gc.DefaultQuery("country-code", "")
 	apiRequest.SetMeta("country_code", countryCode)
