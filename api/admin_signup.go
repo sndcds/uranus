@@ -153,7 +153,7 @@ func (h *ApiHandler) Activate(gc *gin.Context) {
 		Token string `json:"token"`
 	}
 	if err := gc.BindJSON(&requestData); err != nil || requestData.Token == "" {
-		apiRequest.Error(http.StatusBadRequest, "token required")
+		apiRequest.Required("token required")
 		return
 	}
 

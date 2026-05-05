@@ -21,14 +21,14 @@ func (h *ApiHandler) AdminDeleteEventDate(gc *gin.Context) {
 
 	eventUuid := gc.Param("eventUuid")
 	if eventUuid == "" {
-		apiRequest.Error(http.StatusBadRequest, "eventUuid is required")
+		apiRequest.Required("eventUuid is required")
 		return
 	}
 	apiRequest.SetMeta("event_uuid", eventUuid)
 
 	eventDateUuid := gc.Param("dateUuid")
 	if eventDateUuid == "" {
-		apiRequest.Error(http.StatusBadRequest, "dateUuid is required")
+		apiRequest.Required("dateUuid is required")
 		return
 	}
 	apiRequest.SetMeta("event_date_uuid", eventDateUuid)

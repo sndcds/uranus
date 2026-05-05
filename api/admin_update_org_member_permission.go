@@ -64,19 +64,19 @@ import (
 //   - 404 Not Found: Target member does not exist in the organization.
 //   - 500 Internal Server Error: Database or transaction failure.
 func (h *ApiHandler) AdminUpdateOrganizationMemberPermissions(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "admin-update-organization-member-permissions")
+	apiRequest := grains_api.NewRequest(gc, "admin-update-org-member-permissions")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 
 	orgUuid := gc.Param("orgUuid")
 	if orgUuid == "" {
-		apiRequest.Error(http.StatusBadRequest, "orgUuid is required")
+		apiRequest.Required("orgUuid is required")
 		return
 	}
 
 	memberUuid := gc.Param("memberUuid")
 	if memberUuid == "" {
-		apiRequest.Error(http.StatusBadRequest, "memberUuid is required")
+		apiRequest.Required("memberUuid is required")
 		return
 	}
 
@@ -97,16 +97,16 @@ func (h *ApiHandler) AdminUpdateOrganizationMemberPermissions(gc *gin.Context) {
 	var updatedPermissions int64
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-		txErr := h.CheckOrganizationPermissionTx(gc, tx, userUuid, orgUuid, app.PermManagePermissions)
+		txErr := h.CheckOrganizationPermissionTx(gc, tx, userUuid, orgUuid, app.UserPermManagePermissions)
 		if txErr != nil {
 			return txErr
 		}
 
 		// Ckeck if member is the admin user
-		var orgMemberLink model.OrganizationMemberLink
+		var orgMemberLink model.OrgMemberLink
 		orgMemberLink.UserUuid = memberUuid
 		err := tx.QueryRow(
-			ctx, app.UranusInstance.SqlAdminGetOrganizationMemberLink, memberUuid).
+			ctx, app.UranusInstance.SqlAdminGetOrgMemberLink, memberUuid).
 			Scan(
 				&orgMemberLink.OrgUuid,
 				&orgMemberLink.UserUuid,
@@ -139,7 +139,7 @@ func (h *ApiHandler) AdminUpdateOrganizationMemberPermissions(gc *gin.Context) {
 		memberUserUuid := orgMemberLink.UserUuid
 
 		// If the user is trying to set their own ManagePermissions or ManageTeam bit, block it
-		if memberUserUuid == userUuid && (inputReq.Bit == app.PermBitManagePermissions || inputReq.Bit == app.PermBitManageTeam) {
+		if memberUserUuid == userUuid && (inputReq.Bit == app.UserPermBitManagePermissions || inputReq.Bit == app.UserPermBitManageTeam) {
 			return &ApiTxError{
 				Code: http.StatusUnauthorized,
 				Err:  fmt.Errorf("Bits %d protected", inputReq.Bit),

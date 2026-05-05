@@ -10,8 +10,8 @@ import (
 )
 
 func (h *ApiHandler) GetEventTypeGenreLookup(gc *gin.Context) {
-	ctx := gc.Request.Context()
 	apiRequest := grains_api.NewRequest(gc, "event-type-genre-lookup")
+	ctx := gc.Request.Context()
 
 	query := app.UranusInstance.SqlEventTypeGenreLookup
 	rows, err := h.DbPool.Query(ctx, query)

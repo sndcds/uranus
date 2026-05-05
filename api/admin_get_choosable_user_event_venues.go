@@ -64,8 +64,8 @@ func (h *ApiHandler) AdminGetChoosableUserEventVenues(gc *gin.Context) {
 	}
 
 	result := map[string]interface{}{
-		"venue_infos": venueInfos,
 		"total_count": len(venueInfos),
+		"venue_infos": venueInfos,
 	}
 
 	apiRequest.Success(http.StatusOK, result, "")

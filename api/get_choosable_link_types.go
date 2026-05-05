@@ -9,8 +9,8 @@ import (
 )
 
 func (h *ApiHandler) GetChoosableLinkTypes(gc *gin.Context) {
-	ctx := gc.Request.Context()
 	apiRequest := grains_api.NewRequest(gc, "get-choosable-link-types")
+	ctx := gc.Request.Context()
 
 	lang := gc.DefaultQuery("lang", "en")
 	apiRequest.SetMeta("language", lang)

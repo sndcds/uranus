@@ -67,7 +67,7 @@ func (h *ApiHandler) AdminGetTodo(gc *gin.Context) {
 
 	todoId, ok := ParamInt(gc, "todoId")
 	if !ok {
-		apiRequest.Error(http.StatusBadRequest, "todoId is required")
+		apiRequest.Required("todoId is required")
 		return
 	}
 
@@ -154,7 +154,7 @@ func (h *ApiHandler) AdminUpsertTodo(gc *gin.Context) {
 			return
 		}
 
-		apiRequest.SuccessNoData(http.StatusOK, "todo created successfully")
+		apiRequest.SuccessNoData(http.StatusCreated, "todo created successfully")
 		return
 	}
 
@@ -229,7 +229,7 @@ func (h *ApiHandler) AdminDeleteTodo(gc *gin.Context) {
 
 	totoId, hasTodoId := ParamInt(gc, "todoId")
 	if !hasTodoId {
-		apiRequest.Error(http.StatusBadRequest, "todoId is required")
+		apiRequest.Required("todoId is required")
 		return
 	}
 

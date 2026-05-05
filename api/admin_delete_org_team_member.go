@@ -12,7 +12,7 @@ import (
 func (h *ApiHandler) AdminDeleteOrganizationTeamMember(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
-	apiRequest := grains_api.NewRequest(gc, "admin-delete-organization-team-member")
+	apiRequest := grains_api.NewRequest(gc, "admin-delete-org-team-member")
 
 	err := h.VerifyUserPassword(gc, userUuid)
 	if err != nil {
@@ -20,16 +20,16 @@ func (h *ApiHandler) AdminDeleteOrganizationTeamMember(gc *gin.Context) {
 		return
 	}
 
-	organizationId, ok := ParamInt(gc, "organizationId")
-	if !ok {
-		apiRequest.Error(http.StatusBadRequest, "organizationId is required")
+	orgUuid := gc.Param("orgUuid")
+	if orgUuid == "" {
+		apiRequest.Required("orgUuid is required")
 		return
 	}
-	apiRequest.SetMeta("organization_id", organizationId)
+	apiRequest.SetMeta("org_uuid", orgUuid)
 
 	memberUserId, ok := ParamInt(gc, "memberId")
 	if !ok {
-		apiRequest.Error(http.StatusBadRequest, "memberId is required")
+		apiRequest.Required("memberId is required")
 		return
 	}
 	apiRequest.SetMeta("member_id", memberUserId)
@@ -48,7 +48,7 @@ func (h *ApiHandler) AdminDeleteOrganizationTeamMember(gc *gin.Context) {
 	query := fmt.Sprintf(
 		`DELETE FROM %s.organization_member_link WHERE organization_id = $1 AND user_id = $2`,
 		h.DbSchema)
-	_, err = tx.Exec(ctx, query, organizationId, memberUserId)
+	_, err = tx.Exec(ctx, query, orgUuid, memberUserId)
 	if err != nil {
 		apiRequest.Error(http.StatusInternalServerError, "failed to delete team member (#1)")
 		return
@@ -57,7 +57,7 @@ func (h *ApiHandler) AdminDeleteOrganizationTeamMember(gc *gin.Context) {
 	query = fmt.Sprintf(
 		`DELETE FROM %s.user_organization_link WHERE organization_id = $1 AND user_id = $2`,
 		h.DbSchema)
-	_, err = tx.Exec(ctx, query, organizationId, memberUserId)
+	_, err = tx.Exec(ctx, query, orgUuid, memberUserId)
 	if err != nil {
 		apiRequest.Error(http.StatusInternalServerError, "failed to delete team member (#2)")
 		return

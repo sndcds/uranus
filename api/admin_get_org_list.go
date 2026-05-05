@@ -9,10 +9,6 @@ import (
 	"github.com/sndcds/uranus/model"
 )
 
-type organizationListResponse struct {
-	Organizations []model.OrganizationListItem `json:"organizations"`
-}
-
 // PermissionNote: User must be authenticated.
 // The endpoint returns only organizations for which the authenticated user
 // has a link in user_organization_link. The response includes the user’s
@@ -21,11 +17,11 @@ type organizationListResponse struct {
 // Verified: 2026-01-12, Roald
 
 func (h *ApiHandler) AdminGetOrganizationList(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "admin-get-organization-list")
+	apiRequest := grains_api.NewRequest(gc, "admin-get-org-list")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 
-	rows, err := h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetOrganizationList, userUuid)
+	rows, err := h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetOrgList, userUuid)
 	if err != nil {
 		debugf(err.Error())
 		apiRequest.InternalServerError()
@@ -33,14 +29,18 @@ func (h *ApiHandler) AdminGetOrganizationList(gc *gin.Context) {
 	}
 	defer rows.Close()
 
-	var logUuid *string
+	var logoUuid *string
 	var lightThemeLogoUuid *string
 	var darkThemeLogoUuid *string
 
-	var result organizationListResponse
-	var userPermissions app.Permission
+	type Response struct {
+		Organizations []model.OrgListItem `json:"organizations"`
+	}
+
+	var result Response
+	var userPermissions app.Permissions
 	for rows.Next() {
-		var e model.OrganizationListItem
+		var e model.OrgListItem
 		if err := rows.Scan(
 			&e.Uuid,
 			&e.Name,
@@ -50,16 +50,16 @@ func (h *ApiHandler) AdminGetOrganizationList(gc *gin.Context) {
 			&e.VenueCount,
 			&e.SpaceCount,
 			&userPermissions,
-			&logUuid,
+			&logoUuid,
 			&lightThemeLogoUuid,
 			&darkThemeLogoUuid,
 		); err != nil {
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			apiRequest.InternalServerError()
 			return
 		}
 
-		if logUuid != nil {
-			url := ImageUrl(*logUuid)
+		if logoUuid != nil {
+			url := ImageUrl(*logoUuid)
 			e.LogoUrl = &url
 		}
 		if lightThemeLogoUuid != nil {
@@ -71,9 +71,9 @@ func (h *ApiHandler) AdminGetOrganizationList(gc *gin.Context) {
 			e.DarkThemeLogoUrl = &url
 		}
 
-		e.CanEditOrg = userPermissions.Has(app.PermEditOrganization)
-		e.CanDeleteOrg = userPermissions.Has(app.PermDeleteOrganization)
-		e.CanManageTeam = userPermissions.Has(app.PermManageTeam)
+		e.CanEditOrg = userPermissions.Has(app.UserPermEditOrg)
+		e.CanDeleteOrg = userPermissions.Has(app.UserPermDeleteOrg)
+		e.CanManageTeam = userPermissions.Has(app.UserPermManageTeam)
 
 		result.Organizations = append(result.Organizations, e)
 	}

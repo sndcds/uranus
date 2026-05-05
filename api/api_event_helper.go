@@ -13,7 +13,7 @@ func (h *ApiHandler) GetUserEventOrganizerPermissionsTx(
 	tx pgx.Tx,
 	userUuid string,
 	eventUuid string,
-) (app.Permission, error) {
+) (app.Permissions, error) {
 
 	ctx := gc.Request.Context()
 	var permissions pgtype.Int8
@@ -35,7 +35,7 @@ func (h *ApiHandler) GetUserEventOrganizerPermissionsTx(
 		return 0, nil
 	}
 
-	return app.Permission(permissions.Int64), nil
+	return app.Permissions(permissions.Int64), nil
 }
 
 // GetUserEventOrganizerPermissions fetches a user's permission for the organizer of an event.
@@ -43,7 +43,7 @@ func (h *ApiHandler) GetUserEventOrganizerPermissions(
 	gc *gin.Context,
 	userUuid string,
 	eventUuid string,
-) (app.Permission, error) {
+) (app.Permissions, error) {
 
 	ctx := gc.Request.Context()
 	var permissions pgtype.Int8
@@ -66,5 +66,5 @@ func (h *ApiHandler) GetUserEventOrganizerPermissions(
 		return 0, nil
 	}
 
-	return app.Permission(permissions.Int64), nil
+	return app.Permissions(permissions.Int64), nil
 }

@@ -16,7 +16,7 @@ import (
 func (h *ApiHandler) AdminCreateOrganization(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
-	apiRequest := grains_api.NewRequest(gc, "create-organization")
+	apiRequest := grains_api.NewRequest(gc, "create-org")
 
 	type Payload struct {
 		Name string `json:"org_name" binding:"required"`
@@ -64,7 +64,7 @@ func (h *ApiHandler) AdminCreateOrganization(gc *gin.Context) {
 		insertLinkQuery := fmt.Sprintf(
 			`INSERT INTO %s.user_organization_link (user_uuid, org_uuid, permissions) VALUES ($1::uuid, $2::uuid, $3)`,
 			h.DbSchema)
-		_, err = tx.Exec(gc, insertLinkQuery, userUuid, orgUuid, app.PermCombinationAdmin)
+		_, err = tx.Exec(gc, insertLinkQuery, userUuid, orgUuid, app.UserPermCombinationAdmin)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,

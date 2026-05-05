@@ -19,7 +19,7 @@ func (h *ApiHandler) GetChoosableOrganizationVenues(gc *gin.Context) {
 		return
 	}
 
-	query := app.UranusInstance.SqlChoosableOrganizationVenues
+	query := app.UranusInstance.SqlChoosableOrgVenues
 	rows, err := h.DbPool.Query(ctx, query, organizationId)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

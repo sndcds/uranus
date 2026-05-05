@@ -9,8 +9,8 @@ import (
 )
 
 func (h *ApiHandler) GetChoosableLicenseTypes(gc *gin.Context) {
-	ctx := gc.Request.Context()
 	apiRequest := grains_api.NewRequest(gc, "get-chooseable-licenses")
+	ctx := gc.Request.Context()
 
 	lang := gc.DefaultQuery("lang", "en")
 	apiRequest.SetMeta("language", lang)

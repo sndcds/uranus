@@ -40,7 +40,7 @@ func (h *ApiHandler) AdminCreateSpace(gc *gin.Context) {
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		txErr := h.CheckAllOrganizationPermissionsTx(gc, tx, userUuid, payload.OrgUuid,
-			app.PermAddSpace)
+			app.UserPermAddSpace)
 		if txErr != nil {
 			debugf(txErr.Error())
 			return txErr
@@ -67,5 +67,5 @@ func (h *ApiHandler) AdminCreateSpace(gc *gin.Context) {
 		return
 	}
 
-	apiRequest.SuccessNoData(http.StatusOK, "space successfully created")
+	apiRequest.SuccessNoData(http.StatusCreated, "space successfully created")
 }

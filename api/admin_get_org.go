@@ -16,17 +16,17 @@ import (
 // Verified: 2026-01-12, Roald
 
 func (h *ApiHandler) AdminGetOrganization(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "admin-get-organization")
+	apiRequest := grains_api.NewRequest(gc, "admin-get-org")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 
 	orgUuid := gc.Param("orgUuid")
 	if orgUuid == "" {
-		apiRequest.Error(http.StatusBadRequest, "parameter orgUuid is required")
+		apiRequest.Required("orgUuid is required")
 		return
 	}
 
-	query := app.UranusInstance.SqlGetAdminOrganization
+	query := app.UranusInstance.SqlGetAdminOrg
 	rows, err := h.DbPool.Query(ctx, query, orgUuid, userUuid)
 	if err != nil {
 		debugf(err.Error())

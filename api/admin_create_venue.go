@@ -40,7 +40,7 @@ func (h *ApiHandler) AdminCreateVenue(gc *gin.Context) {
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		txErr := h.CheckAllOrganizationPermissionsTx(
 			gc, tx, userUuid, payload.OrgUuid,
-			app.PermAddVenue)
+			app.UserPermAddVenue)
 		if txErr != nil {
 			return txErr
 		}
@@ -72,5 +72,5 @@ func (h *ApiHandler) AdminCreateVenue(gc *gin.Context) {
 		return
 	}
 
-	apiRequest.SuccessNoData(http.StatusOK, "venue successfully created")
+	apiRequest.SuccessNoData(http.StatusCreated, "venue successfully created")
 }

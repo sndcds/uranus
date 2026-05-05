@@ -22,7 +22,7 @@ func (h *ApiHandler) AdminGetSpace(gc *gin.Context) {
 
 	spaceUuid := gc.Param("spaceUuid")
 	if spaceUuid == "" {
-		apiRequest.Error(http.StatusBadRequest, "spaceUuid is required")
+		apiRequest.Required("spaceUuid is required")
 		return
 	}
 	apiRequest.SetMeta("space_uuid", spaceUuid)

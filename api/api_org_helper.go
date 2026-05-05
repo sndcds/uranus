@@ -56,7 +56,7 @@ func (h *ApiHandler) CheckOrganizationPermissionTx(
 	tx pgx.Tx,
 	userUuid string,
 	orgUuid string,
-	perm app.Permission,
+	perm app.Permissions,
 ) *ApiTxError {
 	organizationPermissions, err := h.GetUserOrganizationPermissionsTx(gc, tx, userUuid, orgUuid)
 	if err != nil {
@@ -83,7 +83,7 @@ func (h *ApiHandler) CheckAllOrganizationPermissionsTx(
 	tx pgx.Tx,
 	userUuid string,
 	orgUuid string,
-	permMask app.Permission,
+	permMask app.Permissions,
 ) *ApiTxError {
 	orgPermissions, err := h.GetUserOrganizationPermissionsTx(gc, tx, userUuid, orgUuid)
 	if err != nil {
@@ -109,14 +109,14 @@ func (h *ApiHandler) GetUserOrganizationPermissionsTx(
 	tx pgx.Tx,
 	userUuid string,
 	orgUuid string,
-) (app.Permission, error) {
+) (app.Permissions, error) {
 
 	ctx := gc.Request.Context()
 	var result pgtype.Int8
 
 	err := tx.QueryRow(
 		ctx,
-		app.UranusInstance.SqlGetUserOrganizationPermissions,
+		app.UranusInstance.SqlGetUserOrgPermissions,
 		userUuid,
 		orgUuid,
 	).Scan(&result)
@@ -130,5 +130,5 @@ func (h *ApiHandler) GetUserOrganizationPermissionsTx(
 	if !result.Valid {
 		return 0, nil
 	}
-	return app.Permission(result.Int64), nil
+	return app.Permissions(result.Int64), nil
 }

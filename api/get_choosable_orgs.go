@@ -10,8 +10,8 @@ import (
 	"github.com/sndcds/uranus/sql_utils"
 )
 
-func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "choosable-venues")
+func (h *ApiHandler) GetChoosableOrgs(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "choosable-orgs")
 	ctx := gc.Request.Context()
 
 	nameStr, _ := GetContextParam(gc, "name")
@@ -35,7 +35,7 @@ func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
 		return
 	}
 
-	query := fmt.Sprintf("SELECT uuid, name, city, state, country FROM %s.venue", h.DbSchema)
+	query := fmt.Sprintf("SELECT uuid, name, city, state, country FROM %s.organization", h.DbSchema)
 	if len(conditions) > 0 {
 		query += " WHERE " + strings.Join(conditions, " AND ")
 	}
@@ -48,7 +48,7 @@ func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
 	}
 	defer rows.Close()
 
-	type Venue struct {
+	type Org struct {
 		Uuid    string  `json:"uuid"`
 		Name    *string `json:"name"`
 		City    *string `json:"city,omitempty"`
@@ -56,21 +56,21 @@ func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
 		Country *string `json:"country,omitempty"`
 	}
 
-	var venues []Venue
+	var orgs []Org
 
 	for rows.Next() {
-		var venue Venue
+		var org Org
 		if err := rows.Scan(
-			&venue.Uuid,
-			&venue.Name,
-			&venue.City,
-			&venue.State,
-			&venue.Country,
+			&org.Uuid,
+			&org.Name,
+			&org.City,
+			&org.State,
+			&org.Country,
 		); err != nil {
 			apiRequest.DatabaseError()
 			return
 		}
-		venues = append(venues, venue)
+		orgs = append(orgs, org)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -78,11 +78,11 @@ func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
 		return
 	}
 
-	apiRequest.SetMeta("venue_count", len(venues))
-	if len(venues) == 0 {
-		apiRequest.Success(http.StatusOK, []Venue{}, "")
+	apiRequest.SetMeta("venue_count", len(orgs))
+	if len(orgs) == 0 {
+		apiRequest.Success(http.StatusOK, []Org{}, "")
 		return
 	}
 
-	apiRequest.Success(http.StatusOK, venues, "")
+	apiRequest.Success(http.StatusOK, orgs, "")
 }

@@ -12,8 +12,8 @@ import (
 // TODO: Add filter options, e.g. lat/lon/radius
 
 func (h *ApiHandler) GetOrganizations(gc *gin.Context) {
-	ctx := gc.Request.Context()
 	apiRequest := grains_api.NewRequest(gc, "get organizations")
+	ctx := gc.Request.Context()
 
 	type OrganizationResult struct {
 		Id           int     `json:"id"`
@@ -25,7 +25,7 @@ func (h *ApiHandler) GetOrganizations(gc *gin.Context) {
 
 	searchStr := strings.TrimSpace(gc.Query("search"))
 	if len(searchStr) < 1 {
-		apiRequest.Error(http.StatusBadRequest, "URL argument search is required")
+		apiRequest.Required("URL argument search is required")
 		return
 	}
 	apiRequest.SetMeta("search", searchStr)

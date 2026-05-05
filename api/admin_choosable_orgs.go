@@ -5,15 +5,18 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sndcds/uranus/app"
 )
 
-// TODO: Review code
-
-func (h *ApiHandler) GetChoosableOrganizations(gc *gin.Context) {
+// PermissionNote: Only returns choosable organizations for the authenticated user.
+// PermissionChecks: Unnecessary.
+// Verified: 2026-01-12, Roald
+func (h *ApiHandler) AdminGetChoosableOrganizations(gc *gin.Context) {
 	ctx := gc.Request.Context()
+	userUuid := h.userUuid(gc)
 
-	query := fmt.Sprintf("SELECT id, name FROM %s.organization ORDER BY LOWER(name)", h.DbSchema)
-	rows, err := h.DbPool.Query(ctx, query)
+	query := app.UranusInstance.SqlAdminChoosableOrgs
+	rows, err := h.DbPool.Query(ctx, query, userUuid)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -21,7 +24,7 @@ func (h *ApiHandler) GetChoosableOrganizations(gc *gin.Context) {
 	defer rows.Close()
 
 	type Organization struct {
-		Id   int64   `json:"id"`
+		Uuid string  `json:"uuid"`
 		Name *string `json:"name"`
 	}
 
@@ -29,10 +32,8 @@ func (h *ApiHandler) GetChoosableOrganizations(gc *gin.Context) {
 
 	for rows.Next() {
 		var organization Organization
-		if err := rows.Scan(
-			&organization.Id,
-			&organization.Name,
-		); err != nil {
+		err := rows.Scan(&organization.Uuid, &organization.Name)
+		if err != nil {
 			fmt.Println(err.Error())
 			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -46,9 +47,14 @@ func (h *ApiHandler) GetChoosableOrganizations(gc *gin.Context) {
 	}
 
 	if len(organizations) == 0 {
-		gc.JSON(http.StatusOK, []Organization{})
+		gc.JSON(http.StatusOK, []Organization{}) // Returns empty array
 		return
 	}
 
-	gc.JSON(http.StatusOK, organizations)
+	result := map[string]interface{}{
+		"organizations": organizations,
+		"total_count":   len(organizations),
+	}
+
+	gc.JSON(http.StatusOK, result)
 }

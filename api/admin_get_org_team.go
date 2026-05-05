@@ -14,7 +14,7 @@ import (
 )
 
 func (h *ApiHandler) AdminGetOrganizationTeam(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "admin-get-organization-team")
+	apiRequest := grains_api.NewRequest(gc, "admin-get-org-team")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 
@@ -24,17 +24,17 @@ func (h *ApiHandler) AdminGetOrganizationTeam(gc *gin.Context) {
 		return
 	}
 
-	members := []model.OrganizationMember{}
-	invitedMembers := []model.InvitedOrganizationMember{}
+	members := []model.OrgMember{}
+	invitedMembers := []model.InvitedOrgMember{}
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-		txErr := h.CheckOrganizationPermissionTx(gc, tx, userUuid, orgUuid, app.PermManageTeam)
+		txErr := h.CheckOrganizationPermissionTx(gc, tx, userUuid, orgUuid, app.UserPermManageTeam)
 		if txErr != nil {
 			return txErr
 		}
 
 		// Fetch members
-		memberRows, err := tx.Query(ctx, app.UranusInstance.SqlAdminGetOrganizationMembers, orgUuid)
+		memberRows, err := tx.Query(ctx, app.UranusInstance.SqlAdminGetOrgMembers, orgUuid)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
@@ -44,7 +44,7 @@ func (h *ApiHandler) AdminGetOrganizationTeam(gc *gin.Context) {
 		defer memberRows.Close()
 
 		for memberRows.Next() {
-			var m model.OrganizationMember
+			var m model.OrgMember
 			err := memberRows.Scan(
 				&m.UserUuid,
 				&m.Email,
@@ -93,7 +93,7 @@ func (h *ApiHandler) AdminGetOrganizationTeam(gc *gin.Context) {
 		defer rows.Close()
 
 		for rows.Next() {
-			var m model.InvitedOrganizationMember
+			var m model.InvitedOrgMember
 			err = rows.Scan(&m.UserUuid, &m.InvitedBy, &m.InvitedAt, &m.Email)
 			if err != nil {
 				return &ApiTxError{

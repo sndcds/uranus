@@ -3,7 +3,6 @@ module github.com/sndcds/uranus
 go 1.25
 
 require (
-	github.com/arran4/golang-ical v0.3.4
 	github.com/chai2010/webp v1.4.0
 	github.com/gin-contrib/gzip v1.2.5
 	github.com/gin-gonic/gin v1.11.0
@@ -12,7 +11,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/shirou/gopsutil/v3 v3.24.5
-	github.com/sndcds/grains v0.0.4
+	github.com/sndcds/grains v0.0.6
 	golang.org/x/crypto v0.43.0
 )
 
@@ -60,7 +59,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
-	github.com/sndcds/pluto v0.4.3
+	github.com/sndcds/pluto v0.4.4
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.0 // indirect
 	golang.org/x/arch v0.22.0 // indirect
@@ -70,6 +69,3 @@ require (
 	golang.org/x/text v0.30.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 )
-
-// replace github.com/sndcds/grains => ../grains
-// replace github.com/sndcds/pluto => ../pluto

@@ -27,7 +27,7 @@ func (h *ApiHandler) AdminUploadUserAvatar(gc *gin.Context) {
 
 	file, err := gc.FormFile("avatar")
 	if err != nil {
-		apiRequest.Error(http.StatusBadRequest, "avatar image file is required")
+		apiRequest.Required("avatar image file is required")
 		return
 	}
 

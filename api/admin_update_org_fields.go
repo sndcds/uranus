@@ -12,12 +12,12 @@ import (
 )
 
 func (h *ApiHandler) UpdateOrganizationFields(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "admin-update-organization-fields")
+	apiRequest := grains_api.NewRequest(gc, "admin-update-org-fields")
 	ctx := gc.Request.Context()
 
 	orgUuid := gc.Param("orgUuid")
 	if orgUuid == "" {
-		apiRequest.Error(http.StatusBadRequest, "orgUuid is required")
+		apiRequest.Required("orgUuid is required")
 		return
 	}
 	apiRequest.SetMeta("org_uuid", orgUuid)

@@ -24,8 +24,8 @@ type TransportStationResult struct {
 }
 
 func (h *ApiHandler) GetTransportStations(gc *gin.Context) {
-	ctx := gc.Request.Context()
 	apiRequest := grains_api.NewRequest(gc, "transport-stations")
+	ctx := gc.Request.Context()
 
 	// Parse query params
 	latStr := gc.Query("lat")
@@ -34,7 +34,7 @@ func (h *ApiHandler) GetTransportStations(gc *gin.Context) {
 	apiRequest.SetMeta("radius", radius)
 
 	if latStr == "" || lonStr == "" {
-		apiRequest.Error(http.StatusBadRequest, "lat and lon are required")
+		apiRequest.Required("lat and lon are required")
 		return
 	}
 	apiRequest.SetMeta("lat", latStr)
