@@ -11,7 +11,7 @@ import (
 
 // GetVenue returns a venue by Id with spaces and organization
 func (h *ApiHandler) GetVenue(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "admin-get-venue")
+	apiRequest := grains_api.NewRequest(gc, "get-venue")
 	ctx := gc.Request.Context()
 
 	// Structs for nested data
