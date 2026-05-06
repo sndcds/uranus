@@ -31,22 +31,22 @@ SELECT
     o.country AS org_country,
 
     COALESCE(
-            json_agg(
-                    json_build_object(
-                            'uuid', s.uuid,
-                            'name', s.name,
-                            'total_capacity', s.total_capacity,
-                            'seating_capacity', s.seating_capacity,
-                            'building_level', s.building_level,
-                            'web_link', s.web_link,
-                            'description', s.description,
-                            'area_sqm', s.area_sqm,
-                            'space_type', s.space_type,
-                            'space_type_name', sti.name,
-                            'space_type_description', sti.description
-                    )
-            ) FILTER (WHERE s.uuid IS NOT NULL),
-            '[]'
+        json_agg(
+            json_build_object(
+                'uuid', s.uuid,
+                'name', s.name,
+                'total_capacity', s.total_capacity,
+                'seating_capacity', s.seating_capacity,
+                'building_level', s.building_level,
+                'web_link', s.web_link,
+                'description', s.description,
+                'area_sqm', s.area_sqm,
+                'space_type', s.space_type,
+                'space_type_name', sti.name,
+                'space_type_description', sti.description
+            )
+        ) FILTER (WHERE s.uuid IS NOT NULL),
+        '[]'
     ) AS spaces
 
 FROM {{schema}}.venue v
@@ -63,7 +63,7 @@ LEFT JOIN {{schema}}.space_type_i18n sti
 ON sti.key = st.key
 AND sti.iso_639_1 = $2
 
-WHERE v.id = $1
+WHERE v.uuid = $1::uuid
 GROUP BY
     v.uuid,
     o.uuid,
