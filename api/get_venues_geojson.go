@@ -2,11 +2,11 @@ package api
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
+	"github.com/sndcds/uranus/model"
 )
 
 // TODO: Add query parameters for filtering
@@ -18,9 +18,15 @@ func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 	lang := gc.DefaultQuery("lang", "en")
 	apiRequest.SetMeta("language", lang)
 
-	today := time.Now().UTC()
-	query := app.UranusInstance.SqlGetGeojsonVenues
-	rows, err := h.DbPool.Query(ctx, query, today)
+	bboxStr := gc.Query("bbox")
+	bbox, err := model.ParseBBox(bboxStr)
+	if err != nil {
+		apiRequest.Error(http.StatusBadRequest, "invalid bbox")
+		return
+	}
+
+	query := app.UranusInstance.SqlGetVenuesGeoJSON
+	rows, err := h.DbPool.Query(ctx, query, bbox.MinLon, bbox.MinLat, bbox.MaxLon, bbox.MaxLat)
 	if err != nil {
 		debugf(err.Error())
 		apiRequest.InternalServerError()
