@@ -607,7 +607,6 @@ func (h *ApiHandler) GetEventVenueSummary(gc *gin.Context) {
 		return
 	}
 
-	// jsonResult is already JSON; unmarshal to interface{} to let gin render it
 	var venues interface{}
 	if err := json.Unmarshal(jsonResult, &venues); err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -621,7 +620,6 @@ func (h *ApiHandler) GetEventsGeoJSON(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-events-geojson")
 	ctx := gc.Request.Context()
 
-	// Build SQL
 	dateConditions, conditionsStr, limitClause, args, _, err := h.buildEventFilters(gc)
 	if err != nil {
 		apiRequest.Error(http.StatusBadRequest, "")
@@ -635,112 +633,114 @@ func (h *ApiHandler) GetEventsGeoJSON(gc *gin.Context) {
 
 	debugf(query)
 	debugf("ARGS (%d):\n", len(args))
+
 	for i, arg := range args {
 		fmt.Printf("  $%d = %#v (type %T)\n", i+1, arg, arg)
 	}
 
 	rows, err := h.DbPool.Query(ctx, query, args...)
 	if err != nil {
-		debugf("internal server error: %v", err.Error())
+		debugf("database query error: %v", err.Error())
 		apiRequest.InternalServerError()
 		return
 	}
 	defer rows.Close()
 
-	// Event scan type
-	type EventResponse struct {
-		EventDateUuid string   `json:"event_date_uuid"`
-		EventUuid     string   `json:"event_uuid"`
-		VenueUuid     *string  `json:"venue_uuid"`
-		VenueName     *string  `json:"venue_name"`
-		VenueCity     *string  `json:"venue_city"`
-		VenueCountry  *string  `json:"venue_country"`
-		VenueLat      *float64 `json:"venue_lat"`
-		VenueLon      *float64 `json:"venue_lon"`
-		Title         string   `json:"title"`
-		StartDate     string   `json:"start_date"`
-		StartTime     *string  `json:"start_time"`
+	// GeoJSON types
+
+	type GeoJSONGeometry struct {
+		Type        string     `json:"type"`
+		Coordinates [2]float64 `json:"coordinates"`
 	}
 
-	type VenueEvents struct {
-		Name       string          `json:"name"`
-		Lon        *float64        `json:"lon"`
-		Lat        *float64        `json:"lat"`
-		Events     []EventResponse `json:"events"`
-		EventCount int             `json:"event_count"`
+	type GeoJSONFeature struct {
+		Type       string                 `json:"type"`
+		Geometry   GeoJSONGeometry        `json:"geometry"`
+		Properties map[string]interface{} `json:"properties"`
 	}
 
-	venues := make(map[string]*VenueEvents)
+	type GeoJSONFeatureCollection struct {
+		Type     string           `json:"type"`
+		Features []GeoJSONFeature `json:"features"`
+	}
 
-	var events []EventResponse
+	// Build features
+
+	features := []GeoJSONFeature{}
+	totalEvents := 0
 
 	for rows.Next() {
-		var e EventResponse
+
+		var venueUuid string
+		var venueName string
+		var venueCity *string
+		var venueCountry *string
+		var venueLon *float64
+		var venueLat *float64
+		var eventCount int
+
 		if err := rows.Scan(
-			&e.EventDateUuid,
-			&e.EventUuid,
-			&e.VenueUuid,
-			&e.VenueName,
-			&e.VenueCity,
-			&e.VenueCountry,
-			&e.VenueLon,
-			&e.VenueLat,
-			&e.Title,
-			&e.StartDate,
-			&e.StartTime,
+			&venueUuid,
+			&venueName,
+			&venueCity,
+			&venueCountry,
+			&venueLon,
+			&venueLat,
+			&eventCount,
 		); err != nil {
-			debugf("internal server error: %v", err.Error())
+			debugf("row scan error: %v", err.Error())
 			apiRequest.InternalServerError()
 			return
 		}
 
-		events = append(events, e)
+		totalEvents += eventCount
 
-		// Skip events without a venue
-		if e.VenueUuid == nil {
+		// Skip invalid geometry
+		if venueLon == nil || venueLat == nil {
 			continue
 		}
 
-		if e.VenueUuid != nil {
-			vUuid := *e.VenueUuid
-			if _, exists := venues[vUuid]; !exists {
-				venues[vUuid] = &VenueEvents{
-					Name:   derefString(e.VenueName, ""),
-					Lon:    e.VenueLon,
-					Lat:    e.VenueLat,
-					Events: []EventResponse{},
-					// don't set EventCount yet
-				}
-			}
-
-			venues[vUuid].Events = append(venues[vUuid].Events, e)
-			venues[vUuid].EventCount = len(venues[vUuid].Events)
+		feature := GeoJSONFeature{
+			Type: "Feature",
+			Geometry: GeoJSONGeometry{
+				Type: "Point",
+				Coordinates: [2]float64{
+					*venueLon,
+					*venueLat,
+				},
+			},
+			Properties: map[string]interface{}{
+				"venue_uuid":  venueUuid,
+				"name":        venueName,
+				"city":        venueCity,
+				"country":     venueCountry,
+				"event_count": eventCount,
+			},
 		}
+
+		features = append(features, feature)
 	}
 
-	if len(events) == 0 {
-		apiRequest.NoContent("no events found")
+	if err := rows.Err(); err != nil {
+		debugf("rows iteration error: %v", err.Error())
+		apiRequest.InternalServerError()
 		return
 	}
 
-	apiRequest.SetMeta("event_count", len(events))
-
-	lastEvent := events[len(events)-1]
-	lastEventStartAt := lastEvent.StartDate
-	if lastEvent.StartTime != nil {
-		lastEventStartAt += "T" + *lastEvent.StartTime
+	if len(features) == 0 {
+		apiRequest.NoContent("no venues found")
+		return
 	}
-	lastEventDateUuid := lastEvent.EventDateUuid
 
-	apiRequest.Success(
-		http.StatusOK,
-		gin.H{
-			"venues":               venues,
-			"last_event_start_at":  lastEventStartAt,
-			"last_event_date_uuid": lastEventDateUuid,
-		},
-		"",
-	)
+	geojson := GeoJSONFeatureCollection{
+		Type:     "FeatureCollection",
+		Features: features,
+	}
+
+	// Response with Metadata
+	apiRequest.SetMeta("venue_count", len(features))
+	apiRequest.SetMeta("event_count", totalEvents)
+	apiRequest.Success(http.StatusOK, geojson, "")
 }
 
 func validateAllowedQueryParams(c *gin.Context, allowed map[string]struct{}) error {
