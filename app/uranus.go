@@ -62,7 +62,7 @@ type Uranus struct {
 	SqlChoosableVenueSpaces             string
 	SqlChoosableEventTypes              string
 	SqlChoosableEventGenres             string
-	SqlGetGeojsonVenues                 string
+	SqlGetVenuesGeoJSON                 string
 	SqlAdminGetOrgList                  string
 	SqlAdminGetOrgPartnerList           string
 	SqlAdminGetOrgPartnerRequests       string
@@ -253,7 +253,7 @@ func (app *Uranus) PrepareSql() error {
 		{"sql/get-events-geojson.sql", &app.SqlGetEventsGeoJSON, nil},
 
 		{"sql/choosable-event-genres.sql", &app.SqlChoosableEventGenres, nil},
-		{"sql/get-geojson-venues.sql", &app.SqlGetGeojsonVenues, nil},
+		{"sql/get-venues-geojson.sql", &app.SqlGetVenuesGeoJSON, nil},
 
 		{"sql/event-type-genre-lookup.sql", &app.SqlEventTypeGenreLookup, nil},
 		{"sql/choosable-org-venues.sql", &app.SqlChoosableOrgVenues, nil},
