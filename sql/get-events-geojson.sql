@@ -8,22 +8,21 @@ SELECT
     COUNT(DISTINCT edp.event_uuid) AS event_count
 FROM {{schema}}.event_date_projection edp
 
-JOIN {{schema}}.event_projection ep
-ON ep.event_uuid = edp.event_uuid
+JOIN {{schema}}.event_projection ep ON ep.event_uuid = edp.event_uuid
 
-    LEFT JOIN LATERAL (
+LEFT JOIN LATERAL (
     SELECT
     COALESCE(edp.venue_uuid, ep.venue_uuid) AS venue_uuid,
     COALESCE(edp.venue_name, ep.venue_name) AS venue_name,
     COALESCE(edp.venue_city, ep.venue_city) AS venue_city,
     COALESCE(edp.venue_country, ep.venue_country) AS venue_country,
     COALESCE(edp.venue_point, ep.venue_point) AS venue_point
-    ) v ON true
+) v ON true
 
 WHERE {{date_conditions}}
 {{conditions}}
-
 AND v.venue_uuid IS NOT NULL
+AND ep.release_status NOT IN ('review', 'draft')
 
 GROUP BY
     v.venue_uuid,
