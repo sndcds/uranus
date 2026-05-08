@@ -5,7 +5,7 @@ WITH upcoming_events AS (
     FROM {{schema}}.organization o
     LEFT JOIN {{schema}}.event e ON e.org_uuid = o.uuid
     LEFT JOIN {{schema}}.event_date ed ON ed.event_uuid = e.uuid
-    AND ed.start_date > CURRENT_DATE
+    AND ed.start_date >= CURRENT_DATE
     GROUP BY o.uuid
 ),
 organization_access AS (
