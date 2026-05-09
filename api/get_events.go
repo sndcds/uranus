@@ -594,6 +594,7 @@ func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 }
 
 func (h *ApiHandler) GetEventVenueSummary(gc *gin.Context) {
+	// TODO: Use apiRequest
 	filters := EventFilters{}
 
 	filters, err := h.buildEventFilters(gc)
