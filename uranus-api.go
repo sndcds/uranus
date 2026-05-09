@@ -112,6 +112,8 @@ func main() {
 	publicRoute.GET("/event/:eventUuid/date/:dateUuid", apiHandler.GetEventByDateUuid)
 	publicRoute.GET("/event/:eventUuid/date/:dateUuid/ics", apiHandler.GetEventDateICS)
 
+	publicRoute.GET("/portal/:uuid", apiHandler.GetPortal)
+
 	publicRoute.GET("/venues/geojson", apiHandler.GetVenuesGeoJSON)
 
 	publicRoute.GET("/org/:orgUuid", apiHandler.GetOrganization)

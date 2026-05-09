@@ -35,6 +35,7 @@ type Uranus struct {
 	SqlGetEventDates                    string
 	SqlGetEventsProjected               string
 	SqlGetEventsGeoJSON                 string
+	SqlGetPortal                        string
 	SqlGetUserOrgPermissions            string
 	SqlGetUserEffectiveVenuePermissions string
 	SqlGetUserEventPermissions          string
@@ -251,6 +252,8 @@ func (app *Uranus) PrepareSql() error {
 		{"sql/get-event-date-ics.sql", &app.SqlGetEventDateICS, nil},
 		{"sql/get-events-projected.sql", &app.SqlGetEventsProjected, nil},
 		{"sql/get-events-geojson.sql", &app.SqlGetEventsGeoJSON, nil},
+
+		{"sql/get-portal.sql", &app.SqlGetPortal, nil},
 
 		{"sql/choosable-event-genres.sql", &app.SqlChoosableEventGenres, nil},
 		{"sql/get-venues-geojson.sql", &app.SqlGetVenuesGeoJSON, nil},
