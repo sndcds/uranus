@@ -371,12 +371,10 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		query = strings.Replace(query, "{{portal_join}}", portalJoin, 1)
 		argIndex++
 
-		portalConditions := fmt.Sprintf(`
-			AND ST_Contains(p.wkb_geometry, edp.venue_point)
-			AND NOT EXISTS (
-				SELECT 1 FROM %s.portal_org_blacklist b
-				WHERE b.portal_uuid = p.uuid AND b.blocked_org_uuid = ep.org_uuid)
-			`,
+		portalConditions := fmt.Sprintf(`AND ST_Contains(p.wkb_geometry, COALESCE(edp.venue_point, ep.venue_point))
+AND NOT EXISTS (
+    SELECT 1 FROM %s.portal_org_blacklist b
+	WHERE b.portal_uuid = p.uuid AND b.blocked_org_uuid = ep.org_uuid)`,
 			h.DbSchema)
 		query = strings.Replace(query, "{{portal_conditions}}", portalConditions, 1)
 	} else {
