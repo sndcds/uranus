@@ -91,7 +91,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 		"accessibility": {}, "visitor_infos": {}, "age": {}, "price": {},
 		"lon": {}, "lat": {}, "radius": {}, "offset": {}, "limit": {},
 		"last_event_start_at": {}, "last_event_date_uuid": {},
-		"language": {},
+		"language": {}, "portal": {},
 	}
 
 	validationErr := validateAllowedQueryParams(gc, allowed)
@@ -362,12 +362,33 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	query = strings.Replace(query, "{{conditions}}", conditionsStr, 1)
 	query = strings.Replace(query, "{{limit}}", limitClause, 1)
 
-	/*
-		debugf("query: %s", query)
-		for i, a := range args {
-			fmt.Printf("args[%d] = %#v\n", i, a)
-		}
-	*/
+	// Portal
+	portalUuid, portalUuidExists := GetContextParam(gc, "portal")
+	if portalUuidExists {
+		argIndex := len(args) + 1
+		args = append(args, portalUuid)
+		portalJoin := fmt.Sprintf("JOIN %s.portal p ON p.uuid = $%d::uuid", h.DbSchema, argIndex)
+		query = strings.Replace(query, "{{portal_join}}", portalJoin, 1)
+		argIndex++
+
+		portalConditions := fmt.Sprintf(`
+			AND ST_Contains(p.wkb_geometry, edp.venue_point)
+			AND NOT EXISTS (
+				SELECT 1 FROM %s.portal_org_blacklist b
+				WHERE b.portal_uuid = p.uuid AND b.blocked_org_uuid = ep.org_uuid)
+			`,
+			h.DbSchema)
+		query = strings.Replace(query, "{{portal_conditions}}", portalConditions, 1)
+	} else {
+		// TODO: Optimize to use prepared version with cleared placeholders
+		query = strings.Replace(query, "{{portal_join}}", "", 1)
+		query = strings.Replace(query, "{{portal_conditions}}", "", 1)
+	}
+
+	debugf("query: %s", query)
+	for i, a := range args {
+		fmt.Printf("args[%d] = %#v\n", i, a)
+	}
 
 	rows, err := h.DbPool.Query(ctx, query, args...)
 	if err != nil {
@@ -710,7 +731,7 @@ func (h *ApiHandler) GetEventsGeoJSON(gc *gin.Context) {
 				},
 			},
 			Properties: map[string]interface{}{
-				"venue_uuid":  venueUuid,
+				"uuid":        venueUuid,
 				"name":        venueName,
 				"city":        venueCity,
 				"country":     venueCountry,
