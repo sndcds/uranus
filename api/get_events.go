@@ -67,6 +67,16 @@ type eventsResponse struct {
 	LastEventStartAt  *string         `json:"last_event_start_at"`
 }
 
+type EventFilters struct {
+	DateConditions   string
+	ConditionsStr    string
+	LimitClause      string
+	PortalJoin       string
+	PortalConditions string
+	Args             []interface{}
+	ArgIndex         int
+}
+
 // buildEventFilters parses all query parameters from the context
 // and returns:
 // - dateConditions: the date-specific condition string
@@ -74,15 +84,7 @@ type eventsResponse struct {
 // - limitClause: SQL LIMIT/OFFSET clause
 // - args: list of query arguments
 // - nextArgIndex: next placeholder index
-func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
-	dateConditions string,
-	conditionsStr string,
-	limitClause string,
-	args []interface{},
-	argIndex int,
-	err error,
-) {
-
+func (h *ApiHandler) buildEventFilters(gc *gin.Context) (EventFilters, error) {
 	allowed := map[string]struct{}{
 		"categories": {}, "start": {}, "end": {}, "time": {}, "search": {},
 		"events": {}, "venues": {}, "spaces": {}, "space_types": {},
@@ -93,13 +95,14 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 		"last_event_start_at": {}, "last_event_date_uuid": {},
 		"language": {}, "portal": {},
 	}
+	filters := EventFilters{}
 
 	validationErr := validateAllowedQueryParams(gc, allowed)
 	if validationErr != nil {
-		return "", "", "", nil, 0, errors.New(validationErr.Error())
+		return filters, errors.New(validationErr.Error())
 	}
-	args = []interface{}{}
-	argIndex = 1
+	filters.Args = []interface{}{}
+	filters.ArgIndex = 1
 	var conditions []string
 
 	// languagesStr, _ := GetContextParam(gc, "language") // TODO: Implement language support!
@@ -134,223 +137,239 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (
 	var errBuild error
 
 	if hasCategories {
-		argIndex, errBuild = sql_utils.BuildColumnArrayOverlapCondition(
-			categoriesStr, "ep.categories", argIndex, &conditions, &args)
+		filters.ArgIndex, errBuild = sql_utils.BuildColumnArrayOverlapCondition(
+			categoriesStr, "ep.categories", filters.ArgIndex, &conditions, &filters.Args)
 		if errBuild != nil {
-			return "", "", "", nil, 0, errBuild
+			return filters, errBuild
 		}
 	}
 
 	// Date conditions
 	dateConditionCount := 0
 	if app.IsValidDateStr(startStr) {
-		dateConditions += "edp.event_start_at >= $" + strconv.Itoa(argIndex)
-		args = append(args, startStr)
-		argIndex++
+		filters.DateConditions += "edp.event_start_at >= $" + strconv.Itoa(filters.ArgIndex)
+		filters.Args = append(filters.Args, startStr)
+		filters.ArgIndex++
 		dateConditionCount++
 	} else if startStr != "" {
-		return "", "", "", nil, 0, fmt.Errorf("start %s has invalid format", startStr)
+		return filters, fmt.Errorf("start %s has invalid format", startStr)
 	} else {
-		dateConditions += "edp.event_start_at >= CURRENT_DATE"
+		filters.DateConditions += "edp.event_start_at >= CURRENT_DATE"
 		dateConditionCount++
 	}
 
 	if app.IsValidDateStr(endStr) {
 		if dateConditionCount > 0 {
-			dateConditions += " AND "
+			filters.DateConditions += " AND "
 		}
-		dateConditions += "(edp.event_end_at <= $" + strconv.Itoa(argIndex) + " OR edp.event_start_at <= $" + strconv.Itoa(argIndex) + ")"
-		args = append(args, endStr)
-		argIndex++
+		filters.DateConditions += "(edp.event_end_at <= $" + strconv.Itoa(filters.ArgIndex) + " OR edp.event_start_at <= $" + strconv.Itoa(filters.ArgIndex) + ")"
+		filters.Args = append(filters.Args, endStr)
+		filters.ArgIndex++
 	} else if endStr != "" {
-		return "", "", "", nil, 0, fmt.Errorf("end %s has invalid format", endStr)
+		return filters, fmt.Errorf("end %s has invalid format", endStr)
 	}
 
 	debugf("lastEventDateUuid: %s", lastEventDateUuid)
 	if lastEventStartAt != "" {
 		if dateConditionCount > 0 {
-			dateConditions += " AND "
+			filters.DateConditions += " AND "
 		}
-		dateConditions += "(edp.event_start_at, edp.event_date_uuid) > ($" + strconv.Itoa(argIndex) + "::timestamptz, $" + strconv.Itoa(argIndex+1) + "::uuid)"
-		args = append(args, lastEventStartAt, lastEventDateUuid)
-		argIndex += 2
+		filters.DateConditions += "(edp.event_start_at, edp.event_date_uuid) > ($" + strconv.Itoa(filters.ArgIndex) + "::timestamptz, $" + strconv.Itoa(filters.ArgIndex+1) + "::uuid)"
+		filters.Args = append(filters.Args, lastEventStartAt, lastEventDateUuid)
+		filters.ArgIndex += 2
 	}
 
-	debugf("dateConditions: %s", dateConditions)
+	debugf("dateConditions: %s", filters.DateConditions)
 
 	// Other conditions
-	argIndex, errBuild = sql_utils.BuildTimeCondition(
-		timeStr, "edp.start_time", "time", argIndex, &conditions, &args)
+	filters.ArgIndex, errBuild = sql_utils.BuildTimeCondition(
+		timeStr, "edp.start_time", "time", filters.ArgIndex, &conditions, &filters.Args)
 	if errBuild != nil {
-		return "", "", "", nil, 0, errBuild
+		return filters, errBuild
 	}
 
-	argIndex, errBuild = sql_utils.BuildSanitizedSearchCondition(
-		searchStr, "ep.search_text", "search", argIndex, &conditions, &args)
+	filters.ArgIndex, errBuild = sql_utils.BuildSanitizedSearchCondition(
+		searchStr, "ep.search_text", "search", filters.ArgIndex, &conditions, &filters.Args)
 	if errBuild != nil {
-		return "", "", "", nil, 0, errBuild
+		return filters, errBuild
 	}
 
-	argIndex, errBuild = sql_utils.BuildSanitizedIlikeCondition(
-		titleStr, "ep.title", "title", argIndex, &conditions, &args)
+	filters.ArgIndex, errBuild = sql_utils.BuildSanitizedIlikeCondition(
+		titleStr, "ep.title", "title", filters.ArgIndex, &conditions, &filters.Args)
 	if errBuild != nil {
-		return "", "", "", nil, 0, errBuild
+		return filters, errBuild
 	}
 
 	if countryCodesStr != "" {
-		argIndex, errBuild = sql_utils.BuildInConditionForStringSlice(
+		filters.ArgIndex, errBuild = sql_utils.BuildInConditionForStringSlice(
 			countryCodesStr,
 			"COALESCE(edp.venue_country, ep.venue_country) = ANY($%d::text[])", // "column_name && $%d::text[]",
-			argIndex,
+			filters.ArgIndex,
 			&conditions,
-			&args,
+			&filters.Args,
 		)
 		if errBuild != nil {
-			return "", "", "", nil, 0, errBuild
+			return filters, errBuild
 		}
 	}
 
 	if postalCodeStr != "" {
-		argIndex, errBuild = sql_utils.BuildLikeConditions(
+		filters.ArgIndex, errBuild = sql_utils.BuildLikeConditions(
 			postalCodeStr,
 			"COALESCE(edp.venue_postal_code, ep.venue_postal_code)",
-			argIndex,
+			filters.ArgIndex,
 			&conditions,
-			&args)
+			&filters.Args)
 		if errBuild != nil {
-			return "", "", "", nil, 0, errBuild
+			return filters, errBuild
 		}
 	}
 
-	argIndex, errBuild = sql_utils.BuildSanitizedIlikeCondition(
+	filters.ArgIndex, errBuild = sql_utils.BuildSanitizedIlikeCondition(
 		cityStr, "COALESCE(edp.venue_city, ep.venue_city)",
-		"city", argIndex, &conditions, &args)
+		"city", filters.ArgIndex, &conditions, &filters.Args)
 	if errBuild != nil {
-		return "", "", "", nil, 0, errBuild
+		return filters, errBuild
 	}
 
 	if eventUuidsStr != "" {
-		argIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
-			eventUuidsStr, "edp.event_uuid", argIndex, &conditions, &args)
+		filters.ArgIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
+			eventUuidsStr, "edp.event_uuid", filters.ArgIndex, &conditions, &filters.Args)
 		if errBuild != nil {
-			return "", "", "", nil, 0, errBuild
+			return filters, errBuild
 		}
 	}
 
 	if orgUuidsStr != "" {
-		argIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
-			orgUuidsStr, "ep.org_uuid", argIndex, &conditions, &args)
+		filters.ArgIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
+			orgUuidsStr, "ep.org_uuid", filters.ArgIndex, &conditions, &filters.Args)
 		if errBuild != nil {
-			return "", "", "", nil, 0, errBuild
+			return filters, errBuild
 		}
 	}
 
 	if venueUuidsStr != "" {
-		argIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
-			venueUuidsStr, "COALESCE(edp.venue_uuid, ep.venue_uuid)", argIndex, &conditions, &args)
+		filters.ArgIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
+			venueUuidsStr, "COALESCE(edp.venue_uuid, ep.venue_uuid)", filters.ArgIndex, &conditions, &filters.Args)
 		if errBuild != nil {
-			return "", "", "", nil, 0, errBuild
+			return filters, errBuild
 		}
 	}
 
 	if spaceUuidsStr != "" {
-		argIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
-			spaceUuidsStr, "COALESCE(edp.space_uuid, ep.space_uuid)", argIndex, &conditions, &args)
+		filters.ArgIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
+			spaceUuidsStr, "COALESCE(edp.space_uuid, ep.space_uuid)", filters.ArgIndex, &conditions, &filters.Args)
 		if errBuild != nil {
-			return "", "", "", nil, 0, errBuild
+			return filters, errBuild
 		}
 	}
 
 	if spaceTypesStr != "" {
-		argIndex, errBuild = sql_utils.BuildInConditionForStringSlice(
+		filters.ArgIndex, errBuild = sql_utils.BuildInConditionForStringSlice(
 			spaceTypesStr,
 			"COALESCE(edp.space_type, ep.space_type) = ANY($%d::text[])",
-			argIndex, &conditions, &args,
+			filters.ArgIndex, &conditions, &filters.Args,
 		)
 		if errBuild != nil {
-			return "", "", "", nil, 0, errBuild
+			return filters, errBuild
 		}
 	}
 
-	argIndex, errBuild = sql_utils.BuildGeoRadiusCondition(
+	filters.ArgIndex, errBuild = sql_utils.BuildGeoRadiusCondition(
 		lonStr, latStr, radiusStr,
 		"COALESCE(edp.venue_point, ep.venue_point)",
-		argIndex, &conditions, &args)
+		filters.ArgIndex, &conditions, &filters.Args)
 	if errBuild != nil {
-		return "", "", "", nil, 0, errBuild
+		return filters, errBuild
 	}
 
-	argIndex, errBuild = sql_utils.BuildContainedInColumnIntRangeCondition(
-		ageStr, "ep.min_age", "ep.max_age", argIndex, &conditions, &args)
+	filters.ArgIndex, errBuild = sql_utils.BuildContainedInColumnIntRangeCondition(
+		ageStr, "ep.min_age", "ep.max_age", filters.ArgIndex, &conditions, &filters.Args)
 	if errBuild != nil {
-		return "", "", "", nil, 0, errBuild
+		return filters, errBuild
 	}
 
-	argIndex, errBuild = sql_utils.BuildPriceCondition(
-		priceStr, "ep.price_type", "ep.currency", "ep.min_price", "ep.max_price", "price", argIndex, &conditions, &args)
+	filters.ArgIndex, errBuild = sql_utils.BuildPriceCondition(
+		priceStr, "ep.price_type", "ep.currency", "ep.min_price", "ep.max_price", "price", filters.ArgIndex, &conditions, &filters.Args)
 	debugf("priceStr: %s", priceStr)
 	if errBuild != nil {
-		return "", "", "", nil, 0, errBuild
+		return filters, errBuild
 	}
 
-	argIndex, errBuild = sql_utils.BuildBitmaskCondition(
-		accessibilityFlagsStr, "edp.space_accessibility_flags", "accessibility", argIndex, &conditions, &args)
+	filters.ArgIndex, errBuild = sql_utils.BuildBitmaskCondition(
+		accessibilityFlagsStr, "edp.space_accessibility_flags", "accessibility", filters.ArgIndex, &conditions, &filters.Args)
 	if errBuild != nil {
-		return "", "", "", nil, 0, errBuild
+		return filters, errBuild
 	}
 
-	argIndex, errBuild = sql_utils.BuildBitmaskCondition(
-		visitorInfosStr, "ep.visitor_info_flags", "visitor_infos", argIndex, &conditions, &args)
+	filters.ArgIndex, errBuild = sql_utils.BuildBitmaskCondition(
+		visitorInfosStr, "ep.visitor_info_flags", "visitor_infos", filters.ArgIndex, &conditions, &filters.Args)
 	if errBuild != nil {
-		return "", "", "", nil, 0, errBuild
+		return filters, errBuild
 	}
 
 	if eventTypesStr != "" {
-		argIndex, errBuild = sql_utils.BuildJSONArrayIntCondition(
+		filters.ArgIndex, errBuild = sql_utils.BuildJSONArrayIntCondition(
 			eventTypesStr,
 			"types",
 			0, // index 0 = type_id
-			argIndex,
+			filters.ArgIndex,
 			&conditions,
-			&args,
+			&filters.Args,
 		)
 		if errBuild != nil {
-			return "", "", "", nil, 0, errBuild
+			return filters, errBuild
 		}
 	}
 
 	if tagsStr != "" {
-		argIndex, errBuild = sql_utils.BuildInConditionForStringSlice(
+		filters.ArgIndex, errBuild = sql_utils.BuildInConditionForStringSlice(
 			tagsStr,
 			"tags && $%d::text[]", // Array overlap operator
-			argIndex,
+			filters.ArgIndex,
 			&conditions,
-			&args,
+			&filters.Args,
 		)
 		if errBuild != nil {
-			return "", "", "", nil, 0, errBuild
+			return filters, errBuild
 		}
 	}
 
 	// Join all conditions
 	if len(conditions) > 0 {
-		conditionsStr = " AND " + strings.Join(conditions, " AND ")
+		filters.ConditionsStr = " AND " + strings.Join(conditions, " AND ")
 	}
 
 	// Build limit/offset clause
-	limitClause, argIndex, errBuild = sql_utils.BuildLimitOffsetClause(limitStr, offsetStr, argIndex, &args)
+	filters.LimitClause, filters.ArgIndex, errBuild = sql_utils.BuildLimitOffsetClause(limitStr, offsetStr, filters.ArgIndex, &filters.Args)
 	if errBuild != nil {
-		return "", "", "", nil, 0, errBuild
+		return filters, errBuild
 	}
 
-	return dateConditions, conditionsStr, limitClause, args, argIndex, nil
+	// Portal
+	portalUuid, portalUuidExists := GetContextParam(gc, "portal")
+	if portalUuidExists {
+		debugf("portalUuidExists, portalUuid: %s", portalUuid)
+		filters.Args = append(filters.Args, portalUuid)
+		filters.PortalJoin = fmt.Sprintf("JOIN %s.portal p ON p.uuid = $%d::uuid", h.DbSchema, filters.ArgIndex)
+		filters.ArgIndex++
+
+		filters.PortalConditions = fmt.Sprintf(`AND ST_Contains(p.wkb_geometry, COALESCE(edp.venue_point, ep.venue_point))
+AND NOT EXISTS (
+    SELECT 1 FROM %s.portal_org_blacklist b
+	WHERE b.portal_uuid = p.uuid AND b.blocked_org_uuid = ep.org_uuid)`,
+			h.DbSchema)
+	}
+
+	return filters, nil
 }
 
 func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-events")
 	ctx := gc.Request.Context()
+	filters := EventFilters{}
 
-	dateConditions, conditionsStr, limitClause, args, _, err := h.buildEventFilters(gc)
+	filters, err := h.buildEventFilters(gc)
 	if err != nil {
 		debugf("buildEventFilters err: %v", err)
 		apiRequest.Error(http.StatusBadRequest, err.Error())
@@ -358,37 +377,18 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	}
 
 	query := app.UranusInstance.SqlGetEventsProjected
-	query = strings.Replace(query, "{{date_conditions}}", dateConditions, 1)
-	query = strings.Replace(query, "{{conditions}}", conditionsStr, 1)
-	query = strings.Replace(query, "{{limit}}", limitClause, 1)
-
-	// Portal
-	portalUuid, portalUuidExists := GetContextParam(gc, "portal")
-	if portalUuidExists {
-		argIndex := len(args) + 1
-		args = append(args, portalUuid)
-		portalJoin := fmt.Sprintf("JOIN %s.portal p ON p.uuid = $%d::uuid", h.DbSchema, argIndex)
-		query = strings.Replace(query, "{{portal_join}}", portalJoin, 1)
-		argIndex++
-
-		portalConditions := fmt.Sprintf(`AND ST_Contains(p.wkb_geometry, COALESCE(edp.venue_point, ep.venue_point))
-AND NOT EXISTS (
-    SELECT 1 FROM %s.portal_org_blacklist b
-	WHERE b.portal_uuid = p.uuid AND b.blocked_org_uuid = ep.org_uuid)`,
-			h.DbSchema)
-		query = strings.Replace(query, "{{portal_conditions}}", portalConditions, 1)
-	} else {
-		// TODO: Optimize to use prepared version with cleared placeholders
-		query = strings.Replace(query, "{{portal_join}}", "", 1)
-		query = strings.Replace(query, "{{portal_conditions}}", "", 1)
-	}
+	query = strings.Replace(query, "{{date_conditions}}", filters.DateConditions, 1)
+	query = strings.Replace(query, "{{conditions}}", filters.ConditionsStr, 1)
+	query = strings.Replace(query, "{{limit}}", filters.LimitClause, 1)
+	query = strings.Replace(query, "{{portal_join}}", filters.PortalJoin, 1)
+	query = strings.Replace(query, "{{portal_conditions}}", filters.PortalConditions, 1)
 
 	debugf("query: %s", query)
-	for i, a := range args {
+	for i, a := range filters.Args {
 		fmt.Printf("args[%d] = %#v\n", i, a)
 	}
 
-	rows, err := h.DbPool.Query(ctx, query, args...)
+	rows, err := h.DbPool.Query(ctx, query, filters.Args...)
 	if err != nil {
 		debugf(err.Error())
 		apiRequest.InternalServerError()
@@ -497,9 +497,10 @@ AND NOT EXISTS (
 
 func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-events-type-summary")
+	filters := EventFilters{}
 
 	// Build filters from query params (same as GetEvents)
-	dateConditions, conditionsStr, _, args, _, err := h.buildEventFilters(gc)
+	filters, err := h.buildEventFilters(gc)
 	if err != nil {
 		apiRequest.Error(http.StatusBadRequest, "filter error")
 		return
@@ -513,21 +514,28 @@ func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 			FROM %s.event_date_projection edp
 			JOIN %s.event_projection ep ON ep.event_uuid = edp.event_uuid
 			CROSS JOIN LATERAL jsonb_array_elements(ep.types) AS elem
+			{{portal_join}}
 			WHERE ep.release_status IN ('released', 'cancelled', 'deferred', 'rescheduled')
-			AND {{date_conditions}}
+			AND {{date_conditions}}			
 			{{conditions}}
+			{{portal_conditions}}
 			GROUP BY edp.event_date_uuid, (elem->>0)::int
 		) AS grouped
 		GROUP BY type_id
 		ORDER BY date_count DESC`,
 		h.DbSchema, h.DbSchema)
 
-	query = strings.Replace(query, "{{date_conditions}}", dateConditions, 1)
-	query = strings.Replace(query, "{{conditions}}", conditionsStr, 1)
+	query = strings.Replace(query, "{{date_conditions}}", filters.DateConditions, 1)
+	query = strings.Replace(query, "{{conditions}}", filters.ConditionsStr, 1)
+	query = strings.Replace(query, "{{portal_join}}", filters.PortalJoin, 1)
+	query = strings.Replace(query, "{{portal_conditions}}", filters.PortalConditions, 1)
 
-	// debugf(query)
+	debugf("filters.PortalJoin: %s", filters.PortalJoin)
+	debugf("filters.PortalConditions: %s", filters.PortalConditions)
+	debugf(query)
+	debugf("ARGS (%d):\n", len(filters.Args))
 
-	rows, err := h.DbPool.Query(gc.Request.Context(), query, args...)
+	rows, err := h.DbPool.Query(gc.Request.Context(), query, filters.Args...)
 	if err != nil {
 		debugf(err.Error())
 		apiRequest.InternalServerError()
@@ -556,17 +564,22 @@ func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 	totalQuery := fmt.Sprintf(`
 	    SELECT COUNT(DISTINCT edp.event_date_uuid) AS total_count
 	    FROM %s.event_date_projection edp
-	    JOIN %s.event_projection ep
-        ON ep.event_uuid = edp.event_uuid
+	    JOIN %s.event_projection ep ON ep.event_uuid = edp.event_uuid
+	    {{portal_join}}
 	    WHERE ep.release_status IN ('released', 'cancelled', 'deferred', 'rescheduled')
 	    AND {{date_conditions}}
-	    {{conditions}}`,
+	    {{conditions}}
+	    {{portal_conditions}}`,
 		h.DbSchema, h.DbSchema)
-	totalQuery = strings.Replace(totalQuery, "{{date_conditions}}", dateConditions, 1)
-	totalQuery = strings.Replace(totalQuery, "{{conditions}}", conditionsStr, 1)
+	totalQuery = strings.Replace(totalQuery, "{{date_conditions}}", filters.DateConditions, 1)
+	totalQuery = strings.Replace(totalQuery, "{{conditions}}", filters.ConditionsStr, 1)
+	totalQuery = strings.Replace(totalQuery, "{{portal_join}}", filters.PortalJoin, 1)
+	totalQuery = strings.Replace(totalQuery, "{{portal_conditions}}", filters.PortalConditions, 1)
+
+	debugf("totalQuery: %s", totalQuery)
 
 	var totalCount int64
-	err = h.DbPool.QueryRow(gc.Request.Context(), totalQuery, args...).Scan(&totalCount)
+	err = h.DbPool.QueryRow(gc.Request.Context(), totalQuery, filters.Args...).Scan(&totalCount)
 	if err != nil {
 		debugf(err.Error())
 		apiRequest.InternalServerError()
@@ -581,19 +594,22 @@ func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 }
 
 func (h *ApiHandler) GetEventVenueSummary(gc *gin.Context) {
-	dateConditions, conditionsStr, _, args, _, err := h.buildEventFilters(gc)
+	// TODO: Use apiRequest
+	filters := EventFilters{}
+
+	filters, err := h.buildEventFilters(gc)
 	if err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	conds := []string{"ep.release_status IN ('released', 'cancelled', 'deferred', 'rescheduled'"}
 
-	if dateConditions != "" {
-		conds = append(conds, dateConditions)
+	if filters.DateConditions != "" {
+		conds = append(conds, filters.DateConditions)
 	}
 
-	if conditionsStr != "" {
-		conds = append(conds, conditionsStr)
+	if filters.ConditionsStr != "" {
+		conds = append(conds, filters.ConditionsStr)
 	}
 
 	query := fmt.Sprintf(`
@@ -620,7 +636,7 @@ func (h *ApiHandler) GetEventVenueSummary(gc *gin.Context) {
 		h.DbSchema, h.DbSchema, strings.Join(conds, " AND "))
 
 	var jsonResult []byte
-	err = h.DbPool.QueryRow(gc.Request.Context(), query, args...).Scan(&jsonResult)
+	err = h.DbPool.QueryRow(gc.Request.Context(), query, filters.Args...).Scan(&jsonResult)
 	if err != nil {
 		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -638,34 +654,35 @@ func (h *ApiHandler) GetEventVenueSummary(gc *gin.Context) {
 func (h *ApiHandler) GetEventsGeoJSON(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-events-geojson")
 	ctx := gc.Request.Context()
+	filters := EventFilters{}
 
-	dateConditions, conditionsStr, limitClause, args, _, err := h.buildEventFilters(gc)
+	filters, err := h.buildEventFilters(gc)
 	if err != nil {
 		apiRequest.Error(http.StatusBadRequest, "")
 		return
 	}
 
 	query := app.UranusInstance.SqlGetEventsGeoJSON
-	query = strings.Replace(query, "{{date_conditions}}", dateConditions, 1)
-	query = strings.Replace(query, "{{conditions}}", conditionsStr, 1)
-	query = strings.Replace(query, "{{limit}}", limitClause, 1)
+	query = strings.Replace(query, "{{date_conditions}}", filters.DateConditions, 1)
+	query = strings.Replace(query, "{{conditions}}", filters.ConditionsStr, 1)
+	query = strings.Replace(query, "{{limit}}", filters.LimitClause, 1)
+	query = strings.Replace(query, "{{portal_join}}", filters.PortalJoin, 1)
+	query = strings.Replace(query, "{{portal_conditions}}", filters.PortalConditions, 1)
 
-	debugf(query)
-	debugf("ARGS (%d):\n", len(args))
+	// debugf(query)
+	// debugf("ARGS (%d):\n", len(filters.Args))
 
-	for i, arg := range args {
+	for i, arg := range filters.Args {
 		fmt.Printf("  $%d = %#v (type %T)\n", i+1, arg, arg)
 	}
 
-	rows, err := h.DbPool.Query(ctx, query, args...)
+	rows, err := h.DbPool.Query(ctx, query, filters.Args...)
 	if err != nil {
 		debugf("database query error: %v", err.Error())
 		apiRequest.InternalServerError()
 		return
 	}
 	defer rows.Close()
-
-	// GeoJSON types
 
 	type GeoJSONGeometry struct {
 		Type        string     `json:"type"`

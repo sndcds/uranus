@@ -18,7 +18,6 @@ func (h *ApiHandler) GetPortal(gc *gin.Context) {
 		apiRequest.Required("parameter uuid is required")
 		return
 	}
-	apiRequest.SetMeta("portal_uuid", portalUuid)
 
 	var portal struct {
 		Uuid              string          `json:"uuid"`
