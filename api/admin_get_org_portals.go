@@ -63,6 +63,8 @@ func (h *ApiHandler) AdminGetOrgPortals(gc *gin.Context) {
 			if permissions.Has(app.UserPermDeletePortal) {
 				p.CanDeletePortal = true
 			}
+
+			portals = append(portals, p)
 		}
 
 		orgPermissions, err = h.GetUserOrganizationPermissionsTx(gc, tx, userUuid, orgUuid)
