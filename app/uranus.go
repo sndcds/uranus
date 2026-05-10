@@ -67,13 +67,14 @@ type Uranus struct {
 	SqlAdminGetOrgList                  string
 	SqlAdminGetOrgPartnerList           string
 	SqlAdminGetOrgPartnerRequests       string
-	SqlAdminInsertOrgPartnerRequest     string
-	SqlAdminChoosableVenues             string
 	SqlAdminGetOrgVenues                string
-	SqlGetSystemEmailTemplate           string
+	SqlAdminGetOrgPortals               string
 	SqlAdminGetOrgEvents                string
 	SqlAdminGetOrgMemberLink            string
 	SqlAdminGetOrgMembers               string
+	SqlAdminInsertOrgPartnerRequest     string
+	SqlAdminChoosableVenues             string
+	SqlGetSystemEmailTemplate           string
 	SqlAdminGetPermissionList           string
 	SqlQueryUserOrgEventsOverview       string
 	SqlAdminGetUserEventNotifications   string
@@ -307,15 +308,16 @@ func (app *Uranus) PrepareSql() error {
 		{"sql/admin-get-org-list.sql", &app.SqlAdminGetOrgList, nil},
 		{"sql/admin-get-org-partner-list.sql", &app.SqlAdminGetOrgPartnerList, nil},
 		{"sql/admin-get-org-partner-requests.sql", &app.SqlAdminGetOrgPartnerRequests, nil},
+		{"sql/admin-get-org-events.sql", &app.SqlAdminGetOrgEvents, nil},
+		{"sql/admin-get-org-venues.sql", &app.SqlAdminGetOrgVenues, nil},
+		{"sql/admin-get-org-portals.sql", &app.SqlAdminGetOrgPortals, nil},
+
 		{"sql/admin-insert-org-partner-request.sql", &app.SqlAdminInsertOrgPartnerRequest, nil},
 		{"sql/admin-chooseable-venues.sql", &app.SqlAdminChoosableVenues, nil},
-		{"sql/admin-get-org-events.sql", &app.SqlAdminGetOrgEvents, nil},
 
 		{"sql/admin-get-org-member-link.sql", &app.SqlAdminGetOrgMemberLink, nil},
 		{"sql/admin-get-org-members.sql", &app.SqlAdminGetOrgMembers, nil},
 		{"sql/admin-get-permission-list.sql", &app.SqlAdminGetPermissionList, nil},
-
-		{"sql/admin-get-org-venues.sql", &app.SqlAdminGetOrgVenues, nil},
 
 		{"sql/get-system-email-template.sql", &app.SqlGetSystemEmailTemplate, nil},
 
