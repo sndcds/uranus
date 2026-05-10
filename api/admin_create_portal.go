@@ -46,10 +46,10 @@ func (h *ApiHandler) AdminCreatePortal(gc *gin.Context) {
 		portalUuid, err := grains_uuid.Uuidv7String()
 		apiRequest.Metadata["portal_uuid"] = portalUuid
 		query := fmt.Sprintf(`
-			INSERT INTO %s.portal (uuid, venue_uuid, name)
-			VALUES ($1::uuid, $2)`,
+			INSERT INTO %s.portal (uuid, org_uuid, name)
+			VALUES ($1::uuid, $2::uuid, $3)`,
 			h.DbSchema)
-		_, err = tx.Exec(ctx, query, portalUuid, portalName)
+		_, err = tx.Exec(ctx, query, portalUuid, payload.OrgUuid, portalName)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
