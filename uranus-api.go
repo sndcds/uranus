@@ -202,6 +202,7 @@ func main() {
 	adminRoute.GET("/org/list", apiHandler.AdminGetOrganizationList)
 	adminRoute.GET("/org/:orgUuid/venues", apiHandler.AdminGetOrganizationVenues)
 	adminRoute.GET("/org/:orgUuid/events", apiHandler.AdminGetOrganizationEvents)
+	adminRoute.GET("/org/:orgUuid/portals", apiHandler.AdminGetOrgPortals)
 
 	adminRoute.GET("/org/:orgUuid/team", apiHandler.AdminGetOrganizationTeam)
 	adminRoute.POST("/org/:orgUuid/team/invite", apiHandler.AdminOrganizationTeamInvite)

@@ -32,6 +32,11 @@ const (
 	UserPermBitReleaseEvent      = 27
 	UserPermBitViewEventInsights = 28
 
+	// Portal permissions
+	UserPermBitAddPortal    = 32
+	UserPermBitEditPortal   = 33
+	UserPermBitDeletePortal = 34
+
 	OrgPermBitChooseVenue    = 0
 	OrgPermBitChoosePartner  = 1
 	OrgPermBitChoosePromoter = 2
@@ -65,6 +70,11 @@ const (
 	UserPermDeleteEvent       Permissions = 1 << UserPermBitDeleteEvent
 	UserPermReleaseEvent      Permissions = 1 << UserPermBitReleaseEvent
 	UserPermViewEventInsights Permissions = 1 << UserPermBitViewEventInsights
+
+	// Portal permissions
+	UserPermAddPortal    Permissions = 1 << UserPermBitAddPortal
+	UserPermEditPortal   Permissions = 1 << UserPermBitEditPortal
+	UserPermDeletePortal Permissions = 1 << UserPermBitDeletePortal
 
 	UserPermCombinationAdmin = 0b00011111000001110000111101111111
 
