@@ -15,6 +15,6 @@ type Portal struct {
 	Description       *string `json:"description,omitempty"`
 	SpatialFilterMode *string `json:"spatial_filter_mode,omitempty"`
 	PreFilter         *string `json:"pre_filter,omitempty"`
-	Geometry          *string `json:"wkb_geometry,omitempty"`
+	Geometry          *string `json:"geometry,omitempty"`
 	Style             *string `json:"style,omitempty"`
 }

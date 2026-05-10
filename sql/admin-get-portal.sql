@@ -4,7 +4,7 @@ SELECT
     p.description,
     p.spatial_filter_mode,
     p.prefilter,
-    p.wkb_geometry,
+    ST_AsGeoJSON(wkb_geometry)::json AS geometry,
     p.style
 FROM {{schema}}.portal p
 JOIN {{schema}}.user_organization_link uol
