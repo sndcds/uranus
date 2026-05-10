@@ -56,6 +56,7 @@ type Uranus struct {
 	SqlAdminGetEventLinks               string
 	SqlAdminGetEventDates               string
 	SqlAdminInsertEventDate             string
+	SqlAdminGetPortal                   string
 	SqlAdminUpdateEventDate             string
 	SqlAdminDeleteEvent                 string
 	SqlEventTypeGenreLookup             string
@@ -297,6 +298,8 @@ func (app *Uranus) PrepareSql() error {
 
 		{"sql/admin-update-event-date.sql", &app.SqlAdminUpdateEventDate, nil},
 		{"sql/admin-insert-event-date.sql", &app.SqlAdminInsertEventDate, nil},
+
+		{"sql/admin-get-portal.sql", &app.SqlAdminGetPortal, nil},
 
 		{"sql/admin-get-user-event-notifications.sql", &app.SqlAdminGetUserEventNotifications, nil},
 
