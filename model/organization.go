@@ -15,10 +15,12 @@ type OrgMember struct {
 }
 
 type InvitedOrgMember struct {
-	UserUuid  string    `json:"user_uuid"`
-	InvitedBy string    `json:"invited_by"`
-	InvitedAt time.Time `json:"invited_at"`
-	Email     string    `json:"email"`
+	UserUuid    string    `json:"user_uuid"`
+	InvitedBy   string    `json:"invited_by"`
+	InvitedAt   time.Time `json:"invited_at"`
+	Email       string    `json:"email"`
+	DisplayName *string   `json:"display_name"`
+	AvatarUrl   *string   `json:"avatar_url"`
 }
 
 type OrgMemberRole struct {

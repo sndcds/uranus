@@ -3,8 +3,6 @@ package api
 import (
 	"fmt"
 	"net/http"
-	"os"
-	"path/filepath"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
@@ -60,27 +58,21 @@ func (h *ApiHandler) AdminGetOrganizationTeam(gc *gin.Context) {
 				}
 			}
 
-			// Optional: Add avatar URL if file exists
-			imageDir := app.UranusInstance.Config.ProfileImageDir
-			imagePath := filepath.Join(imageDir, fmt.Sprintf("profile_img_%s_64.webp", m.UserUuid))
-			if _, err := os.Stat(imagePath); err == nil {
-				avatarUrl := fmt.Sprintf(`%s/api/user/%s/avatar/64`, h.Config.BaseApiUrl, m.UserUuid)
-				m.AvatarUrl = &avatarUrl
-			}
-
+			m.AvatarUrl = h.getAvatarURL(m.UserUuid)
 			members = append(members, m)
 		}
 
 		invitedMemberQuery := fmt.Sprintf(`
-		SELECT
-			oml.user_uuid,
-			COALESCE(iu.display_name, iu.first_name || ' ' || iu.last_name) AS invited_by,
-			oml.invited_at,
-			u.email AS email
-		FROM %s.organization_member_link oml
-		JOIN %s.user iu ON iu.uuid = oml.invited_by_user_uuid
-		JOIN %s.user u ON u.uuid = oml.user_uuid
-		WHERE oml.org_uuid = $1 AND has_joined = false`,
+			SELECT
+				oml.user_uuid,
+				COALESCE(iu.display_name, iu.first_name || ' ' || iu.last_name) AS invited_by,
+				oml.invited_at,
+				u.email,
+				u.display_name
+			FROM %s.organization_member_link oml
+			JOIN %s.user iu ON iu.uuid = oml.invited_by_user_uuid
+			JOIN %s.user u ON u.uuid = oml.user_uuid
+			WHERE oml.org_uuid = $1 AND has_joined = false`,
 			h.DbSchema, h.DbSchema, h.DbSchema)
 
 		rows, err := tx.Query(ctx, invitedMemberQuery, orgUuid)
@@ -94,13 +86,15 @@ func (h *ApiHandler) AdminGetOrganizationTeam(gc *gin.Context) {
 
 		for rows.Next() {
 			var m model.InvitedOrgMember
-			err = rows.Scan(&m.UserUuid, &m.InvitedBy, &m.InvitedAt, &m.Email)
+			err = rows.Scan(&m.UserUuid, &m.InvitedBy, &m.InvitedAt, &m.Email, &m.DisplayName)
 			if err != nil {
 				return &ApiTxError{
 					Code: http.StatusInternalServerError,
 					Err:  fmt.Errorf("failed to scan invited members: %s", err.Error()),
 				}
 			}
+
+			m.AvatarUrl = h.getAvatarURL(m.UserUuid)
 			invitedMembers = append(invitedMembers, m)
 		}
 
