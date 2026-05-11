@@ -9,8 +9,8 @@ import (
 	"github.com/sndcds/grains/grains_api"
 )
 
-func (h *ApiHandler) AdminUpdatePortalStyle(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "admin-update-portal-style")
+func (h *ApiHandler) AdminUpdatePortalFilter(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "admin-update-portal-filter")
 	ctx := gc.Request.Context()
 
 	portalUuid := gc.Param("portalUuid")
@@ -33,7 +33,7 @@ func (h *ApiHandler) AdminUpdatePortalStyle(gc *gin.Context) {
 		return
 	}
 
-	query := fmt.Sprintf(`UPDATE %s.portal SET style = $1::jsonb WHERE uuid = $2`, h.DbSchema)
+	query := fmt.Sprintf(`UPDATE %s.portal SET filter = $1::jsonb WHERE uuid = $2`, h.DbSchema)
 	_, err = h.DbPool.Exec(ctx, query, styleJSON, portalUuid)
 	if err != nil {
 		apiRequest.InternalServerError()
