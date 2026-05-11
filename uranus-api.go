@@ -256,7 +256,8 @@ func main() {
 
 	// Portal
 	adminRoute.GET("/portal/:portalUuid", apiHandler.AdminGetPortal)
-	adminRoute.PUT("/portal/:portalUuid/style", apiHandler.AdminUpdatePortalStyle) // TODO: check!
+	adminRoute.PUT("/portal/:portalUuid/filter", apiHandler.AdminUpdatePortalFilter)
+	adminRoute.PUT("/portal/:portalUuid/style", apiHandler.AdminUpdatePortalStyle)
 	adminRoute.POST("/portal/create", apiHandler.AdminCreatePortal)
 
 	// Pluto Image
