@@ -33,7 +33,7 @@ func (h *ApiHandler) AdminUpdatePortalStyle(gc *gin.Context) {
 		return
 	}
 
-	query := fmt.Sprintf(`UPDATE %s.portal SET style = $1::jsonb WHERE uuid = $2`, h.DbSchema)
+	query := fmt.Sprintf(`UPDATE %s.portal SET style = $1::jsonb WHERE uuid = $2::uuid`, h.DbSchema)
 	_, err = h.DbPool.Exec(ctx, query, styleJSON, portalUuid)
 	if err != nil {
 		apiRequest.InternalServerError()
