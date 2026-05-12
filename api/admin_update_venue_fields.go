@@ -11,7 +11,7 @@ import (
 	"github.com/sndcds/grains/grains_api"
 )
 
-func (h *ApiHandler) UpdateVenueFields(gc *gin.Context) {
+func (h *ApiHandler) AdminUpdateVenueFields(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-update-venue-fields")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)

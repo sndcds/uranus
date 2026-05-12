@@ -51,6 +51,16 @@ func IsVenueImageIdentifier(identifier string) bool {
 	return ok
 }
 
+func IsPortalImageIdentifier(identifier string) bool {
+	mapping := map[string]int{
+		"web_logo":         1,
+		"background_image": 2,
+	}
+
+	_, ok := mapping[identifier]
+	return ok
+}
+
 func (h *ApiHandler) UpsertImage(
 	gc *gin.Context,
 	plutoImageUuid string,

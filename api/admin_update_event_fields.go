@@ -12,7 +12,7 @@ import (
 	"github.com/sndcds/grains/grains_api"
 )
 
-func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
+func (h *ApiHandler) AdminUpdateEventFields(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-update-event-fields")
 	ctx := gc.Request.Context()
 
@@ -24,26 +24,30 @@ func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 	apiRequest.SetMeta("event_uuid", eventUuid)
 
 	var payload struct {
-		ReleaseStatus     NullableField[string]   `json:"release_status"`
-		ReleaseDate       NullableField[string]   `json:"release_date"`
-		ContentLanguage   NullableField[string]   `json:"content_language"`
-		Categories        NullableField[[]int]    `json:"categories"`
-		Title             NullableField[string]   `json:"title"`
-		Subtitle          NullableField[string]   `json:"subtitle"`
-		Description       NullableField[string]   `json:"description"`
-		Summary           NullableField[string]   `json:"summary"`
-		Tags              NullableField[[]string] `json:"tags"`
-		MaxAttendees      NullableField[int]      `json:"max_attendees"`
-		MinAge            NullableField[int]      `json:"min_age"`
-		MaxAge            NullableField[int]      `json:"max_age"`
-		ParticipationInfo NullableField[string]   `json:"participation_info"`
-		PriceType         *string                 `json:"price_type"`
-		MinPrice          NullableField[float64]  `json:"min_price"`
-		MaxPrice          NullableField[float64]  `json:"max_price"`
-		Currency          NullableField[string]   `json:"currency"`
-		TicketFlags       *[]string               `json:"ticket_flags"`
-		TicketLink        NullableField[string]   `json:"ticket_link"`
-		VisitorInfoFlags  NullableField[string]   `json:"visitor_info_flags"`
+		ReleaseStatus        NullableField[string]   `json:"release_status"`
+		ReleaseDate          NullableField[string]   `json:"release_date"`
+		ContentLanguage      NullableField[string]   `json:"content_language"`
+		Categories           NullableField[[]int]    `json:"categories"`
+		Title                NullableField[string]   `json:"title"`
+		Subtitle             NullableField[string]   `json:"subtitle"`
+		Description          NullableField[string]   `json:"description"`
+		Summary              NullableField[string]   `json:"summary"`
+		Tags                 NullableField[[]string] `json:"tags"`
+		MaxAttendees         NullableField[int]      `json:"max_attendees"`
+		MinAge               NullableField[int]      `json:"min_age"`
+		MaxAge               NullableField[int]      `json:"max_age"`
+		ParticipationInfo    NullableField[string]   `json:"participation_info"`
+		PriceType            *string                 `json:"price_type"`
+		MinPrice             NullableField[float64]  `json:"min_price"`
+		MaxPrice             NullableField[float64]  `json:"max_price"`
+		Currency             NullableField[string]   `json:"currency"`
+		TicketFlags          *[]string               `json:"ticket_flags"`
+		TicketLink           NullableField[string]   `json:"ticket_link"`
+		VisitorInfoFlags     NullableField[string]   `json:"visitor_info_flags"`
+		RegistrationLink     *string                 `json:"registration_link"`
+		RegistrationEmail    *string                 `json:"registration_email"`
+		RegistrationPhone    *string                 `json:"registration_phone"`
+		RegistrationDeadline *string                 `json:"registration_deadline"`
 	}
 
 	decoder := json.NewDecoder(gc.Request.Body)
@@ -78,6 +82,10 @@ func (h *ApiHandler) UpdateEventFields(gc *gin.Context) {
 	argPos = addUpdateClauseStringSliceField("ticket_flags", payload.TicketFlags, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("ticket_link", payload.TicketLink, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("visitor_info_flags", payload.VisitorInfoFlags, &setClauses, &args, argPos)
+	argPos = addUpdateClauseString("registration_link", payload.RegistrationLink, &setClauses, &args, argPos)
+	argPos = addUpdateClauseString("registration_email", payload.RegistrationEmail, &setClauses, &args, argPos)
+	argPos = addUpdateClauseString("registration_phone", payload.RegistrationPhone, &setClauses, &args, argPos)
+	argPos = addUpdateClauseString("registration_deadline", payload.RegistrationDeadline, &setClauses, &args, argPos)
 
 	if len(setClauses) == 0 {
 		apiRequest.SuccessNoData(http.StatusOK, "no fields updated")
