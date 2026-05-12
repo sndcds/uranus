@@ -11,7 +11,7 @@ import (
 // PermissionNote: Only returns choosable organizations for the authenticated user.
 // PermissionChecks: Unnecessary.
 // Verified: 2026-01-12, Roald
-func (h *ApiHandler) AdminGetChoosableOrganizations(gc *gin.Context) {
+func (h *ApiHandler) AdminGetChoosableOrgs(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 

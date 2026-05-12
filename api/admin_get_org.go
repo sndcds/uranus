@@ -15,7 +15,7 @@ import (
 // PermissionChecks: Unnecessary.
 // Verified: 2026-01-12, Roald
 
-func (h *ApiHandler) AdminGetOrganization(gc *gin.Context) {
+func (h *ApiHandler) AdminGetOrg(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-get-org")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)

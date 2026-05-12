@@ -31,7 +31,7 @@ type OrganizationTeamInviteInfo struct {
 	OrgEmail   *string `json:"org_email,omitempty"`
 }
 
-func (h *ApiHandler) AdminOrganizationTeamInvite(gc *gin.Context) {
+func (h *ApiHandler) AdminOrgTeamInvite(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-org-team-invite")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
@@ -171,7 +171,7 @@ func (h *ApiHandler) AdminOrganizationTeamInvite(gc *gin.Context) {
 	apiRequest.SuccessNoData(http.StatusCreated, "member invitation sent successfully")
 }
 
-func (h *ApiHandler) AdminOrganizationTeamInviteAccept(gc *gin.Context) {
+func (h *ApiHandler) AdminOrgTeamInviteAccept(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-org-team-invite-accept")
 	ctx := gc.Request.Context()
 

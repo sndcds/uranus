@@ -13,7 +13,7 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-func (h *ApiHandler) AdminCreateOrganization(gc *gin.Context) {
+func (h *ApiHandler) AdminCreateOrg(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 	apiRequest := grains_api.NewRequest(gc, "create-org")

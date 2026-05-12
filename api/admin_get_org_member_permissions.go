@@ -20,7 +20,7 @@ import (
 // Permission check enforced via GetUserOrganizationPermissions.
 // Verified: 2026-01-11, Roald
 
-func (h *ApiHandler) AdminGetOrganizationMemberPermissions(gc *gin.Context) {
+func (h *ApiHandler) AdminGetOrgMemberPermissions(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-get-org-member-permissions")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)

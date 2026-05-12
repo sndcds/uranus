@@ -9,7 +9,7 @@ import (
 	"github.com/sndcds/grains/grains_api"
 )
 
-func (h *ApiHandler) AdminDeleteOrganizationTeamMember(gc *gin.Context) {
+func (h *ApiHandler) AdminDeleteOrgTeamMember(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 	apiRequest := grains_api.NewRequest(gc, "admin-delete-org-team-member")

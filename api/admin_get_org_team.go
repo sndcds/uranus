@@ -11,7 +11,7 @@ import (
 	"github.com/sndcds/uranus/model"
 )
 
-func (h *ApiHandler) AdminGetOrganizationTeam(gc *gin.Context) {
+func (h *ApiHandler) AdminGetOrgTeam(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-get-org-team")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)

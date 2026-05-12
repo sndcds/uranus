@@ -62,6 +62,8 @@ base AS (
             OR COALESCE((uvl.permissions & (1<<28)) <> 0, FALSE)
         ) AS can_view_event_insights,
 
+        (online_link IS NOT NULL) AS is_online_event,
+
         ROW_NUMBER() OVER (
             PARTITION BY e.uuid
             ORDER BY edt.start_date NULLS LAST, edt.start_time NULLS LAST

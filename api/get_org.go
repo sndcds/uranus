@@ -8,7 +8,7 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-func (h *ApiHandler) GetOrganization(gc *gin.Context) {
+func (h *ApiHandler) GetOrg(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-org")
 	ctx := gc.Request.Context()
 
