@@ -20,14 +20,16 @@ func (h *ApiHandler) GetPortal(gc *gin.Context) {
 	}
 
 	var portal struct {
-		Uuid              string          `json:"uuid"`
-		Name              string          `json:"name"`
-		Description       *string         `json:"description"`
-		OrgUuid           string          `json:"org_uuid"`
-		SpatialFilterMode *string         `json:"spatial_filter_mode"`
-		Prefilter         json.RawMessage `json:"prefilter"`
-		Geometry          json.RawMessage `json:"geometry"`
-		Style             json.RawMessage `json:"style"`
+		Uuid                string          `json:"uuid"`
+		Name                string          `json:"name"`
+		Description         *string         `json:"description"`
+		OrgUuid             string          `json:"org_uuid"`
+		SpatialFilterMode   *string         `json:"spatial_filter_mode"`
+		Prefilter           json.RawMessage `json:"prefilter"`
+		Geometry            json.RawMessage `json:"geometry"`
+		Style               json.RawMessage `json:"style"`
+		WebLogoUuid         *string         `json:"web_logo_uuid"`
+		BackgroundImageUuid *string         `json:"background_image_uuid"`
 	}
 
 	err := h.DbPool.QueryRow(
@@ -43,6 +45,8 @@ func (h *ApiHandler) GetPortal(gc *gin.Context) {
 		&portal.Prefilter,
 		&portal.Geometry,
 		&portal.Style,
+		&portal.WebLogoUuid,
+		&portal.BackgroundImageUuid,
 	)
 	if err != nil {
 		debugf(err.Error())

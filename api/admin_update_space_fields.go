@@ -10,7 +10,7 @@ import (
 	"github.com/sndcds/grains/grains_api"
 )
 
-func (h *ApiHandler) UpdateSpaceFields(gc *gin.Context) {
+func (h *ApiHandler) AdminUpdateSpaceFields(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-update-space-fields")
 	ctx := gc.Request.Context()
 

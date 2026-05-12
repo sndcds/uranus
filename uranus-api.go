@@ -222,14 +222,14 @@ func main() {
 	adminRoute.GET("/venue/:venueUuid", apiHandler.AdminGetVenue)
 	adminRoute.POST("/venue/create", apiHandler.AdminCreateVenue)
 	// adminRoute.PUT("/venue", apiHandler.AdminUpsertVenue) // TODO: refactor to be create with complete data set
-	adminRoute.PUT("/venue/:venueUuid/fields", apiHandler.UpdateVenueFields)
+	adminRoute.PUT("/venue/:venueUuid/fields", apiHandler.AdminUpdateVenueFields)
 	adminRoute.DELETE("/venue/:venueUuid", apiHandler.AdminDeleteVenue)
 
 	// Space
 	adminRoute.GET("/space/:spaceUuid", apiHandler.AdminGetSpace)
 	adminRoute.POST("/space/create", apiHandler.AdminCreateSpace)
 	// adminRoute.PUT("/space", apiHandler.AdminUpsertSpace) // TODO: refactor to be create with complete data set
-	adminRoute.PUT("/space/:spaceUuid/fields", apiHandler.UpdateSpaceFields)
+	adminRoute.PUT("/space/:spaceUuid/fields", apiHandler.AdminUpdateSpaceFields)
 	adminRoute.DELETE("/space/:spaceUuid", apiHandler.AdminDeleteSpace)
 
 	// Event
@@ -246,7 +246,7 @@ func main() {
 	adminRoute.PUT("/event/:eventUuid/languages", apiHandler.AdminUpdateEventLanguages)
 	adminRoute.PUT("/event/:eventUuid/links", apiHandler.AdminUpdateEventLinks)
 	adminRoute.PUT("/event/:eventUuid/venue", apiHandler.AdminUpdateEventVenue)
-	adminRoute.PUT("/event/:eventUuid/fields", apiHandler.UpdateEventFields)
+	adminRoute.PUT("/event/:eventUuid/fields", apiHandler.AdminUpdateEventFields)
 
 	adminRoute.PUT("/event/:eventUuid/release-status", apiHandler.AdminUpdateEventReleaseStatus)           // TODO: check!
 	adminRoute.PUT("/event/:eventUuid/header", apiHandler.AdminUpdateEventHeader)                          // TODO: check!
@@ -256,9 +256,10 @@ func main() {
 
 	// Portal
 	adminRoute.GET("/portal/:portalUuid", apiHandler.AdminGetPortal)
+	adminRoute.POST("/portal/create", apiHandler.AdminCreatePortal)
+	adminRoute.PUT("/portal/:portalUuid/fields", apiHandler.AdminUpdatePortalFields)
 	adminRoute.PUT("/portal/:portalUuid/filter", apiHandler.AdminUpdatePortalFilter)
 	adminRoute.PUT("/portal/:portalUuid/style", apiHandler.AdminUpdatePortalStyle)
-	adminRoute.POST("/portal/create", apiHandler.AdminCreatePortal)
 
 	// Pluto Image
 	adminRoute.POST("/image/:context/:contextUuid/:identifier", apiHandler.AdminUpsertPlutoImage)

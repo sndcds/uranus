@@ -6,8 +6,11 @@ SELECT
     p.prefilter,
     ST_AsGeoJSON(wkb_geometry)::json AS geometry,
     p.style
+
 FROM {{schema}}.portal p
+
 JOIN {{schema}}.user_organization_link uol
     ON uol.org_uuid = p.org_uuid
     AND uol.user_uuid = $2::uuid
+
 WHERE p.uuid = $1::uuid

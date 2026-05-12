@@ -40,7 +40,7 @@ func (h *ApiHandler) AdminGetPortal(gc *gin.Context) {
 		&portal.Style,
 	)
 	if err != nil {
-		// debugf(err.Error())
+		debugf(err.Error())
 		apiRequest.InternalServerError()
 		return
 	}

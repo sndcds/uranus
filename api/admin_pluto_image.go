@@ -1,10 +1,12 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/pluto"
 )
@@ -12,7 +14,7 @@ import (
 func (h *ApiHandler) AdminDeletePlutoImage(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-delete-pluto-image")
 
-	context := gc.Param("context")
+	plutoContext := gc.Param("context")
 
 	contextUuid := gc.Param("contextUuid")
 	if contextUuid == "" {
@@ -20,13 +22,13 @@ func (h *ApiHandler) AdminDeletePlutoImage(gc *gin.Context) {
 		return
 	}
 
-	validator, err := validatorByContext(context)
+	validator, err := validatorByContext(plutoContext)
 	if err != nil {
 		apiRequest.InternalServerError()
 		return
 	}
 
-	refresher, err := refresherByContext(context)
+	refresher, err := refresherByContext(plutoContext)
 	if err != nil {
 		apiRequest.InternalServerError()
 		return
@@ -39,8 +41,8 @@ func (h *ApiHandler) AdminDeletePlutoImage(gc *gin.Context) {
 	}
 
 	plutoDeleteImageResult, err := pluto.DeleteImage(
-		gc, context, contextUuid, identifier,
-		refresher(context, []string{contextUuid}))
+		gc, plutoContext, contextUuid, identifier,
+		refresher(plutoContext, []string{contextUuid}))
 	if err != nil {
 		apiRequest.Error(http.StatusInternalServerError, "pluto api failed")
 		return
@@ -58,8 +60,8 @@ func (h *ApiHandler) AdminUpsertPlutoImage(gc *gin.Context) {
 
 	// TODO: Check user permissions for different contexts
 
-	context := gc.Param("context")
-	apiRequest.SetMeta("pluto_context", context)
+	plutoContext := gc.Param("context")
+	apiRequest.SetMeta("pluto_context", plutoContext)
 
 	contextUuid := gc.Param("contextUuid")
 	if contextUuid == "" {
@@ -68,13 +70,13 @@ func (h *ApiHandler) AdminUpsertPlutoImage(gc *gin.Context) {
 	}
 	apiRequest.SetMeta("pluto_context_uuid", contextUuid)
 
-	validator, err := validatorByContext(context)
+	validator, err := validatorByContext(plutoContext)
 	if err != nil {
 		apiRequest.InternalServerError()
 		return
 	}
 
-	refresher, err := refresherByContext(context)
+	refresher, err := refresherByContext(plutoContext)
 	if err != nil {
 		apiRequest.InternalServerError()
 		return
@@ -87,23 +89,23 @@ func (h *ApiHandler) AdminUpsertPlutoImage(gc *gin.Context) {
 		return
 	}
 
-	fileNamePrefix, err := fileNamePrefixByContext(context)
+	fileNamePrefix, err := fileNamePrefixByContext(plutoContext)
 	if err != nil {
 		apiRequest.InternalServerError()
 		return
 	}
 
-	debugf("context: %s, contextUuid: %s, identifier: %s", context, contextUuid, identifier)
+	debugf("context: %s, contextUuid: %s, identifier: %s", plutoContext, contextUuid, identifier)
 
 	// Upsert image in Pluto
 	plutoUpsertImageResult, err := pluto.UpsertImage(
 		gc,
-		context,
+		plutoContext,
 		contextUuid,
 		identifier,
 		&fileNamePrefix,
 		userUuid,
-		refresher(context, []string{contextUuid}),
+		refresher(plutoContext, []string{contextUuid}),
 	)
 	if err != nil || plutoUpsertImageResult.HttpStatus != http.StatusOK {
 		debugf("err: %v", err)
@@ -139,8 +141,16 @@ func validatorByContext(context string) (pluto.ImageIdentifierValidator, error) 
 	*/
 	case "event":
 		return IsEventImageIdentifier, nil
+	case "portal":
+		return IsPortalImageIdentifier, nil
 	default:
 		return nil, fmt.Errorf("unknown context: %s", context)
+	}
+}
+
+func NoOpRefreshEventProjectionsCallback(entity string, uuids []string) pluto.TxFunc {
+	return func(ctx context.Context, tx pgx.Tx) error {
+		return nil
 	}
 }
 
@@ -156,6 +166,8 @@ func refresherByContext(context string) (pluto.ImageRefresherCallback, error) {
 	*/
 	case "event":
 		return RefreshEventProjectionsCallback, nil
+	case "portal":
+		return NoOpRefreshEventProjectionsCallback, nil
 	default:
 		return nil, fmt.Errorf("unknown context: %s", context)
 	}
@@ -173,6 +185,8 @@ func fileNamePrefixByContext(context string) (string, error) {
 	*/
 	case "event":
 		return "event", nil
+	case "portal":
+		return "portal", nil
 	default:
 		return "", fmt.Errorf("unknown context: %s", context)
 	}
