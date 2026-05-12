@@ -11,7 +11,7 @@ import (
 
 // TODO: Add filter options, e.g. lat/lon/radius
 
-func (h *ApiHandler) GetOrganizations(gc *gin.Context) {
+func (h *ApiHandler) GetOrgs(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get organizations")
 	ctx := gc.Request.Context()
 

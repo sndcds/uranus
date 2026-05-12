@@ -177,6 +177,10 @@ type AdminEvent struct {
 	SpaceSeatingCapacity *int             `json:"space_seating_capacity,omitempty"`
 	SpaceBuildingLevel   *int             `json:"space_building_level,omitempty"`
 	OnlineLink           *string          `json:"online_link,omitempty"`
+	RegistrationLink     *string          `json:"registration_link,omitempty"`
+	RegistrationEmail    *string          `json:"registration_email,omitempty"`
+	RegistrationPhone    *string          `json:"registration_phone,omitempty"`
+	RegistrationDeadline *string          `json:"registration_deadline,omitempty"`
 	MeetingPoint         *string          `json:"meeting_point,omitempty"`
 	Languages            []string         `json:"languages,omitempty"`
 	ParticipationInfo    *string          `json:"participation_info,omitempty"`
@@ -237,6 +241,7 @@ type AdminListEvent struct {
 	CanDeleteEvent       bool        `json:"can_delete_event"`
 	CanReleaseEvent      bool        `json:"can_release_event"`
 	CanViewEventInsights bool        `json:"can_view_event_insights"`
+	IsOnlineEvent        bool        `json:"is_online_event"`
 	OrgUuid              string      `json:"org_uuid"`
 	OrgName              *string     `json:"org_name"`
 	VenueUuid            *string     `json:"venue_uuid,omitempty"`

@@ -21,7 +21,7 @@ import (
 // PermissionChecks: Handled entirely by the SQL query.
 // Verified: 2026-01-12, Roald
 
-func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
+func (h *ApiHandler) AdminGetOrgEvents(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-user-org-event-list")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
@@ -86,6 +86,7 @@ func (h *ApiHandler) AdminGetOrganizationEvents(gc *gin.Context) {
 				&e.CanDeleteEvent,
 				&e.CanReleaseEvent,
 				&e.CanViewEventInsights,
+				&e.IsOnlineEvent,
 				&e.SeriesIndex,
 				&e.SeriesTotal,
 			)

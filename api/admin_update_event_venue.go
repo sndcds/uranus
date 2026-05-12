@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/grains/grains_api"
+	"github.com/sndcds/uranus/sql_utils"
 )
 
 func (h *ApiHandler) AdminUpdateEventVenue(gc *gin.Context) {
@@ -22,10 +22,14 @@ func (h *ApiHandler) AdminUpdateEventVenue(gc *gin.Context) {
 	}
 
 	var payload struct {
-		VenueUuid    *string `json:"venue_uuid"`
-		SpaceUuid    *string `json:"space_uuid"`
-		MeetingPoint *string `json:"meeting_point"`
-		OnlineLink   *string `json:"online_link"`
+		VenueUuid            *string `json:"venue_uuid"`
+		SpaceUuid            *string `json:"space_uuid"`
+		MeetingPoint         *string `json:"meeting_point"`
+		OnlineLink           *string `json:"online_link"`
+		RegistrationLink     *string `json:"registration_link"`
+		RegistrationDeadline *string `json:"registration_deadline"`
+		RegistrationEmail    *string `json:"registration_email"`
+		RegistrationPhone    *string `json:"registration_phone"`
 	}
 
 	if err := gc.ShouldBindJSON(&payload); err != nil {
@@ -34,79 +38,63 @@ func (h *ApiHandler) AdminUpdateEventVenue(gc *gin.Context) {
 		return
 	}
 
-	setClauses := []string{}
-	args := []interface{}{}
-	argPos := 1
-
-	if payload.VenueUuid != nil {
-		setClauses = append(setClauses, fmt.Sprintf("venue_uuid = $%d::uuid", argPos))
-		args = append(args, *payload.VenueUuid)
-		argPos++
-	}
-
-	if payload.SpaceUuid != nil {
-		setClauses = append(setClauses, fmt.Sprintf("space_uuid = $%d::uuid", argPos))
-		args = append(args, *payload.SpaceUuid) // Actual number
-		argPos++
-	} else {
-		// Explicitly set NULL
-		setClauses = append(setClauses, fmt.Sprintf("space_uuid = $%d::uuid", argPos))
-		args = append(args, nil)
-		argPos++
-	}
-
-	if payload.MeetingPoint != nil {
-		setClauses = append(setClauses, fmt.Sprintf("meeting_point = $%d", argPos))
-		args = append(args, *payload.MeetingPoint)
-		argPos++
-	}
-
-	if payload.OnlineLink != nil {
-		setClauses = append(setClauses, fmt.Sprintf("online_link = $%d", argPos))
-		args = append(args, *payload.OnlineLink)
-		argPos++
-	}
-
-	if len(setClauses) == 0 {
-		apiRequest.Error(http.StatusBadRequest, "no fields to update")
-		return
-	}
-
-	query := fmt.Sprintf(`UPDATE %s.event SET %s WHERE uuid = $%d::uuid`,
-		h.DbSchema,
-		strings.Join(setClauses, ", "),
-		argPos, // Last placeholder is for WHERE uuid
-	)
-
-	args = append(args, eventUuid) // eventUuid is the last parameter
-
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-		// Handle venue/space update
-		// Check if the space belongs to the venue
-		if payload.SpaceUuid != nil && payload.VenueUuid != nil {
-			spaceExists := false
-			if payload.SpaceUuid != nil {
-				query := fmt.Sprintf(`SELECT EXISTS(SELECT 1 FROM %s.space WHERE uuid=$1::uuid AND venue_uuid=$2::uuid)`, h.DbSchema)
-				if err := tx.QueryRow(ctx, query, *payload.SpaceUuid, *payload.VenueUuid).Scan(&spaceExists); err != nil {
-					return &ApiTxError{
-						Code: http.StatusInternalServerError,
-						Err:  errors.New("space doesnt belong to a venue"),
-					}
-				}
-
-				if !spaceExists {
-					return &ApiTxError{
-						Code: http.StatusBadRequest,
-						Err:  fmt.Errorf("space %d does not belong to venue %d", *payload.SpaceUuid, *payload.VenueUuid),
-					}
-				}
-			}
-		} else if payload.SpaceUuid != nil && payload.VenueUuid == nil {
+		if payload.SpaceUuid != nil && payload.VenueUuid == nil {
 			return &ApiTxError{
 				Code: http.StatusBadRequest,
 				Err:  errors.New("cannot update space without venueUuid"),
 			}
 		}
+
+		if payload.SpaceUuid != nil && payload.VenueUuid != nil {
+			var spaceExists bool
+
+			query := fmt.Sprintf(`
+				SELECT EXISTS(
+					SELECT 1 FROM %s.space
+					WHERE uuid=$1::uuid AND venue_uuid=$2::uuid
+				)`, h.DbSchema)
+
+			if err := tx.QueryRow(ctx, query,
+				*payload.SpaceUuid,
+				*payload.VenueUuid,
+			).Scan(&spaceExists); err != nil {
+				return &ApiTxError{
+					Code: http.StatusInternalServerError,
+					Err:  errors.New("space check failed"),
+				}
+			}
+
+			if !spaceExists {
+				return &ApiTxError{
+					Code: http.StatusBadRequest,
+					Err:  fmt.Errorf("space does not belong to venue"),
+				}
+			}
+		}
+
+		queryBuilder := sql_utils.NewUpdate(h.DbSchema + ".event")
+		queryBuilder.
+			Set("venue_uuid", payload.VenueUuid).
+			SetNullable("space_uuid", payload.SpaceUuid).
+			Set("meeting_point", payload.MeetingPoint).
+			Set("online_link", payload.OnlineLink).
+			Set("registration_link", payload.RegistrationLink).
+			Set("registration_email", payload.RegistrationEmail).
+			Set("registration_phone", payload.RegistrationPhone).
+			Set("registration_deadline", payload.RegistrationDeadline)
+
+		query, args, err := queryBuilder.Build()
+		if err != nil {
+			return &ApiTxError{
+				Code: http.StatusBadRequest,
+				Err:  err,
+			}
+		}
+
+		// Add WHERE manually
+		query += fmt.Sprintf(" WHERE uuid = $%d::uuid", len(args)+1)
+		args = append(args, eventUuid)
 
 		res, err := tx.Exec(ctx, query, args...)
 		if err != nil {
@@ -123,8 +111,7 @@ func (h *ApiHandler) AdminUpdateEventVenue(gc *gin.Context) {
 			}
 		}
 
-		err = RefreshEventProjections(ctx, tx, "event", []string{eventUuid})
-		if err != nil {
+		if err := RefreshEventProjections(ctx, tx, "event", []string{eventUuid}); err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
 				Err:  fmt.Errorf("refresh projection tables failed: %v", err),
@@ -133,6 +120,7 @@ func (h *ApiHandler) AdminUpdateEventVenue(gc *gin.Context) {
 
 		return nil
 	})
+
 	if txErr != nil {
 		debugf(txErr.Error())
 		apiRequest.DatabaseError()

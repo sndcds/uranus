@@ -16,7 +16,7 @@ import (
 // PermissionChecks: Handled in SQL query; no additional checks needed here.
 // Verified: 2026-01-12, Roald
 
-func (h *ApiHandler) AdminGetOrganizationList(gc *gin.Context) {
+func (h *ApiHandler) AdminGetOrgList(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-get-org-list")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)

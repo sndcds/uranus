@@ -10,7 +10,7 @@ import (
 
 // TODO: Review code
 
-func (h *ApiHandler) GetChoosableOrganizationVenues(gc *gin.Context) {
+func (h *ApiHandler) GetChoosableOrgVenues(gc *gin.Context) {
 	ctx := gc.Request.Context()
 
 	organizationId, ok := ParamInt(gc, "organizationId")

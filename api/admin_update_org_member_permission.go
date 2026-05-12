@@ -22,7 +22,7 @@ import (
 // Safeguards against self-escalation are applied.
 // Verified: 2026-01-11, Roald
 
-// AdminUpdateOrganizationMemberPermissions updates a single permission bit
+// AdminUpdateOrgMemberPermissions updates a single permission bit
 // for a member of an organization.
 //
 // This endpoint allows an authorized organization administrator to enable
@@ -63,7 +63,7 @@ import (
 //   - 403 Forbidden: Caller lacks sufficient permissions.
 //   - 404 Not Found: Target member does not exist in the organization.
 //   - 500 Internal Server Error: Database or transaction failure.
-func (h *ApiHandler) AdminUpdateOrganizationMemberPermissions(gc *gin.Context) {
+func (h *ApiHandler) AdminUpdateOrgMemberPermissions(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-update-org-member-permissions")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)

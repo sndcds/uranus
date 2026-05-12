@@ -18,7 +18,7 @@ import (
 // PermissionChecks: Already enforced in SQL.
 // Verified: 2026-01-12, Roald
 
-func (h *ApiHandler) AdminGetOrganizationVenues(gc *gin.Context) {
+func (h *ApiHandler) AdminGetOrgVenues(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-get-org-venues")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)

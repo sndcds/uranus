@@ -11,7 +11,7 @@ import (
 	"github.com/sndcds/grains/grains_api"
 )
 
-func (h *ApiHandler) UpdateOrganizationFields(gc *gin.Context) {
+func (h *ApiHandler) UpdateOrgFields(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-update-org-fields")
 	ctx := gc.Request.Context()
 
