@@ -6,6 +6,7 @@ SELECT
     e.subtitle,
     e.description,
     e.summary,
+    e.source_link,
     e.participation_info,
     e.online_link,
     e.registration_link,

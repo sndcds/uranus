@@ -117,6 +117,7 @@ type EventDetails struct {
 	Subtitle             *string                 `json:"subtitle,omitempty"`
 	Description          *string                 `json:"description,omitempty"`
 	Summary              *string                 `json:"summary,omitempty"`
+	SourceUrl            *string                 `json:"source_link,omitempty"`
 	Languages            []string                `json:"languages,omitempty"`
 	Tags                 []string                `json:"tags,omitempty"`
 	OrgUuid              string                  `json:"org_uuid"`

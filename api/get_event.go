@@ -18,7 +18,7 @@ var publicStatuses = []string{
 }
 
 func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "get-event-by-date-id")
+	apiRequest := grains_api.NewRequest(gc, "get-event-by-date-uuid")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 
@@ -88,6 +88,7 @@ func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 		&event.Subtitle,
 		&event.Description,
 		&event.Summary,
+		&event.SourceUrl,
 		&event.ParticipationInfo,
 		&event.OnlineLink,
 		&event.RegistrationLink,
