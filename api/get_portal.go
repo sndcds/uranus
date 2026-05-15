@@ -28,6 +28,8 @@ func (h *ApiHandler) GetPortal(gc *gin.Context) {
 		Prefilter           json.RawMessage `json:"prefilter"`
 		Geometry            json.RawMessage `json:"geometry"`
 		Style               json.RawMessage `json:"style"`
+		Header              json.RawMessage `json:"header"`
+		Footer              json.RawMessage `json:"footer"`
 		WebLogoUuid         *string         `json:"web_logo_uuid"`
 		BackgroundImageUuid *string         `json:"background_image_uuid"`
 	}
@@ -45,6 +47,8 @@ func (h *ApiHandler) GetPortal(gc *gin.Context) {
 		&portal.Prefilter,
 		&portal.Geometry,
 		&portal.Style,
+		&portal.Header,
+		&portal.Footer,
 		&portal.WebLogoUuid,
 		&portal.BackgroundImageUuid,
 	)
