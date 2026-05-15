@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sndcds/grains/grains_api"
@@ -159,17 +160,25 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (EventFilters, error) {
 	}
 
 	if app.IsValidDateStr(endStr) {
+		endDate, err := time.Parse("2006-01-02", endStr)
+		if err != nil {
+			return filters, fmt.Errorf("end %s has invalid format", endStr)
+		}
+		endDate = endDate.AddDate(0, 0, 1)
 		if dateConditionCount > 0 {
 			filters.DateConditions += " AND "
 		}
-		filters.DateConditions += "(edp.event_end_at <= $" + strconv.Itoa(filters.ArgIndex) + " OR edp.event_start_at <= $" + strconv.Itoa(filters.ArgIndex) + ")"
-		filters.Args = append(filters.Args, endStr)
+		filters.DateConditions += "(" +
+			"edp.event_end_at < $" + strconv.Itoa(filters.ArgIndex) +
+			" OR edp.event_start_at < $" + strconv.Itoa(filters.ArgIndex) +
+			")"
+		filters.Args = append(filters.Args, endDate)
 		filters.ArgIndex++
+
 	} else if endStr != "" {
 		return filters, fmt.Errorf("end %s has invalid format", endStr)
 	}
 
-	debugf("lastEventDateUuid: %s", lastEventDateUuid)
 	if lastEventStartAt != "" {
 		if dateConditionCount > 0 {
 			filters.DateConditions += " AND "
