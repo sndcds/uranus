@@ -38,6 +38,8 @@ func (h *ApiHandler) AdminGetPortal(gc *gin.Context) {
 		&portal.PreFilter,
 		&portal.Geometry,
 		&portal.Style,
+		&portal.Header,
+		&portal.Footer,
 	)
 	if err != nil {
 		debugf(err.Error())

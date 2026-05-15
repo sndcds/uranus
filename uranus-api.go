@@ -260,6 +260,8 @@ func main() {
 	adminRoute.PUT("/portal/:portalUuid/fields", apiHandler.AdminUpdatePortalFields)
 	adminRoute.PUT("/portal/:portalUuid/filter", apiHandler.AdminUpdatePortalFilter)
 	adminRoute.PUT("/portal/:portalUuid/style", apiHandler.AdminUpdatePortalStyle)
+	adminRoute.PUT("/portal/:portalUuid/header", apiHandler.AdminUpdatePortalHeader)
+	adminRoute.PUT("/portal/:portalUuid/footer", apiHandler.AdminUpdatePortalFooter)
 
 	// Pluto Image
 	adminRoute.POST("/image/:context/:contextUuid/:identifier", apiHandler.AdminUpsertPlutoImage)

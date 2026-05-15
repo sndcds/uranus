@@ -19,4 +19,6 @@ type Portal struct {
 	PreFilter         json.RawMessage `json:"pre_filter,omitempty"`
 	Geometry          json.RawMessage `json:"geometry,omitempty"`
 	Style             json.RawMessage `json:"style,omitempty"`
+	Header            json.RawMessage `json:"header,omitempty"`
+	Footer            json.RawMessage `json:"footer,omitempty"`
 }
