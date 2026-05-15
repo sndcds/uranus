@@ -7,6 +7,8 @@ SELECT
     prefilter,
     ST_AsGeoJSON(wkb_geometry)::json AS geometry,
     style,
+    header,
+    footer,
     pil_web_logo.pluto_image_uuid AS web_logo_image_uuid,
     pil_background.pluto_image_uuid AS background_image_uuid
 
