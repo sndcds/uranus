@@ -5,7 +5,9 @@ SELECT
     p.spatial_filter_mode,
     p.prefilter,
     ST_AsGeoJSON(wkb_geometry)::json AS geometry,
-    p.style
+    p.style,
+    p.header,
+    p.footer
 
 FROM {{schema}}.portal p
 
