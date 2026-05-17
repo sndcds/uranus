@@ -10,7 +10,8 @@ SELECT
     header,
     footer,
     pil_web_logo.pluto_image_uuid AS web_logo_image_uuid,
-    pil_background.pluto_image_uuid AS background_image_uuid
+    pil_background.pluto_image_uuid AS background_image_uuid,
+    pil_footer_logo.pluto_image_uuid AS footer_logo_image_uuid
 
 FROM {{schema}}.portal p
 
@@ -23,5 +24,10 @@ LEFT JOIN {{schema}}.pluto_image_link pil_background
     ON pil_background.context = 'portal'
     AND pil_background.context_uuid = p.uuid
     AND pil_background.identifier = 'background_image'
+
+LEFT JOIN {{schema}}.pluto_image_link pil_footer_logo
+    ON pil_footer_logo.context = 'portal'
+    AND pil_footer_logo.context_uuid = p.uuid
+    AND pil_footer_logo.identifier = 'footer_logo'
 
 WHERE uuid = $1::uuid
