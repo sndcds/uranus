@@ -319,6 +319,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (EventFilters, error) {
 
 	if eventTypesStr != "" {
 		filters.ArgIndex, errBuild = sql_utils.BuildJSONArrayIntCondition(
+			"and",
 			eventTypesStr,
 			"types",
 			0, // index 0 = type_id
@@ -363,10 +364,11 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (EventFilters, error) {
 		filters.PortalJoin = fmt.Sprintf("JOIN %s.portal p ON p.uuid = $%d::uuid", h.DbSchema, filters.ArgIndex)
 		filters.ArgIndex++
 
-		filters.PortalConditions = fmt.Sprintf(`AND ST_Contains(p.wkb_geometry, COALESCE(edp.venue_point, ep.venue_point))
-AND NOT EXISTS (
-    SELECT 1 FROM %s.portal_org_blacklist b
-	WHERE b.portal_uuid = p.uuid AND b.blocked_org_uuid = ep.org_uuid)`,
+		filters.PortalConditions = fmt.Sprintf(`
+			AND ST_Contains(p.wkb_geometry, COALESCE(edp.venue_point, ep.venue_point))
+			AND NOT EXISTS (
+    			SELECT 1 FROM %s.portal_org_blacklist b
+				WHERE b.portal_uuid = p.uuid AND b.blocked_org_uuid = ep.org_uuid)`,
 			h.DbSchema)
 	}
 

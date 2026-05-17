@@ -811,6 +811,7 @@ func BuildGeoRadiusCondition(
 }
 
 func BuildJSONArrayIntCondition(
+	mode string, // Can be "or" or "and"
 	input string,
 	jsonbColumn string, // e.g. "ep.types"
 	jsonIndex int, // 0 = type_id, 1 = genre_id
@@ -828,9 +829,28 @@ func BuildJSONArrayIntCondition(
 		return argIndex, err
 	}
 
-	condition := fmt.Sprintf(
-		`EXISTS (SELECT 1 FROM jsonb_array_elements(%s) AS t(elem) WHERE (elem->>%d)::int = ANY($%d))`,
-		jsonbColumn, jsonIndex, argIndex)
+	var condition string
+
+	if mode == "and" {
+		condition = fmt.Sprintf(`
+		NOT EXISTS (
+ 			SELECT 1
+			FROM unnest($%d::int[]) req(val)
+			WHERE req.val NOT IN (
+ 				SELECT (elem->>%d)::int
+				FROM jsonb_array_elements(%s) elem
+			)
+		)`,
+			argIndex, jsonIndex, jsonbColumn)
+	} else if mode == "or" {
+		condition = fmt.Sprintf(
+			`EXISTS (
+				SELECT 1 FROM jsonb_array_elements(%s) AS t(elem)
+				WHERE (elem->>%d)::int = ANY($%d)
+			)`,
+			jsonbColumn, jsonIndex, argIndex)
+	}
+
 	*conditions = append(*conditions, condition)
 
 	*args = append(*args, ids)
