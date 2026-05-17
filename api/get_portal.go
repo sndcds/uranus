@@ -32,6 +32,7 @@ func (h *ApiHandler) GetPortal(gc *gin.Context) {
 		Footer              json.RawMessage `json:"footer"`
 		WebLogoUuid         *string         `json:"web_logo_uuid"`
 		BackgroundImageUuid *string         `json:"background_image_uuid"`
+		FooterLogoUuid      *string         `json:"footer_logo_uuid"`
 	}
 
 	err := h.DbPool.QueryRow(
@@ -51,6 +52,7 @@ func (h *ApiHandler) GetPortal(gc *gin.Context) {
 		&portal.Footer,
 		&portal.WebLogoUuid,
 		&portal.BackgroundImageUuid,
+		&portal.FooterLogoUuid,
 	)
 	if err != nil {
 		debugf(err.Error())
