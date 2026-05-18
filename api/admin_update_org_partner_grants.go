@@ -13,6 +13,8 @@ func (h *ApiHandler) AdminUpdateOrgPartnerGrants(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-update-org-partner-list")
 	ctx := gc.Request.Context()
 
+	// TODO: Check permissions: canEditPartnerRights
+
 	orgUuid := gc.Param("orgUuid")
 	if orgUuid == "" {
 		apiRequest.Required("orgUuid is required")

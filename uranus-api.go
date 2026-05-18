@@ -216,7 +216,7 @@ func main() {
 	adminRoute.POST("/org/:orgUuid/partner/:partnerUuid/grants", apiHandler.AdminUpdateOrgPartnerGrants)
 	adminRoute.POST("/org/:orgUuid/partner/request", apiHandler.AdminInsertOrgPartnerRequest)
 	adminRoute.POST("/org/:orgUuid/partner/request/:partnerUuid/accept", apiHandler.AdminInsertOrgPartnerAccept)
-	adminRoute.POST("/org/:orgUuid/partner/request/:partnerUuid/reject", apiHandler.AdminInsertOrgPartnerReject)
+	adminRoute.POST("/org/:orgUuid/partner/request/:partnerUuid/reject", apiHandler.AdminOrgPartnerReject)
 
 	// Venue
 	adminRoute.GET("/venue/:venueUuid", apiHandler.AdminGetVenue)

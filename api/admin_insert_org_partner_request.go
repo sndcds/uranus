@@ -18,6 +18,8 @@ func (h *ApiHandler) AdminInsertOrgPartnerRequest(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 
+	// TODO: Permission canRequestPartner beachten
+
 	fromOrgUuid := gc.Param("orgUuid")
 	if fromOrgUuid == "" {
 		apiRequest.Required("missing or invalid orgUuid")
@@ -132,6 +134,8 @@ func (h *ApiHandler) AdminInsertOrgPartnerAccept(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-insert-org-partner-request")
 	ctx := gc.Request.Context()
 
+	// TODO: Permission canAnswerPartnerRequests beachten
+
 	orgUuid := gc.Param("orgUuid")
 	if orgUuid == "" {
 		apiRequest.Required("missing or invalid orgUuid")
@@ -204,9 +208,11 @@ func (h *ApiHandler) AdminInsertOrgPartnerAccept(gc *gin.Context) {
 	apiRequest.SuccessNoData(http.StatusOK, "OK")
 }
 
-func (h *ApiHandler) AdminInsertOrgPartnerReject(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "admin-insert-org-partner-request")
-	// ctx := gc.Request.Context()
+func (h *ApiHandler) AdminOrgPartnerReject(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "admin-org-partner-reject")
+	ctx := gc.Request.Context()
+
+	// TODO: Permission canDeletePartnership beachten
 
 	orgUuid := gc.Param("orgUuid")
 	if orgUuid == "" {
@@ -221,6 +227,19 @@ func (h *ApiHandler) AdminInsertOrgPartnerReject(gc *gin.Context) {
 		return
 	}
 	apiRequest.SetMeta("partner_uuid", partnerUuid)
+
+	query := fmt.Sprintf(`
+		DELETE FROM %s.organization_partner_request
+		WHERE from_org_uuid = $1::uuid
+		AND to_org_uuid = $2::uuid
+		`, h.DbSchema)
+
+	_, err := h.DbPool.Query(ctx, query, partnerUuid, orgUuid)
+	if err != nil {
+		debugf(err.Error())
+		apiRequest.InternalServerError()
+		return
+	}
 
 	apiRequest.SuccessNoData(http.StatusOK, "OK")
 }
