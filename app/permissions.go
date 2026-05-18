@@ -5,7 +5,7 @@ type Permissions uint64
 // TODO: Review code
 
 const (
-	// Organization permissions
+	// Organization
 	UserPermBitEditOrg              = 0
 	UserPermBitDeleteOrg            = 1
 	UserPermBitChooseAsEventOrg     = 2
@@ -14,28 +14,34 @@ const (
 	UserPermBitManagePermissions    = 5
 	UserPermBitManageTeam           = 6
 
-	// Venue permissions
+	// Venue
 	UserPermBitAddVenue    = 8
 	UserPermBitEditVenue   = 9
 	UserPermBitDeleteVenue = 10
 	UserPermBitChooseVenue = 11
 
-	// Space permissions
+	// Space
 	UserPermBitAddSpace    = 16
 	UserPermBitEditSpace   = 17
 	UserPermBitDeleteSpace = 18
 
-	// Event permissions
+	// Event
 	UserPermBitAddEvent          = 24
 	UserPermBitEditEvent         = 25
 	UserPermBitDeleteEvent       = 26
 	UserPermBitReleaseEvent      = 27
 	UserPermBitViewEventInsights = 28
 
-	// Portal permissions
+	// Portal
 	UserPermBitAddPortal    = 32
 	UserPermBitEditPortal   = 33
 	UserPermBitDeletePortal = 34
+
+	// Partner
+	UserPermBitRequestPartner       = 35
+	UserPermBitAnswerPartnerRequest = 36
+	UserPermBitEditPartnerRights    = 37
+	UserPermBitDeletePartnership    = 38
 
 	OrgPermBitChooseVenue    = 0
 	OrgPermBitChoosePartner  = 1
@@ -75,6 +81,12 @@ const (
 	UserPermAddPortal    Permissions = 1 << UserPermBitAddPortal
 	UserPermEditPortal   Permissions = 1 << UserPermBitEditPortal
 	UserPermDeletePortal Permissions = 1 << UserPermBitDeletePortal
+
+	// Partner permissions
+	UserPermRequestPartner       Permissions = 1 << UserPermBitRequestPartner
+	UserPermAnswerPartnerRequest Permissions = 1 << UserPermBitAnswerPartnerRequest
+	UserPermEditPartnerRights    Permissions = 1 << UserPermBitEditPartnerRights
+	UserPermDeletePartnership    Permissions = 1 << UserPermBitDeletePartnership
 
 	UserPermCombinationAdmin = 0b00011111000001110000111101111111
 

@@ -79,6 +79,7 @@ type Uranus struct {
 	SqlAdminGetPermissionList           string
 	SqlQueryUserOrgEventsOverview       string
 	SqlAdminGetUserEventNotifications   string
+	SqlAdminGetUserPartnerNotifications string
 	SqlAdminChoosableOrgs               string
 	SqlAdminChoosableUserEventVenues    string
 	SqlAdminEvent                       string
@@ -302,6 +303,7 @@ func (app *Uranus) PrepareSql() error {
 		{"sql/admin-get-portal.sql", &app.SqlAdminGetPortal, nil},
 
 		{"sql/admin-get-user-event-notifications.sql", &app.SqlAdminGetUserEventNotifications, nil},
+		{"sql/admin-get-user-partner-notifications.sql", &app.SqlAdminGetUserPartnerNotifications, nil},
 
 		{"sql/admin-user-spaces-for-event.sql", &app.SqlAdminSpacesForEvent, nil},
 

@@ -48,7 +48,7 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 		if eventDateUuid == "" {
 			// Insert
 			// Check permissions, we need an 'organizationId' first
-			orgUuid, err := h.GetOrganizationUuidByEvenUuidTx(gc, tx, eventUuid)
+			orgUuid, err := h.GetOrgUuidByEvenUuidTx(gc, tx, eventUuid)
 			if err != nil {
 				return ApiErrInternal("%v", err)
 			}
@@ -56,7 +56,7 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 				return ApiErrInternal("internal organizationId failed")
 			}
 
-			permissions, err := h.GetUserOrganizationPermissionsTx(gc, tx, userUuid, orgUuid)
+			permissions, err := h.GetUserOrgPermissionsTx(gc, tx, userUuid, orgUuid)
 			if err != nil {
 				return ApiErrInternal("%v", err)
 			}

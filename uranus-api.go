@@ -186,7 +186,7 @@ func main() {
 	adminRoute.GET("/user/messages", apiHandler.AdminGetMessages)      // TODO: check!
 	adminRoute.POST("/user/send-message", apiHandler.AdminSendMessage) // TODO: check!
 
-	adminRoute.GET("/user/event/notifications", apiHandler.AdminGetUserEventNotifications)
+	adminRoute.GET("/user/notifications", apiHandler.AdminGetUserNotifications)
 	adminRoute.GET("/user/choosable-orgs", apiHandler.AdminGetChoosableOrgs)                    // TODO: check!
 	adminRoute.GET("/user/choosable-event-venues", apiHandler.AdminGetChoosableUserEventVenues) // TODO: Unused, can be removed!
 

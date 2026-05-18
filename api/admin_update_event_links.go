@@ -38,7 +38,7 @@ func (h *ApiHandler) AdminUpdateEventLinks(gc *gin.Context) {
 	}
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-		permissions, err := h.GetUserEventOrganizerPermissionsTx(gc, tx, userUuid, eventUuid)
+		permissions, err := h.GetUserEventOrgPermissionsTx(gc, tx, userUuid, eventUuid)
 		if err != nil {
 			return TxInternalError(nil)
 		}

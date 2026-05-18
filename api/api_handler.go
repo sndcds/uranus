@@ -36,7 +36,6 @@ func (e *ApiTxError) Error() string {
 }
 
 func TxInternalError(err error) *ApiTxError {
-	// central logging point
 	debugf(err.Error())
 	return &ApiTxError{
 		Code:    http.StatusInternalServerError,

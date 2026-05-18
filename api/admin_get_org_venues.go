@@ -68,7 +68,7 @@ func (h *ApiHandler) AdminGetOrgVenues(gc *gin.Context) {
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 
-		orgPermissions, err = h.GetUserOrganizationPermissionsTx(gc, tx, userUuid, orgUuid)
+		orgPermissions, err = h.GetUserOrgPermissionsTx(gc, tx, userUuid, orgUuid)
 		if err != nil {
 			return ApiErrInternal("%v", err)
 		}

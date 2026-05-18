@@ -447,7 +447,6 @@ func fetchUuids(
 	query string,
 	uuids []string,
 ) ([]string, error) {
-
 	rows, err := tx.Query(ctx, query, uuids)
 	if err != nil {
 		return nil, err

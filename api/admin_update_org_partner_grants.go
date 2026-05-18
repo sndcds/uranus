@@ -10,7 +10,7 @@ import (
 )
 
 func (h *ApiHandler) AdminUpdateOrgPartnerGrants(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "admin-get-org-partner-list")
+	apiRequest := grains_api.NewRequest(gc, "admin-update-org-partner-list")
 	ctx := gc.Request.Context()
 
 	orgUuid := gc.Param("orgUuid")
