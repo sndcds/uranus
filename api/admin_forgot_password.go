@@ -118,7 +118,6 @@ func (h *ApiHandler) ResetPassword(gc *gin.Context) {
 	var expiresAt time.Time
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-
 		query := fmt.Sprintf(`SELECT user_uuid, expires_at FROM %s.password_reset WHERE token = $1`, h.DbSchema)
 		err := tx.QueryRow(
 			ctx,

@@ -26,10 +26,6 @@ func allIdsExist(gc *gin.Context, tx pgx.Tx, table string, ids []int) (bool, err
 		return false, fmt.Errorf("unsupported table for Id check: %s", table)
 	}
 
-	fmt.Println(sql)
-	fmt.Println(ids)
-	fmt.Println(len(ids))
-
 	var allExist bool
 	err := tx.QueryRow(gc, sql, ids, len(ids)).Scan(&allExist)
 	if err != nil {

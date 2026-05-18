@@ -7,14 +7,13 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-// GetUserEventOrganizerPermissionsTx fetches a user's permission for the organizer of an event within a transaction.
-func (h *ApiHandler) GetUserEventOrganizerPermissionsTx(
+// GetUserEventOrgPermissionsTx fetches a user's permission for the organizer of an event within a transaction.
+func (h *ApiHandler) GetUserEventOrgPermissionsTx(
 	gc *gin.Context,
 	tx pgx.Tx,
 	userUuid string,
 	eventUuid string,
 ) (app.Permissions, error) {
-
 	ctx := gc.Request.Context()
 	var permissions pgtype.Int8
 

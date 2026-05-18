@@ -38,7 +38,7 @@ func (h *ApiHandler) AdminCreateVenue(gc *gin.Context) {
 	apiRequest.Metadata["venue_name"] = venueName
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-		txErr := h.CheckAllOrganizationPermissionsTx(
+		txErr := h.CheckAllOrgPermissionsTx(
 			gc, tx, userUuid, payload.OrgUuid,
 			app.UserPermAddVenue)
 		if txErr != nil {

@@ -13,7 +13,7 @@ import (
 // PermissionChecks: Done in PSQL.
 // Verified: 2026-01-12, Roald
 
-func (h *ApiHandler) AdminGetUserEventNotifications(gc *gin.Context) {
+func (h *ApiHandler) AdminGetUserNotifications(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-get-user-event-notifications")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)

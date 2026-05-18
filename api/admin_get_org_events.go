@@ -102,7 +102,7 @@ func (h *ApiHandler) AdminGetOrgEvents(gc *gin.Context) {
 			events = append(events, e)
 		}
 
-		orgPermissions, err = h.GetUserOrganizationPermissionsTx(gc, tx, userUuid, orgUuid)
+		orgPermissions, err = h.GetUserOrgPermissionsTx(gc, tx, userUuid, orgUuid)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,

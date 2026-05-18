@@ -37,7 +37,7 @@ func (h *ApiHandler) AdminCreatePortal(gc *gin.Context) {
 	apiRequest.Metadata["portal_name"] = payload.PortalName
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-		txErr := h.CheckAllOrganizationPermissionsTx(gc, tx, userUuid, payload.OrgUuid, app.UserPermAddPortal)
+		txErr := h.CheckAllOrgPermissionsTx(gc, tx, userUuid, payload.OrgUuid, app.UserPermAddPortal)
 		if txErr != nil {
 			debugf(txErr.Error())
 			return txErr
