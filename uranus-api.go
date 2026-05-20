@@ -263,6 +263,9 @@ func main() {
 	adminRoute.PUT("/portal/:portalUuid/header", apiHandler.AdminUpdatePortalHeader)
 	adminRoute.PUT("/portal/:portalUuid/footer", apiHandler.AdminUpdatePortalFooter)
 
+	// Favorites
+	adminRoute.POST("/favorite-list/create", apiHandler.AdminCreateFavoriteList)
+
 	// Pluto Image
 	adminRoute.POST("/image/:context/:contextUuid/:identifier", apiHandler.AdminUpsertPlutoImage)
 	adminRoute.DELETE("/image/:context/:contextUuid/:identifier", apiHandler.AdminDeletePlutoImage)

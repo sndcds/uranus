@@ -1,7 +1,7 @@
-SELECT jsonb_object_agg(group_id, perms) AS permissions_by_group
+SELECT jsonb_object_agg("group", perms) AS permissions_by_group
 FROM (
     SELECT
-        pb.group_id,
+        pb."group",
         jsonb_agg(
             jsonb_build_object(
                 'label', pl.label,
@@ -11,8 +11,8 @@ FROM (
         ) AS perms
 FROM {{schema}}.permission_bit pb
 JOIN {{schema}}.permission_label pl
-ON pb.group_id = pl.group_id
+ON pb."group" = pl."group"
 AND pb.name = pl.name
 WHERE pl.iso_639_1 = $1
-GROUP BY pb.group_id
+GROUP BY pb."group"
 ) t
