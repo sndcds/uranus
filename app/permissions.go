@@ -43,6 +43,12 @@ const (
 	UserPermBitEditPartnerRights    = 37
 	UserPermBitDeletePartnership    = 38
 
+	// FavoriteList
+	UserPermBitAddFavoriteList    = 39
+	UserPermBitEditFavoriteList   = 40
+	UserPermBitDeleteFavoriteList = 41
+	UserPermBitAddToFavoriteList  = 42
+
 	OrgPermBitChooseVenue    = 0
 	OrgPermBitChoosePartner  = 1
 	OrgPermBitChoosePromoter = 2
@@ -88,7 +94,13 @@ const (
 	UserPermEditPartnerRights    Permissions = 1 << UserPermBitEditPartnerRights
 	UserPermDeletePartnership    Permissions = 1 << UserPermBitDeletePartnership
 
-	UserPermCombinationAdmin = 0b00011111000001110000111101111111
+	// FavoriteList permissions
+	UserPermAddFavoriteList    Permissions = 1 << UserPermBitAddFavoriteList
+	UserPermEditFavoriteList   Permissions = 1 << UserPermBitEditFavoriteList
+	UserPermDeleteFavoriteList Permissions = 1 << UserPermBitDeleteFavoriteList
+	UserPermAddToFavoriteList  Permissions = 1 << UserPermBitAddToFavoriteList
+
+	UserPermCombinationAdmin = 0b1111111111100011111000001110000111101111111
 
 	OrgPermChooseVenue    Permissions = 1 << OrgPermBitChooseVenue
 	OrgPermChoosePartner  Permissions = 1 << OrgPermBitChoosePartner

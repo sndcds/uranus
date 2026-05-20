@@ -22,10 +22,10 @@ func (h *ApiHandler) AdminGetOrgPartnerGrants(gc *gin.Context) {
 	}
 
 	type Response struct {
-		CanRequestPartner        bool                       `json:"can_request_partner"`
-		CanAnswerPartnerRequests bool                       `json:"can_answer_partner_requests"`
-		CanEditPartnerRights     bool                       `json:"can_edit_partner_rights"`
-		CanDeletePartnership     bool                       `json:"can_delete_partnership"`
+		CanRequestPartner        bool                       `json:"request_partner"`
+		CanAnswerPartnerRequests bool                       `json:"answer_partner_requests"`
+		CanEditPartnerRights     bool                       `json:"edit_partner_rights"`
+		CanDeletePartnership     bool                       `json:"delete_partnership"`
 		Partners                 []model.OrgPartnerListItem `json:"partner_grants"`
 	}
 	var result Response
