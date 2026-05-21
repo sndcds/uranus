@@ -76,6 +76,7 @@ type Uranus struct {
 	SqlAdminGetOrgMembers                      string
 	SqlAdminInsertOrgPartnerRequest            string
 	SqlAdminChoosableVenues                    string
+	SqlAdminGetFavoriteLists                   string
 	SqlGetSystemEmailTemplate                  string
 	SqlAdminGetPermissionList                  string
 	SqlQueryUserOrgEventsOverview              string
@@ -322,6 +323,8 @@ func (app *Uranus) PrepareSql() error {
 
 		{"sql/admin-insert-org-partner-request.sql", &app.SqlAdminInsertOrgPartnerRequest, nil},
 		{"sql/admin-chooseable-venues.sql", &app.SqlAdminChoosableVenues, nil},
+
+		{"sql/admin-get-favorite-lists.sql", &app.SqlAdminGetFavoriteLists, nil},
 
 		{"sql/admin-get-org-member-link.sql", &app.SqlAdminGetOrgMemberLink, nil},
 		{"sql/admin-get-org-members.sql", &app.SqlAdminGetOrgMembers, nil},

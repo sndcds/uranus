@@ -46,10 +46,10 @@ func (h *ApiHandler) AdminCreateFavoriteList(gc *gin.Context) {
 		favoriteListUuid, err := grains_uuid.Uuidv7String()
 		apiRequest.Metadata["favorite_list_uuid"] = favoriteListUuid
 		query := fmt.Sprintf(`
-			INSERT INTO %s.favorite_list (uuid, org_uuid, name)
-			VALUES ($1::uuid, $2::uuid, $3)`,
+			INSERT INTO %s.favorite_list (uuid, org_uuid, created_by, name)
+			VALUES ($1::uuid, $2::uuid, $3::uuid, $4)`,
 			h.DbSchema)
-		_, err = tx.Exec(ctx, query, favoriteListUuid, payload.OrgUuid, favoriteListName)
+		_, err = tx.Exec(ctx, query, favoriteListUuid, payload.OrgUuid, userUuid, favoriteListName)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,

@@ -265,7 +265,10 @@ func main() {
 	adminRoute.PUT("/portal/:portalUuid/footer", apiHandler.AdminUpdatePortalFooter)
 
 	// Favorites
+	adminRoute.GET("/org/:orgUuid/favorite-lists", apiHandler.AdminGetFavoriteLists)
 	adminRoute.POST("/favorite-list/create", apiHandler.AdminCreateFavoriteList)
+	adminRoute.POST("/favorite-list/toggle-event-date", apiHandler.AdminToggleFavoriteEventDate)
+	adminRoute.POST("/favorite-list/check-event-date", apiHandler.AdminCheckFavoriteListEventDate)
 
 	// Pluto Image
 	adminRoute.POST("/image/:context/:contextUuid/:identifier", apiHandler.AdminUpsertPlutoImage)
