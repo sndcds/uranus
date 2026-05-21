@@ -14,5 +14,6 @@ FROM {{schema}}.portal p
 JOIN {{schema}}.user_organization_link uol
     ON uol.org_uuid = p.org_uuid
     AND uol.user_uuid = $2::uuid
+    AND (uol.permissions & 0x200000000) <> 0
 
 WHERE p.uuid = $1::uuid
