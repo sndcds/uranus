@@ -7,9 +7,22 @@ WITH event_dates AS (
 resolved_events AS (
     SELECT
         ed.uuid AS event_date_uuid,
-        COALESCE(ed.space_uuid, e.space_uuid) AS space_uuid
+        s.uuid AS space_uuid,
+        s.venue_uuid AS venue_uuid
     FROM event_dates ed
-    LEFT JOIN {{schema}}.event e ON e.uuid = ed.event_uuid
+        LEFT JOIN {{schema}}.event e ON e.uuid = ed.event_uuid
+        LEFT JOIN {{schema}}.space s ON s.uuid = COALESCE(ed.space_uuid, e.space_uuid)
+
+    UNION ALL
+
+    SELECT
+        ed.uuid AS event_date_uuid,
+        NULL::uuid AS space_uuid,
+        e.venue_uuid AS venue_uuid
+    FROM event_dates ed
+        JOIN {{schema}}.event e ON e.uuid = ed.event_uuid
+    WHERE e.venue_uuid IS NOT NULL
+        AND ed.space_uuid IS NULL
 ),
 
 space_event_counts AS (
