@@ -211,6 +211,7 @@ func main() {
 	adminRoute.GET("/org/:orgUuid/choosable-venues", apiHandler.AdminGetOrgChoosableVenues)
 
 	// Partner
+	adminRoute.GET("/org/:orgUuid/partnership-connections", apiHandler.AdminOrgPartnershipConnections)
 	adminRoute.GET("/org/partnership-connections-by-user", apiHandler.AdminOrgPartnershipConnectionsByUser)
 	adminRoute.GET("/org/:orgUuid/partner/grants", apiHandler.AdminGetOrgPartnerGrants)
 	adminRoute.GET("/org/:orgUuid/partner/requests", apiHandler.AdminGetOrgPartnerRequest)

@@ -8,15 +8,27 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-func (h *ApiHandler) AdminOrgPartnershipConnectionsByUser(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "admin-get-org-partnership-connections-by-user")
+func (h *ApiHandler) AdminOrgPartnershipConnections(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "admin-get-org-partnership-connections")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 
-	query := app.UranusInstance.SqlAdminGetOrgPartnershipConnectionsByUser
+	orgUuid := gc.Param("orgUuid")
+	if orgUuid == "" {
+		apiRequest.Required("orgUuid is required")
+		return
+	}
 
-	rows, err := h.DbPool.Query(ctx, query, userUuid)
+	query := app.UranusInstance.SqlAdminGetOrgPartnershipConnections
+
+	requiredMask :=
+		app.UserPermAnswerPartnerRequest |
+			app.UserPermEditPartnerRights |
+			app.UserPermDeletePartnership
+
+	rows, err := h.DbPool.Query(ctx, query, orgUuid, userUuid, requiredMask)
 	if err != nil {
+		debugf(err.Error())
 		apiRequest.InternalServerError()
 		return
 	}
@@ -64,6 +76,7 @@ func (h *ApiHandler) AdminOrgPartnershipConnectionsByUser(gc *gin.Context) {
 			&g.SrcAccess,
 			&g.DstAccess,
 		); err != nil {
+			debugf(err.Error())
 			apiRequest.InternalServerError()
 			return
 		}
