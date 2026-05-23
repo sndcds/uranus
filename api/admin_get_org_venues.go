@@ -93,6 +93,7 @@ func (h *ApiHandler) AdminGetOrgVenues(gc *gin.Context) {
 			err := rows.Scan(
 				&venue.VenueUuid,
 				&venue.VenueName,
+				&venue.EventCount,
 				&venue.MainLogoUuid,
 				&venue.DarkThemeLogoUuid,
 				&venue.LightThemeLogoUuid,
@@ -121,7 +122,7 @@ func (h *ApiHandler) AdminGetOrgVenues(gc *gin.Context) {
 			for i := range venue.Spaces {
 				venue.Spaces[i].CanEditSpace = venuePermissions.Has(app.UserPermEditSpace)
 				venue.Spaces[i].CanDeleteSpace = venuePermissions.Has(app.UserPermDeleteSpace)
-				venue.EventCount += venue.Spaces[i].EventCount
+				// venue.EventCount += venue.Spaces[i].EventCount
 			}
 
 			venues = append(venues, venue)
