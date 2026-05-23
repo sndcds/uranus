@@ -62,6 +62,8 @@ func (h *ApiHandler) GetVenue(gc *gin.Context) {
 		Lat                  *float64            `json:"lat,omitempty"`
 		AccessibilityFlags   *string             `json:"accessibility_flags,omitempty"`
 		AccessibilitySummary *string             `json:"accessibility_summary,omitempty"`
+		MainPhotoUuid        *string             `json:"main_photo_uuid,omitempty"`
+		MainPhotoUrl         *string             `json:"main_photo_url,omitempty"`
 		Organization         *OrganizationResult `json:"organization,omitempty"`
 		Spaces               []SpaceResult       `json:"spaces,omitempty"`
 	}
@@ -109,6 +111,7 @@ func (h *ApiHandler) GetVenue(gc *gin.Context) {
 		&venue.Lat,
 		&venue.AccessibilityFlags,
 		&venue.AccessibilitySummary,
+		&venue.MainPhotoUuid,
 		&org.Uuid,
 		&org.Name,
 		&org.WebLink,
@@ -126,6 +129,11 @@ func (h *ApiHandler) GetVenue(gc *gin.Context) {
 	// Assign organization if any fields are non-nil
 	if org.Name != nil || org.WebLink != nil || org.City != nil || org.Country != nil {
 		venue.Organization = &org
+	}
+
+	if venue.MainPhotoUuid != nil {
+		url := ImageUrl(*venue.MainPhotoUuid)
+		venue.MainPhotoUrl = &url
 	}
 
 	// Decode spaces JSON into structs

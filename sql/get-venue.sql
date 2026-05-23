@@ -23,8 +23,9 @@ SELECT
     ST_Y(v.point) AS lat,
     v.accessibility_flags,
     v.accessibility_summary,
-    v.org_uuid,
+    pil_main_photo.pluto_image_uuid AS main_photo_uuid,
 
+    v.org_uuid,
     o.name AS org_name,
     o.web_link AS org_web_link,
     o.city AS org_city,
@@ -63,9 +64,15 @@ LEFT JOIN {{schema}}.space_type_i18n sti
 ON sti.key = st.key
 AND sti.iso_639_1 = $2
 
+LEFT JOIN {{schema}}.pluto_image_link pil_main_photo
+    ON context = 'venue'
+    AND context_uuid = v.uuid
+    AND identifier = 'main_photo'
+
 WHERE v.uuid = $1::uuid
 GROUP BY
     v.uuid,
     o.uuid,
     vti.name,
-    vti.description
+    vti.description,
+    pil_main_photo.pluto_image_uuid
