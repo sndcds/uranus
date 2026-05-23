@@ -1,7 +1,15 @@
 WITH event_dates AS (
-    SELECT *
-    FROM {{schema}}.event_date
-    WHERE start_date >= $3
+    SELECT ed.*
+    FROM {{schema}}.event_date ed
+    JOIN {{schema}}.event e
+        ON e.uuid = ed.event_uuid
+    WHERE ed.start_date >= $3
+        AND e.release_status IN (
+            'released',
+            'rescheduled',
+            'deferred',
+            'cancelled'
+        )
 ),
 
 resolved_events AS (
