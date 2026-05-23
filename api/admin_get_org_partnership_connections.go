@@ -9,7 +9,7 @@ import (
 )
 
 func (h *ApiHandler) AdminOrgPartnershipConnections(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "admin-get-org-partnership-connections-by-user")
+	apiRequest := grains_api.NewRequest(gc, "admin-get-org-partnership-connections")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 
