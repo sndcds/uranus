@@ -36,6 +36,15 @@ space_event_counts AS (
     GROUP BY s.uuid, s.venue_uuid, s.name
 ),
 
+venue_event_counts AS (
+    SELECT
+        re.venue_uuid,
+        COUNT(re.event_date_uuid) AS event_count
+    FROM resolved_events re
+    WHERE re.venue_uuid IS NOT NULL
+    GROUP BY re.venue_uuid
+),
+
 venue_spaces AS (
     SELECT
         sec.venue_uuid,
@@ -75,15 +84,16 @@ permissions AS (
             0
         ) AS permissions
     FROM {{schema}}.venue v
-    JOIN {{schema}}.organization o ON o.uuid = v.org_uuid
+    JOIN {{schema}}.organization o
+        ON o.uuid = v.org_uuid
 
     LEFT JOIN {{schema}}.user_organization_link uol
-    ON uol.org_uuid = o.uuid
-    AND uol.user_uuid = $2::uuid
+        ON uol.org_uuid = o.uuid
+        AND uol.user_uuid = $2::uuid
 
     LEFT JOIN {{schema}}.user_venue_link uvl
-    ON uvl.venue_uuid = v.uuid
-    AND uvl.user_uuid = $2::uuid
+        ON uvl.venue_uuid = v.uuid
+        AND uvl.user_uuid = $2::uuid
 
     GROUP BY v.uuid
 )
@@ -91,6 +101,7 @@ permissions AS (
 SELECT
     v.uuid AS venue_uuid,
     v.name AS venue_name,
+    COALESCE(vec.event_count, 0) AS event_count,
 
     vi.main_logo_uuid,
     vi.dark_theme_logo_uuid,
@@ -104,25 +115,10 @@ SELECT
     p.permissions
 
 FROM {{schema}}.organization o
-JOIN {{schema}}.venue v
-ON v.org_uuid = o.uuid
-
-LEFT JOIN venue_images vi
-ON vi.venue_uuid = v.uuid
-
-LEFT JOIN venue_spaces vs
-ON vs.venue_uuid = v.uuid
-
-LEFT JOIN permissions p
-ON p.venue_uuid = v.uuid
+JOIN {{schema}}.venue v ON v.org_uuid = o.uuid
+LEFT JOIN venue_images vi ON vi.venue_uuid = v.uuid
+LEFT JOIN venue_spaces vs ON vs.venue_uuid = v.uuid
+LEFT JOIN venue_event_counts vec ON vec.venue_uuid = v.uuid
+LEFT JOIN permissions p ON p.venue_uuid = v.uuid
 
 WHERE o.uuid = $1::uuid
-
-GROUP BY
-    v.uuid,
-    v.name,
-    vi.main_logo_uuid,
-    vi.dark_theme_logo_uuid,
-    vi.light_theme_logo_uuid,
-    vs.spaces,
-    p.permissions
