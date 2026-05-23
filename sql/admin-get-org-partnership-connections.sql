@@ -26,12 +26,3 @@ FROM uranus.organization_access_grants a
     JOIN uranus.organization dsto ON dsto.uuid = a.dst_org_uuid
 
 WHERE (a.src_org_uuid = $1::uuid OR a.dst_org_uuid = $1::uuid)
-    AND (
-        EXISTS (
-            SELECT 1
-            FROM uranus.user_organization_link uo
-            WHERE uo.user_uuid = $2::uuid
-                AND uo.org_uuid IN (a.src_org_uuid, a.dst_org_uuid)
-                AND (uo.permissions & $3::bigint) <> 0
-        )
-    )
