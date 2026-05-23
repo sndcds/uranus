@@ -68,6 +68,7 @@ type Uranus struct {
 	SqlAdminGetOrgList                         string
 	SqlAdminGetOrgPartnerList                  string
 	SqlAdminGetOrgPartnerRequests              string
+	SqlAdminGetOrgPartnershipConnections       string
 	SqlAdminGetOrgPartnershipConnectionsByUser string
 	SqlAdminGetOrgVenues                       string
 	SqlAdminGetOrgPortals                      string
@@ -315,6 +316,7 @@ func (app *Uranus) PrepareSql() error {
 		{"sql/admin-get-org-list.sql", &app.SqlAdminGetOrgList, nil},
 		{"sql/admin-get-org-partner-list.sql", &app.SqlAdminGetOrgPartnerList, nil},
 		{"sql/admin-get-org-partner-requests.sql", &app.SqlAdminGetOrgPartnerRequests, nil},
+		{"sql/admin-get-org-partnership-connections.sql", &app.SqlAdminGetOrgPartnershipConnections, nil},
 		{"sql/admin-get-org-partnership-connections-by-user.sql", &app.SqlAdminGetOrgPartnershipConnectionsByUser, nil},
 
 		{"sql/admin-get-org-events.sql", &app.SqlAdminGetOrgEvents, nil},
