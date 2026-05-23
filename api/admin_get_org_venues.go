@@ -63,6 +63,8 @@ func (h *ApiHandler) AdminGetOrgVenues(gc *gin.Context) {
 		startDate = time.Now() // fallback if param missing
 	}
 
+	debugf("... startDate: %s", startDate)
+
 	var venues []VenueInfo
 	var orgPermissions app.Permissions
 
@@ -122,7 +124,6 @@ func (h *ApiHandler) AdminGetOrgVenues(gc *gin.Context) {
 			for i := range venue.Spaces {
 				venue.Spaces[i].CanEditSpace = venuePermissions.Has(app.UserPermEditSpace)
 				venue.Spaces[i].CanDeleteSpace = venuePermissions.Has(app.UserPermDeleteSpace)
-				// venue.EventCount += venue.Spaces[i].EventCount
 			}
 
 			venues = append(venues, venue)
