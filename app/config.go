@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
@@ -44,31 +45,15 @@ type Config struct {
 }
 
 func (config Config) Print() {
-	fmt.Println("app Config")
-	fmt.Printf("  verbose: %t\n", config.Verbose)
-	fmt.Printf("  dev_mode: %t\n", config.DevMode)
-	fmt.Printf("  debug_level: %d\n", config.DebugLevel)
-	fmt.Printf("  port: %d\n", config.Port)
-	fmt.Printf("  supported_languages: %v\n", config.SupportedLanguages)
-	fmt.Printf("  base_api_url: %s\n", config.BaseApiUrl)
-	fmt.Printf("  ics_domain: %s\n", config.IcsDomain)
-	fmt.Printf("  use_router_middleware: %t\n", config.UseRouterMiddleware)
-	fmt.Printf("  db_host: %s\n", config.DbHost)
-	fmt.Printf("  db_port: %d\n", config.DbPort)
-	fmt.Printf("  db_user: %s\n", config.DbUser)
-	fmt.Printf("  db_name: %s\n", config.DbName)
-	fmt.Printf("  db_schema: %s\n", config.DbSchema)
-	fmt.Printf("  ssl_mode: %s\n", config.SSLMode)
-	fmt.Printf("  allow_origins: %v\n", config.AllowOrigins)
-	fmt.Printf("  pluto_verbose: %t\n", config.PlutoVerbose)
-	fmt.Printf("  pluto_image_dir: %s\n", config.PlutoImageDir)
-	fmt.Printf("  pluto_cache_dir: %s\n", config.PlutoCacheDir)
-	if config.JwtSecret != "" {
-		fmt.Printf("  jwt_secret: [REDACTED] (%d bytes)\n", len(config.JwtSecret))
-	} else {
-		fmt.Printf("  jwt_secret: Doesn't exist\n")
+	fmt.Println("Uranus Config")
+
+	b, err := json.MarshalIndent(config, "  ", "  ")
+	if err != nil {
+		fmt.Println("  Error printing config:", err)
+		return
 	}
-	fmt.Printf("  auth_token_expiration_time: %d seconds\n", config.AuthTokenExpirationTime)
+
+	fmt.Println(string(b))
 }
 
 func DefaultConfig() Config {
