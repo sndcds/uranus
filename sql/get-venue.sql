@@ -23,7 +23,10 @@ SELECT
     ST_Y(v.point) AS lat,
     v.accessibility_flags,
     v.accessibility_summary,
-    pil_main_photo.pluto_image_uuid AS main_photo_uuid,
+    pil1.pluto_image_uuid AS logo_uuid,
+    pil2.pluto_image_uuid AS dark_theme_logo_uuid,
+    pil3.pluto_image_uuid AS light_theme_logo_uuid,
+    pil4.pluto_image_uuid AS main_photo_uuid,
 
     v.org_uuid,
     o.name AS org_name,
@@ -64,10 +67,25 @@ LEFT JOIN {{schema}}.space_type_i18n sti
 ON sti.key = st.key
 AND sti.iso_639_1 = $2
 
-LEFT JOIN {{schema}}.pluto_image_link pil_main_photo
-    ON context = 'venue'
-    AND context_uuid = v.uuid
-    AND identifier = 'main_photo'
+LEFT JOIN {{schema}}.pluto_image_link pil1
+    ON pil1.context = 'venue'
+    AND pil1.context_uuid = v.uuid
+    AND pil1.identifier = 'main_logo'
+
+LEFT JOIN {{schema}}.pluto_image_link pil2
+    ON pil2.context = 'venue'
+    AND pil2.context_uuid = v.uuid
+    AND pil2.identifier = 'dark_theme_logo'
+
+LEFT JOIN {{schema}}.pluto_image_link pil3
+    ON pil3.context = 'venue'
+    AND pil3.context_uuid = v.uuid
+    AND pil3.identifier = 'light_theme_logo'
+
+LEFT JOIN {{schema}}.pluto_image_link pil4
+    ON pil4.context = 'venue'
+    AND pil4.context_uuid = v.uuid
+    AND pil4.identifier = 'main_photo'
 
 WHERE v.uuid = $1::uuid
 GROUP BY
@@ -75,4 +93,7 @@ GROUP BY
     o.uuid,
     vti.name,
     vti.description,
-    pil_main_photo.pluto_image_uuid
+    pil1.pluto_image_uuid,
+    pil2.pluto_image_uuid,
+    pil3.pluto_image_uuid,
+    pil4.pluto_image_uuid

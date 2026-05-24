@@ -43,6 +43,7 @@ func (h *ApiHandler) AdminGetOrgMemberPermissions(gc *gin.Context) {
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		txErr := h.CheckOrgPermissionTx(gc, tx, userUuid, orgUuid, app.UserPermManagePermissions)
+		debugf("txErr: %v", txErr)
 		if txErr != nil {
 			return txErr
 		}
@@ -88,8 +89,7 @@ func (h *ApiHandler) AdminGetOrgMemberPermissions(gc *gin.Context) {
 		return nil
 	})
 	if txErr != nil {
-		debugf(txErr.Error())
-		apiRequest.InternalServerError()
+		apiRequest.Error(txErr.Code, "")
 		return
 	}
 

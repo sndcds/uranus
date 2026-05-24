@@ -18,26 +18,25 @@ func (h *ApiHandler) AdminGetOrgTeam(gc *gin.Context) {
 
 	orgUuid := gc.Param("orgUuid")
 	if orgUuid == "" {
-		apiRequest.Error(http.StatusBadRequest, "invalid orgUuid")
+		apiRequest.Error(http.StatusBadRequest, "orgUuid is required")
 		return
 	}
 
 	members := []model.OrgMember{}
 	invitedMembers := []model.InvitedOrgMember{}
+	var canManagePermissions bool
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-		txErr := h.CheckOrgPermissionTx(gc, tx, userUuid, orgUuid, app.UserPermManageTeam)
-		if txErr != nil {
-			return txErr
+		permissions, err := h.GetUserOrgPermissionsTx(gc, tx, userUuid, orgUuid)
+		if !permissions.Has(app.UserPermManageTeam) {
+			return ApiErrForbidden("Insufficient permissions")
 		}
 
-		// Fetch members
+		canManagePermissions = permissions.Has(app.UserPermManagePermissions)
+
 		memberRows, err := tx.Query(ctx, app.UranusInstance.SqlAdminGetOrgMembers, orgUuid)
 		if err != nil {
-			return &ApiTxError{
-				Code: http.StatusInternalServerError,
-				Err:  fmt.Errorf("Transaction failed: %s", err.Error()),
-			}
+			return ApiErrInternal(err.Error())
 		}
 		defer memberRows.Close()
 
@@ -52,10 +51,7 @@ func (h *ApiHandler) AdminGetOrgTeam(gc *gin.Context) {
 				&m.JoinedAt,
 			)
 			if err != nil {
-				return &ApiTxError{
-					Code: http.StatusInternalServerError,
-					Err:  fmt.Errorf("Transaction failed: %s", err.Error()),
-				}
+				return ApiErrInternal(err.Error())
 			}
 
 			m.AvatarUrl = h.getAvatarURL(m.UserUuid)
@@ -77,10 +73,7 @@ func (h *ApiHandler) AdminGetOrgTeam(gc *gin.Context) {
 
 		rows, err := tx.Query(ctx, invitedMemberQuery, orgUuid)
 		if err != nil {
-			return &ApiTxError{
-				Code: http.StatusInternalServerError,
-				Err:  fmt.Errorf("failed to fetch invited members: %s", err.Error()),
-			}
+			return ApiErrInternal(err.Error())
 		}
 		defer rows.Close()
 
@@ -88,10 +81,7 @@ func (h *ApiHandler) AdminGetOrgTeam(gc *gin.Context) {
 			var m model.InvitedOrgMember
 			err = rows.Scan(&m.UserUuid, &m.InvitedBy, &m.InvitedAt, &m.Email, &m.DisplayName)
 			if err != nil {
-				return &ApiTxError{
-					Code: http.StatusInternalServerError,
-					Err:  fmt.Errorf("failed to scan invited members: %s", err.Error()),
-				}
+				return ApiErrInternal(err.Error())
 			}
 
 			m.AvatarUrl = h.getAvatarURL(m.UserUuid)
@@ -106,8 +96,9 @@ func (h *ApiHandler) AdminGetOrgTeam(gc *gin.Context) {
 	}
 
 	result := gin.H{
-		"members":     members,
-		"invitations": invitedMembers,
+		"members":                members,
+		"invitations":            invitedMembers,
+		"can_manage_permissions": canManagePermissions,
 	}
 
 	apiRequest.Success(http.StatusOK, result, "")
