@@ -62,7 +62,9 @@ func (h *ApiHandler) GetVenue(gc *gin.Context) {
 		Lat                  *float64            `json:"lat,omitempty"`
 		AccessibilityFlags   *string             `json:"accessibility_flags,omitempty"`
 		AccessibilitySummary *string             `json:"accessibility_summary,omitempty"`
-		MainPhotoUuid        *string             `json:"main_photo_uuid,omitempty"`
+		LogoUrl              *string             `json:"logo_url,omitempty"`
+		LightThemeLogoUrl    *string             `json:"light_theme_logo_url,omitempty"`
+		DarkThemeLogoUrl     *string             `json:"dark_theme_logo_url,omitempty"`
 		MainPhotoUrl         *string             `json:"main_photo_url,omitempty"`
 		Organization         *OrganizationResult `json:"organization,omitempty"`
 		Spaces               []SpaceResult       `json:"spaces,omitempty"`
@@ -85,6 +87,11 @@ func (h *ApiHandler) GetVenue(gc *gin.Context) {
 	var venue VenueResult
 	var org OrganizationResult
 	var spacesJSON []byte
+
+	var logoUuid *string
+	var darkThemeLogoUuid *string
+	var lightThemeLogoUuid *string
+	var mainPhotoUuid *string
 
 	err := row.Scan(
 		&venue.Uuid,
@@ -111,7 +118,10 @@ func (h *ApiHandler) GetVenue(gc *gin.Context) {
 		&venue.Lat,
 		&venue.AccessibilityFlags,
 		&venue.AccessibilitySummary,
-		&venue.MainPhotoUuid,
+		&logoUuid,
+		&darkThemeLogoUuid,
+		&lightThemeLogoUuid,
+		&mainPhotoUuid,
 		&org.Uuid,
 		&org.Name,
 		&org.WebLink,
@@ -131,10 +141,10 @@ func (h *ApiHandler) GetVenue(gc *gin.Context) {
 		venue.Organization = &org
 	}
 
-	if venue.MainPhotoUuid != nil {
-		url := ImageUrl(*venue.MainPhotoUuid)
-		venue.MainPhotoUrl = &url
-	}
+	venue.LogoUrl = imageURL(logoUuid)
+	venue.DarkThemeLogoUrl = imageURL(darkThemeLogoUuid)
+	venue.LightThemeLogoUrl = imageURL(lightThemeLogoUuid)
+	venue.MainPhotoUrl = imageURL(mainPhotoUuid)
 
 	// Decode spaces JSON into structs
 	if len(spacesJSON) > 0 {
@@ -146,4 +156,13 @@ func (h *ApiHandler) GetVenue(gc *gin.Context) {
 	}
 
 	apiRequest.Success(http.StatusOK, venue, "")
+}
+
+func imageURL(uuid *string) *string {
+	if uuid == nil {
+		return nil
+	}
+
+	url := ImageUrl(*uuid)
+	return &url
 }
