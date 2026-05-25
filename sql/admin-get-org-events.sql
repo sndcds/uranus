@@ -2,6 +2,7 @@ WITH event_data AS (
     SELECT
         ed.uuid AS event_date_uuid,
         ed.event_uuid,
+        ed.release_status,
         ed.venue_uuid,
         ed.space_uuid,
         ed.start_date,
@@ -28,7 +29,11 @@ base AS (
         TO_CHAR(edt.end_date, 'YYYY-MM-DD') AS end_date,
         TO_CHAR(edt.end_time, 'HH24:MI') AS end_time,
 
-        e.release_status,
+        COALESCE(
+            NULLIF(edt.release_status, 'inherited'),
+            e.release_status
+        ) AS release_status,
+
         TO_CHAR(e.release_date, 'YYYY-MM-DD') AS release_date,
         e.categories,
 
@@ -43,23 +48,23 @@ base AS (
         et_data.event_types,
 
         (   COALESCE((uel.permissions & (1<<25)) <> 0, FALSE)
-            OR COALESCE((uol.permissions & (1<<25)) <> 0, FALSE)
-            OR COALESCE((uvl.permissions & (1<<25)) <> 0, FALSE)
+                OR COALESCE((uol.permissions & (1<<25)) <> 0, FALSE)
+                OR COALESCE((uvl.permissions & (1<<25)) <> 0, FALSE)
         ) AS can_edit_event,
 
         (   COALESCE((uel.permissions & (1<<26)) <> 0, FALSE)
-            OR COALESCE((uol.permissions & (1<<26)) <> 0, FALSE)
-            OR COALESCE((uvl.permissions & (1<<26)) <> 0, FALSE)
+                OR COALESCE((uol.permissions & (1<<26)) <> 0, FALSE)
+                OR COALESCE((uvl.permissions & (1<<26)) <> 0, FALSE)
         ) AS can_delete_event,
 
         (   COALESCE((uel.permissions & (1<<27)) <> 0, FALSE)
-            OR COALESCE((uol.permissions & (1<<27)) <> 0, FALSE)
-            OR COALESCE((uvl.permissions & (1<<27)) <> 0, FALSE)
+                OR COALESCE((uol.permissions & (1<<27)) <> 0, FALSE)
+                OR COALESCE((uvl.permissions & (1<<27)) <> 0, FALSE)
         ) AS can_release_event,
 
         (   COALESCE((uel.permissions & (1<<28)) <> 0, FALSE)
-            OR COALESCE((uol.permissions & (1<<28)) <> 0, FALSE)
-            OR COALESCE((uvl.permissions & (1<<28)) <> 0, FALSE)
+                OR COALESCE((uol.permissions & (1<<28)) <> 0, FALSE)
+                OR COALESCE((uvl.permissions & (1<<28)) <> 0, FALSE)
         ) AS can_view_event_insights,
 
         (online_link IS NOT NULL) AS is_online_event,
@@ -74,12 +79,15 @@ base AS (
         ) AS time_series
 
     FROM {{schema}}.event e
-    LEFT JOIN event_data edt ON edt.event_uuid = e.uuid
-    LEFT JOIN {{schema}}.venue v ON v.uuid = COALESCE(edt.venue_uuid, e.venue_uuid)
-    LEFT JOIN {{schema}}.space s ON s.uuid = (CASE
-        WHEN edt.venue_uuid IS NOT NULL THEN edt.space_uuid
-        ELSE e.space_uuid
-    END)::uuid
+    LEFT JOIN event_data edt
+        ON edt.event_uuid = e.uuid
+    LEFT JOIN {{schema}}.venue v
+        ON v.uuid = COALESCE(edt.venue_uuid, e.venue_uuid)
+    LEFT JOIN {{schema}}.space s
+        ON s.uuid = (CASE
+            WHEN edt.venue_uuid IS NOT NULL THEN edt.space_uuid
+            ELSE e.space_uuid
+        END)::uuid
     LEFT JOIN {{schema}}.organization eo ON eo.uuid = e.org_uuid
 
     LEFT JOIN LATERAL (
@@ -97,25 +105,25 @@ base AS (
             format('{{base_api_url}}/api/image/%s', pil.pluto_image_uuid::text) AS image_url
         FROM {{schema}}.pluto_image_link pil
         WHERE pil.context = 'event'
-        AND pil.context_uuid = e.uuid
-        AND pil.identifier = 'main'
+            AND pil.context_uuid = e.uuid
+            AND pil.identifier = 'main'
         LIMIT 1
     ) main_image_link ON TRUE
 
     LEFT JOIN {{schema}}.user_event_link uel
-    ON uel.event_uuid = e.uuid
-    AND uel.user_uuid = $3::uuid
+        ON uel.event_uuid = e.uuid
+            AND uel.user_uuid = $3::uuid
 
     INNER JOIN {{schema}}.user_organization_link uol
-    ON uol.org_uuid = e.org_uuid
-    AND uol.user_uuid = $3::uuid
+        ON uol.org_uuid = e.org_uuid
+            AND uol.user_uuid = $3::uuid
 
     LEFT JOIN {{schema}}.user_venue_link uvl
-    ON uvl.venue_uuid = e.venue_uuid
-    AND uvl.user_uuid = $3::uuid
+        ON uvl.venue_uuid = e.venue_uuid
+            AND uvl.user_uuid = $3::uuid
 
     WHERE eo.uuid = $1::uuid
-    AND (edt.start_date >= $2::date OR edt.start_date IS NULL)
+        AND (edt.start_date >= $2::date OR edt.start_date IS NULL)
 )
 
 SELECT *

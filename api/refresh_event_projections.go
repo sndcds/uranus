@@ -360,7 +360,7 @@ INSERT INTO %[1]s.event_date_projection (
     space_description,
     start_date, start_time,
     end_date, end_time,
-    entry_time, duration, all_day,
+    entry_time, duration, all_day, release_status,
     ticket_link, availability_status_id,
     accessibility_info, custom, created_at, modified_at
 )
@@ -394,6 +394,7 @@ SELECT DISTINCT ON (ed.uuid)
     ed.entry_time,
     ed.duration,
     ed.all_day,
+    ed.release_status,
     ed.ticket_link,
     ed.availability_status_id,
     ed.accessibility_info,
@@ -432,6 +433,7 @@ ON CONFLICT (event_date_uuid) DO UPDATE SET
     entry_time = EXCLUDED.entry_time,
     duration = EXCLUDED.duration,
     all_day = EXCLUDED.all_day,
+    release_status = EXCLUDED.release_status,
     ticket_link = EXCLUDED.ticket_link,
     availability_status_id = EXCLUDED.availability_status_id,
     accessibility_info = EXCLUDED.accessibility_info,

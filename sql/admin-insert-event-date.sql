@@ -1,6 +1,7 @@
 INSERT INTO {{schema}}.event_date (
     uuid,
     event_uuid,
+    release_status,
     venue_uuid,
     space_uuid,
     start_date,
@@ -11,4 +12,19 @@ INSERT INTO {{schema}}.event_date (
     duration,
     all_day,
     created_by
-) VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5, $6, $7, $8, $9, $10, $11, $12::uuid)
+)
+VALUES (
+    $1::uuid,
+    $2::uuid,
+    $3,
+    $4::uuid,
+    $5::uuid,
+    $6,
+    $7,
+    $8,
+    $9,
+    $10,
+    $11,
+    $12,
+    $13::uuid
+)

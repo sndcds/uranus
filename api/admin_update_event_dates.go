@@ -24,16 +24,17 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 	}
 
 	type datePayload struct {
-		DateUuid  *string `json:"uuid"`
-		VenueUuid *string `json:"venue_uuid"`
-		SpaceUuid *string `json:"space_uuid"`
-		StartDate string  `json:"start_date" binding:"required"`
-		StartTime string  `json:"start_time" binding:"required"`
-		EndDate   *string `json:"end_date"`
-		EndTime   *string `json:"end_time"`
-		EntryTime *string `json:"entry_time"`
-		Duration  *int    `json:"duration"`
-		AllDay    *bool   `json:"all_day"`
+		DateUuid      *string `json:"uuid"`
+		ReleaseStatus *string `json:"release_status" binding:"required"`
+		VenueUuid     *string `json:"venue_uuid"`
+		SpaceUuid     *string `json:"space_uuid"`
+		StartDate     string  `json:"start_date" binding:"required"`
+		StartTime     string  `json:"start_time" binding:"required"`
+		EndDate       *string `json:"end_date"`
+		EndTime       *string `json:"end_time"`
+		EntryTime     *string `json:"entry_time"`
+		Duration      *int    `json:"duration"`
+		AllDay        *bool   `json:"all_day"`
 	}
 
 	// Wrapper struct to match JSON shape
@@ -50,6 +51,11 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 
 	// Validate required fields
 	for i, d := range payload {
+		if payload[i].ReleaseStatus == nil {
+			inherited := "inherited"
+			payload[i].ReleaseStatus = &inherited
+		}
+
 		if strings.TrimSpace(d.StartDate) == "" {
 			apiRequest.Required(fmt.Sprintf("start_date is required (index %d)", i))
 			return
@@ -85,6 +91,7 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 				_, err := tx.Exec(ctx, app.UranusInstance.SqlAdminUpdateEventDate,
 					*d.DateUuid,
 					eventUuid,
+					d.ReleaseStatus,
 					d.VenueUuid,
 					d.SpaceUuid,
 					d.StartDate,
@@ -114,6 +121,7 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 				_, err = tx.Exec(ctx, app.UranusInstance.SqlAdminInsertEventDate,
 					eventDateUuid,
 					eventUuid,
+					d.ReleaseStatus,
 					d.VenueUuid,
 					d.SpaceUuid,
 					d.StartDate,

@@ -394,10 +394,12 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	query = strings.Replace(query, "{{portal_join}}", filters.PortalJoin, 1)
 	query = strings.Replace(query, "{{portal_conditions}}", filters.PortalConditions, 1)
 
-	debugf("query: %s", query)
-	for i, a := range filters.Args {
-		fmt.Printf("args[%d] = %#v\n", i, a)
-	}
+	/*
+		debugf("query: %s", query)
+		for i, a := range filters.Args {
+			fmt.Printf("args[%d] = %#v\n", i, a)
+		}
+	*/
 
 	rows, err := h.DbPool.Query(ctx, query, filters.Args...)
 	if err != nil {

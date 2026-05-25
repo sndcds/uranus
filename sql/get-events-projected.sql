@@ -11,7 +11,13 @@ SELECT
     TO_CHAR(edp.entry_time, 'HH24:MI') AS entry_time,
     edp.duration,
     edp.all_day,
-    ep.release_status,
+
+    CASE
+        WHEN edp.release_status IS NULL OR edp.release_status = 'inherited'
+            THEN ep.release_status
+            ELSE edp.release_status
+        END AS release_status,
+
     edp.ticket_link,
     ep.title,
     ep.subtitle,
