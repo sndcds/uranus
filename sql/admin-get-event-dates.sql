@@ -1,6 +1,7 @@
 SELECT
     ed.uuid AS event_date_uuid,
     ed.event_uuid,
+    ed.release_status,
     TO_CHAR(ed.start_date, 'YYYY-MM-DD') AS start_date,
     TO_CHAR(ed.start_time, 'HH24:MI') AS start_time,
     TO_CHAR(ed.end_date, 'YYYY-MM-DD') AS end_date,

@@ -155,6 +155,7 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 		err := rows.Scan(
 			&date.Uuid,
 			&date.EventUuid,
+			&date.ReleaseStatus,
 			&date.StartDate,
 			&date.StartTime,
 			&date.EndDate,

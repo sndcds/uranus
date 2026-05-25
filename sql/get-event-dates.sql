@@ -6,7 +6,12 @@ WITH target_event AS (
 SELECT
     ed.uuid AS event_date_uuid,
     ed.event_uuid,
-    e.release_status,
+
+    CASE
+        WHEN ed.release_status IS NULL OR ed.release_status = 'inherited'
+            THEN e.release_status
+            ELSE ed.release_status
+        END AS release_status,
 
     TO_CHAR(ed.start_date, 'YYYY-MM-DD') AS start_date,
     TO_CHAR(ed.start_time, 'HH24:MI') AS start_time,

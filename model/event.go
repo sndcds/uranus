@@ -210,6 +210,7 @@ type AdminEvent struct {
 type AdminEventDate struct {
 	Uuid                 string   `json:"uuid"`
 	EventUuid            string   `json:"event_uuid"`
+	ReleaseStatus        *string  `json:"release_status"`
 	StartDate            *string  `json:"start_date,omitempty"`
 	StartTime            *string  `json:"start_time,omitempty"`
 	EndDate              *string  `json:"end_date,omitempty"`
