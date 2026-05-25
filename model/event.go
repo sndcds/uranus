@@ -204,6 +204,7 @@ type AdminEvent struct {
 	Custom               *string          `json:"custom,omitempty"`
 	Style                *string          `json:"style,omitempty"`
 	EventDates           []AdminEventDate `json:"dates,omitempty"`
+	CanRelease           bool             `json:"can_release,omitempty"`
 }
 
 type AdminEventDate struct {

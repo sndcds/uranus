@@ -17,7 +17,7 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 
 	eventUuid := gc.Param("eventUuid")
 	if eventUuid == "" {
-		apiRequest.Required("eventUuid is required")
+		apiRequest.Required("Parameter eventUuid is required")
 		return
 	}
 
@@ -81,11 +81,12 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 		&event.VisitorInfoFlags,
 		&event.Custom,
 		&event.Style,
+		&event.CanRelease,
 	)
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			apiRequest.Error(http.StatusNotFound, "event not found")
+			apiRequest.Error(http.StatusNotFound, "Event not found")
 			return
 		}
 		debugf(err.Error())

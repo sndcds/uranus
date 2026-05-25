@@ -49,23 +49,33 @@ SELECT
     cu.name AS currency_name,
     e.visitor_info_flags,
     e.custom,
-    e.style
+    e.style,
+    (uol.permissions & (1 << 27)) <> 0 AS can_release
+
 FROM {{schema}}.event e
-LEFT JOIN {{schema}}.organization o ON e.org_uuid = o.uuid
-LEFT JOIN {{schema}}.venue v ON v.uuid = e.venue_uuid
-LEFT JOIN {{schema}}.currency cu ON cu.code = e.currency AND cu.iso_639_1 = $2
+
+LEFT JOIN {{schema}}.organization o
+    ON e.org_uuid = o.uuid
+
+LEFT JOIN {{schema}}.venue v
+    ON v.uuid = e.venue_uuid
+
+LEFT JOIN {{schema}}.currency cu
+    ON cu.code = e.currency
+        AND cu.iso_639_1 = $2
+
 LEFT JOIN {{schema}}.user_organization_link uol
-ON uol.org_uuid = o.uuid
-AND uol.user_uuid = $3::uuid
-LEFT JOIN {{schema}}.user_event_link uel
-ON uel.event_uuid = e.uuid
-AND uel.user_uuid = $3::uuid
+    ON uol.org_uuid = o.uuid
+        AND uol.user_uuid = $3::uuid
+
 LEFT JOIN LATERAL (
     SELECT *
     FROM {{schema}}.space s2
     WHERE s2.uuid = e.space_uuid
     LIMIT 1
 ) sd ON TRUE
-WHERE ((uol.permissions & $4) <> 0 OR (uel.permissions & $4) <> 0)
-AND e.uuid = $1::uuid
+
+WHERE (uol.permissions & $4) <> 0
+    AND e.uuid = $1::uuid
+
 LIMIT 1

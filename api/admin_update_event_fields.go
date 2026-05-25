@@ -10,11 +10,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/grains/grains_api"
+	"github.com/sndcds/uranus/app"
 )
 
 func (h *ApiHandler) AdminUpdateEventFields(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-update-event-fields")
 	ctx := gc.Request.Context()
+	userUuid := h.userUuid(gc)
 
 	eventUuid := gc.Param("eventUuid")
 	if eventUuid == "" {
@@ -102,6 +104,26 @@ func (h *ApiHandler) AdminUpdateEventFields(gc *gin.Context) {
 	args = append(args, eventUuid) // eventId is the last parameter
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
+
+		var orgUuid *string
+		orgQuery := fmt.Sprintf(`SELECT org_uuid FROM %s.event WHERE uuid = $1::uuid`, h.DbSchema)
+		err := tx.QueryRow(ctx, orgQuery, eventUuid).Scan(&orgUuid)
+		if err != nil || orgUuid == nil {
+			return ApiErrInternal("%v", err)
+		}
+
+		orgPermissions, err := h.GetUserOrgPermissionsTx(gc, tx, userUuid, *orgUuid)
+		if err != nil {
+			return ApiErrInternal("%v", err)
+		}
+
+		if payload.ReleaseStatus.Set && !orgPermissions.Has(app.UserPermReleaseEvent) {
+			return &ApiTxError{
+				Code: http.StatusForbidden,
+				Err:  fmt.Errorf("insufficient permissions to change event release status"),
+			}
+		}
+
 		res, err := tx.Exec(ctx, query, args...)
 		if err != nil {
 			return &ApiTxError{
@@ -129,7 +151,7 @@ func (h *ApiHandler) AdminUpdateEventFields(gc *gin.Context) {
 	})
 	if txErr != nil {
 		debugf(txErr.Error())
-		apiRequest.DatabaseError()
+		apiRequest.Error(txErr.Code, txErr.Error())
 		return
 	}
 
