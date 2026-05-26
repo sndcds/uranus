@@ -44,6 +44,15 @@ func TxInternalError(err error) *ApiTxError {
 	}
 }
 
+func TxPermissionError(err error) *ApiTxError {
+	debugf(err.Error())
+	return &ApiTxError{
+		Code:    http.StatusForbidden,
+		Err:     err,
+		Message: "Permission denied",
+	}
+}
+
 func WithTransaction(ctx context.Context, db *pgxpool.Pool, fn func(tx pgx.Tx) *ApiTxError) *ApiTxError {
 	tx, err := db.Begin(ctx)
 	if err != nil {

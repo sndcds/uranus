@@ -53,11 +53,11 @@ func (h *ApiHandler) GetOrgUuidBySpaceUuidTx(
 	ctx := gc.Request.Context()
 	query := fmt.Sprintf(`
 		SELECT v.org_uuid
-		FROM uranus.space s
-		JOIN uranus.venue v ON v.uuid = s.venue_uuid
+		FROM %s.space s
+		JOIN %s.venue v ON v.uuid = s.venue_uuid
 		WHERE s.uuid = $1::uuid
 		`,
-		h.DbSchema)
+		h.DbSchema, h.DbSchema)
 	orgUuid := ""
 	err := tx.QueryRow(ctx, query, spaceUuid).Scan(&orgUuid)
 	if err != nil {

@@ -25,6 +25,7 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 	apiRequest.SetMeta("language", lang)
 
 	permission := app.UserPermEditEvent | app.UserPermViewEventInsights
+
 	row := h.DbPool.QueryRow(ctx, app.UranusInstance.SqlAdminGetEvent, eventUuid, lang, userUuid, permission)
 
 	// Basic Event
