@@ -1,9 +1,11 @@
 package api
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
 	"github.com/sndcds/uranus/model"
@@ -28,26 +30,55 @@ func (h *ApiHandler) AdminGetSpace(gc *gin.Context) {
 	apiRequest.SetMeta("space_uuid", spaceUuid)
 
 	var space model.Space
-	query := app.UranusInstance.SqlAdminGetSpace
-	row := h.DbPool.QueryRow(ctx, query, spaceUuid, userUuid)
 
-	err := row.Scan(
-		&space.Uuid,
-		&space.Name,
-		&space.Description,
-		&space.SpaceType,
-		&space.BuildingLevel,
-		&space.TotalCapacity,
-		&space.SeatingCapacity,
-		&space.WebLink,
-		&space.AccessibilityFlags,
-		&space.AccessibilitySummary,
-		&space.AreaSqm,
-	)
-	if err != nil {
-		apiRequest.InternalServerError()
+	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
+
+		// Check user permission
+		orgUuid, err := h.GetOrgUuidBySpaceUuidTx(gc, tx, spaceUuid)
+		if err != nil {
+			return TxInternalError(err)
+		}
+		txErr := h.CheckOrgPermissionTx(gc, tx, userUuid, orgUuid, app.UserPermEditSpace)
+		if txErr != nil {
+			return txErr
+		}
+
+		query := app.UranusInstance.SqlAdminGetSpace
+		row := tx.QueryRow(ctx, query, spaceUuid, userUuid)
+		err = row.Scan(
+			&space.Uuid,
+			&space.Name,
+			&space.Description,
+			&space.SpaceType,
+			&space.BuildingLevel,
+			&space.TotalCapacity,
+			&space.SeatingCapacity,
+			&space.WebLink,
+			&space.AccessibilityFlags,
+			&space.AccessibilitySummary,
+			&space.AreaSqm,
+		)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return &ApiTxError{
+					Code:    http.StatusNotFound,
+					Message: "space not found",
+					Err:     err,
+				}
+			}
+			return &ApiTxError{
+				Code:    http.StatusInternalServerError,
+				Message: "failed to load space",
+				Err:     err,
+			}
+		}
+		return nil
+	})
+	if txErr != nil {
+		debugf(txErr.Error())
+		apiRequest.Error(txErr.Code, txErr.Message)
 		return
 	}
 
-	apiRequest.Success(http.StatusOK, space, "space loaded successfully")
+	apiRequest.Success(http.StatusOK, space, "Space loaded successfully")
 }

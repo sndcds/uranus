@@ -71,12 +71,13 @@ func (h *ApiHandler) AdminUpdateSpaceFields(gc *gin.Context) {
 	args = append(args, spaceUuid) // spaceUuid is the last parameter
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
+
+		// Check user permission
 		orgUuid, err := h.GetOrgUuidBySpaceUuidTx(gc, tx, spaceUuid)
 		if err != nil {
 			return TxInternalError(err)
 		}
-
-		txErr := h.CheckAllOrgPermissionsTx(gc, tx, userUuid, orgUuid, app.UserPermEditSpace)
+		txErr := h.CheckOrgPermissionTx(gc, tx, userUuid, orgUuid, app.UserPermEditSpace)
 		if txErr != nil {
 			debugf(txErr.Error())
 			return txErr
@@ -109,7 +110,7 @@ func (h *ApiHandler) AdminUpdateSpaceFields(gc *gin.Context) {
 	})
 	if txErr != nil {
 		debugf(txErr.Error())
-		apiRequest.DatabaseError()
+		apiRequest.Error(txErr.Code, txErr.Message)
 		return
 	}
 
