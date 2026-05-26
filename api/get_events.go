@@ -85,7 +85,7 @@ type EventFilters struct {
 // - limitClause: SQL LIMIT/OFFSET clause
 // - args: list of query arguments
 // - nextArgIndex: next placeholder index
-func (h *ApiHandler) buildEventFilters(gc *gin.Context) (EventFilters, error) {
+func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (EventFilters, error) {
 	allowed := map[string]struct{}{
 		"categories": {}, "start": {}, "end": {}, "time": {}, "search": {},
 		"events": {}, "venues": {}, "spaces": {}, "space_types": {},
@@ -106,6 +106,8 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (EventFilters, error) {
 	filters.ArgIndex = 1
 	var conditions []string
 
+	var eventTypesStr string
+
 	// languagesStr, _ := GetContextParam(gc, "language") // TODO: Implement language support!
 	categoriesStr, hasCategories := GetContextParam(gc, "categories")
 	startStr, _ := GetContextParam(gc, "start")
@@ -123,7 +125,9 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context) (EventFilters, error) {
 	postalCodeStr, _ := GetContextParam(gc, "postal_code")
 	titleStr, _ := GetContextParam(gc, "title")
 	cityStr, _ := GetContextParam(gc, "city")
-	eventTypesStr, _ := GetContextParam(gc, "event_types")
+	if useTypeFilter {
+		eventTypesStr, _ = GetContextParam(gc, "event_types")
+	}
 	tagsStr, _ := GetContextParam(gc, "tags")
 	accessibilityFlagsStr, _ := GetContextParam(gc, "accessibility")
 	visitorInfosStr, _ := GetContextParam(gc, "visitor_infos")
@@ -380,7 +384,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	filters := EventFilters{}
 
-	filters, err := h.buildEventFilters(gc)
+	filters, err := h.buildEventFilters(gc, true)
 	if err != nil {
 		debugf("buildEventFilters err: %v", err)
 		apiRequest.Error(http.StatusBadRequest, err.Error())
@@ -513,7 +517,7 @@ func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 	filters := EventFilters{}
 
 	// Build filters from query params (same as GetEvents)
-	filters, err := h.buildEventFilters(gc)
+	filters, err := h.buildEventFilters(gc, false)
 	if err != nil {
 		apiRequest.Error(http.StatusBadRequest, "filter error")
 		return
@@ -543,10 +547,10 @@ func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 	query = strings.Replace(query, "{{portal_join}}", filters.PortalJoin, 1)
 	query = strings.Replace(query, "{{portal_conditions}}", filters.PortalConditions, 1)
 
-	debugf("filters.PortalJoin: %s", filters.PortalJoin)
-	debugf("filters.PortalConditions: %s", filters.PortalConditions)
-	debugf(query)
-	debugf("ARGS (%d):\n", len(filters.Args))
+	// debugf("filters.PortalJoin: %s", filters.PortalJoin)
+	// debugf("filters.PortalConditions: %s", filters.PortalConditions)
+	// debugf(query)
+	// debugf("ARGS (%d):\n", len(filters.Args))
 
 	rows, err := h.DbPool.Query(gc.Request.Context(), query, filters.Args...)
 	if err != nil {
@@ -610,7 +614,7 @@ func (h *ApiHandler) GetEventVenueSummary(gc *gin.Context) {
 	// TODO: Use apiRequest
 	filters := EventFilters{}
 
-	filters, err := h.buildEventFilters(gc)
+	filters, err := h.buildEventFilters(gc, true)
 	if err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -669,7 +673,7 @@ func (h *ApiHandler) GetEventsGeoJSON(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	filters := EventFilters{}
 
-	filters, err := h.buildEventFilters(gc)
+	filters, err := h.buildEventFilters(gc, true)
 	if err != nil {
 		apiRequest.Error(http.StatusBadRequest, "")
 		return
