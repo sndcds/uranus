@@ -8,18 +8,20 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/grains/grains_api"
+	"github.com/sndcds/uranus/app"
 )
 
 func (h *ApiHandler) AdminUpdateSpaceFields(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-update-space-fields")
 	ctx := gc.Request.Context()
+	userUuid := h.userUuid(gc)
 
 	spaceUuid := gc.Param("spaceUuid")
 	if spaceUuid == "" {
 		apiRequest.Required("spaceUuid is required")
 		return
 	}
-	apiRequest.SetMeta("space_id", spaceUuid)
+	apiRequest.SetMeta("space_uuid", spaceUuid)
 
 	var payload struct {
 		Name                 NullableField[string]  `json:"name"`
@@ -69,6 +71,17 @@ func (h *ApiHandler) AdminUpdateSpaceFields(gc *gin.Context) {
 	args = append(args, spaceUuid) // spaceUuid is the last parameter
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
+		orgUuid, err := h.GetOrgUuidBySpaceUuidTx(gc, tx, spaceUuid)
+		if err != nil {
+			return TxInternalError(err)
+		}
+
+		txErr := h.CheckAllOrgPermissionsTx(gc, tx, userUuid, orgUuid, app.UserPermEditSpace)
+		if txErr != nil {
+			debugf(txErr.Error())
+			return txErr
+		}
+
 		res, err := tx.Exec(ctx, query, args...)
 		if err != nil {
 			return &ApiTxError{

@@ -17,7 +17,7 @@ func (h *ApiHandler) GetOrgUuidByEvenUuidTx(
 	eventUuid string,
 ) (string, error) {
 	ctx := gc.Request.Context()
-	query := fmt.Sprintf(`SELECT e.org_id FROM %s.event e WHERE e.id = $1`, h.DbSchema)
+	query := fmt.Sprintf(`SELECT e.org_id FROM %s.event e WHERE e.uuid = $1::uuid`, h.DbSchema)
 	orgUuid := ""
 	err := tx.QueryRow(ctx, query, eventUuid).Scan(&orgUuid)
 	if err != nil {
@@ -31,15 +31,37 @@ func (h *ApiHandler) GetOrgUuidByEventDateUuidTx(
 	gc *gin.Context,
 	tx pgx.Tx,
 	eventDateUuid string,
-) (int, error) {
+) (string, error) {
 	ctx := gc.Request.Context()
 	query := fmt.Sprintf(`
 			SELECT e.org_uuid FROM %s.event_date ed JOIN %s.event e ON e.uuid = ed.event_uuid WHERE ed.uuid = $1::uuid`,
 		h.DbSchema, h.DbSchema)
-	orgUuid := -1
+	orgUuid := ""
 	err := tx.QueryRow(ctx, query, eventDateUuid).Scan(&orgUuid)
 	if err != nil {
-		return -1, err
+		return "", err
+	}
+
+	return orgUuid, nil
+}
+
+func (h *ApiHandler) GetOrgUuidBySpaceUuidTx(
+	gc *gin.Context,
+	tx pgx.Tx,
+	spaceUuid string,
+) (string, error) {
+	ctx := gc.Request.Context()
+	query := fmt.Sprintf(`
+		SELECT v.org_uuid
+		FROM uranus.space s
+		JOIN uranus.venue v ON v.uuid = s.venue_uuid
+		WHERE s.uuid = $1::uuid
+		`,
+		h.DbSchema)
+	orgUuid := ""
+	err := tx.QueryRow(ctx, query, spaceUuid).Scan(&orgUuid)
+	if err != nil {
+		return "", err
 	}
 
 	return orgUuid, nil
