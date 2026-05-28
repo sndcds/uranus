@@ -48,7 +48,7 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 		if eventDateUuid == "" {
 			// Insert
 			// Check permissions, we need an 'organizationId' first
-			orgUuid, err := h.GetOrgUuidByEvenUuidTx(gc, tx, eventUuid)
+			orgUuid, err := h.GetOrgUuidByEventUuidTx(gc, tx, eventUuid)
 			if err != nil {
 				return ApiErrInternal("%v", err)
 			}

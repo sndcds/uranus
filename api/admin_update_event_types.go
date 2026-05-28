@@ -74,6 +74,7 @@ func (h *ApiHandler) AdminUpdateEventTypes(gc *gin.Context) {
 
 		return nil
 	})
+
 	if txErr != nil {
 		debugf(txErr.Error())
 		apiRequest.DatabaseError()

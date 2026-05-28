@@ -123,7 +123,7 @@ base AS (
             AND uvl.user_uuid = $3::uuid
 
     WHERE eo.uuid = $1::uuid
-        AND (edt.start_date >= $2::date OR edt.start_date IS NULL)
+        AND COALESCE(edt.end_date, edt.start_date) >= $2::date
 )
 
 SELECT *

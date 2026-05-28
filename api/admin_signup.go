@@ -123,6 +123,7 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 		apiRequest.SetMeta("user_uuid", userUuid)
 		return nil
 	})
+
 	if txErr != nil {
 		debugf(txErr.Error())
 		apiRequest.Error(txErr.Code, txErr.Error())

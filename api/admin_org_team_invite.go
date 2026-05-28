@@ -158,6 +158,7 @@ func (h *ApiHandler) AdminOrgTeamInvite(gc *gin.Context) {
 
 		return nil
 	})
+
 	if txErr != nil {
 		if apiMessage != "" {
 			apiRequest.SuccessNoData(http.StatusOK, apiMessage)
@@ -283,6 +284,7 @@ func (h *ApiHandler) AdminOrgTeamInviteAccept(gc *gin.Context) {
 
 		return nil
 	})
+
 	if txErr != nil {
 		debugf(txErr.Error())
 		apiRequest.InternalServerError()

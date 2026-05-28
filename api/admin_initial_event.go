@@ -60,6 +60,7 @@ func (h *ApiHandler) AdminInitialEvent(gc *gin.Context) {
 		apiRequest.Metadata["event_uuid"] = eventUuid
 		return nil
 	})
+
 	if txErr != nil {
 		debugf(txErr.Error())
 		apiRequest.Error(txErr.Code, txErr.Error())

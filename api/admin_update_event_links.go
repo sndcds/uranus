@@ -79,6 +79,7 @@ func (h *ApiHandler) AdminUpdateEventLinks(gc *gin.Context) {
 
 		return nil
 	})
+
 	if txErr != nil {
 		apiRequest.Error(txErr.Code, txErr.Error())
 		return

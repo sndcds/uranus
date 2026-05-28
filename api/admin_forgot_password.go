@@ -161,6 +161,7 @@ func (h *ApiHandler) ResetPassword(gc *gin.Context) {
 
 		return nil
 	})
+
 	if txErr != nil {
 		debugf(txErr.Error())
 		apiRequest.Error(txErr.Code, txErr.Error())

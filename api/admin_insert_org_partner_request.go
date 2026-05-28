@@ -121,6 +121,7 @@ func (h *ApiHandler) AdminInsertOrgPartnerRequest(gc *gin.Context) {
 		apiMessage = "request created successfully"
 		return nil
 	})
+
 	if txErr != nil {
 		debugf(txErr.Error())
 		apiRequest.InternalServerError()

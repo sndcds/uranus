@@ -74,6 +74,7 @@ func (h *ApiHandler) AdminGetSpace(gc *gin.Context) {
 		}
 		return nil
 	})
+
 	if txErr != nil {
 		debugf(txErr.Error())
 		apiRequest.Error(txErr.Code, txErr.Message)

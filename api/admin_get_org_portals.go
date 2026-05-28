@@ -77,6 +77,7 @@ func (h *ApiHandler) AdminGetOrgPortals(gc *gin.Context) {
 
 		return nil
 	})
+
 	if txErr != nil {
 		apiRequest.Error(txErr.Code, txErr.Error())
 		return

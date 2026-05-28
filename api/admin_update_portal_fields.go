@@ -70,6 +70,7 @@ func (h *ApiHandler) AdminUpdatePortalFields(gc *gin.Context) {
 
 		return nil
 	})
+
 	if txErr != nil {
 		debugf(txErr.Error())
 		apiRequest.DatabaseError()
