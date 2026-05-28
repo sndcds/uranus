@@ -152,14 +152,14 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (Eve
 	// Date conditions
 	dateConditionCount := 0
 	if app.IsValidDateStr(startStr) {
-		filters.DateConditions += "edp.event_start_at >= $" + strconv.Itoa(filters.ArgIndex)
+		filters.DateConditions += "COALESCE(edp.event_end_at, edp.event_start_at) >= $" + strconv.Itoa(filters.ArgIndex)
 		filters.Args = append(filters.Args, startStr)
 		filters.ArgIndex++
 		dateConditionCount++
 	} else if startStr != "" {
 		return filters, fmt.Errorf("start %s has invalid format", startStr)
 	} else {
-		filters.DateConditions += "edp.event_start_at >= CURRENT_DATE"
+		filters.DateConditions += "COALESCE(edp.event_end_at, edp.event_start_at) >= CURRENT_DATE"
 		dateConditionCount++
 	}
 
