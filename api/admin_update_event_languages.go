@@ -59,6 +59,7 @@ func (h *ApiHandler) AdminUpdateEventLanguages(gc *gin.Context) {
 
 		return nil
 	})
+
 	if txErr != nil {
 		apiRequest.DatabaseError()
 		return

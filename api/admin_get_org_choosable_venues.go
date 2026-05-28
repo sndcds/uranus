@@ -118,6 +118,7 @@ func (h *ApiHandler) AdminGetOrgChoosableVenues(gc *gin.Context) {
 		apiRequest.Success(http.StatusOK, Response{Venues: venues}, "")
 		return nil
 	})
+
 	if txErr != nil {
 		apiRequest.Error(txErr.Code, txErr.Error())
 		return

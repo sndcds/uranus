@@ -163,117 +163,114 @@ func main() {
 	// Authorized endpoints, user must be logged in
 	//
 
-	adminRoute := router.Group("/api/admin", app.JWTMiddleware) // TODO: check!
-
-	adminRoute.GET("/event/:eventUuid/date/:dateUuid", apiHandler.GetEventByDateUuid)
-
-	adminRoute.GET("/permissions/list", apiHandler.AdminGetPermissionsList) // TODO: check!
-
-	adminRoute.POST("/refresh", apiHandler.Refresh) // TODO: check!
+	adminRoute := router.Group("/api/admin", app.JWTMiddleware)                       // TODO: Permission check
+	adminRoute.GET("/event/:eventUuid/date/:dateUuid", apiHandler.GetEventByDateUuid) // TODO: Permission check
+	adminRoute.GET("/permissions/list", apiHandler.AdminGetPermissionsList)           // TODO: Permission check
+	adminRoute.POST("/refresh", apiHandler.Refresh)                                   // TODO: Permission check
 
 	// User
-	adminRoute.GET("/user/profile", apiHandler.AdminGetUserProfile)
-	adminRoute.PUT("/user/profile", apiHandler.AdminUpdateUserProfile)
-	adminRoute.PUT("/user/settings", apiHandler.AdminUpdateUserProfileSettings)
-	adminRoute.POST("/user/avatar", apiHandler.AdminUploadUserAvatar)
-	adminRoute.DELETE("/user/avatar", apiHandler.AdminDeleteUserAvatar)
+	adminRoute.GET("/user/profile", apiHandler.AdminGetUserProfile)             // TODO: Permission check
+	adminRoute.PUT("/user/profile", apiHandler.AdminUpdateUserProfile)          // TODO: Permission check
+	adminRoute.PUT("/user/settings", apiHandler.AdminUpdateUserProfileSettings) // TODO: Permission check
+	adminRoute.POST("/user/avatar", apiHandler.AdminUploadUserAvatar)           // TODO: Permission check
+	adminRoute.DELETE("/user/avatar", apiHandler.AdminDeleteUserAvatar)         // TODO: Permission check
 
-	adminRoute.GET("/user/todos", apiHandler.AdminUserGetTodos)
-	adminRoute.GET("/user/todo/:todoId", apiHandler.AdminGetTodo)
-	adminRoute.PUT("/user/todo", apiHandler.AdminUpsertTodo)
-	adminRoute.DELETE("/user/todo/:todoId", apiHandler.AdminDeleteTodo)
+	adminRoute.GET("/user/todos", apiHandler.AdminUserGetTodos)         // TODO: Permission check
+	adminRoute.GET("/user/todo/:todoId", apiHandler.AdminGetTodo)       // TODO: Permission check
+	adminRoute.PUT("/user/todo", apiHandler.AdminUpsertTodo)            // TODO: Permission check
+	adminRoute.DELETE("/user/todo/:todoId", apiHandler.AdminDeleteTodo) // TODO: Permission check
 
-	adminRoute.GET("/user/messages", apiHandler.AdminGetMessages)      // TODO: check!
-	adminRoute.POST("/user/send-message", apiHandler.AdminSendMessage) // TODO: check!
+	adminRoute.GET("/user/messages", apiHandler.AdminGetMessages)      // TODO: Permission check
+	adminRoute.POST("/user/send-message", apiHandler.AdminSendMessage) // TODO: Permission check
 
-	adminRoute.GET("/user/notifications", apiHandler.AdminGetUserNotifications)
-	adminRoute.GET("/user/choosable-orgs", apiHandler.AdminGetChoosableOrgs)                    // TODO: check!
+	adminRoute.GET("/user/notifications", apiHandler.AdminGetUserNotifications)                 // TODO: Permission check
+	adminRoute.GET("/user/choosable-orgs", apiHandler.AdminGetChoosableOrgs)                    // TODO: Permission check
 	adminRoute.GET("/user/choosable-event-venues", apiHandler.AdminGetChoosableUserEventVenues) // TODO: Unused, can be removed!
 
 	// Organization
-	adminRoute.GET("/org/:orgUuid/member/:memberUuid/permissions", apiHandler.AdminGetOrgMemberPermissions)
-	adminRoute.PUT("/org/:orgUuid/member/:memberUuid/permissions", apiHandler.AdminUpdateOrgMemberPermissions) // TODO: check!
+	adminRoute.GET("/org/:orgUuid/member/:memberUuid/permissions", apiHandler.AdminGetOrgMemberPermissions)    // TODO: Permission check
+	adminRoute.PUT("/org/:orgUuid/member/:memberUuid/permissions", apiHandler.AdminUpdateOrgMemberPermissions) // TODO: Permission check
 
-	adminRoute.POST("/org/create", apiHandler.AdminCreateOrg)
-	adminRoute.GET("/org/:orgUuid", apiHandler.AdminGetOrg)
-	adminRoute.PUT("/org/:orgUuid/fields", apiHandler.UpdateOrgFields)
-	adminRoute.DELETE("/org/:orgUuid", apiHandler.AdminDeleteOrg)
+	adminRoute.POST("/org/create", apiHandler.AdminCreateOrg)          // TODO: Permission check
+	adminRoute.GET("/org/:orgUuid", apiHandler.AdminGetOrg)            // TODO: Permission check
+	adminRoute.PUT("/org/:orgUuid/fields", apiHandler.UpdateOrgFields) // TODO: Permission check
+	adminRoute.DELETE("/org/:orgUuid", apiHandler.AdminDeleteOrg)      // TODO: Permission check
 
-	adminRoute.GET("/org/list", apiHandler.AdminGetOrgList)
-	adminRoute.GET("/org/:orgUuid/venues", apiHandler.AdminGetOrgVenues)
-	adminRoute.GET("/org/:orgUuid/events", apiHandler.AdminGetOrgEvents)
-	adminRoute.GET("/org/:orgUuid/portals", apiHandler.AdminGetOrgPortals)
+	adminRoute.GET("/org/list", apiHandler.AdminGetOrgList)                // TODO: Permission check
+	adminRoute.GET("/org/:orgUuid/venues", apiHandler.AdminGetOrgVenues)   // TODO: Permission check
+	adminRoute.GET("/org/:orgUuid/events", apiHandler.AdminGetOrgEvents)   // TODO: Permission check
+	adminRoute.GET("/org/:orgUuid/portals", apiHandler.AdminGetOrgPortals) // TODO: Permission check
 
-	adminRoute.GET("/org/:orgUuid/team", apiHandler.AdminGetOrgTeam)
-	adminRoute.POST("/org/:orgUuid/team/invite", apiHandler.AdminOrgTeamInvite)
-	adminRoute.POST("/org/team/invite/accept", apiHandler.AdminOrgTeamInviteAccept)
-	adminRoute.DELETE("/org/:orgUuid/team/member/:memberId", apiHandler.AdminDeleteOrgTeamMember) // TODO: check!
+	adminRoute.GET("/org/:orgUuid/team", apiHandler.AdminGetOrgTeam)                              // TODO: Permission check
+	adminRoute.POST("/org/:orgUuid/team/invite", apiHandler.AdminOrgTeamInvite)                   // TODO: Permission check
+	adminRoute.POST("/org/team/invite/accept", apiHandler.AdminOrgTeamInviteAccept)               // TODO: Permission check
+	adminRoute.DELETE("/org/:orgUuid/team/member/:memberId", apiHandler.AdminDeleteOrgTeamMember) // TODO: Permission check
 	adminRoute.GET("/org/:orgUuid/choosable-venues", apiHandler.AdminGetOrgChoosableVenues)
 
 	// Partner
-	adminRoute.GET("/org/:orgUuid/partnership-connections", apiHandler.AdminOrgPartnershipConnections)
-	adminRoute.GET("/org/partnership-connections-by-user", apiHandler.AdminOrgPartnershipConnectionsByUser)
-	adminRoute.GET("/org/:orgUuid/partner/grants", apiHandler.AdminGetOrgPartnerGrants)
-	adminRoute.GET("/org/:orgUuid/partner/requests", apiHandler.AdminGetOrgPartnerRequest)
-	adminRoute.POST("/org/:orgUuid/partner/:partnerUuid/grants", apiHandler.AdminUpdateOrgPartnerGrants)
-	adminRoute.POST("/org/:orgUuid/partner/request", apiHandler.AdminInsertOrgPartnerRequest)
-	adminRoute.POST("/org/:orgUuid/partner/request/:partnerUuid/accept", apiHandler.AdminInsertOrgPartnerAccept)
-	adminRoute.POST("/org/:orgUuid/partner/request/:partnerUuid/reject", apiHandler.AdminOrgPartnerReject)
+	adminRoute.GET("/org/:orgUuid/partnership-connections", apiHandler.AdminOrgPartnershipConnections)           // TODO: Permission check
+	adminRoute.GET("/org/partnership-connections-by-user", apiHandler.AdminOrgPartnershipConnectionsByUser)      // TODO: Permission check
+	adminRoute.GET("/org/:orgUuid/partner/grants", apiHandler.AdminGetOrgPartnerGrants)                          // TODO: Permission check
+	adminRoute.GET("/org/:orgUuid/partner/requests", apiHandler.AdminGetOrgPartnerRequest)                       // TODO: Permission check
+	adminRoute.POST("/org/:orgUuid/partner/:partnerUuid/grants", apiHandler.AdminUpdateOrgPartnerGrants)         // TODO: Permission check
+	adminRoute.POST("/org/:orgUuid/partner/request", apiHandler.AdminInsertOrgPartnerRequest)                    // TODO: Permission check
+	adminRoute.POST("/org/:orgUuid/partner/request/:partnerUuid/accept", apiHandler.AdminInsertOrgPartnerAccept) // TODO: Permission check
+	adminRoute.POST("/org/:orgUuid/partner/request/:partnerUuid/reject", apiHandler.AdminOrgPartnerReject)       // TODO: Permission check
 
 	// Venue
-	adminRoute.GET("/venue/:venueUuid", apiHandler.AdminGetVenue)
-	adminRoute.POST("/venue/create", apiHandler.AdminCreateVenue)
+	adminRoute.GET("/venue/:venueUuid", apiHandler.AdminGetVenue) // TODO: Permission check
+	adminRoute.POST("/venue/create", apiHandler.AdminCreateVenue) // TODO: Permission check
 	// adminRoute.PUT("/venue", apiHandler.AdminUpsertVenue) // TODO: refactor to be create with complete data set
-	adminRoute.PUT("/venue/:venueUuid/fields", apiHandler.AdminUpdateVenueFields)
-	adminRoute.DELETE("/venue/:venueUuid", apiHandler.AdminDeleteVenue)
+	adminRoute.PUT("/venue/:venueUuid/fields", apiHandler.AdminUpdateVenueFields) // TODO: Permission check
+	adminRoute.DELETE("/venue/:venueUuid", apiHandler.AdminDeleteVenue)           // TODO: Permission check
 
 	// Space
-	adminRoute.GET("/space/:spaceUuid", apiHandler.AdminGetSpace)
-	adminRoute.POST("/space/create", apiHandler.AdminCreateSpace)
+	adminRoute.GET("/space/:spaceUuid", apiHandler.AdminGetSpace) // Permission check ok
+	adminRoute.POST("/space/create", apiHandler.AdminCreateSpace) // TODO: Permission check
 	// adminRoute.PUT("/space", apiHandler.AdminUpsertSpace) // TODO: refactor to be create with complete data set
-	adminRoute.PUT("/space/:spaceUuid/fields", apiHandler.AdminUpdateSpaceFields)
-	adminRoute.DELETE("/space/:spaceUuid", apiHandler.AdminDeleteSpace)
+	adminRoute.PUT("/space/:spaceUuid/fields", apiHandler.AdminUpdateSpaceFields) // Permission check ok
+	adminRoute.DELETE("/space/:spaceUuid", apiHandler.AdminDeleteSpace)           // Permission check ok
 
 	// Event
-	adminRoute.GET("/event/:eventUuid", apiHandler.AdminGetEvent)
-	adminRoute.POST("/event/:eventUuid/date", apiHandler.AdminUpsertEventDate)          // TODO: check!
-	adminRoute.PUT("/event/:eventUuid/date/:dateUuid", apiHandler.AdminUpsertEventDate) // TODO: check!
-	adminRoute.DELETE("/event/:eventUuid", apiHandler.AdminDeleteEvent)
-	adminRoute.DELETE("/event/:eventUuid/date/:dateUuid", apiHandler.AdminDeleteEventDate)
+	adminRoute.GET("/event/:eventUuid", apiHandler.AdminGetEvent)                          // TODO: Permission check
+	adminRoute.POST("/event/:eventUuid/date", apiHandler.AdminUpsertEventDate)             // TODO: Permission check
+	adminRoute.PUT("/event/:eventUuid/date/:dateUuid", apiHandler.AdminUpsertEventDate)    // TODO: Permission check
+	adminRoute.DELETE("/event/:eventUuid", apiHandler.AdminDeleteEvent)                    // Permission check ok
+	adminRoute.DELETE("/event/:eventUuid/date/:dateUuid", apiHandler.AdminDeleteEventDate) // TODO: Permission check
 
-	adminRoute.POST("/event/initial", apiHandler.AdminInitialEvent)
-	adminRoute.POST("/event/create", apiHandler.AdminCreateEvent)
-	adminRoute.PUT("/event/:eventUuid/dates", apiHandler.AdminUpdateEventDates)
-	adminRoute.PUT("/event/:eventUuid/types", apiHandler.AdminUpdateEventTypes)
-	adminRoute.PUT("/event/:eventUuid/languages", apiHandler.AdminUpdateEventLanguages)
-	adminRoute.PUT("/event/:eventUuid/links", apiHandler.AdminUpdateEventLinks)
-	adminRoute.PUT("/event/:eventUuid/venue", apiHandler.AdminUpdateEventVenue)
-	adminRoute.PUT("/event/:eventUuid/fields", apiHandler.AdminUpdateEventFields)
+	adminRoute.POST("/event/initial", apiHandler.AdminInitialEvent)                     // TODO: Permission check
+	adminRoute.POST("/event/create", apiHandler.AdminCreateEvent)                       // TODO: Permission check
+	adminRoute.PUT("/event/:eventUuid/dates", apiHandler.AdminUpdateEventDates)         // TODO: Permission check
+	adminRoute.PUT("/event/:eventUuid/types", apiHandler.AdminUpdateEventTypes)         // TODO: Permission check
+	adminRoute.PUT("/event/:eventUuid/languages", apiHandler.AdminUpdateEventLanguages) // TODO: Permission check
+	adminRoute.PUT("/event/:eventUuid/links", apiHandler.AdminUpdateEventLinks)         // TODO: Permission check
+	adminRoute.PUT("/event/:eventUuid/venue", apiHandler.AdminUpdateEventVenue)         // TODO: Permission check
+	adminRoute.PUT("/event/:eventUuid/fields", apiHandler.AdminUpdateEventFields)       // TODO: Permission check
 
-	adminRoute.PUT("/event/:eventUuid/release-status", apiHandler.AdminUpdateEventReleaseStatus)           // TODO: check!
-	adminRoute.PUT("/event/:eventUuid/header", apiHandler.AdminUpdateEventHeader)                          // TODO: check!
-	adminRoute.PUT("/event/:eventUuid/description", apiHandler.AdminUpdateEventDescription)                // TODO: check!
-	adminRoute.PUT("/event/:eventUuid/summary", apiHandler.AdminUpdateEventSummary)                        // TODO: check!
-	adminRoute.PUT("/event/:eventUuid/participation-infos", apiHandler.AdminUpdateEventParticipationInfos) // TODO: check!
+	adminRoute.PUT("/event/:eventUuid/release-status", apiHandler.AdminUpdateEventReleaseStatus)           // TODO: Permission check
+	adminRoute.PUT("/event/:eventUuid/header", apiHandler.AdminUpdateEventHeader)                          // TODO: Permission check
+	adminRoute.PUT("/event/:eventUuid/description", apiHandler.AdminUpdateEventDescription)                // TODO: Permission check
+	adminRoute.PUT("/event/:eventUuid/summary", apiHandler.AdminUpdateEventSummary)                        // TODO: Permission check
+	adminRoute.PUT("/event/:eventUuid/participation-infos", apiHandler.AdminUpdateEventParticipationInfos) // TODO: Permission check
 
 	// Portal
-	adminRoute.GET("/portal/:portalUuid", apiHandler.AdminGetPortal)
-	adminRoute.POST("/portal/create", apiHandler.AdminCreatePortal)
-	adminRoute.PUT("/portal/:portalUuid/fields", apiHandler.AdminUpdatePortalFields)
-	adminRoute.PUT("/portal/:portalUuid/filter", apiHandler.AdminUpdatePortalFilter)
-	adminRoute.PUT("/portal/:portalUuid/style", apiHandler.AdminUpdatePortalStyle)
-	adminRoute.PUT("/portal/:portalUuid/header", apiHandler.AdminUpdatePortalHeader)
-	adminRoute.PUT("/portal/:portalUuid/footer", apiHandler.AdminUpdatePortalFooter)
+	adminRoute.GET("/portal/:portalUuid", apiHandler.AdminGetPortal)                 // TODO: Permission check
+	adminRoute.POST("/portal/create", apiHandler.AdminCreatePortal)                  // TODO: Permission check
+	adminRoute.PUT("/portal/:portalUuid/fields", apiHandler.AdminUpdatePortalFields) // TODO: Permission check
+	adminRoute.PUT("/portal/:portalUuid/filter", apiHandler.AdminUpdatePortalFilter) // TODO: Permission check
+	adminRoute.PUT("/portal/:portalUuid/style", apiHandler.AdminUpdatePortalStyle)   // TODO: Permission check
+	adminRoute.PUT("/portal/:portalUuid/header", apiHandler.AdminUpdatePortalHeader) // TODO: Permission check
+	adminRoute.PUT("/portal/:portalUuid/footer", apiHandler.AdminUpdatePortalFooter) // TODO: Permission check
 
 	// Favorites
-	adminRoute.GET("/org/:orgUuid/favorite-lists", apiHandler.AdminGetFavoriteLists)
-	adminRoute.POST("/favorite-list/create", apiHandler.AdminCreateFavoriteList)
-	adminRoute.POST("/favorite-list/toggle-event-date", apiHandler.AdminToggleFavoriteEventDate)
-	adminRoute.POST("/favorite-list/check-event-date", apiHandler.AdminCheckFavoriteListEventDate)
+	adminRoute.GET("/org/:orgUuid/favorite-lists", apiHandler.AdminGetFavoriteLists)               // TODO: Permission check
+	adminRoute.POST("/favorite-list/create", apiHandler.AdminCreateFavoriteList)                   // TODO: Permission check
+	adminRoute.POST("/favorite-list/toggle-event-date", apiHandler.AdminToggleFavoriteEventDate)   // TODO: Permission check
+	adminRoute.POST("/favorite-list/check-event-date", apiHandler.AdminCheckFavoriteListEventDate) // TODO: Permission check
 
 	// Pluto Image
-	adminRoute.POST("/image/:context/:contextUuid/:identifier", apiHandler.AdminUpsertPlutoImage)
-	adminRoute.DELETE("/image/:context/:contextUuid/:identifier", apiHandler.AdminDeletePlutoImage)
+	adminRoute.POST("/image/:context/:contextUuid/:identifier", apiHandler.AdminUpsertPlutoImage)   // TODO: Permission check
+	adminRoute.DELETE("/image/:context/:contextUuid/:identifier", apiHandler.AdminDeletePlutoImage) // TODO: Permission check
 	adminRoute.GET("/image/cleanup", apiHandler.AdminCleanupImages)
 
 	/*

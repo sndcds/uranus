@@ -90,6 +90,7 @@ func (h *ApiHandler) AdminGetOrgTeam(gc *gin.Context) {
 
 		return nil
 	})
+
 	if txErr != nil {
 		apiRequest.Error(txErr.Code, txErr.Error())
 		return

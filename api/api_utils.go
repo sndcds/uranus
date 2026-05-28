@@ -190,7 +190,7 @@ func UseUuidFromAccessToken(gc *gin.Context) string {
 
 const dummyPasswordHash = "$2a$12$wGf6R8t2pFzq9yQmYv8y1u8y0v7E4Qv9ZJ8tQ6lH5E8QK3yQyZCwK"
 
-// VerifyUserPassword reads password from request body, validates it against user Id.
+// VerifyUserPassword reads password from request body, validates it against user.uuis.
 // Returns true if password is valid, or writes JSON error response to context and returns false.
 func (h *ApiHandler) VerifyUserPassword(gc *gin.Context, userUuid string) error {
 	var body struct {
@@ -209,7 +209,7 @@ func (h *ApiHandler) VerifyUserPassword(gc *gin.Context, userUuid string) error 
 	query := fmt.Sprintf(`SELECT password_hash FROM %s.user WHERE uuid = $1::uuid`, h.DbSchema)
 	err := h.DbPool.QueryRow(gc.Request.Context(), query, userUuid).Scan(&passwordHash)
 	if err != nil {
-		passwordHash = dummyPasswordHash
+		err.Error()
 	}
 
 	if app.ComparePasswords(passwordHash, body.Password) != nil {

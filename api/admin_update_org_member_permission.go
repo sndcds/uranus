@@ -175,6 +175,7 @@ func (h *ApiHandler) AdminUpdateOrgMemberPermissions(gc *gin.Context) {
 
 		return nil
 	})
+
 	if txErr != nil {
 		debugf(txErr.Error())
 		apiRequest.InternalServerError()

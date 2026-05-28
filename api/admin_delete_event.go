@@ -1,9 +1,11 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
 )
@@ -26,14 +28,37 @@ func (h *ApiHandler) AdminDeleteEvent(gc *gin.Context) {
 	}
 	apiRequest.SetMeta("event_uuid", eventUuid)
 
-	cmdTag, err := h.DbPool.Exec(ctx, app.UranusInstance.SqlAdminDeleteEvent, eventUuid)
-	if err != nil {
-		apiRequest.InternalServerError()
-		return
-	}
+	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 
-	if cmdTag.RowsAffected() == 0 {
-		apiRequest.NotFound("event not found")
+		// Permission check
+		orgUuid, err := h.GetOrgUuidByEventUuidTx(gc, tx, eventUuid)
+		if err != nil {
+			return TxInternalError(err)
+		}
+
+		txErr := h.CheckOrgPermissionTx(gc, tx, userUuid, orgUuid, app.UserPermDeleteEvent)
+		if txErr != nil {
+			return txErr
+		}
+
+		cmdTag, err := tx.Exec(ctx, app.UranusInstance.SqlAdminDeleteEvent, eventUuid)
+		if err != nil {
+			return TxInternalError(err)
+		}
+
+		if cmdTag.RowsAffected() == 0 {
+			return &ApiTxError{
+				Code: http.StatusNotFound,
+				Err:  fmt.Errorf("event not found"),
+			}
+		}
+
+		return nil
+	})
+
+	if txErr != nil {
+		debugf(txErr.Error())
+		apiRequest.Error(txErr.Code, txErr.Message)
 		return
 	}
 

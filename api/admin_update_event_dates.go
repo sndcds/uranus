@@ -153,6 +153,7 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 
 		return nil
 	})
+
 	if txErr != nil {
 		debugf(txErr.Error())
 		apiRequest.Error(txErr.Code, txErr.Error())

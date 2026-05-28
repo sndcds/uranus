@@ -11,13 +11,13 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-func (h *ApiHandler) GetOrgUuidByEvenUuidTx(
+func (h *ApiHandler) GetOrgUuidByEventUuidTx(
 	gc *gin.Context,
 	tx pgx.Tx,
 	eventUuid string,
 ) (string, error) {
 	ctx := gc.Request.Context()
-	query := fmt.Sprintf(`SELECT e.org_id FROM %s.event e WHERE e.uuid = $1::uuid`, h.DbSchema)
+	query := fmt.Sprintf(`SELECT e.org_uuid FROM %s.event e WHERE e.uuid = $1::uuid`, h.DbSchema)
 	orgUuid := ""
 	err := tx.QueryRow(ctx, query, eventUuid).Scan(&orgUuid)
 	if err != nil {

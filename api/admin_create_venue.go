@@ -67,6 +67,7 @@ func (h *ApiHandler) AdminCreateVenue(gc *gin.Context) {
 		apiRequest.Metadata["venue_uuid"] = venueUuid
 		return nil
 	})
+
 	if txErr != nil {
 		apiRequest.Error(txErr.Code, txErr.Error())
 		return

@@ -115,6 +115,7 @@ func (h *ApiHandler) AdminUpsertVenue(gc *gin.Context) {
 
 		return nil
 	})
+
 	if txErr != nil {
 		gc.JSON(txErr.Code, gin.H{"error": txErr.Error()})
 		return

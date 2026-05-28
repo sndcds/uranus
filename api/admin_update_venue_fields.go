@@ -123,6 +123,7 @@ func (h *ApiHandler) AdminUpdateVenueFields(gc *gin.Context) {
 
 		return nil
 	})
+
 	if txErr != nil {
 		debugf(txErr.Error())
 		apiRequest.DatabaseError()
