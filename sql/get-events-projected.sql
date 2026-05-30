@@ -41,12 +41,19 @@ SELECT
     ep.min_age,
     ep.max_age,
     ep.visitor_info_flags
+
 FROM {{schema}}.event_date_projection edp
-JOIN {{schema}}.event_projection ep ON ep.event_uuid = edp.event_uuid
+JOIN {{schema}}.event_projection ep
+    ON ep.event_uuid = edp.event_uuid
+
 {{portal_join}}
+
 WHERE ep.release_status IN ('released', 'cancelled', 'deferred', 'rescheduled')
-AND {{date_conditions}}
+    AND {{date_conditions}}
+
 {{conditions}}
 {{portal_conditions}}
+
 ORDER BY edp.event_start_at ASC, edp.event_date_uuid ASC
+
 {{limit}}

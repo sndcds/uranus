@@ -69,6 +69,7 @@ type eventsResponse struct {
 }
 
 type EventFilters struct {
+	WeekStartDate    string
 	DateConditions   string
 	ConditionsStr    string
 	LimitClause      string
@@ -95,6 +96,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (Eve
 		"lon": {}, "lat": {}, "radius": {}, "offset": {}, "limit": {},
 		"last_event_start_at": {}, "last_event_date_uuid": {},
 		"language": {}, "portal": {},
+		"week_start": {},
 	}
 	filters := EventFilters{}
 
@@ -512,6 +514,96 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	apiRequest.Success(http.StatusOK, response, "")
 }
 
+func (h *ApiHandler) GetEventsWeek(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "get-events-weekl")
+	ctx := gc.Request.Context()
+
+	filters, err := h.buildEventFilters(gc, true)
+	if err != nil {
+		apiRequest.Error(http.StatusBadRequest, err.Error())
+		return
+	}
+	if filters.WeekStartDate == "" {
+		apiRequest.Error(http.StatusBadRequest, "week_start is required")
+		return
+	}
+
+	query := app.UranusInstance.SqlGetEventsProjectedWeek
+
+	weekEnd, err := computeWeekEnd(filters.WeekStartDate)
+	if err != nil {
+		apiRequest.Error(http.StatusBadRequest, "invalid week_start")
+		return
+	}
+
+	query = strings.Replace(query, "{{week_start}}", filters.WeekStartDate, 1)
+	query = strings.Replace(query, "{{week_end}}", weekEnd, 1)
+	query = strings.Replace(query, "{{conditions}}", filters.ConditionsStr, 1)
+	query = strings.Replace(query, "{{portal_join}}", filters.PortalJoin, 1)
+	query = strings.Replace(query, "{{portal_conditions}}", filters.PortalConditions, 1)
+
+	rows, err := h.DbPool.Query(ctx, query, filters.Args...)
+	if err != nil {
+		apiRequest.InternalServerError()
+		return
+	}
+	defer rows.Close()
+
+	type calendarDayResponse struct {
+		EventDay  string          `json:"event_day"`
+		Events    json.RawMessage `json:"events"`
+		MoreCount int             `json:"more_count"`
+	}
+
+	// Preallocate for 7 days (week view)
+	days := make([]calendarDayResponse, 0, 7)
+
+	for rows.Next() {
+		var (
+			day       string
+			eventsRaw []byte
+			moreCount int
+		)
+
+		// SAFE SCAN: only primitives + jsonb as []byte
+		if err := rows.Scan(&day, &eventsRaw, &moreCount); err != nil {
+			apiRequest.InternalServerError()
+			return
+		}
+
+		// Normalize NULL JSON → empty array
+		if len(eventsRaw) == 0 {
+			eventsRaw = []byte("[]")
+		}
+
+		// Validate JSON (prevents corrupt upstream SQL)
+		if !json.Valid(eventsRaw) {
+			apiRequest.InternalServerError()
+			return
+		}
+
+		days = append(days, calendarDayResponse{
+			EventDay:  day,
+			Events:    json.RawMessage(eventsRaw),
+			MoreCount: moreCount,
+		})
+	}
+
+	if err := rows.Err(); err != nil {
+		apiRequest.InternalServerError()
+		return
+	}
+
+	// Guarantee stable 7-day output (important for UI calendars)
+	response := struct {
+		Days []calendarDayResponse `json:"days"`
+	}{
+		Days: days,
+	}
+
+	apiRequest.Success(http.StatusOK, response, "")
+}
+
 func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-events-type-summary")
 	filters := EventFilters{}
@@ -811,4 +903,15 @@ func derefString(s *string, fallback string) string {
 		return *s
 	}
 	return fallback
+}
+
+func computeWeekEnd(weekStartStr string) (string, error) {
+	const dateLayout = "2006-01-02"
+	weekStart, err := time.Parse(dateLayout, weekStartStr)
+	if err != nil {
+		return "", err
+	}
+	weekEnd := weekStart.AddDate(0, 0, 6)
+	return weekEnd.Format(dateLayout), nil
+
 }
