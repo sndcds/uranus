@@ -69,7 +69,7 @@ type eventsResponse struct {
 }
 
 type EventFilters struct {
-	WeekStartDate    string
+	WeekStart        string
 	DateConditions   string
 	ConditionsStr    string
 	LimitClause      string
@@ -140,6 +140,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (Eve
 	radiusStr, _ := GetContextParam(gc, "radius")
 	offsetStr, _ := GetContextParam(gc, "offset")
 	limitStr, _ := GetContextParam(gc, "limit")
+	weekStartStr, _ := GetContextParam(gc, "week_start")
 
 	var errBuild error
 
@@ -194,7 +195,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (Eve
 		filters.ArgIndex += 2
 	}
 
-	debugf("dateConditions: %s", filters.DateConditions)
+	// debugf("dateConditions: %s", filters.DateConditions)
 
 	// Other conditions
 	filters.ArgIndex, errBuild = sql_utils.BuildTimeCondition(
@@ -306,7 +307,6 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (Eve
 
 	filters.ArgIndex, errBuild = sql_utils.BuildPriceCondition(
 		priceStr, "ep.price_type", "ep.currency", "ep.min_price", "ep.max_price", "price", filters.ArgIndex, &conditions, &filters.Args)
-	debugf("priceStr: %s", priceStr)
 	if errBuild != nil {
 		return filters, errBuild
 	}
@@ -349,6 +349,10 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (Eve
 		if errBuild != nil {
 			return filters, errBuild
 		}
+	}
+
+	if app.IsValidDateStr(weekStartStr) {
+		filters.WeekStart = weekStartStr
 	}
 
 	// Join all conditions
@@ -515,7 +519,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 }
 
 func (h *ApiHandler) GetEventsWeek(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "get-events-weekl")
+	apiRequest := grains_api.NewRequest(gc, "get-events-week")
 	ctx := gc.Request.Context()
 
 	filters, err := h.buildEventFilters(gc, true)
@@ -523,27 +527,28 @@ func (h *ApiHandler) GetEventsWeek(gc *gin.Context) {
 		apiRequest.Error(http.StatusBadRequest, err.Error())
 		return
 	}
-	if filters.WeekStartDate == "" {
+	if filters.WeekStart == "" {
 		apiRequest.Error(http.StatusBadRequest, "week_start is required")
 		return
 	}
 
 	query := app.UranusInstance.SqlGetEventsProjectedWeek
 
-	weekEnd, err := computeWeekEnd(filters.WeekStartDate)
+	weekEnd, err := computeWeekEnd(filters.WeekStart)
 	if err != nil {
 		apiRequest.Error(http.StatusBadRequest, "invalid week_start")
 		return
 	}
 
-	query = strings.Replace(query, "{{week_start}}", filters.WeekStartDate, 1)
-	query = strings.Replace(query, "{{week_end}}", weekEnd, 1)
+	query = strings.Replace(query, "{{week_start}}", filters.WeekStart, -1)
+	query = strings.Replace(query, "{{week_end}}", weekEnd, -1)
 	query = strings.Replace(query, "{{conditions}}", filters.ConditionsStr, 1)
 	query = strings.Replace(query, "{{portal_join}}", filters.PortalJoin, 1)
 	query = strings.Replace(query, "{{portal_conditions}}", filters.PortalConditions, 1)
 
 	rows, err := h.DbPool.Query(ctx, query, filters.Args...)
 	if err != nil {
+		debugf(err.Error())
 		apiRequest.InternalServerError()
 		return
 	}
@@ -567,6 +572,7 @@ func (h *ApiHandler) GetEventsWeek(gc *gin.Context) {
 
 		// SAFE SCAN: only primitives + jsonb as []byte
 		if err := rows.Scan(&day, &eventsRaw, &moreCount); err != nil {
+			debugf(err.Error())
 			apiRequest.InternalServerError()
 			return
 		}
@@ -578,6 +584,7 @@ func (h *ApiHandler) GetEventsWeek(gc *gin.Context) {
 
 		// Validate JSON (prevents corrupt upstream SQL)
 		if !json.Valid(eventsRaw) {
+			debugf(err.Error())
 			apiRequest.InternalServerError()
 			return
 		}
@@ -590,6 +597,7 @@ func (h *ApiHandler) GetEventsWeek(gc *gin.Context) {
 	}
 
 	if err := rows.Err(); err != nil {
+		debugf(err.Error())
 		apiRequest.InternalServerError()
 		return
 	}
@@ -685,7 +693,7 @@ func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 	totalQuery = strings.Replace(totalQuery, "{{portal_join}}", filters.PortalJoin, 1)
 	totalQuery = strings.Replace(totalQuery, "{{portal_conditions}}", filters.PortalConditions, 1)
 
-	debugf("totalQuery: %s", totalQuery)
+	// debugf("totalQuery: %s", totalQuery)
 
 	var totalCount int64
 	err = h.DbPool.QueryRow(gc.Request.Context(), totalQuery, filters.Args...).Scan(&totalCount)
