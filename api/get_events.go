@@ -546,6 +546,15 @@ func (h *ApiHandler) GetEventsWeek(gc *gin.Context) {
 	query = strings.Replace(query, "{{portal_join}}", filters.PortalJoin, 1)
 	query = strings.Replace(query, "{{portal_conditions}}", filters.PortalConditions, 1)
 
+	debugf("filters.ConditionsStr: %v", filters.ConditionsStr)
+	debugf("filters.PortalJoin: %v", filters.PortalJoin)
+	debugf("filters.PortalConditions: %v", filters.PortalConditions)
+	debugf(query)
+	debugf("ARGS (%d):\n", len(filters.Args))
+	for i, arg := range filters.Args {
+		debugf("ARGS[%d]: %#v", i, arg)
+	}
+
 	rows, err := h.DbPool.Query(ctx, query, filters.Args...)
 	if err != nil {
 		debugf(err.Error())
