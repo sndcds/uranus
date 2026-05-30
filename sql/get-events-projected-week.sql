@@ -1,75 +1,76 @@
 WITH week_days AS (
     SELECT generate_series(
-                   '{{week_start}}'::date,
-                   '{{week_end}}'::date,
-                   interval '1 day'
-           )::date AS day
-    ),
+       '{{week_start}}'::date,
+       '{{week_end}}'::date,
+       interval '1 day'
+   )::date AS day
+),
 
-    base AS (
-SELECT
-    edp.event_date_uuid,
-    edp.event_uuid,
-    ep.org_uuid,
+base AS (
+    SELECT
+        edp.event_date_uuid,
+        edp.event_uuid,
+        ep.org_uuid,
 
-    edp.start_date::date AS event_day,
-    edp.start_date,
-    edp.start_time,
+        edp.start_date::date AS event_day,
+        edp.start_date,
+        edp.start_time,
 
-    COALESCE(edp.venue_uuid, ep.venue_uuid) AS venue_uuid,
-    COALESCE(edp.space_uuid, ep.space_uuid) AS space_uuid,
+        COALESCE(edp.venue_uuid, ep.venue_uuid) AS venue_uuid,
+        COALESCE(edp.space_uuid, ep.space_uuid) AS space_uuid,
 
-    ep.title,
-    ep.subtitle,
-    ep.types,
-    ep.image_uuid,
+        ep.title,
+        ep.subtitle,
+        ep.types,
+        ep.image_uuid,
 
-    COALESCE(edp.venue_name, ep.venue_name) AS venue_name,
-    COALESCE(edp.venue_city, ep.venue_city) AS venue_city,
+        COALESCE(edp.venue_name, ep.venue_name) AS venue_name,
+        COALESCE(edp.venue_city, ep.venue_city) AS venue_city,
 
-    ROW_NUMBER() OVER (
-    PARTITION BY edp.start_date::date
-    ORDER BY edp.start_date, edp.start_time, edp.event_date_uuid
-    ) AS rn
+        ROW_NUMBER() OVER (
+           PARTITION BY edp.start_date::date
+            ORDER BY edp.start_date, edp.start_time, edp.event_date_uuid
+        ) AS rn
 
-FROM uranus.event_date_projection edp
-    JOIN uranus.event_projection ep
-ON ep.event_uuid = edp.event_uuid
+    FROM {{schema}}.event_date_projection edp
+    JOIN {{schema}}.event_projection ep
+        ON ep.event_uuid = edp.event_uuid
 
-WHERE ep.release_status IN ('released', 'cancelled', 'deferred', 'rescheduled')
-  AND edp.start_date >= '{{week_start}}'::date
-  AND edp.start_date <= '{{week_end}}'::date
-    ),
+    WHERE ep.release_status IN ('released', 'cancelled', 'deferred', 'rescheduled')
+        AND edp.start_date >= '{{week_start}}'::date
+        AND edp.start_date <= '{{week_end}}'::date
+        {{conditions}}
+),
 
-    daily_counts AS (
-SELECT event_day, COUNT(*) AS total_count
-FROM base
-GROUP BY event_day
-    ),
+daily_counts AS (
+    SELECT event_day, COUNT(*) AS total_count
+    FROM base
+    GROUP BY event_day
+),
 
-    events_agg AS (
-SELECT
-    event_day,
-    jsonb_agg(
-    jsonb_build_object(
-    'event_date_uuid', event_date_uuid,
-    'event_uuid', event_uuid,
-    'org_uuid', org_uuid,
-    'start_date', start_date,
-    'start_time', start_time,
-    'title', title,
-    'subtitle', subtitle,
-    'types', types,
-    'image_uuid', image_uuid,
-    'venue_name', venue_name,
-    'venue_city', venue_city
-    )
-    ORDER BY start_time, event_date_uuid
-    ) AS events
-FROM base
-WHERE rn <= 10
-GROUP BY event_day
-    )
+events_agg AS (
+    SELECT
+        event_day,
+        jsonb_agg(
+            jsonb_build_object(
+                'event_date_uuid', event_date_uuid,
+                'event_uuid', event_uuid,
+                'org_uuid', org_uuid,
+                'start_date', start_date,
+                'start_time', start_time,
+                'title', title,
+                'subtitle', subtitle,
+                'types', types,
+                'image_uuid', image_uuid,
+                'venue_name', venue_name,
+                'venue_city', venue_city
+            )
+            ORDER BY start_time, event_date_uuid
+        ) AS events
+    FROM base
+    WHERE rn <= 10
+    GROUP BY event_day
+)
 
 SELECT
     TO_CHAR(d.day, 'YYYY-MM-DD') AS event_day,
