@@ -24,6 +24,14 @@ base AS (
         ep.types,
         ep.image_uuid,
 
+        ep.categories,
+
+        CASE
+            WHEN edp.release_status IS NULL OR edp.release_status = 'inherited'
+            THEN ep.release_status
+            ELSE edp.release_status
+        END AS release_status,
+
         COALESCE(edp.venue_name, ep.venue_name) AS venue_name,
         COALESCE(edp.venue_city, ep.venue_city) AS venue_city,
 
@@ -62,6 +70,8 @@ events_agg AS (
                 'subtitle', subtitle,
                 'types', types,
                 'image_uuid', image_uuid,
+                'categories', categories,
+                'release_status', release_status,
                 'venue_name', venue_name,
                 'venue_city', venue_city
             )
