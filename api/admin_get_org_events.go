@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
@@ -37,18 +36,21 @@ func (h *ApiHandler) AdminGetOrgEvents(gc *gin.Context) {
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		var err error
-		startStr := gc.Query("start")
-		var startDate time.Time
-		if startStr != "" {
-			startDate, err = time.Parse("2006-01-02", startStr)
-			if err != nil {
+
+		/*
+			startStr := gc.Query("start")
+			var startDate time.Time
+			if startStr != "" {
+				startDate, err = time.Parse("2006-01-02", startStr)
+				if err != nil {
+					startDate = time.Now()
+				}
+			} else {
 				startDate = time.Now()
 			}
-		} else {
-			startDate = time.Now()
-		}
+		*/
 
-		rows, err := tx.Query(ctx, app.UranusInstance.SqlAdminGetOrgEvents, orgUuid, startDate, userUuid)
+		rows, err := tx.Query(ctx, app.UranusInstance.SqlAdminGetOrgEvents, userUuid, orgUuid)
 		if err != nil {
 			debugf(err.Error())
 			return &ApiTxError{
@@ -65,31 +67,37 @@ func (h *ApiHandler) AdminGetOrgEvents(gc *gin.Context) {
 			err := rows.Scan(
 				&e.Uuid,
 				&e.DateUuid,
+				&e.ReleaseStatus,
+				&e.ReleaseDate,
+				&e.Categories,
+				&eventTypesData,
 				&e.Title,
 				&e.Subtitle,
+				&e.ImageUuid,
+				&e.ImageUrl,
+				&e.OnlineLink,
 				&e.OrgUuid,
 				&e.OrgName,
+				&e.OrgCity,
+				&e.VenueUuid,
+				&e.VenueName,
+				&e.VenueCity,
+				&e.SpaceUuid,
+				&e.SpaceName,
+
 				&e.StartDate,
 				&e.StartTime,
 				&e.EndDate,
 				&e.EndTime,
-				&e.ReleaseStatus,
-				&e.ReleaseDate,
-				&e.Categories,
-				&e.VenueUuid,
-				&e.VenueName,
-				&e.SpaceUuid,
-				&e.SpaceName,
-				&e.ImageUuid,
-				&e.ImageUrl,
-				&eventTypesData,
+
 				&e.CanEditEvent,
 				&e.CanDeleteEvent,
 				&e.CanReleaseEvent,
 				&e.CanViewEventInsights,
-				&e.IsOnlineEvent,
-				&e.SeriesIndex,
 				&e.SeriesTotal,
+				&e.SeriesIndex,
+				&e.UpcomingDatesCount,
+				&e.NextDate,
 			)
 			if err != nil {
 				return &ApiTxError{
