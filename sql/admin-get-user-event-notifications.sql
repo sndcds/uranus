@@ -27,7 +27,7 @@ LEFT JOIN LATERAL (
     WHERE ed.event_uuid = e.uuid
 ) ed_min ON true
 
-    LEFT JOIN LATERAL (
+LEFT JOIN LATERAL (
     SELECT MAX(ed.start_date) AS last_event_date
     FROM {{schema}}.event_date ed
     WHERE ed.event_uuid = e.uuid
@@ -38,19 +38,20 @@ JOIN {{schema}}.user_organization_link uol ON uol.org_uuid = o.uuid
 
 CROSS JOIN user_permissions up
 
-WHERE ed_max.last_event_date >= NOW()
-AND e.release_status IN ('draft', 'review')
-AND uol.user_uuid = $1
-AND (
-    (e.release_date IS NOT NULL AND e.release_date <= CURRENT_DATE + $2::int)
-    OR (ed_min.first_event_date IS NOT NULL AND ed_min.first_event_date::date <= CURRENT_DATE + $3::int)
-)
+WHERE (ed_max.last_event_date >= NOW() OR ed_max.last_event_date IS NULL)
+    AND e.release_status IN ('draft', 'review')
+    AND uol.user_uuid = $1
+    AND (
+        (e.release_date IS NOT NULL AND e.release_date <= CURRENT_DATE + $2::int)
+            OR (ed_min.first_event_date IS NOT NULL AND ed_min.first_event_date::date <= CURRENT_DATE + $3::int)
+            OR (ed_min.first_event_date IS NULL)
+    )
 
-AND (
-    CASE
-        WHEN $4 = 'all' THEN
-            (up.permissions & $5::bigint) = $5::bigint
-        ELSE
-            (up.permissions & $5::bigint) <> 0
-        END
-)
+    AND (
+        CASE
+            WHEN $4 = 'all' THEN
+                (up.permissions & $5::bigint) = $5::bigint
+            ELSE
+                (up.permissions & $5::bigint) <> 0
+            END
+    )

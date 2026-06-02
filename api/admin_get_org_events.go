@@ -50,6 +50,7 @@ func (h *ApiHandler) AdminGetOrgEvents(gc *gin.Context) {
 
 		rows, err := tx.Query(ctx, app.UranusInstance.SqlAdminGetOrgEvents, orgUuid, startDate, userUuid)
 		if err != nil {
+			debugf(err.Error())
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
 				Err:  fmt.Errorf("Internal server error: %v", err),
