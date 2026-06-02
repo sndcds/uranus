@@ -79,16 +79,22 @@ base AS (
         ) AS time_series
 
     FROM {{schema}}.event e
+
     LEFT JOIN event_data edt
         ON edt.event_uuid = e.uuid
+            AND (edt.end_date IS NULL OR edt.end_date >= $2::date)
+
     LEFT JOIN {{schema}}.venue v
         ON v.uuid = COALESCE(edt.venue_uuid, e.venue_uuid)
+
     LEFT JOIN {{schema}}.space s
         ON s.uuid = (CASE
             WHEN edt.venue_uuid IS NOT NULL THEN edt.space_uuid
             ELSE e.space_uuid
         END)::uuid
-    LEFT JOIN {{schema}}.organization eo ON eo.uuid = e.org_uuid
+
+    LEFT JOIN {{schema}}.organization eo
+        ON eo.uuid = e.org_uuid
 
     LEFT JOIN LATERAL (
         SELECT jsonb_agg(event_type ORDER BY event_type.type_id, event_type.genre_id) AS event_types
@@ -123,10 +129,13 @@ base AS (
             AND uvl.user_uuid = $3::uuid
 
     WHERE eo.uuid = $1::uuid
-        AND COALESCE(edt.end_date, edt.start_date) >= $2::date
 )
 
 SELECT *
 FROM base
 WHERE can_edit_event OR can_delete_event OR can_release_event OR can_view_event_insights
-ORDER BY start_date NULLS LAST, start_time NULLS LAST
+ORDER BY
+    (date_uuid IS NULL) DESC,
+    uuid,
+    start_date NULLS LAST,
+    start_time NULLS LAST
