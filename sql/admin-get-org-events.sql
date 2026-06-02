@@ -1,141 +1,113 @@
-WITH event_data AS (
+SELECT
+    e.uuid AS uuid,
+    ed.uuid AS date_uuid,
+
+    CASE
+        WHEN ed.release_status IS NULL OR ed.release_status = 'inherited'
+            THEN e.release_status
+        ELSE ed.release_status
+        END
+        AS release_status,
+
+    TO_CHAR(e.release_date, 'YYYY-MM-DD') AS release_date,
+
+    e.categories,
+    et_data.event_types AS event_types,
+    e.title AS event_title,
+    e.subtitle AS event_subtitle,
+    image.uuid AS image_uuid,
+    image.url AS image_url,
+    e.online_link,
+
+    o.uuid AS org_uuid,
+    o.name AS org_name,
+    o.city AS org_city,
+    v.uuid AS venue_uuid,
+    v.name AS venue_name,
+    v.city AS venue_city,
+    s.uuid AS space_uuid,
+    s.name AS space_name,
+
+    TO_CHAR(ed.start_date, 'YYYY-MM-DD') AS start_date,
+    TO_CHAR(ed.start_time, 'HH24:MI') AS start_time,
+    TO_CHAR(ed.end_date, 'YYYY-MM-DD') AS end_date,
+    TO_CHAR(ed.end_time, 'HH24:MI') AS end_time,
+
+    COALESCE((uol.permissions & (1<<25)) <> 0, FALSE) AS can_edit_event,
+    COALESCE((uol.permissions & (1<<26)) <> 0, FALSE) AS can_delete_event,
+    COALESCE((uol.permissions & (1<<27)) <> 0, FALSE) AS can_release_event,
+    COALESCE((uol.permissions & (1<<28)) <> 0, FALSE) AS can_view_event_insights,
+
+    COUNT(ed.uuid) OVER (PARTITION BY e.uuid) AS series_total,
+
+    ROW_NUMBER() OVER (
+	    PARTITION BY e.uuid
+        ORDER BY ed.start_date NULLS LAST, ed.start_time NULLS LAST
+    ) AS series_index,
+
+    COUNT(ed.uuid) FILTER (
+        WHERE ed.start_date >= NOW()
+    ) OVER (PARTITION BY e.uuid) AS upcoming_dates_count,
+
+    TO_CHAR(
+        MIN(ed.start_date) FILTER (
+            WHERE ed.start_date >= NOW()
+        ) OVER (PARTITION BY e.uuid),
+        'YYYY-MM-DD'
+    ) AS next_date
+
+FROM {{schema}}.event e
+
+LEFT JOIN {{schema}}.event_date ed
+    ON ed.event_uuid = e.uuid
+
+JOIN {{schema}}.user_organization_link uol
+    ON uol.org_uuid = e.org_uuid
+        AND uol.user_uuid = $1::uuid
+        AND (uol.permissions & (1 << 25)) <> 0
+
+LEFT JOIN {{schema}}.organization o
+    ON o.uuid = e.org_uuid
+
+LEFT JOIN {{schema}}.venue v
+    ON v.uuid = COALESCE(ed.venue_uuid, e.venue_uuid)
+
+LEFT JOIN {{schema}}.space s
+    ON s.uuid = COALESCE(ed.space_uuid, e.space_uuid)
+
+LEFT JOIN LATERAL (
+    SELECT COALESCE(
+        jsonb_agg(
+            event_type
+            ORDER BY event_type.type_id, event_type.genre_id
+        ),
+        '[]'::jsonb
+    ) AS event_types
+    FROM (
+        SELECT DISTINCT
+            etl.type_id,
+            etl.genre_id
+        FROM {{schema}}.event_type_link etl
+        WHERE etl.event_uuid = e.uuid
+    ) event_type
+) et_data ON TRUE
+
+
+LEFT JOIN LATERAL (
     SELECT
-        ed.uuid AS event_date_uuid,
-        ed.event_uuid,
-        ed.release_status,
-        ed.venue_uuid,
-        ed.space_uuid,
-        ed.start_date,
-        ed.start_time,
-        ed.end_date,
-        ed.end_time,
-        ed.entry_time,
-        ed.duration,
-        ed.accessibility_info
-    FROM {{schema}}.event_date ed
-),
+        pil.pluto_image_uuid AS uuid,
+        format('{{base_api_url}}/api/image/%s', pil.pluto_image_uuid::text) AS url
+    FROM {{schema}}.pluto_image_link pil
+    WHERE pil.context = 'event'
+        AND pil.context_uuid = e.uuid
+        AND pil.identifier = 'main'
+    LIMIT 1
+) image ON TRUE
 
-base AS (
-    SELECT
-        e.uuid AS uuid,
-        edt.event_date_uuid AS date_uuid,
-        e.title,
-        e.subtitle,
-        e.org_uuid,
-        eo.name AS org_name,
+WHERE e.org_uuid = $2::uuid
+    AND (ed.start_date IS NULL OR ed.start_date >= NOW())
 
-        TO_CHAR(edt.start_date, 'YYYY-MM-DD') AS start_date,
-        TO_CHAR(edt.start_time, 'HH24:MI') AS start_time,
-        TO_CHAR(edt.end_date, 'YYYY-MM-DD') AS end_date,
-        TO_CHAR(edt.end_time, 'HH24:MI') AS end_time,
-
-        COALESCE(
-            NULLIF(edt.release_status, 'inherited'),
-            e.release_status
-        ) AS release_status,
-
-        TO_CHAR(e.release_date, 'YYYY-MM-DD') AS release_date,
-        e.categories,
-
-        v.uuid AS venue_uuid,
-        v.name AS venue_name,
-        s.uuid AS space_uuid,
-        s.name AS space_name,
-
-        main_image_link.image_uuid,
-        main_image_link.image_url,
-
-        et_data.event_types,
-
-        (   COALESCE((uel.permissions & (1<<25)) <> 0, FALSE)
-                OR COALESCE((uol.permissions & (1<<25)) <> 0, FALSE)
-                OR COALESCE((uvl.permissions & (1<<25)) <> 0, FALSE)
-        ) AS can_edit_event,
-
-        (   COALESCE((uel.permissions & (1<<26)) <> 0, FALSE)
-                OR COALESCE((uol.permissions & (1<<26)) <> 0, FALSE)
-                OR COALESCE((uvl.permissions & (1<<26)) <> 0, FALSE)
-        ) AS can_delete_event,
-
-        (   COALESCE((uel.permissions & (1<<27)) <> 0, FALSE)
-                OR COALESCE((uol.permissions & (1<<27)) <> 0, FALSE)
-                OR COALESCE((uvl.permissions & (1<<27)) <> 0, FALSE)
-        ) AS can_release_event,
-
-        (   COALESCE((uel.permissions & (1<<28)) <> 0, FALSE)
-                OR COALESCE((uol.permissions & (1<<28)) <> 0, FALSE)
-                OR COALESCE((uvl.permissions & (1<<28)) <> 0, FALSE)
-        ) AS can_view_event_insights,
-
-        (online_link IS NOT NULL) AS is_online_event,
-
-        ROW_NUMBER() OVER (
-            PARTITION BY e.uuid
-            ORDER BY edt.start_date NULLS LAST, edt.start_time NULLS LAST
-        ) AS time_series_index,
-
-        COUNT(edt.event_date_uuid) OVER (
-            PARTITION BY e.uuid
-        ) AS time_series
-
-    FROM {{schema}}.event e
-
-    LEFT JOIN event_data edt
-        ON edt.event_uuid = e.uuid
-            AND (edt.end_date IS NULL OR edt.end_date >= $2::date)
-
-    LEFT JOIN {{schema}}.venue v
-        ON v.uuid = COALESCE(edt.venue_uuid, e.venue_uuid)
-
-    LEFT JOIN {{schema}}.space s
-        ON s.uuid = (CASE
-            WHEN edt.venue_uuid IS NOT NULL THEN edt.space_uuid
-            ELSE e.space_uuid
-        END)::uuid
-
-    LEFT JOIN {{schema}}.organization eo
-        ON eo.uuid = e.org_uuid
-
-    LEFT JOIN LATERAL (
-        SELECT jsonb_agg(event_type ORDER BY event_type.type_id, event_type.genre_id) AS event_types
-        FROM (
-            SELECT DISTINCT etl.type_id, etl.genre_id
-            FROM {{schema}}.event_type_link etl
-            WHERE etl.event_uuid = e.uuid
-        ) event_type
-    ) et_data ON TRUE
-
-    LEFT JOIN LATERAL (
-        SELECT
-            pil.pluto_image_uuid AS image_uuid,
-            format('{{base_api_url}}/api/image/%s', pil.pluto_image_uuid::text) AS image_url
-        FROM {{schema}}.pluto_image_link pil
-        WHERE pil.context = 'event'
-            AND pil.context_uuid = e.uuid
-            AND pil.identifier = 'main'
-        LIMIT 1
-    ) main_image_link ON TRUE
-
-    LEFT JOIN {{schema}}.user_event_link uel
-        ON uel.event_uuid = e.uuid
-            AND uel.user_uuid = $3::uuid
-
-    INNER JOIN {{schema}}.user_organization_link uol
-        ON uol.org_uuid = e.org_uuid
-            AND uol.user_uuid = $3::uuid
-
-    LEFT JOIN {{schema}}.user_venue_link uvl
-        ON uvl.venue_uuid = e.venue_uuid
-            AND uvl.user_uuid = $3::uuid
-
-    WHERE eo.uuid = $1::uuid
-)
-
-SELECT *
-FROM base
-WHERE can_edit_event OR can_delete_event OR can_release_event OR can_view_event_insights
 ORDER BY
-    (date_uuid IS NULL) DESC,
-    uuid,
+    (ed.uuid IS NULL) DESC,
     start_date NULLS LAST,
     start_time NULLS LAST

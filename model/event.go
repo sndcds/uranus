@@ -244,15 +244,18 @@ type AdminListEvent struct {
 	ReleaseStatus        *string     `json:"release_status"`
 	ReleaseDate          *string     `json:"release_date,omitempty"`
 	Categories           *[]int      `json:"categories,omitempty"`
+	EventTypes           []EventType `json:"event_types,omitempty"`
 	CanEditEvent         bool        `json:"can_edit_event"`
 	CanDeleteEvent       bool        `json:"can_delete_event"`
 	CanReleaseEvent      bool        `json:"can_release_event"`
 	CanViewEventInsights bool        `json:"can_view_event_insights"`
-	IsOnlineEvent        bool        `json:"is_online_event"`
+	OnlineLink           *string     `json:"online_link"`
 	OrgUuid              string      `json:"org_uuid"`
 	OrgName              *string     `json:"org_name"`
+	OrgCity              *string     `json:"org_city"`
 	VenueUuid            *string     `json:"venue_uuid,omitempty"`
 	VenueName            *string     `json:"venue_name,omitempty"`
+	VenueCity            *string     `json:"venue_city,omitempty"`
 	SpaceUuid            *string     `json:"space_uuid,omitempty"`
 	SpaceName            *string     `json:"space_name,omitempty"`
 	ImageUuid            *string     `json:"image_uuid,omitempty"`
@@ -265,7 +268,8 @@ type AdminListEvent struct {
 	EndTime              *string     `json:"end_time,omitempty"`
 	Title                string      `json:"title"`
 	Subtitle             *string     `json:"subtitle,omitempty"`
-	EventTypes           []EventType `json:"event_types,omitempty"`
+	UpcomingDatesCount   int         `json:"upcoming_dates_count,omitempty"`
+	NextDate             *string     `json:"next_date,omitempty"`
 }
 
 // UserEventNotification contains a single event notification
