@@ -1,8 +1,6 @@
 package model
 
-import (
-	"time"
-)
+import "time"
 
 /*
 type TicketFlag string
@@ -274,14 +272,27 @@ type AdminListEvent struct {
 
 // UserEventNotification contains a single event notification
 type UserEventNotification struct {
-	EventUuid         string     `json:"event_uuid"`
-	EventTitle        string     `json:"event_title"`
-	OrgUuid           string     `json:"org_uuid"`
-	OrgName           *string    `json:"org_name,omitempty"`
-	ReleaseDate       *time.Time `json:"release_date,omitempty"`
-	ReleaseStatus     string     `json:"release_status"`
-	EarliestEventDate *time.Time `json:"earliest_event_date,omitempty"`
-	LatestEventDate   *time.Time `json:"latest_event_date,omitempty"`
-	DaysUntilRelease  *int       `json:"days_until_release,omitempty"`
-	DaysUntilEvent    *int       `json:"days_until_event,omitempty"`
+	// Event core
+	EventUuid  string `db:"uuid" json:"event_uuid"`
+	EventTitle string `db:"title" json:"event_title"`
+	OrgUuid    string `db:"org_uuid" json:"org_uuid"`
+	OrgName    string `db:"org_name" json:"org_name"`
+
+	// Venue (nullable)
+	VenueUuid *string `db:"venue_uuid" json:"venue_uuid"`
+	VenueName *string `db:"venue_name" json:"venue_name"`
+	VenueCity *string `db:"venue_city" json:"venue_city"`
+
+	// Release / schedule
+	ReleaseStatus      *string    `db:"release_status" json:"release_status"`
+	FirstDate          *time.Time `db:"first_date" json:"first_date"`
+	DaysUntilFirstDate *int       `db:"days_until_first_date" json:"days_until_first_date"`
+
+	// QA flags
+	NoImage             bool `db:"no_image" json:"no_image"`
+	NoEventDates        bool `db:"no_event_dates" json:"no_event_dates"`
+	NoVenueOrOnlineLink bool `db:"no_venue_or_online_link" json:"no_venue_or_online_link"`
+	NoEventType         bool `db:"no_event_type" json:"no_event_type"`
+	NoTitle             bool `db:"no_title" json:"no_title"`
+	NoUpcomingDate      bool `db:"no_upcoming_date" json:"no_upcoming_date"`
 }
