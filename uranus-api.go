@@ -184,7 +184,7 @@ func main() {
 	adminRoute.GET("/user/messages", apiHandler.AdminGetMessages)      // TODO: Permission check
 	adminRoute.POST("/user/send-message", apiHandler.AdminSendMessage) // TODO: Permission check
 
-	adminRoute.GET("/user/notifications", apiHandler.AdminGetUserNotifications)                 // TODO: Permission check
+	adminRoute.GET("/user/org/:orgUuid/event/notifications", apiHandler.AdminGetUserEventNotifications)
 	adminRoute.GET("/user/choosable-orgs", apiHandler.AdminGetChoosableOrgs)                    // TODO: Permission check
 	adminRoute.GET("/user/choosable-event-venues", apiHandler.AdminGetChoosableUserEventVenues) // TODO: Unused, can be removed!
 
