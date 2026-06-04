@@ -375,7 +375,10 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (Eve
 		filters.ArgIndex++
 
 		filters.PortalConditions = fmt.Sprintf(`
-			AND ST_Contains(p.wkb_geometry, COALESCE(edp.venue_point, ep.venue_point))
+			AND (
+		        p.wkb_geometry IS NULL
+				OR ST_Contains(p.wkb_geometry, COALESCE(edp.venue_point, ep.venue_point))
+			)
 			AND NOT EXISTS (
     			SELECT 1 FROM %s.portal_org_blacklist b
 				WHERE b.portal_uuid = p.uuid AND b.blocked_org_uuid = ep.org_uuid)`,
