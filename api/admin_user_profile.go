@@ -13,15 +13,16 @@ import (
 )
 
 func (h *ApiHandler) AdminGetUserProfile(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "get-user-profile")
+	apiRequest := grains_api.NewRequest(gc, "admin-get-user-profile")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 
-	query := strings.Replace(`
+	query := fmt.Sprintf(`
         SELECT email, username, display_name, first_name, last_name, locale, theme
-        FROM {{schema}}.user
-        WHERE uuid = $1`,
-		"{{schema}}", h.DbSchema, 1)
+        FROM %s.user
+        WHERE uuid = $1
+        `,
+		h.DbSchema)
 
 	var profile model.UserProfileResponse
 	profile.UserUUID = userUuid
@@ -50,7 +51,7 @@ func (h *ApiHandler) AdminGetUserProfile(gc *gin.Context) {
 }
 
 func (h *ApiHandler) AdminUpdateUserProfile(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "put-user-profile")
+	apiRequest := grains_api.NewRequest(gc, "admin-update-user-profile")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 
@@ -71,7 +72,7 @@ func (h *ApiHandler) AdminUpdateUserProfile(gc *gin.Context) {
 
 	// TODO: implement full email validation
 	if !strings.Contains(payload.Email, "@") {
-		apiRequest.Error(http.StatusBadRequest, "invalid email")
+		apiRequest.Error(http.StatusBadRequest, "Invalid email")
 		return
 	}
 
@@ -82,12 +83,12 @@ func (h *ApiHandler) AdminUpdateUserProfile(gc *gin.Context) {
 
 	if err != nil && err != pgx.ErrNoRows {
 		debugf(err.Error())
-		apiRequest.Error(http.StatusBadRequest, "failed to check existing email")
+		apiRequest.Error(http.StatusBadRequest, "Failed to check existing email")
 		return
 	}
 
 	if err == nil && existingUserUuid != userUuid {
-		apiRequest.Error(http.StatusConflict, "email address already exists")
+		apiRequest.Error(http.StatusConflict, "Email address already exists")
 		return
 	}
 
@@ -118,21 +119,21 @@ func (h *ApiHandler) AdminUpdateUserProfile(gc *gin.Context) {
 	)
 	if err != nil {
 		debugf(err.Error())
-		apiRequest.Error(http.StatusBadRequest, "update user profile failed")
+		apiRequest.Error(http.StatusBadRequest, "Update user profile failed")
 		return
 	}
 
-	apiRequest.SuccessNoData(http.StatusOK, "profile updated successfully")
+	apiRequest.SuccessNoData(http.StatusOK, "User profile updated successfully")
 }
 
 func (h *ApiHandler) AdminUpdateUserProfileSettings(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "put-user-profile-settings")
+	apiRequest := grains_api.NewRequest(gc, "admin-update-user-profile-settings")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 
 	var req struct {
-		Locale string `json:"locale" binding:"required"`
-		Theme  string `json:"theme" binding:"required"`
+		Locale *string `json:"locale"`
+		Theme  *string `json:"theme"`
 	}
 
 	if err := gc.ShouldBindJSON(&req); err != nil {
@@ -140,23 +141,42 @@ func (h *ApiHandler) AdminUpdateUserProfileSettings(gc *gin.Context) {
 		return
 	}
 
-	query := fmt.Sprintf(
-		`UPDATE %s.user SET locale = $1, theme = $2 WHERE uuid = $3`,
-		h.DbSchema,
-	)
+	var setClauses []string
+	var args []interface{}
+	argPos := 1
 
-	_, err := h.DbPool.Exec(
-		ctx,
-		query,
-		req.Locale,
-		req.Theme,
-		userUuid,
-	)
-	if err != nil {
-		debugf(err.Error())
-		apiRequest.Error(http.StatusBadRequest, "update user settings failed")
+	if req.Locale != nil {
+		setClauses = append(setClauses, fmt.Sprintf("locale = $%d", argPos))
+		args = append(args, *req.Locale)
+		argPos++
+	}
+
+	if req.Theme != nil {
+		setClauses = append(setClauses, fmt.Sprintf("theme = $%d", argPos))
+		args = append(args, *req.Theme)
+		argPos++
+	}
+
+	if len(setClauses) == 0 {
+		apiRequest.Error(http.StatusBadRequest, "No fields provided")
 		return
 	}
 
-	apiRequest.SuccessNoData(http.StatusOK, "user profile settings updated successfully")
+	query := fmt.Sprintf(
+		`UPDATE %s.user SET %s WHERE uuid = $%d`,
+		h.DbSchema,
+		strings.Join(setClauses, ", "),
+		argPos,
+	)
+
+	args = append(args, userUuid)
+
+	_, err := h.DbPool.Exec(ctx, query, args...)
+	if err != nil {
+		debugf(err.Error())
+		apiRequest.Error(http.StatusBadRequest, "Update user settings failed")
+		return
+	}
+
+	apiRequest.SuccessNoData(http.StatusOK, "User profile settings updated successfully")
 }
