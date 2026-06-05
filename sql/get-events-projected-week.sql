@@ -44,10 +44,13 @@ base AS (
     JOIN {{schema}}.event_projection ep
         ON ep.event_uuid = edp.event_uuid
 
+    {{portal_join}}
+
     WHERE ep.release_status IN ('released', 'cancelled', 'deferred', 'rescheduled')
         AND edp.start_date >= '{{week_start}}'::date
         AND edp.start_date <= '{{week_end}}'::date
         {{conditions}}
+        {{portal_conditions}}
 ),
 
 daily_counts AS (
@@ -61,8 +64,8 @@ events_agg AS (
         event_day,
         jsonb_agg(
             jsonb_build_object(
-                'event_date_uuid', event_date_uuid,
-                'event_uuid', event_uuid,
+                'uuid', event_uuid,
+                'date_uuid', event_date_uuid,
                 'org_uuid', org_uuid,
                 'start_date', start_date,
                 'start_time', start_time,
@@ -78,14 +81,14 @@ events_agg AS (
             ORDER BY start_time, event_date_uuid
         ) AS events
     FROM base
-    WHERE rn <= 10
+    WHERE rn <= 15
     GROUP BY event_day
 )
 
 SELECT
     TO_CHAR(d.day, 'YYYY-MM-DD') AS event_day,
     COALESCE(e.events, '[]'::jsonb) AS events,
-    GREATEST(COALESCE(dc.total_count, 0) - 10, 0) AS more_count
+    GREATEST(COALESCE(dc.total_count, 0) - 15, 0) AS more_count
 
 FROM week_days d
 LEFT JOIN events_agg e ON e.event_day = d.day
