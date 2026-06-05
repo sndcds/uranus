@@ -422,7 +422,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	}
 	defer rows.Close()
 
-	var events []eventResponse
+	events := make([]eventResponse, 0)
 
 	for rows.Next() {
 		var e eventResponse
@@ -677,7 +677,7 @@ func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 		DateCount int `json:"count"`
 	}
 
-	var summary []summaryEntry
+	summary := make([]summaryEntry, 0)
 	for rows.Next() {
 		var s summaryEntry
 		err := rows.Scan(&s.TypeId, &s.DateCount)
