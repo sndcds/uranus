@@ -265,7 +265,7 @@ func (app *Uranus) PrepareSql() error {
 
 		{"sql/choosable-event-genres.sql", &app.SqlChoosableEventGenres, nil},
 		{"sql/get-venues-geojson.sql", &app.SqlGetVenuesGeoJSON, nil},
-		{"sql/get-portal-venues-geojson.sql", &app.SqlPortalGetVenuesGeoJSON, nil},
+		{"sql/get-portal-venues-geojson.sql", &app.SqlGetPortalVenuesGeoJSON, nil},
 
 		{"sql/event-type-genre-lookup.sql", &app.SqlEventTypeGenreLookup, nil},
 		{"sql/choosable-org-venues.sql", &app.SqlChoosableOrgVenues, nil},
