@@ -233,7 +233,7 @@ func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 	event.FurtherDates = furtherDates
 	apiRequest.SetMeta("event_date_count", len(furtherDates)+1)
 
-	apiRequest.Success(http.StatusOK, event, "")
+	apiRequest.Success(http.StatusOK, event)
 }
 
 func intFromAny(v interface{}) int {

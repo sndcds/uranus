@@ -50,5 +50,5 @@ func (h *ApiHandler) GetChoosableCountries(gc *gin.Context) {
 	}
 
 	apiRequest.SetMeta("country_count", len(countries))
-	apiRequest.Success(http.StatusOK, countries, "")
+	apiRequest.Success(http.StatusOK, countries)
 }

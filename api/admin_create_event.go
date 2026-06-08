@@ -46,7 +46,7 @@ type eventPayload struct {
 	MaxAge            *int                              `json:"max_age"`
 	MeetingPoint      *string                           `json:"meeting_point"`
 	MaxAttendees      *int                              `json:"max_attendees"`
-	PriceType         model.PriceType                   `json:"price_type"`
+	PriceType         model.EventPriceType              `json:"price_type"`
 	Currency          *string                           `json:"currency"`
 	TicketLink        *string                           `json:"ticket_link"`
 	TicketFlags       []string                          `json:"ticket_flags"`
@@ -333,7 +333,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		return
 	}
 
-	apiRequest.Success(http.StatusCreated, gin.H{"created_event_id": newEventUuid}, "")
+	apiRequest.Success(http.StatusCreated, gin.H{"created_event_id": newEventUuid})
 }
 
 // Validate validates the eventPayload struct

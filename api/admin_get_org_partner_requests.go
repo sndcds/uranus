@@ -52,5 +52,5 @@ func (h *ApiHandler) AdminGetOrgPartnerRequest(gc *gin.Context) {
 		result.Partners = append(result.Partners, p)
 	}
 
-	apiRequest.Success(http.StatusOK, result, "")
+	apiRequest.Success(http.StatusOK, result)
 }

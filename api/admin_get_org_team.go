@@ -102,5 +102,5 @@ func (h *ApiHandler) AdminGetOrgTeam(gc *gin.Context) {
 		"can_manage_permissions": canManagePermissions,
 	}
 
-	apiRequest.Success(http.StatusOK, result, "")
+	apiRequest.Success(http.StatusOK, result)
 }

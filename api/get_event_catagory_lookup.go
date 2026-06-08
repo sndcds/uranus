@@ -64,5 +64,5 @@ func (h *ApiHandler) GetEventCategoryLookup(gc *gin.Context) {
 	}
 
 	// pass Go object to Success
-	apiRequest.Success(http.StatusOK, filteredData, "")
+	apiRequest.Success(http.StatusOK, filteredData)
 }

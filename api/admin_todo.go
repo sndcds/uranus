@@ -57,7 +57,7 @@ func (h *ApiHandler) AdminUserGetTodos(gc *gin.Context) {
 		return
 	}
 
-	apiRequest.Success(http.StatusOK, gin.H{"todos": todos, "total_count": len(todos)}, "")
+	apiRequest.Success(http.StatusOK, gin.H{"todos": todos, "total_count": len(todos)})
 }
 
 func (h *ApiHandler) AdminGetTodo(gc *gin.Context) {
@@ -91,7 +91,7 @@ func (h *ApiHandler) AdminGetTodo(gc *gin.Context) {
 		return
 	}
 
-	apiRequest.Success(http.StatusOK, gin.H{"todo": todo}, "")
+	apiRequest.Success(http.StatusOK, gin.H{"todo": todo})
 }
 
 func (h *ApiHandler) AdminUpsertTodo(gc *gin.Context) {

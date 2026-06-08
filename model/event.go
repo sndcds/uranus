@@ -2,25 +2,23 @@ package model
 
 import "time"
 
-/*
-type TicketFlag string
+type EventTicketFlag string
 
 const (
-	AdvanceTicket        TicketFlag = "advance_ticket"
-	TicketRequired       TicketFlag = "ticket_required"
-	OnSiteTicketSales    TicketFlag = "on_site_ticket_sales"
-	RegistrationRequired TicketFlag = "registration_required"
+	EventAdvanceTicket         EventTicketFlag = "advance_ticket"
+	EventPresaleFeeApplies     EventTicketFlag = "presale_fee_applies"
+	EventSiteTicketSales       EventTicketFlag = "on_site_ticket_sales"
+	EventReducedPriceAvailable EventTicketFlag = "reduced_price_available"
 )
-*/
 
-type PriceType string
+type EventPriceType string
 
 const (
-	NotSpecified PriceType = "not_specified"
-	RegularPrice PriceType = "regular_price"
-	Free         PriceType = "free"
-	Donation     PriceType = "donation"
-	TieredPrices PriceType = "tiered_prices"
+	NotSpecified EventPriceType = "not_specified"
+	RegularPrice EventPriceType = "regular_price"
+	Free         EventPriceType = "free"
+	Donation     EventPriceType = "donation"
+	TieredPrices EventPriceType = "tiered_prices"
 )
 
 type EventTypeGenrePairPayload struct {
@@ -190,7 +188,7 @@ type AdminEvent struct {
 	MinAge               *int             `json:"min_age,omitempty"`
 	MaxAge               *int             `json:"max_age,omitempty"`
 	MaxAttendees         *int             `json:"max_attendees,omitempty"`
-	PriceType            PriceType        `json:"price_type,omitempty"`
+	PriceType            EventPriceType   `json:"price_type,omitempty"`
 	MinPrice             *float64         `json:"min_price,omitempty"`
 	MaxPrice             *float64         `json:"max_price,omitempty"`
 	TicketFlags          []string         `json:"ticket_flags,omitempty"`

@@ -155,7 +155,7 @@ func (h *ApiHandler) GetVenue(gc *gin.Context) {
 		}
 	}
 
-	apiRequest.Success(http.StatusOK, venue, "")
+	apiRequest.Success(http.StatusOK, venue)
 }
 
 func imageURL(uuid *string) *string {

@@ -130,5 +130,5 @@ func (h *ApiHandler) AdminGetOrgEvents(gc *gin.Context) {
 	canAddEvent := orgPermissions.Has(app.UserPermAddEvent)
 	apiRequest.SetMeta("can_add_event", canAddEvent)
 	apiRequest.SetMeta("total_events", len(events))
-	apiRequest.Success(http.StatusOK, events, "")
+	apiRequest.Success(http.StatusOK, events)
 }

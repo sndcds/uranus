@@ -80,9 +80,9 @@ func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
 
 	apiRequest.SetMeta("venue_count", len(venues))
 	if len(venues) == 0 {
-		apiRequest.Success(http.StatusOK, []Venue{}, "")
+		apiRequest.Success(http.StatusOK, []Venue{})
 		return
 	}
 
-	apiRequest.Success(http.StatusOK, venues, "")
+	apiRequest.Success(http.StatusOK, venues)
 }

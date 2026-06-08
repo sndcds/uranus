@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log"
 	"strconv"
 
 	"github.com/gin-contrib/gzip"
@@ -30,12 +31,12 @@ func main() {
 	var err error
 	app.UranusInstance, err = app.Initialize(*configFileName)
 	if err != nil {
-		fmt.Println(err.Error())
-		panic(err)
+		log.Fatal(err)
 	}
 
 	err = app.UranusInstance.CheckAllDatabaseConsistency(context.Background())
 	if err != nil {
+		fmt.Println("Uranus database not consistent")
 		fmt.Println(err.Error())
 		panic(err)
 	}

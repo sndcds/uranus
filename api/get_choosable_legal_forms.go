@@ -59,5 +59,5 @@ func (h *ApiHandler) GetChoosableLegalForms(gc *gin.Context) {
 	}
 
 	apiRequest.SetMeta("legal_form_count", len(legalForms))
-	apiRequest.Success(http.StatusOK, legalForms, "")
+	apiRequest.Success(http.StatusOK, legalForms)
 }

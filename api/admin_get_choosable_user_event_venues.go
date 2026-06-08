@@ -59,7 +59,7 @@ func (h *ApiHandler) AdminGetChoosableUserEventVenues(gc *gin.Context) {
 	}
 
 	if len(venueInfos) == 0 {
-		apiRequest.Success(http.StatusOK, []model.VenueInfo{}, "")
+		apiRequest.Success(http.StatusOK, []model.VenueInfo{})
 		return
 	}
 
@@ -68,5 +68,5 @@ func (h *ApiHandler) AdminGetChoosableUserEventVenues(gc *gin.Context) {
 		"venue_infos": venueInfos,
 	}
 
-	apiRequest.Success(http.StatusOK, result, "")
+	apiRequest.Success(http.StatusOK, result)
 }

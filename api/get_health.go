@@ -104,7 +104,7 @@ func (h *ApiHandler) GetHealth(gc *gin.Context) {
 		Temperature: temps,
 	}
 
-	apiRequest.Success(http.StatusOK, resp, "")
+	apiRequest.Success(http.StatusOK, resp)
 }
 
 // Helper function to read a metric safely

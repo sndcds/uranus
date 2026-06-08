@@ -58,5 +58,5 @@ func (h *ApiHandler) GetChoosableLicenseTypes(gc *gin.Context) {
 	}
 
 	apiRequest.SetMeta("license_count", len(licences))
-	apiRequest.Success(http.StatusOK, licences, "")
+	apiRequest.Success(http.StatusOK, licences)
 }

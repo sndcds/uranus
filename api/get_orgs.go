@@ -60,5 +60,5 @@ func (h *ApiHandler) GetOrgs(gc *gin.Context) {
 		return
 	}
 	apiRequest.SetMeta("organization_count", len(organizations))
-	apiRequest.Success(http.StatusOK, organizations, "")
+	apiRequest.Success(http.StatusOK, organizations)
 }

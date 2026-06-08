@@ -52,5 +52,5 @@ func (h *ApiHandler) GetChoosableStates(gc *gin.Context) {
 	}
 
 	apiRequest.SetMeta("state_count", len(states))
-	apiRequest.Success(http.StatusOK, states, "")
+	apiRequest.Success(http.StatusOK, states)
 }

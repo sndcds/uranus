@@ -62,5 +62,5 @@ func (h *ApiHandler) GetChoosableVenueTypes(gc *gin.Context) {
 	}
 
 	apiRequest.SetMeta("venue_type_count", len(venueTypes))
-	apiRequest.Success(http.StatusOK, venueTypes, "")
+	apiRequest.Success(http.StatusOK, venueTypes)
 }

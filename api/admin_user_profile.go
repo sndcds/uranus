@@ -47,7 +47,7 @@ func (h *ApiHandler) AdminGetUserProfile(gc *gin.Context) {
 
 	profile.AvatarUrl = app.GetAvatarURL(h.Config.BaseApiUrl, h.Config.ProfileImageDir, userUuid, 64)
 
-	apiRequest.Success(http.StatusOK, profile, "")
+	apiRequest.Success(http.StatusOK, profile)
 }
 
 func (h *ApiHandler) AdminUpdateUserProfile(gc *gin.Context) {

@@ -1,9 +1,11 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
 )
@@ -26,31 +28,48 @@ func (h *ApiHandler) AdminGetOrg(gc *gin.Context) {
 		return
 	}
 
-	query := app.UranusInstance.SqlGetAdminOrg
-	rows, err := h.DbPool.Query(ctx, query, orgUuid, userUuid)
-	if err != nil {
-		debugf(err.Error())
-		apiRequest.Error(http.StatusInternalServerError, "query failed (#1)")
+	var data map[string]interface{}
+
+	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
+
+		txErr := h.CheckOrgPermissionTx(gc, tx, userUuid, orgUuid, app.UserPermEditOrg)
+		if txErr != nil {
+			return txErr
+		}
+
+		query := app.UranusInstance.SqlAdminGetOrg
+		rows, err := tx.Query(ctx, query, orgUuid, userUuid)
+		if err != nil {
+			return TxInternalError(err)
+		}
+		defer rows.Close()
+
+		if !rows.Next() {
+			return &ApiTxError{
+				Code: http.StatusNotFound,
+				Err:  fmt.Errorf("organization not found"),
+			}
+		}
+
+		fieldDescriptions := rows.FieldDescriptions()
+		values, err := rows.Values()
+		if err != nil {
+			return TxInternalError(err)
+		}
+
+		data = make(map[string]interface{}, len(values))
+		for i, fd := range fieldDescriptions {
+			data[string(fd.Name)] = values[i]
+		}
+
+		return nil
+	})
+
+	if txErr != nil {
+		debugf(txErr.Error())
+		apiRequest.Error(txErr.Code, txErr.Error())
 		return
 	}
-	defer rows.Close()
 
-	if !rows.Next() {
-		apiRequest.Error(http.StatusNotFound, "organization not found")
-		return
-	}
-
-	fieldDescriptions := rows.FieldDescriptions()
-	values, err := rows.Values()
-	if err != nil {
-		apiRequest.Error(http.StatusInternalServerError, "query failed (#2)")
-		return
-	}
-
-	data := make(map[string]interface{}, len(values))
-	for i, fd := range fieldDescriptions {
-		data[string(fd.Name)] = values[i]
-	}
-
-	apiRequest.Success(http.StatusOK, data, "organization found")
+	apiRequest.Success(http.StatusOK, data)
 }
