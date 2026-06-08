@@ -79,5 +79,5 @@ func (h *ApiHandler) AdminGetOrgPartnerGrants(gc *gin.Context) {
 		return
 	}
 
-	apiRequest.Success(http.StatusOK, result, "")
+	apiRequest.Success(http.StatusOK, result)
 }

@@ -86,5 +86,5 @@ func (h *ApiHandler) AdminGetOrgPortals(gc *gin.Context) {
 	canAddPortal := orgPermissions.Has(app.UserPermAddPortal)
 	apiRequest.SetMeta("can_add_portal", canAddPortal)
 	apiRequest.SetMeta("total_portals", len(portals))
-	apiRequest.Success(http.StatusOK, portals, "")
+	apiRequest.Success(http.StatusOK, portals)
 }

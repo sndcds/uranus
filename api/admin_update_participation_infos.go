@@ -12,17 +12,17 @@ import (
 )
 
 type participationInfoReq struct {
-	ParticipationInfo *string         `json:"participation_info"`
-	MeetingPoint      *string         `json:"meeting_point"`
-	MinAge            *int            `json:"min_age"`
-	MaxAge            *int            `json:"max_age"`
-	MaxAttendees      *int            `json:"max_attendees"`
-	PriceType         model.PriceType `json:"price_type"`
-	MinPrice          *float64        `json:"min_price"`
-	MaxPrice          *float64        `json:"max_price"`
-	Currency          *string         `json:"currency"`
-	TicketFlags       []string        `json:"ticket_flags"`
-	OccasionTypeID    *int            `json:"occasion_type_id"`
+	ParticipationInfo *string              `json:"participation_info"`
+	MeetingPoint      *string              `json:"meeting_point"`
+	MinAge            *int                 `json:"min_age"`
+	MaxAge            *int                 `json:"max_age"`
+	MaxAttendees      *int                 `json:"max_attendees"`
+	PriceType         model.EventPriceType `json:"price_type"`
+	MinPrice          *float64             `json:"min_price"`
+	MaxPrice          *float64             `json:"max_price"`
+	Currency          *string              `json:"currency"`
+	TicketFlags       []string             `json:"ticket_flags"`
+	OccasionTypeID    *int                 `json:"occasion_type_id"`
 }
 
 func (h *ApiHandler) AdminUpdateEventParticipationInfos(gc *gin.Context) {

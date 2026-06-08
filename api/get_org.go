@@ -48,5 +48,5 @@ func (h *ApiHandler) GetOrg(gc *gin.Context) {
 		}
 	}
 
-	apiRequest.Success(http.StatusOK, response, "")
+	apiRequest.Success(http.StatusOK, response)
 }

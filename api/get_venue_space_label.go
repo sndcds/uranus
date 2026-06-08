@@ -67,5 +67,5 @@ func (h *ApiHandler) GetVenueSpaceLabel(gc *gin.Context) {
 		}
 	}
 
-	apiRequest.Success(http.StatusOK, response, "")
+	apiRequest.Success(http.StatusOK, response)
 }

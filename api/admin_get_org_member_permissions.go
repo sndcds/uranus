@@ -98,6 +98,5 @@ func (h *ApiHandler) AdminGetOrgMemberPermissions(gc *gin.Context) {
 			"user_uuid":         memberUserUuid,
 			"user_display_name": memberUserDisplayName,
 			"permissions":       permissions,
-		},
-		"")
+		})
 }

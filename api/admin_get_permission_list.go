@@ -21,7 +21,7 @@ func (h *ApiHandler) AdminGetPermissionsList(gc *gin.Context) {
 	err := h.DbPool.QueryRow(ctx, app.UranusInstance.SqlAdminGetPermissionList, lang).Scan(&permissionsJSON)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			apiRequest.Success(http.StatusOK, gin.H{}, "")
+			apiRequest.Success(http.StatusOK, gin.H{})
 			return
 		}
 		debugf(err.Error())
@@ -36,5 +36,5 @@ func (h *ApiHandler) AdminGetPermissionsList(gc *gin.Context) {
 		return
 	}
 
-	apiRequest.Success(http.StatusOK, result, "")
+	apiRequest.Success(http.StatusOK, result)
 }

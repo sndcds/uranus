@@ -25,7 +25,15 @@ func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 		return
 	}
 
-	query := app.UranusInstance.SqlGetVenuesGeoJSON
+	var query string
+
+	portalUuid := gc.Query("portal-uuid")
+	if portalUuid != "" {
+		query = app.UranusInstance.SqlGetPortalVenuesGeoJSON
+	} else {
+		query = app.UranusInstance.SqlGetVenuesGeoJSON
+	}
+
 	rows, err := h.DbPool.Query(ctx, query, bbox.MinLon, bbox.MinLat, bbox.MaxLon, bbox.MaxLat)
 	if err != nil {
 		debugf(err.Error())
@@ -114,5 +122,5 @@ func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 	}
 
 	apiRequest.SetMeta("venues_count", len(features))
-	apiRequest.Success(http.StatusOK, geojson, "")
+	apiRequest.Success(http.StatusOK, geojson)
 }

@@ -115,7 +115,7 @@ func (h *ApiHandler) AdminGetOrgChoosableVenues(gc *gin.Context) {
 			venues = append(venues, *v)
 		}
 
-		apiRequest.Success(http.StatusOK, Response{Venues: venues}, "")
+		apiRequest.Success(http.StatusOK, Response{Venues: venues})
 		return nil
 	})
 

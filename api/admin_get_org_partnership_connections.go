@@ -100,5 +100,5 @@ func (h *ApiHandler) AdminOrgPartnershipConnections(gc *gin.Context) {
 		})
 	}
 
-	apiRequest.Success(http.StatusOK, result, "")
+	apiRequest.Success(http.StatusOK, result)
 }

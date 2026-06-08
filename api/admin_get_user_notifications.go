@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
@@ -17,7 +18,6 @@ import (
 func (h *ApiHandler) AdminGetUserEventNotifications(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-get-user-event-notifications")
 	ctx := gc.Request.Context()
-
 	userUuid := h.userUuid(gc)
 
 	orgUuid := gc.Param("orgUuid")
@@ -26,7 +26,13 @@ func (h *ApiHandler) AdminGetUserEventNotifications(gc *gin.Context) {
 		return
 	}
 
-	eventLookaheadDays := 14
+	eventLookaheadDays, err := strconv.Atoi(gc.DefaultQuery("event-lookahead-days", "14"))
+	if err != nil {
+		debugf(err.Error())
+		apiRequest.InternalServerError()
+		return
+	}
+	apiRequest.SetMeta("event-lookahead-days", eventLookaheadDays)
 
 	query := app.UranusInstance.SqlAdminGetUserEventNotifications
 
@@ -58,5 +64,5 @@ func (h *ApiHandler) AdminGetUserEventNotifications(gc *gin.Context) {
 		TotalCount:    len(notifications),
 	}
 
-	apiRequest.Success(http.StatusOK, result, "")
+	apiRequest.Success(http.StatusOK, result)
 }

@@ -60,5 +60,5 @@ func (h *ApiHandler) GetPortal(gc *gin.Context) {
 		return
 	}
 
-	apiRequest.Success(http.StatusOK, portal, "")
+	apiRequest.Success(http.StatusOK, portal)
 }

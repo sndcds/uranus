@@ -78,5 +78,5 @@ func (h *ApiHandler) AdminGetOrgList(gc *gin.Context) {
 		result.Organizations = append(result.Organizations, e)
 	}
 
-	apiRequest.Success(http.StatusOK, result, "")
+	apiRequest.Success(http.StatusOK, result)
 }

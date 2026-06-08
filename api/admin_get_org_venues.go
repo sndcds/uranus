@@ -141,7 +141,7 @@ func (h *ApiHandler) AdminGetOrgVenues(gc *gin.Context) {
 	apiRequest.Success(http.StatusOK, gin.H{
 		"can_add_venue": orgPermissions.Has(app.UserPermAddVenue),
 		"venues":        venues,
-	}, "")
+	})
 }
 
 func deref(s *string) string {

@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -40,7 +39,7 @@ type Uranus struct {
 	SqlGetUserOrgPermissions                   string
 	SqlGetUserEffectiveVenuePermissions        string
 	SqlGetUserEventPermissions                 string
-	SqlGetAdminOrg                             string
+	SqlAdminGetOrg                             string
 	SqlInsertOrg                               string
 	SqlUpdateOrg                               string
 	SqlAdminInvitedOrgTeamMember               string
@@ -66,6 +65,7 @@ type Uranus struct {
 	SqlChoosableEventTypes                     string
 	SqlChoosableEventGenres                    string
 	SqlGetVenuesGeoJSON                        string
+	SqlGetPortalVenuesGeoJSON                  string
 	SqlAdminGetOrgList                         string
 	SqlAdminGetOrgPartnerList                  string
 	SqlAdminGetOrgPartnerRequests              string
@@ -120,9 +120,9 @@ func Initialize(configFilePath string) (*Uranus, error) {
 
 	uranus.Config.ProfileImageQuality = ClampFloat32(uranus.Config.ProfileImageQuality, 30, 100)
 
-	uranus.Log("initialize database")
+	uranus.Log("Initialize database")
 	if err := uranus.InitMainDB(); err != nil {
-		return nil, fmt.Errorf("failed to initialize main DB: %w", err)
+		return nil, fmt.Errorf("Failed to initialize database: %w", err)
 	}
 
 	uranus.Log("prepare sql_utils")
@@ -179,7 +179,7 @@ func (uranus *Uranus) CheckAllDatabaseConsistency(ctx context.Context) error {
 
 func (app *Uranus) Log(msg string) {
 	if app.Config.Verbose {
-		fmt.Println("app:", msg)
+		fmt.Println("Uranus:", msg)
 	}
 }
 
@@ -265,6 +265,7 @@ func (app *Uranus) PrepareSql() error {
 
 		{"sql/choosable-event-genres.sql", &app.SqlChoosableEventGenres, nil},
 		{"sql/get-venues-geojson.sql", &app.SqlGetVenuesGeoJSON, nil},
+		{"sql/get-portal-venues-geojson.sql", &app.SqlPortalGetVenuesGeoJSON, nil},
 
 		{"sql/event-type-genre-lookup.sql", &app.SqlEventTypeGenreLookup, nil},
 		{"sql/choosable-org-venues.sql", &app.SqlChoosableOrgVenues, nil},
@@ -281,7 +282,7 @@ func (app *Uranus) PrepareSql() error {
 		{"sql/admin-get-user-effective-venue-permissions.sql", &app.SqlGetUserEffectiveVenuePermissions, nil},
 		{"sql/admin-get-user-event-permissions.sql", &app.SqlGetUserEventPermissions, nil},
 
-		{"sql/admin-get-org.sql", &app.SqlGetAdminOrg, nil},
+		{"sql/admin-get-org.sql", &app.SqlAdminGetOrg, nil},
 		{"sql/admin-insert-org.sql", &app.SqlInsertOrg, nil},
 		{"sql/admin-update-org.sql", &app.SqlUpdateOrg, nil},
 		{"sql/admin-invited-org-team-member.sql", &app.SqlAdminInvitedOrgTeamMember, nil},
@@ -351,16 +352,27 @@ func (app *Uranus) PrepareSql() error {
 }
 
 func (app *Uranus) InitMainDB() error {
-	connStr := fmt.Sprintf("postgres://%s:%s@%s:%d/%s", app.Config.DbUser, app.Config.DbPassword, app.Config.DbHost, app.Config.DbPort, app.Config.DbName)
+	connStr := fmt.Sprintf(
+		"postgres://%s:%s@%s:%d/%s",
+		app.Config.DbUser,
+		app.Config.DbPassword,
+		app.Config.DbHost,
+		app.Config.DbPort,
+		app.Config.DbName,
+	)
 
-	var err error
-	app.MainDbPool, err = pgxpool.New(context.Background(), connStr)
+	pool, err := pgxpool.New(context.Background(), connStr)
 	if err != nil {
-		log.Fatalf("Unable to create connection pool: %v\n", err)
-		return err
+		return fmt.Errorf("Create postgres pool: %w", err)
 	}
 
-	app.Log("database successfully initialized")
+	if err := pool.Ping(context.Background()); err != nil {
+		pool.Close()
+		return fmt.Errorf("Ping postgres: %w", err)
+	}
+
+	app.MainDbPool = pool
+	app.Log("Database successfully initialized")
 
 	return nil
 }

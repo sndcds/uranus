@@ -193,5 +193,5 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 		event.EventDates = append(event.EventDates, date)
 	}
 
-	apiRequest.Success(http.StatusOK, event, "")
+	apiRequest.Success(http.StatusOK, event)
 }

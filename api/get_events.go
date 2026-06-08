@@ -505,7 +505,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			LastEventDateUuid: nil,
 			LastEventStartAt:  nil,
 		}
-		apiRequest.Success(http.StatusOK, response, "")
+		apiRequest.Success(http.StatusOK, response)
 		return
 	}
 
@@ -518,7 +518,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		LastEventStartAt:  &lastEventStartAt,
 	}
 
-	apiRequest.Success(http.StatusOK, response, "")
+	apiRequest.Success(http.StatusOK, response)
 }
 
 func (h *ApiHandler) GetEventsWeek(gc *gin.Context) {
@@ -621,7 +621,7 @@ func (h *ApiHandler) GetEventsWeek(gc *gin.Context) {
 		Days: days,
 	}
 
-	apiRequest.Success(http.StatusOK, response, "")
+	apiRequest.Success(http.StatusOK, response)
 }
 
 func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
@@ -719,7 +719,7 @@ func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 	apiRequest.Success(http.StatusOK, gin.H{
 		"total_event_count": totalCount,
 		"summary":           summary,
-	}, "")
+	})
 }
 
 func (h *ApiHandler) GetEventVenueSummary(gc *gin.Context) {
@@ -905,7 +905,7 @@ func (h *ApiHandler) GetEventsGeoJSON(gc *gin.Context) {
 	// Response with Metadata
 	apiRequest.SetMeta("venue_count", len(features))
 	apiRequest.SetMeta("event_count", totalEvents)
-	apiRequest.Success(http.StatusOK, geojson, "")
+	apiRequest.Success(http.StatusOK, geojson)
 }
 
 func validateAllowedQueryParams(c *gin.Context, allowed map[string]struct{}) error {

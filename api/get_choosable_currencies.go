@@ -55,9 +55,9 @@ func (h *ApiHandler) GetChoosableCurrencies(gc *gin.Context) {
 	}
 
 	if len(options) == 0 {
-		apiRequest.Success(http.StatusOK, []OptionType{}, "")
+		apiRequest.Success(http.StatusOK, []OptionType{})
 		return
 	}
 
-	apiRequest.Success(http.StatusOK, options, "")
+	apiRequest.Success(http.StatusOK, options)
 }

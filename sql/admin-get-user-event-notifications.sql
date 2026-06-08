@@ -13,55 +13,55 @@ WITH event_check AS (
         e.online_link,
 
         COALESCE(
-                e.venue_uuid,
-                (
-                    ARRAY_AGG(ed.venue_uuid)
-                        FILTER (WHERE ed.venue_uuid IS NOT NULL)
-                    )[1]
+            e.venue_uuid,
+            (
+                ARRAY_AGG(ed.venue_uuid)
+                FILTER (WHERE ed.venue_uuid IS NOT NULL)
+            )[1]
         ) AS venue_uuid,
 
-        -- first upcoming date
+        -- First upcoming date
         MIN(ed.start_date) FILTER (
             WHERE ed.start_date >= CURRENT_DATE
         ) AS first_date,
 
         COUNT(ed.uuid) AS event_date_count,
 
-        -- image exists?
+        -- Image exists?
         EXISTS (
             SELECT 1
             FROM {{schema}}.pluto_image_link pil
             WHERE pil.context = 'event'
-              AND pil.context_uuid = e.uuid
-              AND pil.identifier = 'main'
+                AND pil.context_uuid = e.uuid
+                AND pil.identifier = 'main'
         ) AS has_image,
 
-        -- venue exists on event OR any date
+        -- Venue exists on event OR any date
         (
             e.venue_uuid IS NOT NULL
                 OR EXISTS (
-                SELECT 1
-                FROM {{schema}}.event_date ed2
-                WHERE ed2.event_uuid = e.uuid
-                  AND ed2.venue_uuid IS NOT NULL
-            )
-            ) AS has_venue
+                    SELECT 1
+                    FROM {{schema}}.event_date ed2
+                    WHERE ed2.event_uuid = e.uuid
+                        AND ed2.venue_uuid IS NOT NULL
+                )
+        ) AS has_venue
 
-    FROM {{schema}}.event e
+        FROM {{schema}}.event e
 
-             LEFT JOIN {{schema}}.event_date ed
-                       ON ed.event_uuid = e.uuid
+        LEFT JOIN {{schema}}.event_date ed
+            ON ed.event_uuid = e.uuid
 
-    WHERE e.org_uuid = $2::uuid
+        WHERE e.org_uuid = $2::uuid
 
-GROUP BY
-    e.uuid,
-    e.title,
-    e.org_uuid,
-    e.release_status,
-    e.online_link,
-    e.venue_uuid
-    )
+        GROUP BY
+            e.uuid,
+            e.title,
+            e.org_uuid,
+            e.release_status,
+            e.online_link,
+            e.venue_uuid
+)
 
 SELECT
     ec.uuid AS uuid,
@@ -83,7 +83,7 @@ SELECT
     (
         NOT ec.has_venue
             AND COALESCE(NULLIF(TRIM(ec.online_link), ''), '') = ''
-        ) AS no_venue_or_online_link,
+    ) AS no_venue_or_online_link,
 
     NOT EXISTS (
         SELECT 1
@@ -97,21 +97,20 @@ SELECT
 
 FROM event_check ec
 
-         JOIN {{schema}}.user_organization_link uol
-              ON uol.user_uuid = $1::uuid
-		AND uol.org_uuid = $2::uuid
+JOIN {{schema}}.user_organization_link uol
+    ON uol.user_uuid = $1::uuid
+       AND uol.org_uuid = $2::uuid
 
 LEFT JOIN {{schema}}.organization o
-ON o.uuid = ec.org_uuid
+    ON o.uuid = ec.org_uuid
 
-    LEFT JOIN {{schema}}.venue v
+LEFT JOIN {{schema}}.venue v
     ON v.uuid = ec.venue_uuid
 
-WHERE
-    ec.release_status IN ('draft', 'review')
-  AND (
-    ec.event_date_count = 0
-    OR ec.first_date <= CURRENT_DATE + ($3 * interval '1 day')
+WHERE  ec.release_status IN ('draft', 'review')
+    AND (
+        ec.event_date_count = 0
+        OR ec.first_date <= CURRENT_DATE + ($3 * interval '1 day')
     )
 
 ORDER BY
