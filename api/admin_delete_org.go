@@ -30,6 +30,7 @@ func (h *ApiHandler) AdminDeleteOrg(gc *gin.Context) {
 	cmdTag, err := h.DbPool.Exec(ctx, query, orgUuid)
 	if err != nil {
 		debugf(err.Error())
+		apiRequest.SetMeta("error", err.Error())
 		apiRequest.Error(http.StatusInternalServerError, "failed to delete organization")
 		return
 	}
