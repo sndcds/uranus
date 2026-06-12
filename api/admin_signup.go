@@ -101,7 +101,7 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 			return TxInternalError(nil)
 		}
 
-		messageQuery := fmt.Sprintf(`SELECT subject, template FROM %s.system_email_template WHERE context = 'activate-email' AND iso_639_1 = $1`, h.DbSchema)
+		messageQuery := fmt.Sprintf(`SELECT subject, template FROM %s.system_email_template WHERE context = 'user-email-verification' AND iso_639_1 = $1`, h.DbSchema)
 		var subject string
 		var template string
 		err = tx.QueryRow(ctx, messageQuery, lang).Scan(&subject, &template)

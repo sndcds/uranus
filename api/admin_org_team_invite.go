@@ -108,7 +108,7 @@ func (h *ApiHandler) AdminOrgTeamInvite(gc *gin.Context) {
 		err = tx.QueryRow(
 			ctx,
 			app.UranusInstance.SqlGetSystemEmailTemplate,
-			"team-invite-email",
+			"team-invite",
 			lang).
 			Scan(&subject, &template)
 		if err != nil {
