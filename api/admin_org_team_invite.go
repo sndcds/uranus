@@ -141,7 +141,7 @@ func (h *ApiHandler) AdminOrgTeamInvite(gc *gin.Context) {
 			}
 		}
 
-		inviteAcceptUrl := gc.Request.Referer() + "admin/invite/accept?token=" + tokenString
+		inviteAcceptUrl := gc.Request.Referer() + "app/activate/team-invitation?token=" + tokenString
 		emailMessage := strings.Replace(template, "{{invite_link}}", inviteAcceptUrl, -1)
 		emailMessage = strings.Replace(emailMessage, "{{expiry_minutes}}", strconv.Itoa(expiryMinutes), -1)
 		emailMessage = strings.Replace(emailMessage, "{{display_name}}", "Uranus User", -1)
@@ -176,7 +176,6 @@ func (h *ApiHandler) AdminOrgTeamInviteAccept(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-org-team-invite-accept")
 	ctx := gc.Request.Context()
 
-	debugf("AdminOrganizationTeamInviteAccept 1")
 	var req struct {
 		Token string `json:"token"`
 	}
