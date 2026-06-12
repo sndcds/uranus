@@ -67,7 +67,7 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 
 	resetUrl := gc.Request.Referer() + "app/reset-password?token=" + token
 
-	messageQuery := fmt.Sprintf(`SELECT subject, template FROM %s.system_email_template WHERE context = 'reset-email' AND iso_639_1 = $1`, h.DbSchema)
+	messageQuery := fmt.Sprintf(`SELECT subject, template FROM %s.system_email_template WHERE context = 'reset-user-password' AND iso_639_1 = $1`, h.DbSchema)
 	_, err = h.DbPool.Exec(gc, messageQuery, lang)
 	if err != nil {
 		debugf(err.Error())
