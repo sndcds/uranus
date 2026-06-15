@@ -78,7 +78,7 @@ func (h *ApiHandler) AdminOrgTeamInvite(gc *gin.Context) {
 				apiMessage = "user not found"
 				return &ApiTxError{
 					Code: http.StatusNotFound,
-					Err:  errors.New("user not found"),
+					Err:  errors.New(apiMessage),
 				}
 			}
 		}
@@ -132,7 +132,7 @@ func (h *ApiHandler) AdminOrgTeamInvite(gc *gin.Context) {
 				apiMessage = "user is already invited"
 				return &ApiTxError{
 					Code: http.StatusConflict,
-					Err:  errors.New("user is already invited"),
+					Err:  errors.New(apiMessage),
 				}
 			}
 			return &ApiTxError{
@@ -141,10 +141,12 @@ func (h *ApiHandler) AdminOrgTeamInvite(gc *gin.Context) {
 			}
 		}
 
+		displayName := BuildUserLabel(payload.Email, invitedUserDisplayName, invitedUserFirstName, invitedUserLastName)
+
 		inviteAcceptUrl := gc.Request.Referer() + "app/activate/team-invitation?token=" + tokenString
 		emailMessage := strings.Replace(template, "{{invite_link}}", inviteAcceptUrl, -1)
 		emailMessage = strings.Replace(emailMessage, "{{expiry_minutes}}", strconv.Itoa(expiryMinutes), -1)
-		emailMessage = strings.Replace(emailMessage, "{{display_name}}", "Uranus User", -1)
+		emailMessage = strings.Replace(emailMessage, "{{display_name}}", displayName, -1)
 		emailMessage = strings.Replace(emailMessage, "{{organization_name}}", orgName, -1)
 
 		err = sendEmailWithTimeout(payload.Email, subject, emailMessage, 20*time.Second)
