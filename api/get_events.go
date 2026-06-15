@@ -27,6 +27,7 @@ type eventResponse struct {
 	DateUuid                string      `json:"date_uuid"`
 	Title                   string      `json:"title"`
 	Subtitle                *string     `json:"subtitle"`
+	Summary                 *string     `json:"summary"`
 	StartDate               string      `json:"start_date"`
 	StartTime               string      `json:"start_time,omitempty"`
 	EndDate                 *string     `json:"end_date,omitempty"`
@@ -444,6 +445,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			&e.TicketLink,
 			&e.Title,
 			&e.Subtitle,
+			&e.Summary,
 			&e.Categories,
 			&typesJSON,
 			&e.Languages,

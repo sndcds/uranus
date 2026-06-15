@@ -36,7 +36,7 @@ func (h *ApiHandler) AdminDeleteOrgTeamMember(gc *gin.Context) {
 
 	tx, err := h.DbPool.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
-		apiRequest.Error(http.StatusInternalServerError, "transaction failed (#1)")
+		apiRequest.Error(http.StatusInternalServerError, "(#1) transaction failed")
 		return
 	}
 	defer func() {
@@ -50,7 +50,7 @@ func (h *ApiHandler) AdminDeleteOrgTeamMember(gc *gin.Context) {
 		h.DbSchema)
 	_, err = tx.Exec(ctx, query, orgUuid, memberUserId)
 	if err != nil {
-		apiRequest.Error(http.StatusInternalServerError, "failed to delete team member (#1)")
+		apiRequest.Error(http.StatusInternalServerError, "(#1) failed to delete team member")
 		return
 	}
 
