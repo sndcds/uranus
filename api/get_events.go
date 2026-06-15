@@ -69,7 +69,7 @@ type eventsResponse struct {
 	LastEventStartAt  *string         `json:"last_event_start_at"`
 }
 
-type EventFilters struct {
+type eventFilters struct {
 	WeekStart        string
 	DateConditions   string
 	ConditionsStr    string
@@ -87,7 +87,7 @@ type EventFilters struct {
 // - limitClause: SQL LIMIT/OFFSET clause
 // - args: list of query arguments
 // - nextArgIndex: next placeholder index
-func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (EventFilters, error) {
+func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eventFilters, error) {
 	allowed := map[string]struct{}{
 		"categories": {}, "start": {}, "end": {}, "time": {}, "search": {},
 		"events": {}, "venues": {}, "spaces": {}, "space_types": {},
@@ -99,7 +99,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (Eve
 		"language": {}, "portal": {},
 		"week_start": {},
 	}
-	filters := EventFilters{}
+	filters := eventFilters{}
 
 	validationErr := validateAllowedQueryParams(gc, allowed)
 	if validationErr != nil {
@@ -392,7 +392,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (Eve
 func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-events")
 	ctx := gc.Request.Context()
-	filters := EventFilters{}
+	filters := eventFilters{}
 
 	filters, err := h.buildEventFilters(gc, true)
 	if err != nil {
@@ -628,7 +628,7 @@ func (h *ApiHandler) GetEventsWeek(gc *gin.Context) {
 
 func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-events-type-summary")
-	filters := EventFilters{}
+	filters := eventFilters{}
 
 	// Build filters from query params (same as GetEvents)
 	filters, err := h.buildEventFilters(gc, false)
@@ -726,7 +726,7 @@ func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 
 func (h *ApiHandler) GetEventVenueSummary(gc *gin.Context) {
 	// TODO: Use apiRequest
-	filters := EventFilters{}
+	filters := eventFilters{}
 
 	filters, err := h.buildEventFilters(gc, true)
 	if err != nil {
@@ -785,7 +785,7 @@ func (h *ApiHandler) GetEventVenueSummary(gc *gin.Context) {
 func (h *ApiHandler) GetEventsGeoJSON(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-events-geojson")
 	ctx := gc.Request.Context()
-	filters := EventFilters{}
+	filters := eventFilters{}
 
 	filters, err := h.buildEventFilters(gc, true)
 	if err != nil {
