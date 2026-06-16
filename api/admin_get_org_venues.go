@@ -63,8 +63,6 @@ func (h *ApiHandler) AdminGetOrgVenues(gc *gin.Context) {
 		startDate = time.Now() // fallback if param missing
 	}
 
-	debugf("... startDate: %s", startDate)
-
 	var venues []VenueInfo
 	var orgPermissions app.Permissions
 

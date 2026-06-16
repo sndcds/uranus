@@ -161,6 +161,9 @@ func main() {
 	publicRoute.POST("/forgot-password", apiHandler.ForgotPassword)
 	publicRoute.POST("/reset-password", apiHandler.ResetPassword)
 
+	// System Services
+	publicRoute.POST("/event/:eventUuid/refresh-projections", apiHandler.AdminRefreshEventProjections)
+
 	//
 	// Authorized endpoints, user must be logged in
 	//

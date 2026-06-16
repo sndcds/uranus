@@ -100,8 +100,6 @@ func (h *ApiHandler) AdminUpdateEventParticipationInfos(gc *gin.Context) {
 			strings.Join(setClauses, ", "),
 		)
 
-		fmt.Println("query:", query)
-
 		res, err := tx.Exec(ctx, query, args...)
 		if err != nil {
 			return &ApiTxError{

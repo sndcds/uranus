@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -15,10 +14,7 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 
-	fmt.Println("userUuid", userUuid)
-
 	eventUuid := gc.Param("eventUuid")
-	fmt.Println("eventUuid", eventUuid)
 	if eventUuid == "" {
 		gc.JSON(http.StatusBadRequest, gin.H{"error": "eventUuid is required"})
 		return
@@ -30,18 +26,8 @@ func (h *ApiHandler) AdminUpsertEventDate(gc *gin.Context) {
 		return
 	}
 
-	// Convert the struct to JSON for debugging/logging
-	reqJSON, err := json.MarshalIndent(req, "", "  ")
-	if err != nil {
-		fmt.Println("failed to marshal req:", err)
-	} else {
-		fmt.Println(string(reqJSON))
-	}
-
 	eventDateUuid := gc.Param("dateUuid")
 	newEventDateUuid := ""
-
-	fmt.Println("eventDateId", eventDateUuid)
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 
@@ -94,7 +80,6 @@ RETURNING id`, h.DbSchema)
 			}
 		} else {
 			// Update
-			fmt.Println("Update event date")
 
 			query := fmt.Sprintf(`
 UPDATE %s.event_date
@@ -139,7 +124,6 @@ RETURNING id`, h.DbSchema)
 				return ApiErrInternal("%v", err)
 			}
 		}
-		fmt.Println("newEventDateId", newEventDateUuid)
 
 		// Refresh projections
 		if err := RefreshEventProjections(ctx, tx, "event_date", []string{newEventDateUuid}); err != nil {

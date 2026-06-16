@@ -40,7 +40,6 @@ func (h *ApiHandler) AdminInitialEvent(gc *gin.Context) {
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		txErr := h.CheckAllOrgPermissionsTx(gc, tx, userUuid, payload.OrgUuid, app.UserPermAddEvent)
 		if txErr != nil {
-			debugf(".... 1")
 			return txErr
 		}
 
@@ -50,7 +49,6 @@ func (h *ApiHandler) AdminInitialEvent(gc *gin.Context) {
 		eventUuid, err := grains_uuid.Uuidv7String()
 		_, err = tx.Exec(ctx, query, eventUuid, payload.OrgUuid, eventTitle, userUuid)
 		if err != nil {
-			debugf(".... 2")
 			debugf(err.Error())
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,

@@ -40,8 +40,6 @@ func RefreshEventProjections(
 
 	uuids = uniqueStrings(uuids)
 
-	fmt.Println("uuids:", uuids)
-
 	q, ok := queries[sourceTable]
 	if !ok {
 		debugf("unsupported source table: %s", sourceTable)
@@ -62,7 +60,6 @@ func RefreshEventProjections(
 				return err
 			}
 		}
-		fmt.Println("eventUuids:", eventUuids)
 	}
 
 	// Refresh event dates
@@ -79,7 +76,6 @@ func RefreshEventProjections(
 				return err
 			}
 		}
-		fmt.Println("eventDateUuids:", eventDateUuids)
 	}
 
 	return nil
@@ -468,18 +464,6 @@ func fetchUuids(
 		}
 	}
 	return result, nil
-}
-
-func uniqueInts(ids []int) []int {
-	seen := make(map[int]struct{}, len(ids))
-	out := make([]int, 0, len(ids))
-	for _, id := range ids {
-		if _, ok := seen[id]; !ok {
-			seen[id] = struct{}{}
-			out = append(out, id)
-		}
-	}
-	return out
 }
 
 func uniqueStrings(uuids []string) []string {
