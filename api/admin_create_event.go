@@ -108,45 +108,10 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		}
 		return
 	}
-	if decoder.More() {
-		debugf("Error decoder.More()")
+
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
 		apiRequest.Error(http.StatusBadRequest, "multiple JSON objects are not allowed")
 		return
-	}
-
-	// payload is now safe to use, valid JSON, correct types, no unknown fields, safe to use
-	err = json.Unmarshal(body, &payload)
-	if err != nil {
-		var unmarshalTypeError *json.UnmarshalTypeError
-		var syntaxErr *json.SyntaxError
-		var invalidUnmarshalError *json.InvalidUnmarshalError
-		debugf("Error: %v", err)
-
-		switch {
-		case errors.As(err, &syntaxErr):
-			apiRequest.Error(
-				http.StatusBadRequest,
-				fmt.Sprintf("invalid JSON syntax (at offset %d)", syntaxErr.Offset))
-			return
-		case errors.As(err, &unmarshalTypeError):
-			field := unmarshalTypeError.Field
-			if field == "" {
-				field = "(unknown field)"
-			}
-			apiRequest.Error(
-				http.StatusBadRequest,
-				fmt.Sprintf("invalid type for field %q: expected %v but got %v", field, unmarshalTypeError.Type, unmarshalTypeError.Value))
-			return
-		case errors.Is(err, io.EOF):
-			apiRequest.Error(http.StatusBadRequest, "empty request body")
-			return
-		case errors.As(err, &invalidUnmarshalError):
-			apiRequest.Error(http.StatusInternalServerError, "internal server error")
-			return
-		default:
-			apiRequest.Error(http.StatusBadRequest, err.Error())
-			return
-		}
 	}
 
 	// Validation
@@ -220,7 +185,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		).Scan(&newEventUuid)
 		if err != nil {
 			return &ApiTxError{
-				Code: http.StatusForbidden,
+				Code: http.StatusInternalServerError,
 				Err:  fmt.Errorf("failed to insert event: %v, userUuid: %d", err, userUuid),
 			}
 		}
@@ -306,15 +271,6 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 
 		// TODO: Insert languages
 		// TODO: Insert tags
-
-		err = RefreshEventProjections(ctx, tx, "event", []string{newEventUuid})
-		if err != nil {
-			debugf("Error: %v", err)
-			return &ApiTxError{
-				Code: http.StatusInternalServerError,
-				Err:  fmt.Errorf("refresh projection tables failed: %v", err),
-			}
-		}
 
 		err = RefreshEventProjections(ctx, tx, "event", []string{newEventUuid})
 		if err != nil {
