@@ -108,10 +108,7 @@ WHERE e.org_uuid = $2::uuid
     AND (
         ed.start_date IS NULL
         OR ed.start_date >= CURRENT_DATE
-    )
-    AND (
-        ed.end_date IS NULL
-        OR ed.end_date <= CURRENT_DATE
+        OR ed.end_date >= CURRENT_DATE
     )
 
 ORDER BY
