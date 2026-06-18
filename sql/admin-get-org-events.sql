@@ -105,7 +105,14 @@ LEFT JOIN LATERAL (
 ) image ON TRUE
 
 WHERE e.org_uuid = $2::uuid
-    AND (ed.start_date IS NULL OR ed.start_date >= NOW())
+    AND (
+        ed.start_date IS NULL
+        OR ed.start_date <= CURRENT_DATE
+    )
+    AND (
+        ed.end_date IS NULL
+        OR ed.end_date >= CURRENT_DATE
+    )
 
 ORDER BY
     (ed.uuid IS NULL) DESC,
