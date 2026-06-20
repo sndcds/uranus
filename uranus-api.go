@@ -122,6 +122,7 @@ func main() {
 	publicRoute.GET("/orgs", apiHandler.GetOrgs)
 
 	publicRoute.GET("/venue/:venueUuid", apiHandler.GetVenue)
+	publicRoute.GET("/venue/slug/:slug/uuid", apiHandler.GetVenueUuidBySlug)
 	publicRoute.GET("/venue/:venueUuid/space/:spaceUuid/label", apiHandler.GetVenueSpaceLabel)
 
 	publicRoute.GET("/transport/stations", apiHandler.GetTransportStations)
