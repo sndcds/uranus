@@ -41,6 +41,7 @@ SELECT
     COALESCE(edp.space_accessibility_flags, ep.space_accessibility_flags) AS space_accessibility_flags,
     ep.min_age,
     ep.max_age,
+    ep.price_type,
     ep.visitor_info_flags
 
 FROM {{schema}}.event_date_projection edp

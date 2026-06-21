@@ -59,6 +59,7 @@ type eventResponse struct {
 	Tags                    []string    `json:"tags"`
 	MinAge                  *int        `json:"min_age"`
 	MaxAge                  *int        `json:"max_age"`
+	PriceType               *string     `json:"price_type,omitempty"`
 	VisitorInfoFlags        *string     `json:"visitor_info_flags,omitempty"`
 	ReleaseStatus           *string     `json:"release_status,omitempty"`
 }
@@ -466,6 +467,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			&e.SpaceAccessibilityFlags,
 			&e.MinAge,
 			&e.MaxAge,
+			&e.PriceType,
 			&e.VisitorInfoFlags,
 		)
 		if err != nil {
