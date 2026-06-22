@@ -279,13 +279,13 @@ LEFT JOIN LATERAL (
     SELECT pil.pluto_image_uuid
     FROM %[1]s.pluto_image_link pil
     WHERE pil.context = 'event'
-      AND pil.context_uuid = e.uuid
-      AND pil.identifier = 'main'
+    	AND pil.context_uuid = e.uuid
+      	AND pil.identifier = 'main'
     LIMIT 1
 ) main_image ON TRUE
 
 WHERE e.uuid = ANY($1::uuid[])
-  AND ed.start_date >= CURRENT_DATE
+--  AND ed.start_date >= CURRENT_DATE
 ON CONFLICT (event_uuid) DO UPDATE SET
     org_uuid = EXCLUDED.org_uuid,
     venue_uuid = EXCLUDED.venue_uuid,
