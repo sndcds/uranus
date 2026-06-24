@@ -53,6 +53,8 @@ LEFT JOIN LATERAL (
                 'identifier', pil.identifier,
                 'url', format('{{base_api_url}}/api/image/%s', pi.uuid),
                 'alt', pi.alt_text,
+                'width', pi.width,
+                'height', pi.height,
                 'creator', pi.creator_name,
                 'copyright', pi.copyright,
                 'license', COALESCE(lic.key, lic_fallback.key),
