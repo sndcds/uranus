@@ -120,7 +120,7 @@ type EventDetails struct {
 	OrgName              string                  `json:"org_name"`
 	OrgWebLink           *string                 `json:"org_web_link,omitempty"`
 	OrgLogos             map[string]EventOrgLogo `json:"org_logos"`
-	Image                *Image                  `json:"image,omitempty"`       // nested struct for the JSON image
+	Images               map[string]Image        `json:"images,omitempty"`
 	EventTypes           []EventType             `json:"event_types,omitempty"` // typed slice
 	EventLinks           []WebLink               `json:"event_links,omitempty"` // typed slice
 	Date                 *EventDate              `json:"date,omitempty"`

@@ -18,6 +18,8 @@ func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 	lang := gc.DefaultQuery("lang", "en")
 	apiRequest.SetMeta("language", lang)
 
+	portalUuid := gc.Query("portal-uuid")
+
 	bboxStr := gc.Query("bbox")
 	bbox, err := model.ParseBBox(bboxStr)
 	if err != nil {
@@ -26,8 +28,6 @@ func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 	}
 
 	var query string
-
-	portalUuid := gc.Query("portal-uuid")
 	if portalUuid != "" {
 		query = app.UranusInstance.SqlGetPortalVenuesGeoJSON
 	} else {
