@@ -5,6 +5,8 @@ type Image struct {
 	Identifier         string   `json:"identifier"`
 	Url                string   `json:"url"`
 	Alt                *string  `json:"alt,omitempty"`
+	Width              *int32   `json:"width,omitempty"`
+	Height             *int32   `json:"height,omitempty"`
 	Creator            *string  `json:"creator,omitempty"`
 	Copyright          *string  `json:"copyright,omitempty"`
 	Description        *string  `json:"description,omitempty"`

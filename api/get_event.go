@@ -212,6 +212,10 @@ func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 			return
 		}
 
+		if edd.VenueLogoImageUuid != nil {
+			url := ImageUrl(*edd.VenueLogoImageUuid)
+			edd.VenueLogoUrl = &url
+		}
 		if edd.VenueLightThemeLogoImageUuid != nil {
 			url := ImageUrl(*edd.VenueLightThemeLogoImageUuid)
 			edd.VenueLightThemeLogoUrl = &url
