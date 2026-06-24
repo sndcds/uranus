@@ -30,21 +30,7 @@ SELECT
     o.name AS org_name,
     o.web_link AS org_link,
     org_logos,
-
-    CASE
-        WHEN main_image.uuid IS NULL THEN NULL
-        ELSE jsonb_build_object(
-            'uuid', main_image.uuid,
-            'url', format('{{base_api_url}}/api/image/%s', main_image.uuid),
-            'alt', main_image.alt_text,
-            'creator', main_image.creator_name,
-            'copyright', main_image.copyright,
-            'license', main_image.license,
-            'license_name', main_image.license_name,
-            'license_description', main_image.license_description
-        )
-        END AS image,
-
+    images.images,
     et_data.event_types,
     link_data.event_links
 
@@ -57,23 +43,40 @@ LEFT JOIN {{schema}}.venue v ON v.uuid = e.venue_uuid
 -- Space (fallback logic if event has space_uuid)
 LEFT JOIN {{schema}}.space s ON s.uuid = e.space_uuid
 
--- Main image: first pluto_image linked as 'main', include license info
+-- Images
 LEFT JOIN LATERAL (
-    SELECT
-        pi.uuid,
-        pi.alt_text,
-        pi.creator_name,
-        pi.copyright,
-        COALESCE(lic.key, lic_fallback.key) AS license,
-        COALESCE(lic.name, lic_fallback.name) AS license_name,
-        COALESCE(lic.description, lic_fallback.description) AS license_description
+    SELECT COALESCE (
+        jsonb_object_agg(
+            pil.identifier,
+            jsonb_build_object(
+                'uuid', pi.uuid,
+                'identifier', pil.identifier,
+                'url', format('{{base_api_url}}/api/image/%s', pi.uuid),
+                'alt', pi.alt_text,
+                'creator', pi.creator_name,
+                'copyright', pi.copyright,
+                'license', COALESCE(lic.key, lic_fallback.key),
+                'license_name', COALESCE(lic.name, lic_fallback.name),
+                'license_description', COALESCE(lic.description, lic_fallback.description)
+            )
+        ),
+        '{}'::jsonb
+    ) AS images
     FROM {{schema}}.pluto_image_link pil
-    JOIN {{schema}}.pluto_image pi ON pi.uuid = pil.pluto_image_uuid
-    LEFT JOIN {{schema}}.license_i18n lic ON lic.key = pi.license AND lic.iso_639_1 = $2
-    LEFT JOIN {{schema}}.license_i18n lic_fallback ON lic_fallback.key = 'all-rights-reserved' AND lic_fallback.iso_639_1 = $2
-    WHERE pil.context = 'event' AND pil.context_uuid = e.uuid AND pil.identifier = 'main'
-    LIMIT 1
-) main_image ON TRUE
+    JOIN {{schema}}.pluto_image pi
+        ON pi.uuid = pil.pluto_image_uuid
+    LEFT JOIN {{schema}}.license_i18n lic
+        ON lic.key = pi.license
+            AND lic.iso_639_1 = $2
+    LEFT JOIN {{schema}}.license_i18n lic_fallback
+        ON lic_fallback.key = 'all-rights-reserved'
+            AND lic_fallback.iso_639_1 = $2
+    WHERE pil.context = 'event'
+        AND pil.context_uuid = e.uuid
+        AND pil.identifier = ANY(
+            ARRAY['main', 'gallery1', 'gallery2', 'gallery3']
+        )
+) images ON TRUE
 
 LEFT JOIN LATERAL (
     SELECT
@@ -110,11 +113,11 @@ LEFT JOIN LATERAL (
     ) AS event_types
     FROM {{schema}}.event_type_link etl
     JOIN {{schema}}.event_type et
-    ON et.type_id = etl.type_id
-    AND et.iso_639_1 = $2
+        ON et.type_id = etl.type_id
+            AND et.iso_639_1 = $2
     LEFT JOIN {{schema}}.genre_type gt
-    ON gt.genre_id = etl.genre_id
-    AND gt.iso_639_1 = $2
+        ON gt.genre_id = etl.genre_id
+            AND gt.iso_639_1 = $2
     WHERE etl.event_uuid = $1::uuid
 ) et_data ON TRUE
 

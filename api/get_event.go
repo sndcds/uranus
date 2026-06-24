@@ -75,7 +75,7 @@ func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 	}
 
 	var event model.EventDetails
-	var imageJSON []byte
+	var imagesJSON []byte
 	var orgLogosJSON []byte
 	var eventTypesJSON []byte
 	var eventLinksJSON []byte
@@ -112,7 +112,7 @@ func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 		&event.OrgName,
 		&event.OrgWebLink,
 		&orgLogosJSON,
-		&imageJSON,
+		&imagesJSON,
 		&eventTypesJSON,
 		&eventLinksJSON,
 	)
@@ -130,15 +130,15 @@ func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 		}
 	}
 
-	// Unmarshal image JSON
-	if len(imageJSON) > 0 {
-		var image model.Image
-		err = json.Unmarshal(imageJSON, &image)
+	if len(imagesJSON) > 0 && string(imagesJSON) != "null" {
+		var images map[string]model.Image
+		err = json.Unmarshal(imagesJSON, &images)
 		if err != nil {
-			apiRequest.SetMeta("image_error", "invalid JSON")
+			apiRequest.SetMeta("images_error", err.Error())
 		} else {
-			event.Image = &image
+			event.Images = images
 		}
+
 	}
 
 	// Unmarshal event types
