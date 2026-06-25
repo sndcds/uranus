@@ -242,7 +242,7 @@ func main() {
 	adminRoute.POST("/event/:eventUuid/date", apiHandler.AdminUpsertEventDate)             // TODO: Permission check
 	adminRoute.PUT("/event/:eventUuid/date/:dateUuid", apiHandler.AdminUpsertEventDate)    // TODO: Permission check
 	adminRoute.DELETE("/event/:eventUuid", apiHandler.AdminDeleteEvent)                    // Permission check ok
-	adminRoute.DELETE("/event/:eventUuid/date/:dateUuid", apiHandler.AdminDeleteEventDate) // TODO: Permission check
+	adminRoute.DELETE("/event/:eventUuid/date/:dateUuid", apiHandler.AdminDeleteEventDate) // Permission check ok
 
 	adminRoute.POST("/event/initial", apiHandler.AdminInitialEvent)                     // TODO: Permission check
 	adminRoute.POST("/event/create", apiHandler.AdminCreateEvent)                       // TODO: Permission check
