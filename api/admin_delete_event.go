@@ -41,7 +41,12 @@ func (h *ApiHandler) AdminDeleteEvent(gc *gin.Context) {
 			return txErr
 		}
 
-		cmdTag, err := tx.Exec(ctx, app.UranusInstance.SqlAdminDeleteEvent, eventUuid)
+		query := fmt.Sprintf(
+			`DELETE FROM %s.event WHERE uuid = $1::uuid`,
+			h.DbSchema,
+		)
+
+		cmdTag, err := tx.Exec(ctx, query, eventUuid)
 		if err != nil {
 			return TxInternalError(err)
 		}

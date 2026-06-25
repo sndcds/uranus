@@ -5,7 +5,9 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/grains/grains_api"
+	"github.com/sndcds/uranus/app"
 )
 
 func (h *ApiHandler) AdminDeleteEventDate(gc *gin.Context) {
@@ -33,15 +35,41 @@ func (h *ApiHandler) AdminDeleteEventDate(gc *gin.Context) {
 	}
 	apiRequest.SetMeta("event_date_uuid", eventDateUuid)
 
-	query := fmt.Sprintf(`DELETE FROM %s.event_date WHERE uuid = $1::uuid`, h.DbSchema)
-	cmdTag, err := h.DbPool.Exec(ctx, query, eventDateUuid)
-	if err != nil {
-		apiRequest.InternalServerError()
-		return
-	}
+	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 
-	if cmdTag.RowsAffected() == 0 {
-		apiRequest.Error(http.StatusNotFound, "event date not found")
+		// Permission check
+		orgUuid, err := h.GetOrgUuidByEventUuidTx(gc, tx, eventUuid)
+		if err != nil {
+			return TxInternalError(err)
+		}
+
+		txErr := h.CheckOrgPermissionTx(gc, tx, userUuid, orgUuid, app.UserPermDeleteEvent)
+		if txErr != nil {
+			return txErr
+		}
+
+		query := fmt.Sprintf(
+			`DELETE FROM %s.event_date WHERE uuid = $1::uuid AND event_uuid = $2::uuid`,
+			h.DbSchema,
+		)
+		cmdTag, err := tx.Exec(ctx, query, eventDateUuid, eventUuid)
+		if err != nil {
+			return TxInternalError(err)
+		}
+
+		if cmdTag.RowsAffected() == 0 {
+			return &ApiTxError{
+				Code: http.StatusNotFound,
+				Err:  fmt.Errorf("event date not found"),
+			}
+		}
+
+		return nil
+	})
+
+	if txErr != nil {
+		debugf(txErr.Error())
+		apiRequest.Error(txErr.Code, txErr.Message)
 		return
 	}
 
