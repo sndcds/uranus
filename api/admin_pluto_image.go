@@ -119,6 +119,15 @@ func (h *ApiHandler) AdminUpsertPlutoImage(gc *gin.Context) {
 	apiRequest.SuccessNoData(plutoUpsertImageResult.HttpStatus, plutoUpsertImageResult.Message)
 }
 
+func (h *ApiHandler) InternalTest(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "internal-test")
+
+	apiRequest.Success(http.StatusOK, gin.H{
+		"status":  "ok",
+		"message": "internal route works",
+	}, "Internal test successful")
+}
+
 func (h *ApiHandler) AdminCleanupImages(gc *gin.Context) {
 	err := pluto.CleanupImages(gc.Request.Context())
 	if err != nil {

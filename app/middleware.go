@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -48,5 +49,18 @@ func JWTMiddleware(gc *gin.Context) {
 	// 4. Store claims for downstream handlers
 	gc.Set("user-uuid", claims.UserUuid)
 
+	gc.Next()
+}
+
+func LocalhostOnlyMiddleware(gc *gin.Context) {
+	fmt.Println("LocalhostOnlyMiddleware")
+	ip := gc.ClientIP()
+	// allow IPv4 + IPv6 localhost
+	if ip != "127.0.0.1" && ip != "::1" {
+		gc.AbortWithStatusJSON(403, gin.H{
+			"error": "forbidden: localhost only",
+		})
+		return
+	}
 	gc.Next()
 }

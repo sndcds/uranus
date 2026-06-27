@@ -162,14 +162,11 @@ func main() {
 	publicRoute.POST("/forgot-password", apiHandler.ForgotPassword)
 	publicRoute.POST("/reset-password", apiHandler.ResetPassword)
 
-	// System Services
-	publicRoute.POST("/event/:eventUuid/refresh-projections", apiHandler.AdminRefreshEventProjections)
-
 	//
 	// Authorized endpoints, user must be logged in
 	//
 
-	adminRoute := router.Group("/api/admin", app.JWTMiddleware)                       // TODO: Permission check
+	adminRoute := router.Group("/api/admin", app.JWTMiddleware)
 	adminRoute.GET("/event/:eventUuid/date/:dateUuid", apiHandler.GetEventByDateUuid) // TODO: Permission check
 	adminRoute.GET("/permissions/list", apiHandler.AdminGetPermissionsList)           // TODO: Permission check
 	adminRoute.POST("/refresh", apiHandler.Refresh)                                   // TODO: Permission check
@@ -277,17 +274,23 @@ func main() {
 	// Pluto Image
 	adminRoute.POST("/image/:context/:contextUuid/:identifier", apiHandler.AdminUpsertPlutoImage)   // TODO: Permission check
 	adminRoute.DELETE("/image/:context/:contextUuid/:identifier", apiHandler.AdminDeletePlutoImage) // TODO: Permission check
-	adminRoute.GET("/image/cleanup", apiHandler.AdminCleanupImages)
 
-	/*
-		fmt.Println("Gin mode:", gin.Mode())
-		fmt.Println("Total routes:", len(router.Routes()))
+	//
+	// Internal endpoints, callable only from localhost
+	//
 
-		// Print all registered routes
-		for _, route := range router.Routes() {
-			fmt.Printf("%-6s -> %s (%s)\n", route.Method, route.Path, route.Handler)
-		}
-	*/
+	internalRoute := router.Group("/api/internal", app.LocalhostOnlyMiddleware)
+
+	internalRoute.POST("/event/:eventUuid/refresh-projections", apiHandler.AdminRefreshEventProjections)
+	internalRoute.GET("/image/cleanup", apiHandler.AdminCleanupImages)
+	internalRoute.GET("/test", apiHandler.InternalTest)
+
+	fmt.Println("Gin mode:", gin.Mode())
+	fmt.Println("Total routes:", len(router.Routes()))
+	// Print all registered routes
+	for _, route := range router.Routes() {
+		fmt.Printf("%-6s -> %s (%s)\n", route.Method, route.Path, route.Handler)
+	}
 
 	// Start the server (Gin handles everything)
 	port := ":" + strconv.Itoa(app.UranusInstance.Config.Port)
