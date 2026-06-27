@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
 
@@ -54,17 +55,11 @@ func JWTMiddleware(gc *gin.Context) {
 
 func LocalhostOnlyMiddleware(gc *gin.Context) {
 	fmt.Println("LocalhostOnlyMiddleware")
-	fmt.Println("IP check:", gc.ClientIP())
-	fmt.Println("RemoteAddr:", gc.Request.RemoteAddr)
-	fmt.Println("Headers XFF:", gc.GetHeader("X-Forwarded-For"))
-
-	ip := gc.ClientIP()
-	// allow IPv4 + IPv6 localhost
-	if ip != "127.0.0.1" && ip != "::1" {
-		gc.AbortWithStatusJSON(403, gin.H{
-			"error": "forbidden: localhost only",
-		})
+	ip := net.ParseIP(gc.ClientIP())
+	if ip == nil || !ip.IsLoopback() {
+		gc.AbortWithStatusJSON(403, gin.H{"error": "localhost only"})
 		return
 	}
 	gc.Next()
+
 }
