@@ -15,10 +15,15 @@ func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-venues-geojson")
 	ctx := gc.Request.Context()
 
+	apiRequest.SetMeta("api_url", h.Config.BaseApiUrl)
+
 	lang := gc.DefaultQuery("lang", "en")
 	apiRequest.SetMeta("language", lang)
 
 	portalUuid := gc.Query("portal-uuid")
+	if portalUuid != "" {
+		apiRequest.SetMeta("portal_uuid", portalUuid)
+	}
 
 	bboxStr := gc.Query("bbox")
 	bbox, err := model.ParseBBox(bboxStr)
@@ -26,6 +31,7 @@ func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 		apiRequest.Error(http.StatusBadRequest, "invalid bbox")
 		return
 	}
+	apiRequest.SetMeta("bbox", bboxStr)
 
 	var query string
 	if portalUuid != "" {
