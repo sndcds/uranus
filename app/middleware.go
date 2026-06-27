@@ -54,6 +54,10 @@ func JWTMiddleware(gc *gin.Context) {
 
 func LocalhostOnlyMiddleware(gc *gin.Context) {
 	fmt.Println("LocalhostOnlyMiddleware")
+	fmt.Println("IP check:", gc.ClientIP())
+	fmt.Println("RemoteAddr:", gc.Request.RemoteAddr)
+	fmt.Println("Headers XFF:", gc.GetHeader("X-Forwarded-For"))
+
 	ip := gc.ClientIP()
 	// allow IPv4 + IPv6 localhost
 	if ip != "127.0.0.1" && ip != "::1" {

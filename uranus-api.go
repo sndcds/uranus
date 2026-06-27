@@ -62,6 +62,7 @@ func main() {
 	// Create a Gin router
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New() // Use `Default()` for built-in logging and recovery
+	router.SetTrustedProxies([]string{"127.0.0.1", "::1"})
 
 	// Enable gzip compression (recommended level), exclude images and already-compressed data
 	router.Use(gzip.Gzip(
@@ -284,6 +285,7 @@ func main() {
 	internalRoute.POST("/event/:eventUuid/refresh-projections", apiHandler.AdminRefreshEventProjections)
 	internalRoute.GET("/image/cleanup", apiHandler.AdminCleanupImages)
 	internalRoute.GET("/test", apiHandler.InternalTest)
+	fmt.Println("INTERNAL ROUTE REGISTERED")
 
 	fmt.Println("Gin mode:", gin.Mode())
 	fmt.Println("Total routes:", len(router.Routes()))
