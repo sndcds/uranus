@@ -61,7 +61,11 @@ func (h *ApiHandler) AdminGetOrgTeam(gc *gin.Context) {
 		invitedMemberQuery := fmt.Sprintf(`
 			SELECT
 				oml.user_uuid,
-				COALESCE(iu.display_name, iu.first_name || ' ' || iu.last_name) AS invited_by,
+				COALESCE(
+					iu.display_name,
+					NULLIF(CONCAT_WS(' ', iu.first_name, iu.last_name), ''),
+				    iu.email
+				) AS invited_by,
 				oml.invited_at,
 				u.email,
 				u.display_name
