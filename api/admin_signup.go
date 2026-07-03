@@ -16,7 +16,6 @@ import (
 	"github.com/sndcds/grains/grains_uuid"
 	"github.com/sndcds/grains/grains_validation"
 	"github.com/sndcds/uranus/app"
-	"github.com/sndcds/uranus/model"
 )
 
 // Permission to use endpoint checked, 2026-01-11, Roald
@@ -26,31 +25,34 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	lang := gc.DefaultQuery("lang", "en")
 
-	var userCredentials model.UserCredentials
+	var payload struct {
+		Email    string `json:"email" binding:"required,email"`
+		Password string `json:"password" binding:"required"`
+		Referer  string `json:"referer" binding:"required"`
+	}
 
-	err := gc.BindJSON(&userCredentials)
-	if err != nil {
-		apiRequest.InvalidJSONInput()
+	if err := gc.ShouldBindJSON(&payload); err != nil {
+		apiRequest.PayloadError()
 		return
 	}
 
-	if userCredentials.Email == "" || userCredentials.Password == "" {
+	if payload.Email == "" || payload.Password == "" {
 		apiRequest.Error(http.StatusBadRequest, "(#1) email and password required")
 		return
 	}
 
-	err = grains_validation.ValidatePassword(userCredentials.Email, userCredentials.Password, 12)
+	err := grains_validation.ValidatePassword(payload.Email, payload.Password, 12)
 	if err != nil {
 		apiRequest.Error(http.StatusUnprocessableEntity, "(#2) password does not meet security requirements")
 		return
 	}
 
-	if !app.IsValidEmail(userCredentials.Email) {
+	if !app.IsValidEmail(payload.Email) {
 		apiRequest.Error(http.StatusBadRequest, "(#3) invalid email")
 		return
 	}
 
-	passwordHash, err := app.EncryptPassword(userCredentials.Password)
+	passwordHash, err := app.EncryptPassword(payload.Password)
 	if err != nil {
 		debugf(err.Error())
 		apiRequest.InternalServerError()
@@ -61,7 +63,7 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 		// Check if user already exists
 		var exists bool
 		checkQuery := fmt.Sprintf("SELECT EXISTS(SELECT 1 FROM %s.user WHERE email = $1)", h.DbSchema)
-		err = tx.QueryRow(ctx, checkQuery, userCredentials.Email).Scan(&exists)
+		err = tx.QueryRow(ctx, checkQuery, payload.Email).Scan(&exists)
 		if err != nil {
 			return TxInternalError(nil)
 		}
@@ -75,7 +77,7 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 		}
 
 		insertQuery := fmt.Sprintf(`INSERT INTO %s.user (uuid, email, password_hash) VALUES ($1::uuid, $2, $3)`, h.DbSchema)
-		_, err = tx.Exec(ctx, insertQuery, userUuid, userCredentials.Email, passwordHash)
+		_, err = tx.Exec(ctx, insertQuery, userUuid, payload.Email, passwordHash)
 		if err != nil {
 			return TxInternalError(nil)
 		}
@@ -110,12 +112,12 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 		}
 
 		expiryHour = 1
-		signupUrl := gc.Request.Referer() + "app/activate/account?token=" + signupTokenString
+		signupUrl := payload.Referer + "/app/activate/account?token=" + signupTokenString
 
 		emailMessage := strings.Replace(template, "{{link}}", signupUrl, -1)
 		emailMessage = strings.Replace(emailMessage, "{{expiry_hours}}", strconv.Itoa(expiryHour), -1)
 
-		err = sendEmailWithTimeout(userCredentials.Email, subject, emailMessage, 20*time.Second)
+		err = sendEmailWithTimeout(payload.Email, subject, emailMessage, 20*time.Second)
 		if err != nil {
 			return TxInternalError(nil)
 		}

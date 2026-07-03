@@ -48,6 +48,15 @@ func (h *ApiHandler) AdminUpdateVenueFields(gc *gin.Context) {
 		return
 	}
 
+	TrimNullableString(&payload.Name)
+	TrimNullableString(&payload.ContactEmail)
+	TrimNullableString(&payload.ContactPhone)
+	TrimNullableString(&payload.WebLink)
+	TrimNullableString(&payload.Street)
+	TrimNullableString(&payload.HouseNumber)
+	TrimNullableString(&payload.PostalCode)
+	TrimNullableString(&payload.City)
+
 	_, ok, err := ParseNullableDateString(payload.OpenedAt, "opened_at", "2026-01-01")
 	if !ok && err != nil {
 		debugf(err.Error())
