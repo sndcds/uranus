@@ -2,59 +2,108 @@
 <html lang="de">
 <head>
     <meta charset="utf-8">
-    <title>{{ .Event.Title }}</title>
 
-    <meta name="description" content="{{ .Event.Description }}">
-    <meta property="og:image" content="{{ .MainImageURL }}">
+    <title>{{ .Event.Title }}</title>
+    <meta name="description" content="{{ .Event.Summary }}">
+
+    <link rel="canonical" href="https://kulturbytes.de/event/{{ .EventUuid }}/{{ .DateUuid }}">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="event">
     <meta property="og:title" content="{{ .Event.Title }}">
-    <meta property="og:description" content="{{ .Event.Description }}">
+    <meta property="og:description" content="{{ .Event.Summary }}">
+    <meta property="og:url" content="https://kulturbytes.de/event/{{ .EventUuid }}/{{ .DateUuid }}">
+
+    {{ if .MainImageURL }}
+    <meta property="og:image" content="{{ .MainImageURL }}">
+    {{ end }}
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ .Event.Title }}">
+    <meta name="twitter:description" content="{{ .Event.Summary }}">
+    {{ if .MainImageURL }}
+    <meta name="twitter:image" content="{{ .MainImageURL }}">
+    {{ end }}
+
+    <!-- Schema.org JSON-LD -->
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "Event",
+            "name": "{{ .Event.Title }}",
+            "description": "{{ .Event.Summary }}",
+            "image": "{{ .MainImageURL }}",
+            "eventStatus": "https://schema.org/EventScheduled",
+            "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+
+            "startDate": "{{ (index .FurtherDates 0).StartDate }}T{{ (index .FurtherDates 0).StartTime }}",
+
+            "location": {
+                "@type": "Place",
+                "name": "{{ .SelectedDate.VenueName }}",
+                "address": {
+                    "@type": "PostalAddress",
+                    "streetAddress": "{{ .SelectedDate.VenueStreet }} {{ .SelectedDate.VenueHouseNumber }}",
+                    "postalCode": "{{ .SelectedDate.VenuePostalCode }}",
+                    "addressLocality": "{{ .SelectedDate.VenueCity }}",
+                    "addressCountry": "{{ .SelectedDate.VenueCountry }}"
+                }
+            }
+        }
+    </script>
+
 </head>
 
 <body>
 
 {{ if .MainImageURL }}
-<div>
+<figure>
     <img
             src="{{ .MainImageURL }}"
             alt="{{ .Event.Title }}"
             style="width: 100%; height: auto; border-radius: 8px;"
+            loading="eager"
     />
-</div>
+</figure>
 {{ end }}
 
-<h1>{{ .Event.Title }}</h1>
+<main>
 
-<p>{{ .Event.Description }}</p>
+    <h1>{{ .Event.Title }}</h1>
 
-{{ if .SelectedDate }}
-<h2>Termin</h2>
+    <p>{{ .Event.Summary }}</p>
 
-<p>
-    <strong>Datum:</strong> {{ .SelectedDate.StartDate }}<br>
-    <strong>Zeit:</strong> {{ .SelectedDate.StartTime }}{{ if .SelectedDate.EndTime }} – {{ .SelectedDate.EndTime }}{{ end }}<br>
-    <strong>Ort:</strong> {{ .SelectedDate.VenueName }}
-</p>
-{{ end }}
+    {{ if .SelectedDate }}
+    <section>
+        <h2>Termin</h2>
 
-<h2>Weitere Termine</h2>
-
-<ul>
-    {{ range .FurtherDates }}
-    <li>
-        {{ .StartDate }}
-        {{ .StartTime }}
-        –
-        {{ .VenueName }}
-    </li>
+        <p>
+            <strong>Datum:</strong> {{ .SelectedDate.StartDate }}<br>
+            <strong>Zeit:</strong>
+            {{ .SelectedDate.StartTime }}
+            {{ if .SelectedDate.EndTime }} – {{ .SelectedDate.EndTime }}{{ end }}<br>
+            <strong>Ort:</strong> {{ .SelectedDate.VenueName }}
+        </p>
+    </section>
     {{ end }}
-</ul>
 
-<hr>
+    <section>
+        <h2>Weitere Termine</h2>
 
-<p>
-    Event UUID: {{ .EventUuid }}<br>
-    Date UUID: {{ .DateUuid }}
-</p>
+        <ul>
+            {{ range .FurtherDates }}
+            <li>
+                <time datetime="{{ .StartDate }}T{{ .StartTime }}">
+                    {{ .StartDate }} {{ .StartTime }}
+                </time>
+                – {{ .VenueName }}
+            </li>
+            {{ end }}
+        </ul>
+    </section>
+
+</main>
 
 </body>
 </html>
