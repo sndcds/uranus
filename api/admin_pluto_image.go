@@ -192,17 +192,16 @@ func fileNamePrefixByContext(context string) (string, error) {
 	}
 }
 
-func (h *ApiHandler) BuildOGImageURL(imageUUID string) string {
-	if imageUUID == "" {
+func (h *ApiHandler) BuildOGImageURL(imageUuid string) string {
+	if imageUuid == "" {
 		return ""
 	}
 	return fmt.Sprintf(
-		"https://api.kulturbytes.de/api/image/%s?w=%d&h=%d&type=%s&fit=%s&quality=%d",
-		imageUUID,
+		"https://api.kulturbytes.de/api/image/%s?width=%d&ratio=%s&type=%s&fit=%s&quality=%d",
+		imageUuid,
 		1200,
-		630,
+		"16:9",
 		"jpg",
-		"cover",
 		85,
 	)
 }
