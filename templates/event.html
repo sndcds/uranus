@@ -5,9 +5,22 @@
     <title>{{ .Event.Title }}</title>
 
     <meta name="description" content="{{ .Event.Description }}">
+    <meta property="og:image" content="{{ .MainImageURL }}">
+    <meta property="og:title" content="{{ .Event.Title }}">
+    <meta property="og:description" content="{{ .Event.Description }}">
 </head>
 
 <body>
+
+{{ if .MainImageURL }}
+<div>
+    <img
+            src="{{ .MainImageURL }}"
+            alt="{{ .Event.Title }}"
+            style="width: 100%; height: auto; border-radius: 8px;"
+    />
+</div>
+{{ end }}
 
 <h1>{{ .Event.Title }}</h1>
 
