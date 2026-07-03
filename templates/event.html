@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <title>{{ .Event.Title }}</title>
+
+    <meta name="description" content="{{ .Event.Description }}">
+</head>
+
+<body>
+
+<h1>{{ .Event.Title }}</h1>
+
+<p>{{ .Event.Description }}</p>
+
+{{ if .SelectedDate }}
+<h2>Termin</h2>
+
+<p>
+    <strong>Datum:</strong> {{ .SelectedDate.StartDate }}<br>
+    <strong>Zeit:</strong> {{ .SelectedDate.StartTime }}{{ if .SelectedDate.EndTime }} – {{ .SelectedDate.EndTime }}{{ end }}<br>
+    <strong>Ort:</strong> {{ .SelectedDate.VenueName }}
+</p>
+{{ end }}
+
+<h2>Weitere Termine</h2>
+
+<ul>
+    {{ range .FurtherDates }}
+    <li>
+        {{ .StartDate }}
+        {{ .StartTime }}
+        –
+        {{ .VenueName }}
+    </li>
+    {{ end }}
+</ul>
+
+<hr>
+
+<p>
+    Event UUID: {{ .EventUuid }}<br>
+    Date UUID: {{ .DateUuid }}
+</p>
+
+</body>
+</html>

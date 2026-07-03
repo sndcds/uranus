@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"html/template"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sndcds/uranus/app"
@@ -13,9 +15,10 @@ import (
 // TODO: Review code
 
 type ApiHandler struct {
-	Config   *app.Config
-	DbPool   *pgxpool.Pool
-	DbSchema string
+	Config        *app.Config
+	DbPool        *pgxpool.Pool
+	DbSchema      string
+	EventTemplate *template.Template
 }
 
 type ApiTxError struct {

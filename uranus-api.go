@@ -7,6 +7,8 @@ import (
 	"log"
 	"strconv"
 
+	"html/template"
+
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/sndcds/grains/grains_api"
@@ -48,10 +50,13 @@ func main() {
 
 	app.UranusInstance.Config.Print()
 
+	eventTemplate := template.Must(template.ParseFiles("templates/event.html"))
+
 	apiHandler := &api.ApiHandler{
-		Config:   &app.UranusInstance.Config,
-		DbPool:   app.UranusInstance.MainDbPool,
-		DbSchema: app.UranusInstance.Config.DbSchema,
+		Config:        &app.UranusInstance.Config,
+		DbPool:        app.UranusInstance.MainDbPool,
+		DbSchema:      app.UranusInstance.Config.DbSchema,
+		EventTemplate: eventTemplate,
 	}
 
 	_, err = pluto.Initialize(*configFileName, app.UranusInstance.MainDbPool, true)

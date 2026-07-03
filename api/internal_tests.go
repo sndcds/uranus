@@ -1,13 +1,13 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/grains/grains_api"
+	"github.com/sndcds/uranus/model"
 )
 
 func (h *ApiHandler) InternalTest(gc *gin.Context) {
@@ -17,97 +17,39 @@ func (h *ApiHandler) InternalTest(gc *gin.Context) {
 	eventUuid := gc.Param("eventUuid")
 	dateUuid := gc.Param("dateUuid")
 
+	type EventPage struct {
+		Event        model.EventDetails
+		SelectedDate *model.EventDate
+		FurtherDates []model.EventDate
+		EventUuid    string
+		DateUuid     string
+	}
+
 	// Load everything via shared function
-	event, selectedDate, furtherDates, _ := h.LoadEventByDateUuid(
+	event, selectedDate, furtherDates, err := h.LoadEventByDateUuid(
 		gc.Request.Context(),
 		eventUuid,
 		dateUuid,
 		"",
 		"de", // TODO: locale via URL
 	)
+	if err != nil {
+		gc.String(http.StatusNotFound, err.Error())
+		return
+	}
 
 	if crawlerFlag {
 		gc.Header("Content-Type", "text/html; charset=utf-8")
-
-		title := event.Title
-		description := event.Description
-
-		// Build further dates HTML
-		furtherDatesHTML := ""
-
-		for _, d := range furtherDates {
-			furtherDatesHTML += fmt.Sprintf(`
-			<li>
-				<strong>%s</strong>
-				%s %s
-				– %s
-			</li>`,
-				d.StartDate,
-				d.StartDate,
-				d.StartTime,
-				d.VenueName,
-			)
+		data := EventPage{
+			Event:        event,
+			SelectedDate: selectedDate,
+			FurtherDates: furtherDates,
+			EventUuid:    eventUuid,
+			DateUuid:     dateUuid,
 		}
-
-		selectedDateHTML := ""
-		if selectedDate != nil {
-			selectedDateHTML = fmt.Sprintf(`
-			<div>
-				<h3>Selected Date</h3>
-				<p>
-					<strong>Date:</strong> %s<br>
-					<strong>Time:</strong> %s - %s<br>
-					<strong>Venue:</strong> %s
-				</p>
-			</div>`,
-				selectedDate.StartDate,
-				selectedDate.StartTime,
-				selectedDate.EndTime,
-				selectedDate.VenueName,
-			)
+		if err := h.EventTemplate.Execute(gc.Writer, data); err != nil {
+			gc.String(http.StatusInternalServerError, err.Error())
 		}
-
-		html := fmt.Sprintf(`<!DOCTYPE html>
-<html>
-<head>
-    <title>%s</title>
-</head>
-<body>
-
-    <h1>%s</h1>
-    <p>%s</p>
-
-    <hr>
-
-    %s
-
-    <div>
-        <h3>Event IDs</h3>
-        <strong>eventUuid:</strong> %s<br>
-        <strong>dateUuid:</strong> %s<br>
-    </div>
-
-    <hr>
-
-    <div>
-        <h3>All Dates</h3>
-        <ul>
-            %s
-        </ul>
-    </div>
-
-</body>
-</html>`,
-			title,
-			title,
-			description,
-			selectedDateHTML,
-			eventUuid,
-			dateUuid,
-			furtherDatesHTML,
-		)
-
-		gc.String(http.StatusOK, html)
 		return
 	}
 
