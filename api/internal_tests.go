@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
@@ -9,30 +10,49 @@ import (
 )
 
 func (h *ApiHandler) InternalTest(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "internal-test")
+	userAgent := strings.ToLower(gc.GetHeader("User-Agent"))
+	crawlerFlag := IsCrawler(userAgent)
 
-	apiRequest.Success(http.StatusOK, gin.H{
-		"status":  "ok",
-		"message": "internal route works",
-	}, "Internal test successful")
-}
-
-func (h *ApiHandler) InternatGetVenueRelatedEntities(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "admin-get-venue-related-entities")
-	ctx := gc.Request.Context()
-	// userUuid := h.userUuid(gc)
-
-	oldVenueUuid := gc.Query("oldVenueUuid")
-	if oldVenueUuid == "" {
-		apiRequest.Required("oldVenueUuid is required")
+	if crawlerFlag {
+		gc.Header("Content-Type", "text/html; charset=utf-8")
+		gc.String(http.StatusOK, `<!DOCTYPE html>
+<html>
+<head>
+    <title>Internal Test</title>
+</head>
+<body>
+    <h1>80s Party</h1>
+    <p>With DJ Milligramm.</p>
+</body>
+</html>`)
 		return
 	}
 
-	apiRequest.SetMeta("old_venue_uuid", oldVenueUuid)
+	apiRequest := grains_api.NewRequest(gc, "internal-test")
+	apiRequest.Success(http.StatusOK, gin.H{
+		"status":     "ok",
+		"message":    "internal route works",
+		"user_agent": userAgent,
+		"is_crawler": crawlerFlag,
+	}, "Internal test successful")
+}
+
+func (h *ApiHandler) InternalMigrateVenues(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "internal-migrate-venues")
+	ctx := gc.Request.Context()
+	// userUuid := h.userUuid(gc)
+
+	sourceUuid := gc.Query("source-uuid")
+	if sourceUuid == "" {
+		apiRequest.Required("source-uuid is required")
+		return
+	}
+
+	apiRequest.SetMeta("source_uuid", sourceUuid)
 
 	type VenueRelated struct {
-		EventUuidList     []string
-		EventDateUuidList []string
+		EventUuidList     []string `json:"event_uuid_list"`
+		EventDateUuidList []string `json:"event_date_uuid_list"`
 	}
 
 	result := VenueRelated{
@@ -52,7 +72,7 @@ func (h *ApiHandler) InternatGetVenueRelatedEntities(gc *gin.Context) {
 			SELECT 'event_date' AS source, uuid
 			FROM uranus.event_date
 			WHERE venue_uuid = $1
-		`, oldVenueUuid)
+		`, sourceUuid)
 
 		if err != nil {
 			return TxInternalError(err)
@@ -89,4 +109,30 @@ func (h *ApiHandler) InternatGetVenueRelatedEntities(gc *gin.Context) {
 	}
 
 	apiRequest.Success(http.StatusOK, result, "Related venue entities loaded successfully")
+}
+
+func IsCrawler(userAgent string) bool {
+	ua := strings.ToLower(userAgent)
+	bots := []string{
+		"googlebot",
+		"googleother",
+		"adsbot-google",
+		"bingbot",
+		"duckduckbot",
+		"slurp", // Yahoo
+		"baiduspider",
+		"yandexbot",
+		"applebot",
+		"facebookexternalhit",
+		"twitterbot",
+		"linkedinbot",
+		"curl",
+	}
+	for _, bot := range bots {
+		if strings.Contains(ua, bot) {
+			return true
+		}
+	}
+	return false
+
 }

@@ -96,6 +96,9 @@ func main() {
 	// Serve all files in ./static under /static
 	router.Static("/api/info", "./static")
 
+	eventsRoute := router.Group("/event")
+	eventsRoute.GET("/:eventUuid/date/:dateUuid", apiHandler.InternalTest)
+
 	//
 	// Public endpoints
 	//
@@ -285,7 +288,7 @@ func main() {
 	internalRoute.POST("/event/:eventUuid/refresh-projections", apiHandler.AdminRefreshEventProjections)
 	internalRoute.GET("/image/cleanup", apiHandler.InternalCleanupImages)
 	internalRoute.GET("/test", apiHandler.InternalTest)
-	internalRoute.GET("/gvre", apiHandler.InternatGetVenueRelatedEntities)
+	internalRoute.GET("/migrate-venues", apiHandler.InternalMigrateVenues)
 
 	fmt.Println("INTERNAL ROUTE REGISTERED")
 
