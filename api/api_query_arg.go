@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 // NullableField wraps a value that can be null or absent in JSON.
@@ -23,6 +24,13 @@ func (nf *NullableField[T]) UnmarshalJSON(data []byte) error {
 	}
 	nf.Value = &v
 	return nil
+}
+
+func TrimNullableString(f *NullableField[string]) {
+	if f.Set && f.Value != nil {
+		s := strings.TrimSpace(*f.Value)
+		f.Value = &s
+	}
 }
 
 // addUpdateClauseNullable adds a SQL SET clause if the field was present in JSON.

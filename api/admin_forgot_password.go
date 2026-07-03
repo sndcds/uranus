@@ -21,23 +21,24 @@ import (
 
 func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "forgot-password")
+	ctx := gc.Request.Context()
 
-	var req struct {
-		EmailAddress string `json:"email" binding:"required"`
+	var payload struct {
+		Email   string `json:"email" binding:"required,email"`
+		Referer string `json:"referer" binding:"required"`
 	}
 
-	if err := gc.ShouldBindJSON(&req); err != nil {
-		apiRequest.Error(http.StatusBadRequest, "invalid request")
+	if err := gc.ShouldBindJSON(&payload); err != nil {
+		apiRequest.PayloadError()
 		return
 	}
 
-	ctx := gc.Request.Context()
 	lang := gc.DefaultQuery("lang", "en")
 
 	query := fmt.Sprintf("SELECT uuid FROM %s.user WHERE email = $1", h.DbSchema)
 
 	var userUuid string
-	err := h.DbPool.QueryRow(ctx, query, req.EmailAddress).Scan(&userUuid)
+	err := h.DbPool.QueryRow(ctx, query, payload.Email).Scan(&userUuid)
 	if err != nil {
 		debugf(err.Error())
 		apiRequest.InternalServerError()
@@ -65,7 +66,7 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 		return
 	}
 
-	resetUrl := gc.Request.Referer() + "app/reset-password?token=" + token
+	resetUrl := payload.Referer + "/app/reset-password?token=" + token
 
 	messageQuery := fmt.Sprintf(`SELECT subject, template FROM %s.system_email_template WHERE context = 'reset-user-password' AND iso_639_1 = $1`, h.DbSchema)
 	_, err = h.DbPool.Exec(gc, messageQuery, lang)
@@ -89,7 +90,7 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 	emailCtx, cancel := context.WithTimeout(ctx, 10*time.Second) // 10s timeout
 	defer cancel()
 
-	err = sendEmailWithContext(emailCtx, req.EmailAddress, subject, emailContent)
+	err = sendEmailWithContext(emailCtx, payload.Email, subject, emailContent)
 	if err != nil {
 		debugf(err.Error())
 		apiRequest.InternalServerError()
