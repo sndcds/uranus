@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -12,6 +13,11 @@ import (
 func (h *ApiHandler) InternalTest(gc *gin.Context) {
 	userAgent := strings.ToLower(gc.GetHeader("User-Agent"))
 	crawlerFlag := IsCrawler(userAgent)
+
+	eventUuid := gc.Param("eventUuid")
+	dateUuid := gc.Param("dateUuid")
+
+	fmt.Println("eventUuid: %s, dateUuid: %s", eventUuid, dateUuid)
 
 	if crawlerFlag {
 		gc.Header("Content-Type", "text/html; charset=utf-8")

@@ -1,7 +1,8 @@
 package api
 
 import (
-	"github.com/gin-gonic/gin"
+	"context"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/sndcds/uranus/app"
@@ -9,12 +10,11 @@ import (
 
 // GetUserEventOrgPermissionsTx fetches a user's permission for the organizer of an event within a transaction.
 func (h *ApiHandler) GetUserEventOrgPermissionsTx(
-	gc *gin.Context,
+	ctx context.Context,
 	tx pgx.Tx,
 	userUuid string,
 	eventUuid string,
 ) (app.Permissions, error) {
-	ctx := gc.Request.Context()
 	var permissions pgtype.Int8
 
 	err := tx.QueryRow(
@@ -39,12 +39,11 @@ func (h *ApiHandler) GetUserEventOrgPermissionsTx(
 
 // GetUserEventOrganizerPermissions fetches a user's permission for the organizer of an event.
 func (h *ApiHandler) GetUserEventOrganizerPermissions(
-	gc *gin.Context,
+	ctx context.Context,
 	userUuid string,
 	eventUuid string,
 ) (app.Permissions, error) {
 
-	ctx := gc.Request.Context()
 	var permissions pgtype.Int8
 
 	err := h.DbPool.QueryRow(
