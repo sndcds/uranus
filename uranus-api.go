@@ -96,8 +96,13 @@ func main() {
 	// Serve all files in ./static under /static
 	router.Static("/api/info", "./static")
 
-	eventsRoute := router.Group("/event")
-	eventsRoute.GET("/:eventUuid/date/:dateUuid", apiHandler.InternalTest)
+	//
+	// Event endpoints
+	//
+
+	eventRoute := router.Group("/event")
+	eventRoute.GET("/:eventUuid", apiHandler.InternalTest)
+	eventRoute.GET("/:eventUuid/date/:dateUuid", apiHandler.InternalTest)
 
 	//
 	// Public endpoints
@@ -115,6 +120,7 @@ func main() {
 	publicRoute.GET("/events/venue-summary", apiHandler.GetEventVenueSummary) // TODO: check!
 	publicRoute.GET("/events/geojson", apiHandler.GetEventsGeoJSON)           // TODO: Reduce data
 
+	publicRoute.GET("/event/:eventUuid", apiHandler.GetEvent)
 	publicRoute.GET("/event/:eventUuid/date/:dateUuid", apiHandler.GetEventByDateUuid)
 	publicRoute.GET("/event/:eventUuid/date/:dateUuid/ics", apiHandler.GetEventDateICS)
 

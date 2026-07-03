@@ -1,7 +1,9 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -17,9 +19,32 @@ var publicStatuses = []string{
 	"rescheduled",
 }
 
+func (h *ApiHandler) GetEvent(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "get-event")
+
+	eventUuid := gc.Param("eventUuid")
+	userUuid := h.userUuid(gc)
+	lang := gc.DefaultQuery("lang", "en")
+
+	dateUuid := ""
+	event, selectedDate, furtherDates, err :=
+		h.LoadEventByDateUuid(gc.Request.Context(), eventUuid, dateUuid, userUuid, lang)
+
+	if err != nil {
+		apiRequest.InternalServerError()
+		return
+	}
+
+	event.Date = selectedDate
+	event.FurtherDates = furtherDates
+
+	apiRequest.Success(http.StatusOK, event)
+}
+
 func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-event-by-date-uuid")
 	ctx := gc.Request.Context()
+
 	userUuid := h.userUuid(gc)
 
 	eventUuid := gc.Param("eventUuid")
@@ -36,16 +61,65 @@ func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 	}
 	apiRequest.SetMeta("date_uuid", dateUuid)
 
-	usedStatuses := publicStatuses
-	hasUserUuid := len(userUuid) > 0
-	if hasUserUuid {
-		permissions, err := h.GetUserEventOrganizerPermissions(gc, userUuid, eventUuid)
-		if err != nil {
-			debugf(err.Error())
-			apiRequest.InternalServerError()
+	lang := gc.DefaultQuery("lang", "en")
+	apiRequest.SetMeta("language", lang)
+
+	// Load everything via shared function
+	event, selectedDate, furtherDates, err := h.LoadEventByDateUuid(
+		ctx,
+		eventUuid,
+		dateUuid,
+		userUuid,
+		lang,
+	)
+
+	if err != nil {
+		if err.Error() == "event not found" {
+			apiRequest.NotFound("event not found")
 			return
 		}
-		if permissions.HasAny(app.UserPermEditEvent | app.UserPermDeleteEvent | app.UserPermReleaseEvent | app.UserPermViewEventInsights) {
+
+		debugf(err.Error())
+		apiRequest.InternalServerError()
+		return
+	}
+
+	// Attach dates back to event
+	event.Date = selectedDate
+	event.FurtherDates = furtherDates
+
+	apiRequest.SetMeta("event_date_count", len(furtherDates)+1)
+
+	apiRequest.Success(http.StatusOK, event)
+}
+
+func (h *ApiHandler) LoadEventByDateUuid(
+	ctx context.Context,
+	eventUuid string,
+	dateUuid string,
+	userUuid string,
+	lang string,
+) (model.EventDetails, *model.EventDate, []model.EventDate, error) {
+
+	var event model.EventDetails
+	var selectedDate *model.EventDate
+	var furtherDates []model.EventDate
+
+	// Resolve allowed statuses
+	usedStatuses := publicStatuses
+
+	if len(userUuid) > 0 {
+		permissions, err := h.GetUserEventOrganizerPermissions(ctx, userUuid, eventUuid)
+		if err != nil {
+			return event, nil, nil, err
+		}
+
+		if permissions.HasAny(
+			app.UserPermEditEvent |
+				app.UserPermDeleteEvent |
+				app.UserPermReleaseEvent |
+				app.UserPermViewEventInsights,
+		) {
 			usedStatuses = []string{
 				"draft",
 				"review",
@@ -57,28 +131,28 @@ func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 		}
 	}
 
-	lang := gc.DefaultQuery("lang", "en")
-	apiRequest.SetMeta("language", lang)
-
-	// Query event-level data without event dates
-	eventRow, err := h.DbPool.Query(ctx, app.UranusInstance.SqlGetEvent, eventUuid, lang, usedStatuses)
+	// Load event (main query)
+	eventRow, err := h.DbPool.Query(ctx,
+		app.UranusInstance.SqlGetEvent,
+		eventUuid,
+		lang,
+		usedStatuses,
+	)
 	if err != nil {
-		debugf(err.Error())
-		apiRequest.DatabaseError()
-		return
+		return event, nil, nil, err
 	}
 	defer eventRow.Close()
 
 	if !eventRow.Next() {
-		apiRequest.NotFound("event not found")
-		return
+		return event, nil, nil, fmt.Errorf("event not found")
 	}
 
-	var event model.EventDetails
-	var imagesJSON []byte
-	var orgLogosJSON []byte
-	var eventTypesJSON []byte
-	var eventLinksJSON []byte
+	var (
+		imagesJSON     []byte
+		orgLogosJSON   []byte
+		eventTypesJSON []byte
+		eventLinksJSON []byte
+	)
 
 	err = eventRow.Scan(
 		&event.Uuid,
@@ -117,62 +191,49 @@ func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 		&eventLinksJSON,
 	)
 	if err != nil {
-		debugf(err.Error())
-		apiRequest.DatabaseError()
-		return
+		return event, nil, nil, err
 	}
 
-	// Unmarshal organization logos
+	// 3. Unmarshal JSON fields
 	if len(orgLogosJSON) > 0 && string(orgLogosJSON) != "null" {
-		err = json.Unmarshal(orgLogosJSON, &event.OrgLogos)
-		if err != nil {
-			apiRequest.SetMeta("logo_error", err.Error())
-		}
+		_ = json.Unmarshal(orgLogosJSON, &event.OrgLogos)
 	}
 
 	if len(imagesJSON) > 0 && string(imagesJSON) != "null" {
 		var images map[string]model.Image
-		err = json.Unmarshal(imagesJSON, &images)
-		if err != nil {
-			apiRequest.SetMeta("images_error", err.Error())
-		} else {
+		if err := json.Unmarshal(imagesJSON, &images); err == nil {
 			event.Images = images
 		}
-
 	}
 
-	// Unmarshal event types
 	if len(eventTypesJSON) > 0 {
 		var eventTypes []model.EventType
-		err = json.Unmarshal(eventTypesJSON, &eventTypes)
-		if err == nil {
+		if err := json.Unmarshal(eventTypesJSON, &eventTypes); err == nil {
 			event.EventTypes = eventTypes
 		}
 	}
 
-	// Unmarshal event URLs
 	if len(eventLinksJSON) > 0 {
 		var eventLinks []model.WebLink
-		err = json.Unmarshal(eventLinksJSON, &eventLinks)
-		if err == nil {
+		if err := json.Unmarshal(eventLinksJSON, &eventLinks); err == nil {
 			event.EventLinks = eventLinks
 		}
 	}
 
-	// Query all event dates
-	dateRows, err := h.DbPool.Query(ctx, app.UranusInstance.SqlGetEventDates, eventUuid)
+	// 4. Load event dates
+	dateRows, err := h.DbPool.Query(ctx,
+		app.UranusInstance.SqlGetEventDates,
+		eventUuid,
+	)
 	if err != nil {
-		debugf(err.Error())
-		apiRequest.InternalServerError()
-		return
+		return event, nil, nil, err
 	}
 	defer dateRows.Close()
 
-	var selectedDate *model.EventDate
-	var furtherDates []model.EventDate
-
 	for dateRows.Next() {
+
 		var edd model.EventDate
+
 		err := dateRows.Scan(
 			&edd.Uuid,
 			&edd.EventUuid,
@@ -208,10 +269,10 @@ func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 			&edd.AccessibilityInfo,
 		)
 		if err != nil {
-			apiRequest.InternalServerError()
-			return
+			return event, nil, nil, err
 		}
 
+		// Enrich logos
 		if edd.VenueLogoImageUuid != nil {
 			url := ImageUrl(*edd.VenueLogoImageUuid)
 			edd.VenueLogoUrl = &url
@@ -225,6 +286,7 @@ func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 			edd.VenueDarkThemeLogoUrl = &url
 		}
 
+		// Split selected vs others
 		if edd.Uuid == dateUuid {
 			tmp := edd
 			selectedDate = &tmp
@@ -233,11 +295,7 @@ func (h *ApiHandler) GetEventByDateUuid(gc *gin.Context) {
 		}
 	}
 
-	event.Date = selectedDate
-	event.FurtherDates = furtherDates
-	apiRequest.SetMeta("event_date_count", len(furtherDates)+1)
-
-	apiRequest.Success(http.StatusOK, event)
+	return event, selectedDate, furtherDates, nil
 }
 
 func intFromAny(v interface{}) int {
