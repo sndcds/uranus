@@ -6,13 +6,13 @@
     <title>{{ .Event.Title }}</title>
     <meta name="description" content="{{ .Event.Summary }}">
 
-    <link rel="canonical" href="https://kulturbytes.de/event/{{ .EventUuid }}/{{ .DateUuid }}">
+    <link rel="canonical" href="https://kulturbytes.de/event/{{ .EventUuid }}/date/{{ .DateUuid }}">
 
     <!-- Open Graph -->
     <meta property="og:type" content="event">
     <meta property="og:title" content="{{ .Event.Title }}">
     <meta property="og:description" content="{{ .Event.Summary }}">
-    <meta property="og:url" content="https://kulturbytes.de/event/{{ .EventUuid }}/{{ .DateUuid }}">
+    <meta property="og:url" content="https://kulturbytes.de/event/{{ .EventUuid }}/date/{{ .DateUuid }}">
 
     {{ if .MainImageURL }}
     <meta property="og:image" content="{{ .MainImageURL }}">
