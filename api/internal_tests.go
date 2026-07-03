@@ -17,20 +17,97 @@ func (h *ApiHandler) InternalTest(gc *gin.Context) {
 	eventUuid := gc.Param("eventUuid")
 	dateUuid := gc.Param("dateUuid")
 
-	fmt.Println("eventUuid: %s, dateUuid: %s", eventUuid, dateUuid)
+	// Load everything via shared function
+	event, selectedDate, furtherDates, _ := h.LoadEventByDateUuid(
+		gc.Request.Context(),
+		eventUuid,
+		dateUuid,
+		"",
+		"de", // TODO: locale via URL
+	)
 
 	if crawlerFlag {
 		gc.Header("Content-Type", "text/html; charset=utf-8")
-		gc.String(http.StatusOK, `<!DOCTYPE html>
+
+		title := event.Title
+		description := event.Description
+
+		// Build further dates HTML
+		furtherDatesHTML := ""
+
+		for _, d := range furtherDates {
+			furtherDatesHTML += fmt.Sprintf(`
+			<li>
+				<strong>%s</strong>
+				%s %s
+				– %s
+			</li>`,
+				d.StartDate,
+				d.StartDate,
+				d.StartTime,
+				d.VenueName,
+			)
+		}
+
+		selectedDateHTML := ""
+		if selectedDate != nil {
+			selectedDateHTML = fmt.Sprintf(`
+			<div>
+				<h3>Selected Date</h3>
+				<p>
+					<strong>Date:</strong> %s<br>
+					<strong>Time:</strong> %s - %s<br>
+					<strong>Venue:</strong> %s
+				</p>
+			</div>`,
+				selectedDate.StartDate,
+				selectedDate.StartTime,
+				selectedDate.EndTime,
+				selectedDate.VenueName,
+			)
+		}
+
+		html := fmt.Sprintf(`<!DOCTYPE html>
 <html>
 <head>
-    <title>Internal Test</title>
+    <title>%s</title>
 </head>
 <body>
-    <h1>80s Party</h1>
-    <p>With DJ Milligramm.</p>
+
+    <h1>%s</h1>
+    <p>%s</p>
+
+    <hr>
+
+    %s
+
+    <div>
+        <h3>Event IDs</h3>
+        <strong>eventUuid:</strong> %s<br>
+        <strong>dateUuid:</strong> %s<br>
+    </div>
+
+    <hr>
+
+    <div>
+        <h3>All Dates</h3>
+        <ul>
+            %s
+        </ul>
+    </div>
+
 </body>
-</html>`)
+</html>`,
+			title,
+			title,
+			description,
+			selectedDateHTML,
+			eventUuid,
+			dateUuid,
+			furtherDatesHTML,
+		)
+
+		gc.String(http.StatusOK, html)
 		return
 	}
 
