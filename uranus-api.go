@@ -40,7 +40,7 @@ func main() {
 		fmt.Println(err.Error())
 		panic(err)
 	}
-	app.UranusInstance.Log("CheckAllDatabaseConsistency succeded")
+	app.UranusInstance.Log("CheckAllDatabaseConsistency succeeded")
 
 	if *verbose {
 		app.UranusInstance.Config.Verbose = true
@@ -283,8 +283,10 @@ func main() {
 	internalRoute := router.Group("/api/internal", app.LocalhostOnlyMiddleware)
 
 	internalRoute.POST("/event/:eventUuid/refresh-projections", apiHandler.AdminRefreshEventProjections)
-	internalRoute.GET("/image/cleanup", apiHandler.AdminCleanupImages)
+	internalRoute.GET("/image/cleanup", apiHandler.InternalCleanupImages)
 	internalRoute.GET("/test", apiHandler.InternalTest)
+	internalRoute.GET("/gvre", apiHandler.InternatGetVenueRelatedEntities)
+
 	fmt.Println("INTERNAL ROUTE REGISTERED")
 
 	fmt.Println("Gin mode:", gin.Mode())
