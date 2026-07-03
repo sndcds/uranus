@@ -191,3 +191,18 @@ func fileNamePrefixByContext(context string) (string, error) {
 		return "", fmt.Errorf("unknown context: %s", context)
 	}
 }
+
+func (h *ApiHandler) BuildOGImageURL(imageUUID string) string {
+	if imageUUID == "" {
+		return ""
+	}
+	return fmt.Sprintf(
+		"https://api.kulturbytes.de/api/image/%s?w=%d&h=%d&type=%s&fit=%s&quality=%d",
+		imageUUID,
+		1200,
+		630,
+		"jpg",
+		"cover",
+		85,
+	)
+}

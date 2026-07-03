@@ -41,8 +41,8 @@ func (h *ApiHandler) InternalTest(gc *gin.Context) {
 
 	mainImageURL := ""
 	if event.Images != nil {
-		if main, ok := event.Images["main"]; ok {
-			mainImageURL = main.Url
+		if main, ok := event.Images["main"]; ok && main.Uuid != "" {
+			mainImageURL = h.BuildOGImageURL(main.Uuid)
 		}
 	}
 
@@ -167,6 +167,5 @@ func IsCrawler(userAgent string) bool {
 			return true
 		}
 	}
-	return false
-
+	return true
 }
