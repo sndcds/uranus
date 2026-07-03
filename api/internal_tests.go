@@ -23,6 +23,7 @@ func (h *ApiHandler) InternalTest(gc *gin.Context) {
 		FurtherDates []model.EventDate
 		EventUuid    string
 		DateUuid     string
+		MainImageURL string
 	}
 
 	// Load everything via shared function
@@ -38,6 +39,13 @@ func (h *ApiHandler) InternalTest(gc *gin.Context) {
 		return
 	}
 
+	mainImageURL := ""
+	if event.Images != nil {
+		if main, ok := event.Images["main"]; ok {
+			mainImageURL = main.Url
+		}
+	}
+
 	if crawlerFlag {
 		gc.Header("Content-Type", "text/html; charset=utf-8")
 		data := EventPage{
@@ -46,6 +54,7 @@ func (h *ApiHandler) InternalTest(gc *gin.Context) {
 			FurtherDates: furtherDates,
 			EventUuid:    eventUuid,
 			DateUuid:     dateUuid,
+			MainImageURL: mainImageURL,
 		}
 		if err := h.EventTemplate.Execute(gc.Writer, data); err != nil {
 			gc.String(http.StatusInternalServerError, err.Error())
