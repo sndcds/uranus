@@ -60,7 +60,8 @@ func (h *ApiHandler) InternalTest(gc *gin.Context) {
 	gc.Header("Content-Type", "text/html; charset=utf-8")
 
 	eventUrl := fmt.Sprintf(
-		"https://kulturbytes.de/event/%s/date/%s",
+		"%s/event/%s/date/%s",
+		h.Config.Frontend,
 		eventUuid,
 		dateUuid,
 	)
