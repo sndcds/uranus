@@ -177,6 +177,8 @@ func main() {
 	publicRoute.POST("/forgot-password", apiHandler.ForgotPassword)
 	publicRoute.POST("/reset-password", apiHandler.ResetPassword)
 
+	publicRoute.GET("/sitemap", apiHandler.Sitemap)
+
 	//
 	// Authorized endpoints, user must be logged in
 	//
