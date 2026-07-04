@@ -207,7 +207,7 @@ func (h *ApiHandler) LoadEventByDateUuid(
 		return event, nil, nil, err
 	}
 
-	// 3. Unmarshal JSON fields
+	// Unmarshal JSON fields
 	if len(orgLogosJSON) > 0 && string(orgLogosJSON) != "null" {
 		_ = json.Unmarshal(orgLogosJSON, &event.OrgLogos)
 	}
@@ -233,7 +233,7 @@ func (h *ApiHandler) LoadEventByDateUuid(
 		}
 	}
 
-	// 4. Load event dates
+	// Load event dates
 	dateRows, err := h.DbPool.Query(ctx,
 		app.UranusInstance.SqlGetEventDates,
 		eventUuid,
@@ -244,7 +244,6 @@ func (h *ApiHandler) LoadEventByDateUuid(
 	defer dateRows.Close()
 
 	for dateRows.Next() {
-
 		var edd model.EventDate
 
 		err := dateRows.Scan(
@@ -284,6 +283,8 @@ func (h *ApiHandler) LoadEventByDateUuid(
 		if err != nil {
 			return event, nil, nil, err
 		}
+
+		edd.Slug = BuildDateSlug(edd.StartDate, edd.StartTime)
 
 		// Enrich logos
 		if edd.VenueLogoImageUuid != nil {
