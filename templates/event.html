@@ -3,69 +3,70 @@
 <head>
     <meta charset="utf-8">
 
-    <title>{{ .Event.Title }}</title>
+    <title>{{ .Share.Title }}</title>
 
-    <meta name="description" content="{{ if .Event.Summary }}{{ .Event.Summary }}{{ end }}">
+    <meta name="description" content="{{ .Share.Description }}">
 
-    <link rel="canonical" href="https://kulturbytes.de/event/{{ .EventUuid }}/date/{{ .DateUuid }}">
+    <link rel="canonical" href="{{.Share.Url }}">
 
-    <!-- Open Graph -->
-    <meta property="og:type" content="event">
-    <meta property="og:title" content="{{ .Event.Title }}">
-    <meta property="og:description" content="{{ if .Event.Summary }}{{ .Event.Summary }}{{ end }}">
-    <meta property="og:url" content="https://kulturbytes.de/event/{{ .EventUuid }}/date/{{ .DateUuid }}">
+    <!-- Open Graph (Facebook) -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{{ .Share.Title }}">
 
-    {{ if .MainImageURL }}
-    <meta property="og:image" content="{{ .MainImageURL }}">
-    <meta property="og:image:secure_url" content="{{ .MainImageURL }}">
+    <meta property="og:description"
+          content="{{ .Share.Description }}
+          {{ if .Share.StartTime }} · {{ .Share.StartTime.Format "02.01.2006 15:04" }}{{ end }}
+    {{ if .Share.VenueName }} · {{ .Share.VenueName }}{{ end }}">
+
+    <meta property="og:url" content="{{ .Share.Url }}">
+
+    {{ if .Share.ImageUrl }}
+    <meta property="og:image" content="{{ .Share.ImageUrl }}">
+    <meta property="og:image:secure_url" content="{{ .Share.ImageUrl }}">
     <meta property="og:image:type" content="image/jpeg">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="675">
     {{ end }}
 
-    <!-- Twitter -->
+    <!-- Twitter/X -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{{ .Event.Title }}">
-    <meta name="twitter:description" content="{{ if .Event.Summary }}{{ .Event.Summary }}{{ end }}">
+    <meta name="twitter:title" content="{{ .Share.Title }}">
 
-    {{ if .MainImageURL }}
-    <meta name="twitter:image" content="{{ .MainImageURL }}">
+    <meta name="twitter:description"
+          content="{{ .Share.Description }}{{ if .Share.StartTime }} · {{ .Share.StartTime.Format "02.01.2006 15:04" }}{{ end }}">
+
+    {{ if .Share.ImageUrl }}
+    <meta name="twitter:image" content="{{ .Share.ImageUrl }}">
     {{ end }}
 
-    <!-- JSON-LD -->
+    <!-- JSON-LD (Google SEO) -->
     <script type="application/ld+json">
         {
             "@context": "https://schema.org",
             "@type": "Event",
-            "name": "{{ .Event.Title }}",
-            "description": {{ printf "%q" .Event.Summary }},
-            "image": {{ printf "%q" .MainImageURL }},
-            "eventStatus": "https://schema.org/EventScheduled",
-            "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+            "name": {{ printf "%q" .Share.Title }},
+            "description": {{ printf "%q" .Share.Description }},
+            "image": {{ printf "%q" .Share.ImageUrl }},
+            "url": {{ printf "%q" .Share.Url }},
 
-            {{ if .SelectedDate }}
-            "startDate": "{{ .SelectedDate.StartDate }}T{{ .SelectedDate.StartTime }}",
-            {{ else if gt (len .FurtherDates) 0 }}
-            "startDate": "{{ (index .FurtherDates 0).StartDate }}T{{ (index .FurtherDates 0).StartTime }}",
+            {{ if .Share.StartTime }}
+            "startDate": {{ printf "%q" (.Share.StartTime.Format "2006-01-02T15:04:05") }},
             {{ end }}
+
+            {{ if .Share.EndTime }}
+            "endDate": {{ printf "%q" (.Share.EndTime.Format "2006-01-02T15:04:05") }},
+            {{ end }}
+
+            "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+            "eventStatus": "https://schema.org/EventScheduled",
 
             "location": {
             "@type": "Place",
-            {{ if .SelectedDate }}
-            "name": "{{ .SelectedDate.VenueName }}",
+            "name": {{ printf "%q" .Share.VenueName }},
             "address": {
                 "@type": "PostalAddress",
-                "streetAddress": "{{ .SelectedDate.VenueStreet }} {{ .SelectedDate.VenueHouseNumber }}",
-                "postalCode": "{{ .SelectedDate.VenuePostalCode }}",
-                "addressLocality": "{{ .SelectedDate.VenueCity }}",
-                "addressCountry": "{{ .SelectedDate.VenueCountry }}"
+                "addressLocality": {{ printf "%q" .Share.VenueCity }}
             }
-            {{ else }}
-            "name": "",
-            "address": {
-                "@type": "PostalAddress"
-            }
-            {{ end }}
         }
         }
     </script>
@@ -74,11 +75,11 @@
 
 <body>
 
-{{ if .MainImageURL }}
+{{ if .Share.ImageUrl }}
 <figure>
     <img
-            src="{{ .MainImageURL }}"
-            alt="{{ .Event.Title }}"
+            src="{{ .Share.ImageUrl }}"
+            alt="{{ .Share.Title }}"
             loading="eager"
             fetchpriority="high"
             decoding="async"
@@ -88,40 +89,25 @@
 
 <main>
 
-    <h1>{{ .Event.Title }}</h1>
+    <h1>{{ .Share.Title }}</h1>
 
-    {{ if .Event.Summary }}
-    <p>{{ .Event.Summary }}</p>
-    {{ end }}
+    <p>{{ .Share.Description }}</p>
 
-    {{ if .SelectedDate }}
+    {{ if .Share.StartTime }}
     <section>
         <h2>Termin</h2>
 
         <p>
-            <strong>Datum:</strong> {{ .SelectedDate.StartDate }}<br>
-            <strong>Zeit:</strong>
-            {{ .SelectedDate.StartTime }}
-            {{ if .SelectedDate.EndTime }} – {{ .SelectedDate.EndTime }}{{ end }}<br>
-            <strong>Ort:</strong> {{ .SelectedDate.VenueName }}
-        </p>
-    </section>
-    {{ end }}
+            <strong>Datum & Zeit:</strong> {{ .Share.StartTime.Format "02.01.2006 15:04" }}<br>
 
-    {{ if gt (len .FurtherDates) 0 }}
-    <section>
-        <h2>Weitere Termine</h2>
-
-        <ul>
-            {{ range .FurtherDates }}
-            <li>
-                <time datetime="{{ .StartDate }}T{{ .StartTime }}">
-                    {{ .StartDate }} {{ .StartTime }}
-                </time>
-                {{ if .VenueName }} – {{ .VenueName }}{{ end }}
-            </li>
+            {{ if .Share.EndTime }}
+            <strong>Ende:</strong> {{ .Share.EndTime.Format "02.01.2006 15:04" }}<br>
             {{ end }}
-        </ul>
+
+            {{ if .Share.VenueName }}
+            <strong>Ort:</strong> {{ .Share.VenueName }}{{ if .Share.VenueCity }}, {{ .Share.VenueCity }}{{ end }}
+            {{ end }}
+        </p>
     </section>
     {{ end }}
 
