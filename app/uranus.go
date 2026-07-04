@@ -89,6 +89,7 @@ type Uranus struct {
 	SqlAdminSpacesForEvent                     string
 	SqlInsertPlutoImage                        string
 	SqlUpdatePlutoImageMeta                    string
+	SqlResolveEventDateUuidFromSlug            string
 }
 
 var UranusInstance *Uranus
@@ -337,6 +338,10 @@ func (app *Uranus) PrepareSql() error {
 
 		{"sql/insert-pluto-image.sql", &app.SqlInsertPlutoImage, nil},
 		{"sql/update-pluto-image-meta.sql", &app.SqlUpdatePlutoImageMeta, nil},
+
+		// Helper
+
+		{"sql/resolve-event-date-uuid-from-slug.sql", &app.SqlResolveEventDateUuidFromSlug, nil},
 	}
 
 	for i := range queries {
