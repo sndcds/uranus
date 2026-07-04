@@ -4,14 +4,15 @@
     <meta charset="utf-8">
 
     <title>{{ .Event.Title }}</title>
-    <meta name="description" content="{{ .Event.Summary }}">
+
+    <meta name="description" content="{{ if .Event.Summary }}{{ .Event.Summary }}{{ end }}">
 
     <link rel="canonical" href="https://kulturbytes.de/event/{{ .EventUuid }}/date/{{ .DateUuid }}">
 
     <!-- Open Graph -->
     <meta property="og:type" content="event">
     <meta property="og:title" content="{{ .Event.Title }}">
-    <meta property="og:description" content="{{ .Event.Summary }}">
+    <meta property="og:description" content="{{ if .Event.Summary }}{{ .Event.Summary }}{{ end }}">
     <meta property="og:url" content="https://kulturbytes.de/event/{{ .EventUuid }}/date/{{ .DateUuid }}">
 
     {{ if .MainImageURL }}
@@ -22,38 +23,50 @@
     <meta property="og:image:height" content="675">
     {{ end }}
 
-    <!-- Twitter Card -->
+    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ .Event.Title }}">
-    <meta name="twitter:description" content="{{ .Event.Summary }}">
+    <meta name="twitter:description" content="{{ if .Event.Summary }}{{ .Event.Summary }}{{ end }}">
+
     {{ if .MainImageURL }}
     <meta name="twitter:image" content="{{ .MainImageURL }}">
     {{ end }}
 
-    <!-- Schema.org JSON-LD -->
+    <!-- JSON-LD -->
     <script type="application/ld+json">
         {
             "@context": "https://schema.org",
             "@type": "Event",
             "name": "{{ .Event.Title }}",
-            "description": "{{ .Event.Summary }}",
-            "image": "{{ .MainImageURL }}",
+            "description": {{ printf "%q" .Event.Summary }},
+            "image": {{ printf "%q" .MainImageURL }},
             "eventStatus": "https://schema.org/EventScheduled",
             "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
 
+            {{ if .SelectedDate }}
+            "startDate": "{{ .SelectedDate.StartDate }}T{{ .SelectedDate.StartTime }}",
+            {{ else if gt (len .FurtherDates) 0 }}
             "startDate": "{{ (index .FurtherDates 0).StartDate }}T{{ (index .FurtherDates 0).StartTime }}",
+            {{ end }}
 
             "location": {
-                "@type": "Place",
-                "name": "{{ .SelectedDate.VenueName }}",
-                "address": {
-                    "@type": "PostalAddress",
-                    "streetAddress": "{{ .SelectedDate.VenueStreet }} {{ .SelectedDate.VenueHouseNumber }}",
-                    "postalCode": "{{ .SelectedDate.VenuePostalCode }}",
-                    "addressLocality": "{{ .SelectedDate.VenueCity }}",
-                    "addressCountry": "{{ .SelectedDate.VenueCountry }}"
-                }
+            "@type": "Place",
+            {{ if .SelectedDate }}
+            "name": "{{ .SelectedDate.VenueName }}",
+            "address": {
+                "@type": "PostalAddress",
+                "streetAddress": "{{ .SelectedDate.VenueStreet }} {{ .SelectedDate.VenueHouseNumber }}",
+                "postalCode": "{{ .SelectedDate.VenuePostalCode }}",
+                "addressLocality": "{{ .SelectedDate.VenueCity }}",
+                "addressCountry": "{{ .SelectedDate.VenueCountry }}"
             }
+            {{ else }}
+            "name": "",
+            "address": {
+                "@type": "PostalAddress"
+            }
+            {{ end }}
+        }
         }
     </script>
 
@@ -77,7 +90,9 @@
 
     <h1>{{ .Event.Title }}</h1>
 
+    {{ if .Event.Summary }}
     <p>{{ .Event.Summary }}</p>
+    {{ end }}
 
     {{ if .SelectedDate }}
     <section>
@@ -93,6 +108,7 @@
     </section>
     {{ end }}
 
+    {{ if gt (len .FurtherDates) 0 }}
     <section>
         <h2>Weitere Termine</h2>
 
@@ -102,11 +118,12 @@
                 <time datetime="{{ .StartDate }}T{{ .StartTime }}">
                     {{ .StartDate }} {{ .StartTime }}
                 </time>
-                – {{ .VenueName }}
+                {{ if .VenueName }} – {{ .VenueName }}{{ end }}
             </li>
             {{ end }}
         </ul>
     </section>
+    {{ end }}
 
 </main>
 
