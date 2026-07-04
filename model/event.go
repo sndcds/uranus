@@ -64,6 +64,7 @@ type VenueInfo struct {
 
 type EventDate struct {
 	Uuid                         string   `json:"uuid"`
+	Slug                         string   `json:"slug"`
 	EventUuid                    string   `json:"event_uuid"`
 	EventReleaseStatus           string   `json:"release_status"`
 	StartDate                    string   `json:"start_date"`
