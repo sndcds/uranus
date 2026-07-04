@@ -80,6 +80,7 @@ func (h *ApiHandler) InternalTest(gc *gin.Context) {
 }
 
 func (h *ApiHandler) InternalMigrateVenues(gc *gin.Context) {
+	// TODO: uranus -> {{schema}}
 	apiRequest := grains_api.NewRequest(gc, "internal-migrate-venues")
 	ctx := gc.Request.Context()
 	// userUuid := h.userUuid(gc)
@@ -103,7 +104,7 @@ func (h *ApiHandler) InternalMigrateVenues(gc *gin.Context) {
 	}
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-
+		// TODO: uranus -> {{schema}}
 		rows, err := tx.Query(ctx, `
 			SELECT 'event' AS source, uuid
 			FROM uranus.event

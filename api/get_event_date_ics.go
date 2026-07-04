@@ -16,7 +16,7 @@ func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-event-date-ics")
 	ctx := gc.Request.Context()
 
-	dateUuid := gc.Param("dateUuid")
+	dateUuid := gc.Param("dateUuid") // TODO: Slug!
 	if dateUuid == "" {
 		apiRequest.Required("dateUuid is required")
 		return

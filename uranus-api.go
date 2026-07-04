@@ -126,8 +126,8 @@ func main() {
 	publicRoute.GET("/events/geojson", apiHandler.GetEventsGeoJSON)           // TODO: Reduce data
 
 	publicRoute.GET("/event/:eventUuid", apiHandler.GetEvent)
-	publicRoute.GET("/event/:eventUuid/date/:dateUuid", apiHandler.GetEventByDateUuid)
-	publicRoute.GET("/event/:eventUuid/date/:dateUuid/ics", apiHandler.GetEventDateICS)
+	publicRoute.GET("/event/:eventUuid/date/:dateIdentifier", apiHandler.GetEventByDate)
+	publicRoute.GET("/event/:eventUuid/date/:dateIdentifier/ics", apiHandler.GetEventDateICS)
 
 	publicRoute.GET("/portal/:uuid", apiHandler.GetPortal)
 
@@ -182,9 +182,9 @@ func main() {
 	//
 
 	adminRoute := router.Group("/api/admin", app.JWTMiddleware)
-	adminRoute.GET("/event/:eventUuid/date/:dateUuid", apiHandler.GetEventByDateUuid) // TODO: Permission check
-	adminRoute.GET("/permissions/list", apiHandler.AdminGetPermissionsList)           // TODO: Permission check
-	adminRoute.POST("/refresh", apiHandler.Refresh)                                   // TODO: Permission check
+	adminRoute.GET("/event/:eventUuid/date/:dateIdentifier", apiHandler.GetEventByDate) // TODO: Permission check
+	adminRoute.GET("/permissions/list", apiHandler.AdminGetPermissionsList)             // TODO: Permission check
+	adminRoute.POST("/refresh", apiHandler.Refresh)                                     // TODO: Permission check
 
 	// User
 	adminRoute.GET("/user/profile", apiHandler.AdminGetUserProfile)             // TODO: Permission check

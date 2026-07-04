@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
@@ -241,4 +242,32 @@ func ValidateEnum(fieldName string, value *string, allowed ...string) (bool, err
 	}
 
 	return true, nil
+}
+
+func (h *ApiHandler) ResolveEventDateUuidFromSlug(
+	ctx context.Context,
+	eventUuid string,
+	slug string,
+) (string, error) {
+
+	// Slug format: YYYYMMDDHHMM
+	if len(slug) != 12 {
+		return "", fmt.Errorf("invalid date slug format")
+	}
+	startDate := slug[:8] // 20260602
+	startTime := slug[8:] // 1200
+	// optionally format:
+	parsedDate := fmt.Sprintf("%s-%s-%s", startDate[0:4], startDate[4:6], startDate[6:8])
+	parsedTime := fmt.Sprintf("%s:%s", startTime[0:2], startTime[2:4])
+	var dateUuid string
+	err := h.DbPool.QueryRow(ctx, app.UranusInstance.SqlResolveEventDateUuidFromSlug, eventUuid, parsedDate, parsedTime).
+		Scan(&dateUuid)
+	if err != nil {
+		return "", err
+	}
+	return dateUuid, nil
+}
+
+func BuildDateSlug(startDate, startTime string) string {
+	return startDate[:4] + startDate[5:7] + startDate[8:10] + startTime[:2] + startTime[3:5]
 }

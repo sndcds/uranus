@@ -25,6 +25,7 @@ type eventType struct {
 type eventResponse struct {
 	Uuid                    string      `json:"uuid"`
 	DateUuid                string      `json:"date_uuid"`
+	DateSlug                string      `json:"date_slug"`
 	Title                   string      `json:"title"`
 	Subtitle                *string     `json:"subtitle"`
 	Summary                 *string     `json:"summary"`
@@ -371,7 +372,6 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 	// Portal
 	portalUuid, portalUuidExists := GetContextParam(gc, "portal")
 	if portalUuidExists {
-		debugf("portalUuidExists, portalUuid: %s", portalUuid)
 		filters.Args = append(filters.Args, portalUuid)
 		filters.PortalJoin = fmt.Sprintf("JOIN %s.portal p ON p.uuid = $%d::uuid", h.DbSchema, filters.ArgIndex)
 		filters.ArgIndex++
@@ -398,7 +398,6 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 
 	filters, err := h.buildEventFilters(gc, true)
 	if err != nil {
-		debugf("buildEventFilters err: %v", err)
 		apiRequest.Error(http.StatusBadRequest, err.Error())
 		return
 	}
@@ -419,7 +418,6 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 
 	rows, err := h.DbPool.Query(ctx, query, filters.Args...)
 	if err != nil {
-		debugf(err.Error())
 		apiRequest.InternalServerError()
 		return
 	}
@@ -471,17 +469,18 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			&e.VisitorInfoFlags,
 		)
 		if err != nil {
-			debugf(err.Error())
 			apiRequest.InternalServerError()
 			return
 		}
+
+		e.DateSlug = BuildDateSlug(e.StartDate, e.StartTime)
+		debugf("e.DateSlug %s", e.DateSlug)
 
 		// Convert types JSON
 		var rawTypes [][]int
 		if len(typesJSON) > 0 {
 			err := json.Unmarshal(typesJSON, &rawTypes)
 			if err != nil {
-				debugf(err.Error())
 				apiRequest.InternalServerError()
 				return
 			}
@@ -554,18 +553,19 @@ func (h *ApiHandler) GetEventsWeek(gc *gin.Context) {
 	query = strings.Replace(query, "{{portal_join}}", filters.PortalJoin, 1)
 	query = strings.Replace(query, "{{portal_conditions}}", filters.PortalConditions, 1)
 
-	debugf("filters.ConditionsStr: %v", filters.ConditionsStr)
-	debugf("filters.PortalJoin: %v", filters.PortalJoin)
-	debugf("filters.PortalConditions: %v", filters.PortalConditions)
-	debugf(query)
-	debugf("ARGS (%d):\n", len(filters.Args))
-	for i, arg := range filters.Args {
-		debugf("ARGS[%d]: %#v", i, arg)
-	}
+	/*
+		debugf("filters.ConditionsStr: %v", filters.ConditionsStr)
+		debugf("filters.PortalJoin: %v", filters.PortalJoin)
+		debugf("filters.PortalConditions: %v", filters.PortalConditions)
+		debugf(query)
+		debugf("ARGS (%d):\n", len(filters.Args))
+		for i, arg := range filters.Args {
+			debugf("ARGS[%d]: %#v", i, arg)
+		}
+	*/
 
 	rows, err := h.DbPool.Query(ctx, query, filters.Args...)
 	if err != nil {
-		debugf(err.Error())
 		apiRequest.InternalServerError()
 		return
 	}
@@ -589,7 +589,6 @@ func (h *ApiHandler) GetEventsWeek(gc *gin.Context) {
 
 		// SAFE SCAN: only primitives + jsonb as []byte
 		if err := rows.Scan(&day, &eventsRaw, &moreCount); err != nil {
-			debugf(err.Error())
 			apiRequest.InternalServerError()
 			return
 		}
@@ -601,7 +600,6 @@ func (h *ApiHandler) GetEventsWeek(gc *gin.Context) {
 
 		// Validate JSON (prevents corrupt upstream SQL)
 		if !json.Valid(eventsRaw) {
-			debugf(err.Error())
 			apiRequest.InternalServerError()
 			return
 		}
@@ -614,7 +612,6 @@ func (h *ApiHandler) GetEventsWeek(gc *gin.Context) {
 	}
 
 	if err := rows.Err(); err != nil {
-		debugf(err.Error())
 		apiRequest.InternalServerError()
 		return
 	}
@@ -671,7 +668,6 @@ func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 
 	rows, err := h.DbPool.Query(gc.Request.Context(), query, filters.Args...)
 	if err != nil {
-		debugf(err.Error())
 		apiRequest.InternalServerError()
 		return
 	}
@@ -687,7 +683,6 @@ func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 		var s summaryEntry
 		err := rows.Scan(&s.TypeId, &s.DateCount)
 		if err != nil {
-			debugf(err.Error())
 			apiRequest.InternalServerError()
 			return
 		}
@@ -715,7 +710,6 @@ func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 	var totalCount int64
 	err = h.DbPool.QueryRow(gc.Request.Context(), totalQuery, filters.Args...).Scan(&totalCount)
 	if err != nil {
-		debugf(err.Error())
 		apiRequest.InternalServerError()
 		return
 
@@ -812,7 +806,6 @@ func (h *ApiHandler) GetEventsGeoJSON(gc *gin.Context) {
 
 	rows, err := h.DbPool.Query(ctx, query, filters.Args...)
 	if err != nil {
-		debugf("database query error: %v", err.Error())
 		apiRequest.InternalServerError()
 		return
 	}
@@ -858,7 +851,6 @@ func (h *ApiHandler) GetEventsGeoJSON(gc *gin.Context) {
 			&venueLat,
 			&eventCount,
 		); err != nil {
-			debugf("row scan error: %v", err.Error())
 			apiRequest.InternalServerError()
 			return
 		}
@@ -892,7 +884,6 @@ func (h *ApiHandler) GetEventsGeoJSON(gc *gin.Context) {
 	}
 
 	if err := rows.Err(); err != nil {
-		debugf("rows iteration error: %v", err.Error())
 		apiRequest.InternalServerError()
 		return
 	}
@@ -938,5 +929,4 @@ func computeWeekEnd(weekStartStr string) (string, error) {
 	}
 	weekEnd := weekStart.AddDate(0, 0, 6)
 	return weekEnd.Format(dateLayout), nil
-
 }
