@@ -66,6 +66,7 @@ events_agg AS (
             jsonb_build_object(
                 'uuid', event_uuid,
                 'date_uuid', event_date_uuid,
+                'date_slug', to_char(start_date, 'YYYYMMDD') || to_char(start_time, 'HH24MI'),
                 'org_uuid', org_uuid,
                 'start_date', start_date,
                 'start_time', start_time,
