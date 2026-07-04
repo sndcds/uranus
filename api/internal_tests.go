@@ -1,31 +1,38 @@
 package api
 
 import (
+	"encoding/json"
+	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/model"
+	"golang.org/x/net/html"
 )
+
+type ShareMeta struct {
+	Title       string
+	Description string
+	ImageUrl    string
+	Url         string
+	StartTime   *time.Time
+	EndTime     *time.Time
+	VenueName   string
+	VenueCity   string
+}
 
 func (h *ApiHandler) InternalTest(gc *gin.Context) {
 	eventUuid := gc.Param("eventUuid")
 	dateUuid := gc.Param("dateUuid")
 
-	type EventPage struct {
-		Event        model.EventDetails
-		SelectedDate *model.EventDate
-		FurtherDates []model.EventDate
-		EventUuid    string
-		DateUuid     string
-		MainImageURL string
-	}
-
 	// Load everything via shared function
-	event, selectedDate, furtherDates, err := h.LoadEventByDateUuid(
+	event, selectedDate, _, err := h.LoadEventByDateUuid(
 		gc.Request.Context(),
 		eventUuid,
 		dateUuid,
@@ -43,24 +50,30 @@ func (h *ApiHandler) InternalTest(gc *gin.Context) {
 		log.Printf("selectedDate: %+v", *selectedDate)
 	}
 
-	mainImageURL := ""
+	imageURL := ""
 	if event.Images != nil {
 		if main, ok := event.Images["main"]; ok && main.Uuid != "" {
-			mainImageURL = h.BuildOGImageURL(main.Uuid)
+			imageURL = h.BuildOGImageURL(main.Uuid)
 		}
 	}
 
 	gc.Header("Content-Type", "text/html; charset=utf-8")
-	data := EventPage{
-		Event:        event,
-		SelectedDate: selectedDate,
-		FurtherDates: furtherDates,
-		EventUuid:    eventUuid,
-		DateUuid:     dateUuid,
-		MainImageURL: mainImageURL,
+
+	eventUrl := fmt.Sprintf(
+		"https://%s/event/%s/date/%s",
+		gc.Request.Host,
+		eventUuid,
+		dateUuid,
+	)
+
+	sm := BuildShareMeta(event, selectedDate, imageURL, eventUrl)
+	shareData := struct {
+		Share ShareMeta
+	}{
+		Share: sm,
 	}
 
-	if err := h.EventTemplate.Execute(gc.Writer, data); err != nil {
+	if err := h.EventTemplate.Execute(gc.Writer, shareData); err != nil {
 		gc.String(http.StatusInternalServerError, err.Error())
 	}
 	return
@@ -163,4 +176,125 @@ func IsCrawler(userAgent string) bool {
 		}
 	}
 	return false
+}
+
+func BuildShareMeta(event model.EventDetails, date *model.EventDate, imageURL string, url string) ShareMeta {
+	sm := ShareMeta{
+		Title: event.Title,
+		Description: firstNonEmpty(
+			deref(event.Summary),
+			deref(event.Subtitle)),
+		Url: url,
+	}
+
+	if date != nil {
+		sm.VenueName = deref(date.VenueName)
+		sm.VenueCity = deref(date.VenueCity)
+
+		sm.StartTime = combineDateTime(date.StartDate, date.StartTime)
+		sm.EndTime = combineDateTime(*date.EndDate, *date.EndTime)
+	}
+
+	if imageURL != "" {
+		sm.ImageUrl = imageURL
+	}
+
+	return sm
+}
+
+func firstNonEmpty(vals ...string) string {
+	for _, v := range vals {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
+func combineDateTime(dateStr, timeStr string) *time.Time {
+	if dateStr == "" {
+		return nil
+	}
+
+	// If no time provided, default to midnight
+	if timeStr == "" {
+		timeStr = "00:00"
+	}
+
+	layout := "2006-01-02 15:04"
+
+	t, err := time.Parse(layout, dateStr+" "+timeStr)
+	if err != nil {
+		return nil
+	}
+
+	return &t
+}
+
+func escape(s string) string {
+	return html.EscapeString(s)
+}
+
+func RenderOG(sm ShareMeta) template.HTML {
+	desc := sm.Description
+
+	if sm.StartTime != nil {
+		desc = fmt.Sprintf("%s · %s", desc, sm.StartTime.Format("02.01.2006 15:04"))
+	}
+
+	if sm.VenueName != "" {
+		desc = fmt.Sprintf("%s · %s", desc, sm.VenueName)
+	}
+
+	return template.HTML(fmt.Sprintf(`
+<meta property="og:type" content="website">
+<meta property="og:title" content="%s">
+<meta property="og:description" content="%s">
+<meta property="og:url" content="%s">
+<meta property="og:image" content="%s">
+`, escape(sm.Title), escape(desc), sm.Url, sm.ImageUrl))
+}
+
+func RenderTwitter(sm ShareMeta) template.HTML {
+	return template.HTML(fmt.Sprintf(`
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="%s">
+<meta name="twitter:description" content="%s">
+<meta name="twitter:image" content="%s">
+`, escape(sm.Title), escape(sm.Description), sm.ImageUrl))
+}
+
+func RenderJSONLD(sm ShareMeta) template.HTML {
+	event := map[string]any{
+		"@context":            "https://schema.org",
+		"@type":               "Event",
+		"name":                sm.Title,
+		"description":         sm.Description,
+		"image":               sm.ImageUrl,
+		"eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+		"eventStatus":         "https://schema.org/EventScheduled",
+		"url":                 sm.Url,
+	}
+
+	if sm.StartTime != nil {
+		event["startDate"] = sm.StartTime.Format(time.RFC3339)
+	}
+
+	if sm.EndTime != nil {
+		event["endDate"] = sm.EndTime.Format(time.RFC3339)
+	}
+
+	if sm.VenueName != "" {
+		event["location"] = map[string]any{
+			"@type": "Place",
+			"name":  sm.VenueName,
+			"address": map[string]any{
+				"@type":           "PostalAddress",
+				"addressLocality": sm.VenueCity,
+			},
+		}
+	}
+
+	b, _ := json.MarshalIndent(event, "", "  ")
+	return template.HTML(fmt.Sprintf(`<script type="application/ld+json">%s</script>`, b))
 }
