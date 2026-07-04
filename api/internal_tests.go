@@ -1,6 +1,7 @@
 package api
 
 import (
+	"log"
 	"net/http"
 	"strings"
 
@@ -11,9 +12,6 @@ import (
 )
 
 func (h *ApiHandler) InternalTest(gc *gin.Context) {
-	userAgent := strings.ToLower(gc.GetHeader("User-Agent"))
-	crawlerFlag := IsCrawler(userAgent)
-
 	eventUuid := gc.Param("eventUuid")
 	dateUuid := gc.Param("dateUuid")
 
@@ -39,6 +37,12 @@ func (h *ApiHandler) InternalTest(gc *gin.Context) {
 		return
 	}
 
+	if selectedDate == nil {
+		log.Println("selectedDate is nil")
+	} else {
+		log.Printf("selectedDate: %+v", *selectedDate)
+	}
+
 	mainImageURL := ""
 	if event.Images != nil {
 		if main, ok := event.Images["main"]; ok && main.Uuid != "" {
@@ -46,29 +50,20 @@ func (h *ApiHandler) InternalTest(gc *gin.Context) {
 		}
 	}
 
-	if crawlerFlag {
-		gc.Header("Content-Type", "text/html; charset=utf-8")
-		data := EventPage{
-			Event:        event,
-			SelectedDate: selectedDate,
-			FurtherDates: furtherDates,
-			EventUuid:    eventUuid,
-			DateUuid:     dateUuid,
-			MainImageURL: mainImageURL,
-		}
-		if err := h.EventTemplate.Execute(gc.Writer, data); err != nil {
-			gc.String(http.StatusInternalServerError, err.Error())
-		}
-		return
+	gc.Header("Content-Type", "text/html; charset=utf-8")
+	data := EventPage{
+		Event:        event,
+		SelectedDate: selectedDate,
+		FurtherDates: furtherDates,
+		EventUuid:    eventUuid,
+		DateUuid:     dateUuid,
+		MainImageURL: mainImageURL,
 	}
 
-	apiRequest := grains_api.NewRequest(gc, "internal-test")
-	apiRequest.Success(http.StatusOK, gin.H{
-		"status":     "ok",
-		"message":    "internal route works",
-		"user_agent": userAgent,
-		"is_crawler": crawlerFlag,
-	}, "Internal test successful")
+	if err := h.EventTemplate.Execute(gc.Writer, data); err != nil {
+		gc.String(http.StatusInternalServerError, err.Error())
+	}
+	return
 }
 
 func (h *ApiHandler) InternalMigrateVenues(gc *gin.Context) {
@@ -167,5 +162,5 @@ func IsCrawler(userAgent string) bool {
 			return true
 		}
 	}
-	return true
+	return false
 }

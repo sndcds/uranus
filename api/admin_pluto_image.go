@@ -197,7 +197,7 @@ func (h *ApiHandler) BuildOGImageURL(imageUuid string) string {
 		return ""
 	}
 	return fmt.Sprintf(
-		"https://api.kulturbytes.de/api/image/%s?width=%d&ratio=%s&type=%s&fit=%s&quality=%d",
+		"https://api.kulturbytes.de/api/image/%s?width=%d&ratio=%s&type=%s&quality=%d",
 		imageUuid,
 		1200,
 		"16:9",
