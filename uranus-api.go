@@ -303,8 +303,6 @@ func main() {
 	internalRoute.GET("/test", apiHandler.InternalTest)
 	internalRoute.GET("/migrate-venues", apiHandler.InternalMigrateVenues)
 
-	fmt.Println("INTERNAL ROUTE REGISTERED")
-
 	fmt.Println("Gin mode:", gin.Mode())
 	fmt.Println("Total routes:", len(router.Routes()))
 	// Print all registered routes
