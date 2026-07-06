@@ -13,10 +13,7 @@
     <meta property="og:type" content="website">
     <meta property="og:title" content="{{ .Share.Title }}">
 
-    <meta property="og:description"
-          content="{{ .Share.Description }}
-          {{ if .Share.StartTime }} · {{ .Share.StartTime.Format "02.01.2006 15:04" }}{{ end }}
-    {{ if .Share.VenueName }} · {{ .Share.VenueName }}{{ end }}">
+    <meta property="og:description" content="{{ .Share.OGDescription }}">
 
     <meta property="og:url" content="{{ .Share.Url }}">
 
@@ -44,17 +41,17 @@
         {
             "@context": "https://schema.org",
             "@type": "Event",
-            "name": {{ printf "%q" .Share.Title }},
-            "description": {{ printf "%q" .Share.Description }},
-            "image": {{ printf "%q" .Share.ImageUrl }},
-            "url": {{ printf "%q" .Share.Url }},
+            "name": {{ printf "%s" .Share.Title }},
+            "description": {{ printf "%s" .Share.Description }},
+            "image": {{ printf "%s" .Share.ImageUrl }},
+            "url": {{ printf "%s" .Share.Url }},
 
-            {{ if .Share.StartTime }}
-            "startDate": {{ printf "%q" (.Share.StartTime.Format "2006-01-02T15:04:05") }},
+            {{ if .Share.StartTimeSEO }}
+            "startDate": {{ printf "%s" .Share.StartTimeSEO }},
             {{ end }}
 
-            {{ if .Share.EndTime }}
-            "endDate": {{ printf "%q" (.Share.EndTime.Format "2006-01-02T15:04:05") }},
+            {{ if .Share.EndTimeSEO }}
+            "endDate": {{ printf "%s" .Share.EndTimeSEO }},
             {{ end }}
 
             "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
@@ -62,10 +59,10 @@
 
             "location": {
             "@type": "Place",
-            "name": {{ printf "%q" .Share.VenueName }},
+            "name": {{ printf "%s" .Share.VenueName }},
             "address": {
                 "@type": "PostalAddress",
-                "addressLocality": {{ printf "%q" .Share.VenueCity }}
+                "addressLocality": {{ printf "%s" .Share.VenueCity }}
             }
         }
         }

@@ -29,7 +29,7 @@ func (h *ApiHandler) GetEvent(gc *gin.Context) {
 
 	dateUuid := ""
 	event, selectedDate, furtherDates, err :=
-		h.LoadEventByDateUuid(gc.Request.Context(), eventUuid, dateUuid, userUuid, lang)
+		h.LoadEventByDateIdentifier(gc.Request.Context(), eventUuid, dateUuid, userUuid, lang)
 
 	if err != nil {
 		apiRequest.InternalServerError()
@@ -78,7 +78,7 @@ func (h *ApiHandler) GetEventByDate(gc *gin.Context) {
 	apiRequest.SetMeta("language", lang)
 
 	// Load everything via shared function
-	event, selectedDate, furtherDates, err := h.LoadEventByDateUuid(
+	event, selectedDate, furtherDates, err := h.LoadEventByDateIdentifier(
 		ctx,
 		eventUuid,
 		dateUuid,
@@ -106,7 +106,7 @@ func (h *ApiHandler) GetEventByDate(gc *gin.Context) {
 	apiRequest.Success(http.StatusOK, event)
 }
 
-func (h *ApiHandler) LoadEventByDateUuid(
+func (h *ApiHandler) LoadEventByDateIdentifier(
 	ctx context.Context,
 	eventUuid string,
 	dateUuid string,

@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/grains/grains_api"
+	"github.com/sndcds/grains/grains_uuid"
 	"github.com/sndcds/uranus/model"
 	"golang.org/x/net/html"
 )
@@ -25,14 +26,33 @@ type ShareMeta struct {
 	EndTime     *time.Time
 	VenueName   string
 	VenueCity   string
+
+	StartTimeSEO  string
+	EndTimeSEO    string
+	OGDescription string
 }
 
 func (h *ApiHandler) InternalTest(gc *gin.Context) {
+	ctx := gc.Request.Context()
 	eventUuid := gc.Param("eventUuid")
-	dateUuid := gc.Param("dateUuid")
+	dateIdentifier := gc.Param("dateIdentifier")
+
+	var dateUuid string
+	if grains_uuid.IsValidUuidv7(dateIdentifier) {
+		dateUuid = dateIdentifier
+	} else {
+		resolvedDateUuid, err := h.ResolveEventDateUuidFromSlug(ctx, eventUuid, dateIdentifier)
+		if err != nil {
+			gc.JSON(http.StatusNotFound, gin.H{
+				"error": "internal server error",
+			})
+			return
+		}
+		dateUuid = resolvedDateUuid
+	}
 
 	// Load everything via shared function
-	event, selectedDate, _, err := h.LoadEventByDateUuid(
+	event, selectedDate, _, err := h.LoadEventByDateIdentifier(
 		gc.Request.Context(),
 		eventUuid,
 		dateUuid,
@@ -180,27 +200,66 @@ func IsCrawler(userAgent string) bool {
 }
 
 func BuildShareMeta(event model.EventDetails, date *model.EventDate, imageURL string, url string) ShareMeta {
+
 	sm := ShareMeta{
 		Title: event.Title,
 		Description: firstNonEmpty(
 			deref(event.Summary),
-			deref(event.Subtitle)),
+			deref(event.Description),
+			deref(event.Subtitle),
+			event.Title),
 		Url: url,
 	}
 
 	if date != nil {
+		var err error
 		sm.VenueName = deref(date.VenueName)
 		sm.VenueCity = deref(date.VenueCity)
+		sm.StartTime, err = combineDateTime(date.StartDate, date.StartTime, "Europe/Berlin")
+		if date.EndDate != nil && date.EndTime != nil {
+			sm.EndTime, err = combineDateTime(*date.EndDate, *date.EndTime, "Europe/Berlin")
+		}
 
-		sm.StartTime = combineDateTime(date.StartDate, date.StartTime)
-		sm.EndTime = combineDateTime(*date.EndDate, *date.EndTime)
+		if sm.StartTime != nil {
+			sm.StartTimeSEO = sm.StartTime.Format(time.RFC3339)
+		}
+
+		if sm.EndTime != nil {
+			sm.EndTimeSEO = sm.EndTime.Format(time.RFC3339)
+		}
+
+		if err != nil {
+			debugf(err.Error())
+		}
 	}
+
+	sm.OGDescription = sm.BuildOGDescription()
 
 	if imageURL != "" {
 		sm.ImageUrl = imageURL
 	}
 
 	return sm
+}
+
+func (sm *ShareMeta) BuildOGDescription() string {
+	var parts []string
+
+	if sm.Description != "" {
+		parts = append(parts, sm.Title)
+	}
+
+	if sm.StartTime != nil {
+		parts = append(parts,
+			sm.StartTime.Format("02.01.2006 15:04"),
+		)
+	}
+
+	if sm.VenueName != "" {
+		parts = append(parts, sm.VenueName)
+	}
+
+	return strings.Join(parts, " / ")
 }
 
 func firstNonEmpty(vals ...string) string {
@@ -212,24 +271,30 @@ func firstNonEmpty(vals ...string) string {
 	return ""
 }
 
-func combineDateTime(dateStr, timeStr string) *time.Time {
+func combineDateTime(dateStr, timeStr, tz string) (*time.Time, error) {
 	if dateStr == "" {
-		return nil
+		return nil, nil
 	}
 
-	// If no time provided, default to midnight
 	if timeStr == "" {
 		timeStr = "00:00"
 	}
 
-	layout := "2006-01-02 15:04"
-
-	t, err := time.Parse(layout, dateStr+" "+timeStr)
+	loc, err := time.LoadLocation(tz)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
-	return &t
+	t, err := time.ParseInLocation(
+		"2006-01-02 15:04",
+		dateStr+" "+timeStr,
+		loc,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &t, nil
 }
 
 func escape(s string) string {

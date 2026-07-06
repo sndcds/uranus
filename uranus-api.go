@@ -107,7 +107,7 @@ func main() {
 
 	eventRoute := router.Group("/event")
 	eventRoute.GET("/:eventUuid", apiHandler.InternalTest)
-	eventRoute.GET("/:eventUuid/date/:dateUuid", apiHandler.InternalTest)
+	eventRoute.GET("/:eventUuid/date/:dateIdentifier", apiHandler.InternalTest)
 
 	//
 	// Public endpoints
