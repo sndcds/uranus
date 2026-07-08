@@ -8,7 +8,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sndcds/grains/grains_api"
-	"github.com/sndcds/grains/grains_uuid"
 	"github.com/sndcds/uranus/app"
 	"github.com/sndcds/uranus/model"
 )
@@ -43,39 +42,19 @@ func (h *ApiHandler) GetEvent(gc *gin.Context) {
 }
 
 func (h *ApiHandler) GetEventByDate(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "get-event-by-date-uuid")
+	apiRequest := grains_api.NewRequest(gc, "get-event-by-date")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 
-	eventUuid := gc.Param("eventUuid")
-	if eventUuid == "" {
-		apiRequest.Required("eventUuid is required")
+	eventDateRequest, ok := h.ResolveEventDateRequest(gc, apiRequest)
+	if !ok {
+		apiRequest.InternalServerError()
 		return
 	}
-	apiRequest.SetMeta("event_uuid", eventUuid)
 
-	dateIdentifier := gc.Param("dateIdentifier")
-	if dateIdentifier == "" {
-		apiRequest.Required("dateIdentifier is required")
-		return
-	}
-	apiRequest.SetMeta("date_identifier", dateIdentifier)
-
-	var dateUuid string
-	if grains_uuid.IsValidUuidv7(dateIdentifier) {
-		dateUuid = dateIdentifier
-	} else {
-		resolvedDateUuid, err := h.ResolveEventDateUuidFromSlug(ctx, eventUuid, dateIdentifier)
-		if err != nil {
-			apiRequest.NotFound("event date not found")
-			return
-		}
-		dateUuid = resolvedDateUuid
-	}
-	apiRequest.SetMeta("date_uuid", dateUuid)
-
-	lang := gc.DefaultQuery("lang", "en")
-	apiRequest.SetMeta("language", lang)
+	eventUuid := eventDateRequest.EventUUID
+	dateUuid := eventDateRequest.DateUUID
+	lang := eventDateRequest.Lang
 
 	// Load everything via shared function
 	event, selectedDate, furtherDates, err := h.LoadEventByDateIdentifier(

@@ -18,6 +18,7 @@ func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 
 	eventDateRequest, ok := h.ResolveEventDateRequest(gc, apiRequest)
 	if !ok {
+		apiRequest.InternalServerError()
 		return
 	}
 

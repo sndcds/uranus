@@ -474,7 +474,6 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		}
 
 		e.DateSlug = BuildDateSlug(e.StartDate, e.StartTime)
-		debugf("e.DateSlug %s", e.DateSlug)
 
 		// Convert types JSON
 		var rawTypes [][]int
