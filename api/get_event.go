@@ -42,7 +42,7 @@ func (h *ApiHandler) GetEvent(gc *gin.Context) {
 }
 
 func (h *ApiHandler) GetEventByDate(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "get-event-by-date-uuid")
+	apiRequest := grains_api.NewRequest(gc, "get-event-by-date")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 
