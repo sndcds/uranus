@@ -10,8 +10,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/sndcds/grains/grains_api"
+	"github.com/sndcds/grains/grains_uuid"
 	"github.com/sndcds/uranus/app"
 )
+
+// TODO: Review code
 
 func debugf(format string, args ...any) {
 	if app.UranusInstance.Config.DebugLevel == 1 {
@@ -19,7 +23,11 @@ func debugf(format string, args ...any) {
 	}
 }
 
-// TODO: Review code
+type EventDateRequest struct {
+	EventUUID string
+	DateUUID  string
+	Lang      string
+}
 
 // Package-level variables
 var (
@@ -270,4 +278,46 @@ func (h *ApiHandler) ResolveEventDateUuidFromSlug(
 
 func BuildDateSlug(startDate, startTime string) string {
 	return startDate[:4] + startDate[5:7] + startDate[8:10] + startTime[:2] + startTime[3:5]
+}
+
+func (h *ApiHandler) ResolveEventDateRequest(gc *gin.Context, apiRequest *grains_api.Request) (*EventDateRequest, bool) {
+	ctx := gc.Request.Context()
+
+	eventUuid := gc.Param("eventUuid")
+	if eventUuid == "" {
+		apiRequest.Required("eventUuid is required")
+		return nil, false
+	}
+	apiRequest.SetMeta("event_uuid", eventUuid)
+
+	dateIdentifier := gc.Param("dateIdentifier")
+	if dateIdentifier == "" {
+		apiRequest.Required("dateIdentifier is required")
+		return nil, false
+	}
+	apiRequest.SetMeta("date_identifier", dateIdentifier)
+
+	var dateUuid string
+
+	if grains_uuid.IsValidUuidv7(dateIdentifier) {
+		dateUuid = dateIdentifier
+	} else {
+		resolvedDateUuid, err := h.ResolveEventDateUuidFromSlug(ctx, eventUuid, dateIdentifier)
+		if err != nil {
+			apiRequest.NotFound("event date not found")
+			return nil, false
+		}
+		dateUuid = resolvedDateUuid
+	}
+
+	lang := gc.DefaultQuery("lang", "en")
+
+	apiRequest.SetMeta("date_uuid", dateUuid)
+	apiRequest.SetMeta("lang", lang)
+
+	return &EventDateRequest{
+		EventUUID: eventUuid,
+		DateUUID:  dateUuid,
+		Lang:      lang,
+	}, true
 }
