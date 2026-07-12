@@ -186,6 +186,17 @@ func (h *ApiHandler) LoadEventByDateIdentifier(
 		return event, nil, nil, err
 	}
 
+	// Cleanup ticket flags
+
+	var allowedTicketFlags = map[string]struct{}{
+		"advance_ticket":          {},
+		"presale_fee_applies":     {},
+		"on_site_ticket_sales":    {},
+		"reduced_price_available": {},
+	}
+
+	event.TicketFlags = app.FilterStrings(event.TicketFlags, allowedTicketFlags)
+
 	// Unmarshal JSON fields
 	if len(orgLogosJSON) > 0 && string(orgLogosJSON) != "null" {
 		_ = json.Unmarshal(orgLogosJSON, &event.OrgLogos)

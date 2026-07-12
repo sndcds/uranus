@@ -64,3 +64,13 @@ func IntSliceToCsv(ids []int) string {
 	}
 	return strings.Join(strIds, ",")
 }
+
+func FilterStrings(values []string, allowed map[string]struct{}) []string {
+	result := values[:0]
+	for _, v := range values {
+		if _, ok := allowed[v]; ok {
+			result = append(result, v)
+		}
+	}
+	return result
+}

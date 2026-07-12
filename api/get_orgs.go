@@ -16,7 +16,7 @@ func (h *ApiHandler) GetOrgs(gc *gin.Context) {
 	ctx := gc.Request.Context()
 
 	type OrganizationResult struct {
-		Id           int     `json:"id"`
+		Uuid         string  `json:"uuid"`
 		Name         *string `json:"name"`
 		City         *string `json:"city"`
 		Country      *string `json:"country"`
@@ -33,9 +33,9 @@ func (h *ApiHandler) GetOrgs(gc *gin.Context) {
 
 	var query string
 	if isEmail {
-		query = fmt.Sprintf("SELECT id, name, city, country, contact_email FROM %s.organization WHERE contact_email ILIKE $1;", h.DbSchema)
+		query = fmt.Sprintf("SELECT uuid, name, city, country, contact_email FROM %s.organization WHERE contact_email ILIKE $1;", h.DbSchema)
 	} else {
-		query = fmt.Sprintf("SELECT id, name, city, country, contact_email FROM %s.organization WHERE name ILIKE $1;", h.DbSchema)
+		query = fmt.Sprintf("SELECT uuid, name, city, country, contact_email FROM %s.organization WHERE name ILIKE $1;", h.DbSchema)
 	}
 
 	searchPattern := "%" + searchStr + "%"
@@ -49,7 +49,7 @@ func (h *ApiHandler) GetOrgs(gc *gin.Context) {
 	var organizations []OrganizationResult
 	for rows.Next() {
 		var o OrganizationResult
-		if err := rows.Scan(&o.Id, &o.Name, &o.City, &o.Country, &o.ContactEmail); err != nil {
+		if err := rows.Scan(&o.Uuid, &o.Name, &o.City, &o.Country, &o.ContactEmail); err != nil {
 			apiRequest.InternalServerError()
 			return
 		}
