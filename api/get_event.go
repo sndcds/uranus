@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sndcds/grains/grains_api"
@@ -288,6 +289,15 @@ func (h *ApiHandler) LoadEventByDateIdentifier(
 		if edd.VenueDarkThemeLogoImageUuid != nil {
 			url := ImageUrl(*edd.VenueDarkThemeLogoImageUuid)
 			edd.VenueDarkThemeLogoUrl = &url
+		}
+
+		//
+		if edd.AccessibilityFlags != nil {
+			mask, err := strconv.ParseInt(*edd.AccessibilityFlags, 10, 64)
+			if err != nil {
+				return event, nil, nil, err
+			}
+			edd.AccessibilityLabels = h.Accessibility.LabelsForMask(mask, lang)
 		}
 
 		// Split selected vs others
