@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sndcds/uranus/app"
+	"github.com/sndcds/uranus/service"
 )
 
 // TODO: Review code
@@ -19,6 +20,7 @@ type ApiHandler struct {
 	DbPool        *pgxpool.Pool
 	DbSchema      string
 	EventTemplate *template.Template
+	Accessibility *service.AccessibilityLookup
 }
 
 type ApiTxError struct {

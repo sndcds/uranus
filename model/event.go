@@ -99,6 +99,7 @@ type EventDate struct {
 	AccessibilityFlags           *string  `json:"accessibility_flags,omitempty"`
 	AccessibilitySummary         *string  `json:"accessibility_summary,omitempty"`
 	AccessibilityInfo            *string  `json:"accessibility_info,omitempty"`
+	AccessibilityLabels          []string `json:"accessibility_labels,omitempty"`
 }
 
 type EventOrgLogo struct {

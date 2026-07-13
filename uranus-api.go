@@ -15,6 +15,7 @@ import (
 	"github.com/sndcds/pluto"
 	"github.com/sndcds/uranus/api"
 	"github.com/sndcds/uranus/app"
+	"github.com/sndcds/uranus/service"
 )
 
 func main() {
@@ -48,6 +49,22 @@ func main() {
 		app.UranusInstance.Config.Verbose = true
 	}
 
+	// Accessibility Lookup
+
+	accessibilityLookup := service.NewAccessibilityLookup()
+	err = accessibilityLookup.Load(
+		context.Background(),
+		app.UranusInstance.MainDbPool,
+		app.UranusInstance.Config.DbSchema,
+	)
+	if err != nil {
+
+		log.Fatal(err)
+
+	}
+
+	//
+
 	app.UranusInstance.Config.Print()
 
 	eventTemplate := template.Must(template.ParseFiles("templates/event.html"))
@@ -57,6 +74,7 @@ func main() {
 		DbPool:        app.UranusInstance.MainDbPool,
 		DbSchema:      app.UranusInstance.Config.DbSchema,
 		EventTemplate: eventTemplate,
+		Accessibility: accessibilityLookup,
 	}
 
 	_, err = pluto.Initialize(*configFileName, app.UranusInstance.MainDbPool, true)
@@ -65,11 +83,13 @@ func main() {
 	}
 
 	// Create a Gin router
+
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New() // Use `Default()` for built-in logging and recovery
 	router.SetTrustedProxies([]string{"127.0.0.1", "::1"})
 
 	// Enable gzip compression (recommended level), exclude images and already-compressed data
+
 	router.Use(gzip.Gzip(
 		gzip.DefaultCompression,
 		gzip.WithExcludedExtensions([]string{".png", ".jpg", ".jpeg", ".webp"}),
