@@ -94,7 +94,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 		"categories": {}, "start": {}, "end": {}, "time": {}, "search": {},
 		"events": {}, "venues": {}, "spaces": {}, "space_types": {},
 		"organizations": {}, "countries": {}, "postal_code": {},
-		"title": {}, "city": {}, "event_types": {}, "tags": {},
+		"title": {}, "city": {}, "event_types": {}, "genres": {}, "tags": {},
 		"accessibility": {}, "visitor_infos": {}, "age": {}, "price": {},
 		"lon": {}, "lat": {}, "radius": {}, "offset": {}, "limit": {},
 		"last_event_start_at": {}, "last_event_date_uuid": {},
@@ -112,6 +112,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 	var conditions []string
 
 	var eventTypesStr string
+	var genresStr string
 
 	// languagesStr, _ := GetContextParam(gc, "language") // TODO: Implement language support!
 	categoriesStr, hasCategories := GetContextParam(gc, "categories")
@@ -132,6 +133,10 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 	cityStr, _ := GetContextParam(gc, "city")
 	if useTypeFilter {
 		eventTypesStr, _ = GetContextParam(gc, "event_types")
+		genresStr, _ = GetContextParam(gc, "genres")
+		if eventTypesStr != "" && genresStr != "" {
+			return filters, fmt.Errorf("only one of 'event_types' or 'genres' may be specified")
+		}
 	}
 	tagsStr, _ := GetContextParam(gc, "tags")
 	accessibilityFlagsStr, _ := GetContextParam(gc, "accessibility")
@@ -163,7 +168,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 		filters.ArgIndex++
 		dateConditionCount++
 	} else if startStr != "" {
-		return filters, fmt.Errorf("start %s has invalid format", startStr)
+		return filters, fmt.Errorf("'start' has invalid format: %s", startStr)
 	} else {
 		filters.DateConditions += "COALESCE(edp.event_end_at, edp.event_start_at) >= CURRENT_DATE"
 		dateConditionCount++
@@ -328,10 +333,25 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 
 	if eventTypesStr != "" {
 		filters.ArgIndex, errBuild = sql_utils.BuildJSONArrayIntCondition(
-			"and",
+			"or",
 			eventTypesStr,
 			"types",
 			0, // index 0 = type_id
+			filters.ArgIndex,
+			&conditions,
+			&filters.Args,
+		)
+		if errBuild != nil {
+			return filters, errBuild
+		}
+	}
+
+	if genresStr != "" {
+		filters.ArgIndex, errBuild = sql_utils.BuildJSONArrayIntCondition(
+			"or",
+			genresStr,
+			"types",
+			1, // index 1 = genre_id
 			filters.ArgIndex,
 			&conditions,
 			&filters.Args,
