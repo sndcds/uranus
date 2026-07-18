@@ -901,7 +901,7 @@ func BuildPriceCondition(
 		return argIndex + 1, nil
 	} else if partCount == 2 {
 		// TODO: Implement use of currency!
-		condition := fmt.Sprintf("%s <= $%d", maxPriceField, argIndex)
+		condition := fmt.Sprintf("%s <= $%d", minPriceField, argIndex)
 		*conditions = append(*conditions, condition)
 		*args = append(*args, parts[0])
 		return argIndex + 1, nil
