@@ -318,10 +318,10 @@ func main() {
 
 	internalRoute := router.Group("/api/internal", app.LocalhostOnlyMiddleware)
 
-	internalRoute.POST("/event/:eventUuid/refresh-projections", apiHandler.AdminRefreshEventProjections)
-	internalRoute.GET("/image/cleanup", apiHandler.InternalCleanupImages)
-	internalRoute.GET("/test", apiHandler.InternalTest)
-	internalRoute.GET("/migrate-venues", apiHandler.InternalMigrateVenues)
+	internalRoute.POST("/event/:eventUuid/refresh-projections", apiHandler.AdminRefreshEventProjections) // TODO: Check!
+	internalRoute.GET("/image/cleanup", apiHandler.InternalCleanupImages)                                // TODO: Check!
+	internalRoute.GET("/test", apiHandler.InternalTest)                                                  // TODO: Check!
+	internalRoute.GET("/migrate-venues", apiHandler.InternalMigrateVenues)                               // TODO: Check!
 
 	fmt.Println("Gin mode:", gin.Mode())
 	fmt.Println("Total routes:", len(router.Routes()))
