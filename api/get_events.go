@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -647,68 +648,25 @@ func (h *ApiHandler) GetEventsWeek(gc *gin.Context) {
 
 func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-events-type-summary")
-	filters := eventFilters{}
 
-	// Build filters from query params (same as GetEvents)
 	filters, err := h.buildEventFilters(gc, false)
 	if err != nil {
 		apiRequest.Error(http.StatusBadRequest, "filter error")
 		return
 	}
 
-	// Event types count
-	query := fmt.Sprintf(`
-		SELECT type_id, COUNT(*) AS date_count
-		FROM (
-			SELECT edp.event_date_uuid, (elem->>0)::int AS type_id
-			FROM %s.event_date_projection edp
-			JOIN %s.event_projection ep ON ep.event_uuid = edp.event_uuid
-			CROSS JOIN LATERAL jsonb_array_elements(ep.types) AS elem
-			{{portal_join}}
-			WHERE ep.release_status IN ('released', 'cancelled', 'deferred', 'rescheduled')
-			AND {{date_conditions}}			
-			{{conditions}}
-			{{portal_conditions}}
-			GROUP BY edp.event_date_uuid, (elem->>0)::int
-		) AS grouped
-		GROUP BY type_id
-		ORDER BY date_count DESC`,
-		h.DbSchema, h.DbSchema)
-
-	query = strings.Replace(query, "{{date_conditions}}", filters.DateConditions, 1)
-	query = strings.Replace(query, "{{conditions}}", filters.ConditionsStr, 1)
-	query = strings.Replace(query, "{{portal_join}}", filters.PortalJoin, 1)
-	query = strings.Replace(query, "{{portal_conditions}}", filters.PortalConditions, 1)
-
-	// debugf("filters.PortalJoin: %s", filters.PortalJoin)
-	// debugf("filters.PortalConditions: %s", filters.PortalConditions)
-	// debugf(query)
-	// debugf("ARGS (%d):\n", len(filters.Args))
-
-	rows, err := h.DbPool.Query(gc.Request.Context(), query, filters.Args...)
+	typeSummary, err := h.loadSummary(gc.Request.Context(), filters, 0)
 	if err != nil {
 		apiRequest.InternalServerError()
 		return
 	}
-	defer rows.Close()
 
-	type summaryEntry struct {
-		TypeId    int `json:"type_id"`
-		DateCount int `json:"count"`
+	genreSummary, err := h.loadSummary(gc.Request.Context(), filters, 1)
+	if err != nil {
+		apiRequest.InternalServerError()
+		return
 	}
 
-	summary := make([]summaryEntry, 0)
-	for rows.Next() {
-		var s summaryEntry
-		err := rows.Scan(&s.TypeId, &s.DateCount)
-		if err != nil {
-			apiRequest.InternalServerError()
-			return
-		}
-		summary = append(summary, s)
-	}
-
-	// Total count
 	totalQuery := fmt.Sprintf(`
 	    SELECT COUNT(DISTINCT edp.event_date_uuid) AS total_count
 	    FROM %s.event_date_projection edp
@@ -718,25 +676,26 @@ func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 	    AND {{date_conditions}}
 	    {{conditions}}
 	    {{portal_conditions}}`,
-		h.DbSchema, h.DbSchema)
+		h.DbSchema,
+		h.DbSchema,
+	)
+
 	totalQuery = strings.Replace(totalQuery, "{{date_conditions}}", filters.DateConditions, 1)
 	totalQuery = strings.Replace(totalQuery, "{{conditions}}", filters.ConditionsStr, 1)
 	totalQuery = strings.Replace(totalQuery, "{{portal_join}}", filters.PortalJoin, 1)
 	totalQuery = strings.Replace(totalQuery, "{{portal_conditions}}", filters.PortalConditions, 1)
-
-	// debugf("totalQuery: %s", totalQuery)
 
 	var totalCount int64
 	err = h.DbPool.QueryRow(gc.Request.Context(), totalQuery, filters.Args...).Scan(&totalCount)
 	if err != nil {
 		apiRequest.InternalServerError()
 		return
-
 	}
 
 	apiRequest.Success(http.StatusOK, gin.H{
 		"total_event_count": totalCount,
-		"summary":           summary,
+		"type_summary":      typeSummary,
+		"genre_summary":     genreSummary,
 	})
 }
 
@@ -948,4 +907,66 @@ func computeWeekEnd(weekStartStr string) (string, error) {
 	}
 	weekEnd := weekStart.AddDate(0, 0, 6)
 	return weekEnd.Format(dateLayout), nil
+}
+
+type summaryEntry struct {
+	Id    int `json:"id"`
+	Count int `json:"count"`
+}
+
+func (h *ApiHandler) loadSummary(
+	ctx context.Context,
+	filters eventFilters,
+	jsonIndex int,
+) ([]summaryEntry, error) {
+
+	query := fmt.Sprintf(`
+		SELECT id, COUNT(*) AS date_count
+		FROM (
+			SELECT
+				edp.event_date_uuid,
+				(elem->>%d)::int AS id
+			FROM %s.event_date_projection edp
+			JOIN %s.event_projection ep
+				ON ep.event_uuid = edp.event_uuid
+			CROSS JOIN LATERAL jsonb_array_elements(ep.types) AS elem
+			{{portal_join}}
+			WHERE ep.release_status IN ('released', 'cancelled', 'deferred', 'rescheduled')
+			AND {{date_conditions}}
+			{{conditions}}
+			{{portal_conditions}}
+			GROUP BY
+				edp.event_date_uuid,
+				(elem->>%d)::int
+		) grouped
+		GROUP BY id
+		ORDER BY date_count DESC`,
+		jsonIndex,
+		h.DbSchema,
+		h.DbSchema,
+		jsonIndex,
+	)
+
+	query = strings.Replace(query, "{{date_conditions}}", filters.DateConditions, 1)
+	query = strings.Replace(query, "{{conditions}}", filters.ConditionsStr, 1)
+	query = strings.Replace(query, "{{portal_join}}", filters.PortalJoin, 1)
+	query = strings.Replace(query, "{{portal_conditions}}", filters.PortalConditions, 1)
+
+	rows, err := h.DbPool.Query(ctx, query, filters.Args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	summary := make([]summaryEntry, 0)
+
+	for rows.Next() {
+		var s summaryEntry
+		if err := rows.Scan(&s.Id, &s.Count); err != nil {
+			return nil, err
+		}
+		summary = append(summary, s)
+	}
+
+	return summary, rows.Err()
 }
