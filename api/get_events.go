@@ -93,7 +93,7 @@ type eventFilters struct {
 func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eventFilters, error) {
 	allowed := map[string]struct{}{
 		"categories": {}, "start": {}, "end": {}, "time": {}, "search": {},
-		"events": {}, "venues": {}, "spaces": {}, "space_types": {},
+		"events": {}, "venues_uuids": {}, "venue": {}, "spaces": {}, "space_types": {},
 		"organizations": {}, "countries": {}, "postal_code": {},
 		"title": {}, "city": {}, "event_types": {}, "genres": {}, "tags": {},
 		"accessibility": {}, "visitor_infos": {}, "age": {}, "price": {},
@@ -124,6 +124,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 	timeStr, _ := GetContextParam(gc, "time")
 	searchStr, _ := GetContextParam(gc, "search")
 	eventUuidsStr, _ := GetContextParam(gc, "events")
+	venueStr, _ := GetContextParam(gc, "venue")
 	venueUuidsStr, _ := GetContextParam(gc, "venues")
 	spaceUuidsStr, _ := GetContextParam(gc, "spaces")
 	spaceTypesStr, _ := GetContextParam(gc, "space_types")
@@ -250,11 +251,13 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 		}
 	}
 
-	filters.ArgIndex, errBuild = sql_utils.BuildSanitizedIlikeCondition(
-		cityStr, "COALESCE(edp.venue_city, ep.venue_city)",
-		"city", filters.ArgIndex, &conditions, &filters.Args)
-	if errBuild != nil {
-		return filters, errBuild
+	if cityStr != "" {
+		filters.ArgIndex, errBuild = sql_utils.BuildSanitizedIlikeCondition(
+			cityStr, "COALESCE(edp.venue_city, ep.venue_city)",
+			"city", filters.ArgIndex, &conditions, &filters.Args)
+		if errBuild != nil {
+			return filters, errBuild
+		}
 	}
 
 	if eventUuidsStr != "" {
@@ -268,6 +271,15 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 	if orgUuidsStr != "" {
 		filters.ArgIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
 			orgUuidsStr, "ep.org_uuid", filters.ArgIndex, &conditions, &filters.Args)
+		if errBuild != nil {
+			return filters, errBuild
+		}
+	}
+
+	if venueStr != "" {
+		filters.ArgIndex, errBuild = sql_utils.BuildSanitizedIlikeCondition(
+			venueStr, "COALESCE(edp.venue_name, ep.venue_name)",
+			"venue", filters.ArgIndex, &conditions, &filters.Args)
 		if errBuild != nil {
 			return filters, errBuild
 		}
