@@ -92,16 +92,40 @@ type eventFilters struct {
 // - nextArgIndex: next placeholder index
 func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eventFilters, error) {
 	allowed := map[string]struct{}{
-		"categories": {}, "start": {}, "end": {}, "time": {}, "search": {},
-		"events": {}, "venues_uuids": {}, "venue": {}, "spaces": {}, "space_types": {},
-		"organizations": {}, "countries": {}, "postal_code": {},
-		"title": {}, "city": {}, "event_types": {}, "genres": {}, "tags": {},
-		"accessibility": {}, "visitor_infos": {}, "age": {}, "price": {},
-		"lon": {}, "lat": {}, "radius": {}, "offset": {}, "limit": {},
-		"last_event_start_at": {}, "last_event_date_uuid": {},
-		"language": {}, "portal": {},
-		"week_start": {},
+		"categories":           {},
+		"start":                {},
+		"end":                  {},
+		"time":                 {},
+		"search":               {},
+		"events":               {},
+		"venue_uuids":          {},
+		"venue":                {},
+		"space_uuids":          {},
+		"space_types":          {},
+		"org_uuids":            {},
+		"countries":            {},
+		"postal_code":          {},
+		"title":                {},
+		"city":                 {},
+		"event_types":          {},
+		"genres":               {},
+		"tags":                 {},
+		"accessibility":        {},
+		"visitor_infos":        {},
+		"age":                  {},
+		"price":                {},
+		"lon":                  {},
+		"lat":                  {},
+		"radius":               {},
+		"offset":               {},
+		"limit":                {},
+		"last_event_start_at":  {},
+		"last_event_date_uuid": {},
+		"lang":                 {},
+		"portal":               {},
+		"week_start":           {},
 	}
+
 	filters := eventFilters{}
 
 	validationErr := validateAllowedQueryParams(gc, allowed)
@@ -115,7 +139,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 	var eventTypesStr string
 	var genresStr string
 
-	// languagesStr, _ := GetContextParam(gc, "language") // TODO: Implement language support!
+	// langStr, _ := GetContextParam(gc, "language") // TODO: Implement language support!
 	categoriesStr, hasCategories := GetContextParam(gc, "categories")
 	startStr, _ := GetContextParam(gc, "start")
 	endStr, _ := GetContextParam(gc, "end")
@@ -125,10 +149,10 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 	searchStr, _ := GetContextParam(gc, "search")
 	eventUuidsStr, _ := GetContextParam(gc, "events")
 	venueStr, _ := GetContextParam(gc, "venue")
-	venueUuidsStr, _ := GetContextParam(gc, "venues")
-	spaceUuidsStr, _ := GetContextParam(gc, "spaces")
+	venueUuidsStr, _ := GetContextParam(gc, "venue_uuids")
+	spaceUuidsStr, _ := GetContextParam(gc, "space_uuids")
 	spaceTypesStr, _ := GetContextParam(gc, "space_types")
-	orgUuidsStr, _ := GetContextParam(gc, "organizations")
+	orgUuidsStr, _ := GetContextParam(gc, "org_uuids")
 	countryCodesStr, _ := GetContextParam(gc, "countries")
 	postalCodeStr, _ := GetContextParam(gc, "postal_code")
 	titleStr, _ := GetContextParam(gc, "title")

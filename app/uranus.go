@@ -63,6 +63,8 @@ type Uranus struct {
 	SqlChoosableVenueSpaces                    string
 	SqlChoosableEventTypes                     string
 	SqlChoosableEventGenres                    string
+	SqlGetVenues                               string
+	SqlGetVenuesSummary                        string
 	SqlGetVenuesGeoJSON                        string
 	SqlGetPortalVenuesGeoJSON                  string
 	SqlAdminGetOrgList                         string
@@ -264,6 +266,9 @@ func (app *Uranus) PrepareSql() error {
 		{"sql/get-portal.sql", &app.SqlGetPortal, nil},
 
 		{"sql/choosable-event-genres.sql", &app.SqlChoosableEventGenres, nil},
+
+		{"sql/get-venues.sql", &app.SqlGetVenues, nil},
+		{"sql/get-venues-summary.sql", &app.SqlGetVenuesSummary, nil},
 		{"sql/get-venues-geojson.sql", &app.SqlGetVenuesGeoJSON, nil},
 		{"sql/get-portal-venues-geojson.sql", &app.SqlGetPortalVenuesGeoJSON, nil},
 

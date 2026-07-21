@@ -600,11 +600,11 @@ func BuildTimeCondition(
 			return fmt.Sprintf("%02d:00", hour), nil
 		case 4:
 			hour, err1 := strconv.Atoi(s[:2])
-			min, err2 := strconv.Atoi(s[2:])
-			if err1 != nil || err2 != nil || hour < 0 || hour > 23 || min < 0 || min > 59 {
+			minute, err2 := strconv.Atoi(s[2:])
+			if err1 != nil || err2 != nil || hour < 0 || hour > 23 || minute < 0 || minute > 59 {
 				return "", fmt.Errorf("invalid HHMM format: %s", s)
 			}
-			return fmt.Sprintf("%02d:%02d", hour, min), nil
+			return fmt.Sprintf("%02d:%02d", hour, minute), nil
 		default:
 			return "", fmt.Errorf("invalid time format: %s", s)
 		}
