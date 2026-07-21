@@ -51,12 +51,10 @@ type venuesResponse struct {
 }
 
 type venueFilters struct {
-	Args             []interface{}
-	ArgIndex         int
-	ConditionsStr    string
-	LimitClause      string
-	PortalJoin       string
-	PortalConditions string
+	Args          []interface{}
+	ArgIndex      int
+	ConditionsStr string
+	LimitClause   string
 }
 
 func (h *ApiHandler) GetVenuesSummary(gc *gin.Context) {
@@ -73,7 +71,12 @@ func (h *ApiHandler) GetVenuesSummary(gc *gin.Context) {
 
 	query := app.UranusInstance.SqlGetVenuesSummary
 	query = strings.Replace(query, "{{conditions}}", filters.ConditionsStr, 1)
+
 	debugf(query)
+	data, err := json.MarshalIndent(filters, "", "  ")
+	if err == nil {
+		debugf(string(data))
+	}
 
 	var summary json.RawMessage
 	err = h.DbPool.QueryRow(ctx, query, filters.Args...).Scan(&summary)
@@ -90,8 +93,6 @@ func (h *ApiHandler) GetVenues(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-venues")
 	ctx := gc.Request.Context()
 
-	debugf("GetVenues")
-
 	filters, err := h.buildVenueFilters(gc, true)
 	if err != nil {
 		apiRequest.Error(http.StatusBadRequest, err.Error())
@@ -101,6 +102,12 @@ func (h *ApiHandler) GetVenues(gc *gin.Context) {
 	query := app.UranusInstance.SqlGetVenues
 	query = strings.Replace(query, "{{conditions}}", filters.ConditionsStr, 1)
 	query = strings.Replace(query, "{{limit}}", filters.LimitClause, 1)
+
+	debugf(query)
+	data, err := json.MarshalIndent(filters, "", "  ")
+	if err == nil {
+		debugf(string(data))
+	}
 
 	rows, err := h.DbPool.Query(ctx, query, filters.Args...)
 	if err != nil {
@@ -198,7 +205,6 @@ func (h *ApiHandler) buildVenueFilters(gc *gin.Context, useLang bool) (venueFilt
 		"radius":        {},
 		"offset":        {},
 		"limit":         {},
-		"portal":        {},
 	}
 
 	filters := venueFilters{}
@@ -208,6 +214,7 @@ func (h *ApiHandler) buildVenueFilters(gc *gin.Context, useLang bool) (venueFilt
 	}
 
 	filters.Args = []interface{}{}
+	filters.ArgIndex = 1
 
 	var conditions []string
 	var errBuild error
@@ -238,8 +245,6 @@ func (h *ApiHandler) buildVenueFilters(gc *gin.Context, useLang bool) (venueFilt
 	limitStr, _ := GetContextParam(gc, "limit")
 
 	// Uuid filters
-
-	filters.ArgIndex = 1
 
 	if venueUuidsStr != "" {
 		filters.ArgIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
@@ -402,34 +407,6 @@ func (h *ApiHandler) buildVenueFilters(gc *gin.Context, useLang bool) (venueFilt
 
 	if errBuild != nil {
 		return filters, errBuild
-	}
-
-	// Portal
-
-	if portalUuid, ok := GetContextParam(gc, "portal"); ok {
-
-		filters.Args = append(filters.Args, portalUuid)
-
-		filters.PortalJoin = fmt.Sprintf(
-			"JOIN %s.portal p ON p.uuid = $%d::uuid",
-			h.DbSchema,
-			filters.ArgIndex,
-		)
-
-		filters.ArgIndex++
-
-		filters.PortalConditions = fmt.Sprintf(`
-			AND (
-				p.wkb_geometry IS NULL
-				OR ST_Covers(p.wkb_geometry, v.point)
-			)
-			AND NOT EXISTS (
-				SELECT 1
-				FROM %s.portal_org_blacklist b
-				WHERE b.portal_uuid = p.uuid
-				AND b.blocked_org_uuid = v.org_uuid
-			)
-		`, h.DbSchema)
 	}
 
 	return filters, nil
