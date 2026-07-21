@@ -8,6 +8,15 @@ import (
 
 // TODO: Review code
 
+func ContainsString(slice []string, value string) bool {
+	for _, s := range slice {
+		if s == value {
+			return true
+		}
+	}
+	return false
+}
+
 // TruncateAtWord truncates the string at the word boundary
 func TruncateAtWord(s string, maxLength int) string {
 	if len(s) <= maxLength {

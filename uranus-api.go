@@ -151,6 +151,8 @@ func main() {
 
 	publicRoute.GET("/portal/:uuid", apiHandler.GetPortal)
 
+	publicRoute.GET("/venues", apiHandler.GetVenues)
+	publicRoute.GET("/venues/type-summary", apiHandler.GetVenuesSummary)
 	publicRoute.GET("/venues/geojson", apiHandler.GetVenuesGeoJSON)
 
 	publicRoute.GET("/org/:orgUuid", apiHandler.GetOrg)

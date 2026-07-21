@@ -56,15 +56,15 @@ func ParamInt(gc *gin.Context, name string) (int, bool) {
 
 // ParamIntDefault extracts a URL path parameter as an integer.
 // If conversion fails or the parameter is missing, returns the provided default value.
-func ParamIntDefault(gc *gin.Context, name string, defaultVal int) int {
+func ParamIntDefault(gc *gin.Context, name string, defaultValue int) int {
 	paramStr := gc.Param(name)
 	if paramStr == "" {
-		return defaultVal
+		return defaultValue
 	}
 
 	val, err := strconv.Atoi(paramStr)
 	if err != nil {
-		return defaultVal
+		return defaultValue
 	}
 
 	return val
@@ -132,6 +132,14 @@ func GetContextParam(gc *gin.Context, name string) (string, bool) {
 	return "", false
 }
 
+func GetContextParamWithDefault(gc *gin.Context, name string, defaultValue string) (string, bool) {
+	if val, exists := GetContextParam(gc, name); exists {
+		return val, true
+	}
+
+	return defaultValue, false
+}
+
 // GetContextParamInt returns a pointer to an int if the parameter exists and is valid,
 // or nil if it doesn't exist or can't be parsed as an integer.
 func GetContextParamInt(gc *gin.Context, name string) (*int, bool) {
@@ -153,18 +161,18 @@ func GetContextParamInt(gc *gin.Context, name string) (*int, bool) {
 
 // GetContextParamIntDefault returns the int value of the parameter if it exists and is valid,
 // otherwise it returns the provided default value.
-func GetContextParamIntDefault(gc *gin.Context, name string, defaultVal int) int {
+func GetContextParamIntDefault(gc *gin.Context, name string, defaultValue int) int {
 	val, exists := gc.GetQuery(name)
 	if !exists {
 		val = gc.PostForm(name)
 		if val == "" {
-			return defaultVal
+			return defaultValue
 		}
 	}
 
 	i, err := strconv.Atoi(val)
 	if err != nil {
-		return defaultVal
+		return defaultValue
 	}
 
 	return i
