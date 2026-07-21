@@ -2,12 +2,15 @@ SELECT
     v.uuid::text,
     v.type,
     v.name,
+    v.street,
+    v.house_number,
     v.city,
     v.country,
     vt.marker_style,
     ST_X(v.point) AS lon,
     ST_Y(v.point) AS lat,
-    pil.pluto_image_uuid::text AS logo_uuid
+    v.web_link,
+    format('{{base_api_url}}/api/image/%s', pil.pluto_image_uuid::text) AS logo_url
 FROM {{schema}}.venue v
 LEFT JOIN {{schema}}.pluto_image_link pil
     ON pil.context = 'venue'

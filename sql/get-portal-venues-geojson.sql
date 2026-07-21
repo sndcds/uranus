@@ -2,6 +2,8 @@ SELECT
     v.uuid::text,
     v.type,
     v.name,
+    v.street,
+    v.house_number,
     v.city,
     v.country,
     ST_X(v.point) AS lon,
