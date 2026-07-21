@@ -82,6 +82,6 @@ WHERE TRUE
     {{conditions}}
 
 ORDER BY
-    v.name;
+    v.name
 
 {{limit}}
