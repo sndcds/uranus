@@ -60,7 +60,7 @@ type venueFilters struct {
 }
 
 func (h *ApiHandler) GetVenuesSummary(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "get-venues")
+	apiRequest := grains_api.NewRequest(gc, "get-venues-type-summary")
 	ctx := gc.Request.Context()
 
 	debugf("GetVenuesSummary")
