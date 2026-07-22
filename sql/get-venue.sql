@@ -23,11 +23,6 @@ SELECT
     ST_Y(v.point) AS lat,
     v.accessibility_flags,
     v.accessibility_summary,
-    pil1.pluto_image_uuid AS logo_uuid,
-    pil2.pluto_image_uuid AS dark_theme_logo_uuid,
-    pil3.pluto_image_uuid AS light_theme_logo_uuid,
-    pil4.pluto_image_uuid AS main_photo_uuid,
-
     v.org_uuid,
     o.name AS org_name,
     o.web_link AS org_web_link,
@@ -51,49 +46,116 @@ SELECT
             )
         ) FILTER (WHERE s.uuid IS NOT NULL),
         '[]'
-    ) AS spaces
+    ) AS spaces,
+    logos.logos,
+    images.images
 
 FROM {{schema}}.venue v
-LEFT JOIN {{schema}}.organization o ON o.uuid = v.org_uuid
-LEFT JOIN {{schema}}.space s ON s.venue_uuid = v.uuid
 
-LEFT JOIN {{schema}}.venue_type vt ON vt.key = v.type
+LEFT JOIN {{schema}}.organization o
+    ON o.uuid = v.org_uuid
+
+LEFT JOIN {{schema}}.space s
+    ON s.venue_uuid = v.uuid
+
+LEFT JOIN {{schema}}.venue_type vt
+    ON vt.key = v.type
+
 LEFT JOIN {{schema}}.venue_type_i18n vti
-ON vti.key = vt.key
-AND vti.iso_639_1 = $2
+    ON vti.key = vt.key
+        AND vti.iso_639_1 = $2
 
-LEFT JOIN {{schema}}.space_type st ON st.key = s.space_type
+LEFT JOIN {{schema}}.space_type st
+    ON st.key = s.space_type
+
 LEFT JOIN {{schema}}.space_type_i18n sti
-ON sti.key = st.key
-AND sti.iso_639_1 = $2
+    ON sti.key = st.key
+        AND sti.iso_639_1 = $2
 
-LEFT JOIN {{schema}}.pluto_image_link pil1
-    ON pil1.context = 'venue'
-    AND pil1.context_uuid = v.uuid
-    AND pil1.identifier = 'main_logo'
+-- Images
+LEFT JOIN LATERAL (
+    SELECT COALESCE(
+        jsonb_object_agg(
+            pil.identifier,
+            jsonb_build_object(
+                'uuid', pi.uuid,
+                'identifier', pil.identifier,
+                'url', format('{{base_api_url}}/api/image/%s', pi.uuid),
+                'alt', pi.alt_text,
+                'width', pi.width,
+                'height', pi.height,
+                'creator', pi.creator_name,
+                'copyright', pi.copyright,
+                'license', COALESCE(lic.key, lic_fallback.key),
+                'license_name', COALESCE(lic.name, lic_fallback.name),
+                'license_description', COALESCE(lic.description, lic_fallback.description)
+            )
+        ),
+       '{}'::jsonb
+    ) AS images
 
-LEFT JOIN {{schema}}.pluto_image_link pil2
-    ON pil2.context = 'venue'
-    AND pil2.context_uuid = v.uuid
-    AND pil2.identifier = 'dark_theme_logo'
+    FROM {{schema}}.pluto_image_link pil
 
-LEFT JOIN {{schema}}.pluto_image_link pil3
-    ON pil3.context = 'venue'
-    AND pil3.context_uuid = v.uuid
-    AND pil3.identifier = 'light_theme_logo'
+    LEFT JOIN {{schema}}.pluto_image pi
+        ON pi.uuid = pil.pluto_image_uuid
 
-LEFT JOIN {{schema}}.pluto_image_link pil4
-    ON pil4.context = 'venue'
-    AND pil4.context_uuid = v.uuid
-    AND pil4.identifier = 'main_photo'
+    LEFT JOIN {{schema}}.license_i18n lic
+        ON lic.key = pi.license
+            AND lic.iso_639_1 = $2
+
+    LEFT JOIN {{schema}}.license_i18n lic_fallback
+        ON lic_fallback.key = 'all-rights-reserved'
+            AND lic_fallback.iso_639_1 = $2
+
+    WHERE pil.context = 'venue'
+        AND pil.context_uuid = v.uuid
+        AND pil.identifier = ANY(
+            ARRAY[
+                'main_photo',
+                'gallery1_photo',
+                'gallery2_photo',
+                'gallery3_photo'
+            ]
+        )
+) images ON TRUE
+
+-- Logos
+LEFT JOIN LATERAL (
+    SELECT COALESCE(
+        jsonb_object_agg(
+            pil.identifier,
+            jsonb_build_object(
+                'uuid', pi.uuid,
+                'identifier', pil.identifier,
+                'url', format('{{base_api_url}}/api/image/%s', pi.uuid)
+            )
+        ),
+        '{}'::jsonb
+    ) AS logos
+
+    FROM {{schema}}.pluto_image_link pil
+
+    JOIN {{schema}}.pluto_image pi
+        ON pi.uuid = pil.pluto_image_uuid
+
+    WHERE pil.context = 'venue'
+        AND pil.context_uuid = v.uuid
+        AND pil.identifier = ANY(
+        ARRAY[
+            'main_logo',
+            'dark_theme_logo',
+            'light_theme_logo'
+        ]
+    )
+
+) logos ON TRUE
 
 WHERE v.uuid = $1::uuid
+
 GROUP BY
     v.uuid,
     o.uuid,
     vti.name,
     vti.description,
-    pil1.pluto_image_uuid,
-    pil2.pluto_image_uuid,
-    pil3.pluto_image_uuid,
-    pil4.pluto_image_uuid
+    logos.logos,
+    images.images
