@@ -32,9 +32,7 @@ SELECT
     ST_X(v.point) AS venue_lon,
     ST_Y(v.point) AS venue_lat,
     v.web_link AS venue_link,
-    venue_logo.main_logo_uuid AS venue_logo_uuid,
-    light_theme_logo.light_theme_logo_uuid AS venue_light_theme_logo_uuid,
-    dark_theme_logo.dark_theme_logo_uuid AS venue_dark_theme_logo_uuid,
+    venue_logos,
 
     -- Space logic: take from event_date only if event_date.venue_uuid exists, else NULL
     s.uuid AS space_uuid,
@@ -48,54 +46,47 @@ SELECT
     ed.accessibility_info AS accessibility_info
 
 FROM {{schema}}.event_date ed
-JOIN target_event e ON ed.event_uuid = e.uuid
+
+JOIN target_event e
+    ON ed.event_uuid = e.uuid
 
 -- Venue fallback
 LEFT JOIN {{schema}}.venue v
-ON v.uuid = COALESCE(ed.venue_uuid, e.venue_uuid)
+    ON v.uuid = COALESCE(ed.venue_uuid, e.venue_uuid)
 
 -- Space fallback
 LEFT JOIN {{schema}}.space s
-ON s.uuid = CASE
-WHEN ed.venue_uuid IS NOT NULL THEN ed.space_uuid
-ELSE e.space_uuid
+    ON s.uuid = CASE
+        WHEN ed.venue_uuid IS NOT NULL THEN ed.space_uuid
+        ELSE e.space_uuid
 END
 
--- Main logo
 LEFT JOIN LATERAL (
-    SELECT pi.uuid AS main_logo_uuid
-    FROM {{schema}}.pluto_image_link pil
-    JOIN {{schema}}.pluto_image pi
-    ON pi.uuid = pil.pluto_image_uuid
-    WHERE pil.context = 'venue'
-    AND pil.context_uuid = v.uuid
-    AND pil.identifier = 'main_logo'
-    LIMIT 1
-) venue_logo ON true
+    SELECT
+        COALESCE(
+            jsonb_object_agg(
+                pil.identifier,
+                jsonb_build_object(
+                    'uuid', pi.uuid::text,
+                    'url', format('{{base_api_url}}/api/image/%s', pi.uuid)
+                )
+            ),
+            '{}'::jsonb
+        ) AS venue_logos
 
--- Light theme logo
-LEFT JOIN LATERAL (
-    SELECT pi.uuid AS light_theme_logo_uuid
     FROM {{schema}}.pluto_image_link pil
     JOIN {{schema}}.pluto_image pi
-    ON pi.uuid = pil.pluto_image_uuid
+        ON pi.uuid = pil.pluto_image_uuid
     WHERE pil.context = 'venue'
-    AND pil.context_uuid = v.uuid
-    AND pil.identifier = 'light_theme_logo'
-    LIMIT 1
-) light_theme_logo ON true
-
--- Dark theme logo
-LEFT JOIN LATERAL (
-    SELECT pi.uuid AS dark_theme_logo_uuid
-    FROM {{schema}}.pluto_image_link pil
-    JOIN {{schema}}.pluto_image pi
-    ON pi.uuid = pil.pluto_image_uuid
-    WHERE pil.context = 'venue'
-    AND pil.context_uuid = v.uuid
-    AND pil.identifier = 'dark_theme_logo'
-    LIMIT 1
-) dark_theme_logo ON true
+        AND pil.context_uuid = v.uuid
+        AND pil.identifier = ANY(
+            ARRAY[
+                'main_logo',
+                'light_theme_logo',
+                'dark_theme_logo'
+            ]
+        )
+) venue_logos ON TRUE
 
 -- WHERE ed.start_date >= CURRENT_DATE
 ORDER BY ed.start_date, ed.start_time

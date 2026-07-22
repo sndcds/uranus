@@ -49,7 +49,6 @@ func (h *ApiHandler) GetEventByDate(gc *gin.Context) {
 
 	eventDateRequest, ok := h.ResolveEventDateRequest(gc, apiRequest)
 	if !ok {
-		apiRequest.InternalServerError()
 		return
 	}
 
@@ -72,7 +71,6 @@ func (h *ApiHandler) GetEventByDate(gc *gin.Context) {
 			return
 		}
 
-		debugf(err.Error())
 		apiRequest.InternalServerError()
 		return
 	}
@@ -236,6 +234,7 @@ func (h *ApiHandler) LoadEventByDateIdentifier(
 
 	for dateRows.Next() {
 		var edd model.EventDate
+		var venueLogos []byte
 
 		err := dateRows.Scan(
 			&edd.Uuid,
@@ -258,9 +257,7 @@ func (h *ApiHandler) LoadEventByDateIdentifier(
 			&edd.VenueLon,
 			&edd.VenueLat,
 			&edd.VenueWebLink,
-			&edd.VenueLogoImageUuid,
-			&edd.VenueLightThemeLogoImageUuid,
-			&edd.VenueDarkThemeLogoImageUuid,
+			&venueLogos,
 			&edd.SpaceUuid,
 			&edd.SpaceName,
 			&edd.TotalCapacity,
@@ -277,18 +274,9 @@ func (h *ApiHandler) LoadEventByDateIdentifier(
 
 		edd.Slug = BuildDateSlug(edd.StartDate, edd.StartTime)
 
-		// Enrich logos
-		if edd.VenueLogoImageUuid != nil {
-			url := ImageUrl(*edd.VenueLogoImageUuid)
-			edd.VenueLogoUrl = &url
-		}
-		if edd.VenueLightThemeLogoImageUuid != nil {
-			url := ImageUrl(*edd.VenueLightThemeLogoImageUuid)
-			edd.VenueLightThemeLogoUrl = &url
-		}
-		if edd.VenueDarkThemeLogoImageUuid != nil {
-			url := ImageUrl(*edd.VenueDarkThemeLogoImageUuid)
-			edd.VenueDarkThemeLogoUrl = &url
+		// Unmarshal JSON fields
+		if len(venueLogos) > 0 && string(venueLogos) != "null" {
+			_ = json.Unmarshal(venueLogos, &edd.VenueLogos)
 		}
 
 		//
