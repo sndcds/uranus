@@ -102,48 +102,43 @@ type EventDate struct {
 	AccessibilityLabels          []string `json:"accessibility_labels,omitempty"`
 }
 
-type EventOrgLogo struct {
-	UUID string `json:"uuid"`
-	URL  string `json:"url"`
-}
-
 type EventDetails struct {
-	Uuid                 string                  `json:"uuid"`
-	ReleaseStatus        *string                 `json:"release_status,omitempty"`
-	ContentLanguage      *string                 `json:"content_language,omitempty"`
-	Title                string                  `json:"title"`
-	Subtitle             *string                 `json:"subtitle,omitempty"`
-	Description          *string                 `json:"description,omitempty"`
-	Summary              *string                 `json:"summary,omitempty"`
-	SourceUrl            *string                 `json:"source_link,omitempty"`
-	Languages            []string                `json:"languages,omitempty"`
-	Tags                 []string                `json:"tags,omitempty"`
-	OrgUuid              string                  `json:"org_uuid"`
-	OrgName              string                  `json:"org_name"`
-	OrgWebLink           *string                 `json:"org_web_link,omitempty"`
-	OrgLogos             map[string]EventOrgLogo `json:"org_logos"`
-	Images               map[string]Image        `json:"images,omitempty"`
-	EventTypes           []EventType             `json:"event_types,omitempty"` // typed slice
-	EventLinks           []WebLink               `json:"event_links,omitempty"` // typed slice
-	Date                 *EventDate              `json:"date,omitempty"`
-	FurtherDates         []EventDate             `json:"further_dates,omitempty"`
-	MaxAttendees         *int                    `json:"max_attendees,omitempty"`
-	MinAge               *int                    `json:"min_age,omitempty"`
-	MaxAge               *int                    `json:"max_age,omitempty"`
-	Currency             *string                 `json:"currency,omitempty"`
-	PriceType            *string                 `json:"price_type,omitempty"`
-	MinPrice             *float64                `json:"min_price,omitempty"`
-	MaxPrice             *float64                `json:"max_price,omitempty"`
-	TicketFlags          []string                `json:"ticket_flags,omitempty"`
-	TicketLink           *string                 `json:"ticket_link,omitempty"`
-	VisitorInfoFlags     *string                 `json:"visitor_info_flags,omitempty"`
-	ParticipationInfo    *string                 `json:"participation_info,omitempty"`
-	MeetingPoint         *string                 `json:"meeting_point,omitempty"`
-	OnlineLink           *string                 `json:"online_link,omitempty"`
-	RegistrationLink     *string                 `json:"registration_link,omitempty"`
-	RegistrationEmail    *string                 `json:"registration_email,omitempty"`
-	RegistrationPhone    *string                 `json:"registration_phone,omitempty"`
-	RegistrationDeadline *string                 `json:"registration_deadline,omitempty"`
+	Uuid                 string           `json:"uuid"`
+	ReleaseStatus        *string          `json:"release_status,omitempty"`
+	ContentLanguage      *string          `json:"content_language,omitempty"`
+	Title                string           `json:"title"`
+	Subtitle             *string          `json:"subtitle,omitempty"`
+	Description          *string          `json:"description,omitempty"`
+	Summary              *string          `json:"summary,omitempty"`
+	SourceUrl            *string          `json:"source_link,omitempty"`
+	Languages            []string         `json:"languages,omitempty"`
+	Tags                 []string         `json:"tags,omitempty"`
+	OrgUuid              string           `json:"org_uuid"`
+	OrgName              string           `json:"org_name"`
+	OrgWebLink           *string          `json:"org_web_link,omitempty"`
+	OrgLogos             map[string]Logo  `json:"org_logos"`
+	Images               map[string]Image `json:"images,omitempty"`
+	EventTypes           []EventType      `json:"event_types,omitempty"` // Typed slice
+	EventLinks           []WebLink        `json:"event_links,omitempty"` // Typed slice
+	Date                 *EventDate       `json:"date,omitempty"`
+	FurtherDates         []EventDate      `json:"further_dates,omitempty"`
+	MaxAttendees         *int             `json:"max_attendees,omitempty"`
+	MinAge               *int             `json:"min_age,omitempty"`
+	MaxAge               *int             `json:"max_age,omitempty"`
+	Currency             *string          `json:"currency,omitempty"`
+	PriceType            *string          `json:"price_type,omitempty"`
+	MinPrice             *float64         `json:"min_price,omitempty"`
+	MaxPrice             *float64         `json:"max_price,omitempty"`
+	TicketFlags          []string         `json:"ticket_flags,omitempty"`
+	TicketLink           *string          `json:"ticket_link,omitempty"`
+	VisitorInfoFlags     *string          `json:"visitor_info_flags,omitempty"`
+	ParticipationInfo    *string          `json:"participation_info,omitempty"`
+	MeetingPoint         *string          `json:"meeting_point,omitempty"`
+	OnlineLink           *string          `json:"online_link,omitempty"`
+	RegistrationLink     *string          `json:"registration_link,omitempty"`
+	RegistrationEmail    *string          `json:"registration_email,omitempty"`
+	RegistrationPhone    *string          `json:"registration_phone,omitempty"`
+	RegistrationDeadline *string          `json:"registration_deadline,omitempty"`
 }
 
 type AdminEvent struct {
