@@ -134,6 +134,7 @@ type EventDetails struct {
 	RegistrationEmail    *string          `json:"registration_email,omitempty"`
 	RegistrationPhone    *string          `json:"registration_phone,omitempty"`
 	RegistrationDeadline *string          `json:"registration_deadline,omitempty"`
+	LogoMode             int              `json:"logo_mode,omitempty"`
 }
 
 type AdminEvent struct {
