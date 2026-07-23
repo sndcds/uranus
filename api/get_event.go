@@ -180,6 +180,7 @@ func (h *ApiHandler) LoadEventByDateIdentifier(
 		&imagesJSON,
 		&eventTypesJSON,
 		&eventLinksJSON,
+		&event.LogoMode,
 	)
 	if err != nil {
 		return event, nil, nil, err

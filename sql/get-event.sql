@@ -32,7 +32,8 @@ SELECT
     org_logos,
     images.images,
     et_data.event_types,
-    link_data.event_links
+    link_data.event_links,
+    e.logo_mode
 
 FROM {{schema}}.event e
 JOIN {{schema}}.organization o ON o.uuid = e.org_uuid
