@@ -313,12 +313,10 @@ func (h *ApiHandler) GetGeoRegion(gc *gin.Context) {
 	)
 
 	if err != nil {
-		debugf(err.Error())
 		if errors.Is(err, pgx.ErrNoRows) {
 			apiRequest.NotFound("geo region not found")
 			return
 		}
-
 		apiRequest.InternalServerError()
 		return
 	}
