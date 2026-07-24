@@ -96,6 +96,7 @@ type Uranus struct {
 	SqlGetGeoCountryStates                     string
 	SqlGetGeoStateRegions                      string
 	SqlGetGeoRegion                            string
+	SqlGetGeoNamesBySlugs                      string
 	SqlJoinGeoRegion                           string
 }
 
@@ -290,6 +291,7 @@ func (app *Uranus) PrepareSql() error {
 		{"sql/get-geo-country-states.sql", &app.SqlGetGeoCountryStates, nil},
 		{"sql/get-geo-state-regions.sql", &app.SqlGetGeoStateRegions, nil},
 		{"sql/get-geo-region.sql", &app.SqlGetGeoRegion, nil},
+		{"sql/get-geo-names-by-slugs.sql", &app.SqlGetGeoNamesBySlugs, nil},
 
 		// Admin
 

@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -184,14 +183,26 @@ func (h *ApiHandler) GetGeoStateRegions(gc *gin.Context) {
 	apiRequest.SetMeta("country_slug", countrySlug)
 	apiRequest.SetMeta("state_slug", stateSlug)
 
-	stateNameQuery := fmt.Sprintf("SELECT name FROM %s.geolist_state WHERE slug = $1", h.DbSchema)
-	var stateName string
-	err := h.DbPool.QueryRow(ctx, stateNameQuery, stateSlug).Scan(&stateName)
+	var countryName *string
+	var stateName *string
+	var regionName *string
+	err := h.DbPool.QueryRow(
+		ctx,
+		app.UranusInstance.SqlGetGeoNamesBySlugs,
+		countrySlug,
+		stateSlug,
+		"",
+	).Scan(
+		&countryName,
+		&stateName,
+		&regionName,
+	)
 	if err != nil {
 		debugf(err.Error())
 		apiRequest.InternalServerError()
 		return
 	}
+	apiRequest.SetMeta("country_name", countryName)
 	apiRequest.SetMeta("state_name", stateName)
 
 	query := app.UranusInstance.SqlGetGeoStateRegions
