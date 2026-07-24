@@ -317,7 +317,6 @@ func (h *ApiHandler) GetGeoRegion(gc *gin.Context) {
 			apiRequest.NotFound("geo region not found")
 			return
 		}
-
 		apiRequest.InternalServerError()
 		return
 	}
