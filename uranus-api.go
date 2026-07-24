@@ -201,11 +201,10 @@ func main() {
 
 	publicRoute.GET("/sitemap", apiHandler.Sitemap)
 
-	publicRoute.GET("/geo/countries", apiHandler.GetGeoCountries)
-	publicRoute.GET("/geo/countries/:country_slug/states", apiHandler.GetGeoCountryStates)
-	publicRoute.GET("/geo/countries/:country_slug/states/:state_slug", apiHandler.GetGeoStateRegions)
-
-	publicRoute.GET("/geo/:country_slug/:state_slug/:region_slug", apiHandler.GetGeoRegion)
+	publicRoute.GET("/geolist/countries", apiHandler.GetGeoCountries)
+	publicRoute.GET("/geolist/states/:country_slug", apiHandler.GetGeoCountryStates)
+	publicRoute.GET("/geolist/regions/:country_slug/:state_slug", apiHandler.GetGeoStateRegions)
+	publicRoute.GET("/geolist/region/:country_slug/:state_slug/:region_slug", apiHandler.GetGeoRegion)
 
 	//
 	// Authorized endpoints, user must be logged in

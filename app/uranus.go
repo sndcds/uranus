@@ -96,6 +96,7 @@ type Uranus struct {
 	SqlGetGeoCountryStates                     string
 	SqlGetGeoStateRegions                      string
 	SqlGetGeoRegion                            string
+	SqlJoinGeoRegion                           string
 }
 
 var UranusInstance *Uranus
