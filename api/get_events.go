@@ -124,6 +124,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 		"lang":                 {},
 		"portal":               {},
 		"week_start":           {},
+		"geolist_region":       {},
 	}
 
 	filters := eventFilters{}
@@ -175,6 +176,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 	offsetStr, _ := GetContextParam(gc, "offset")
 	limitStr, _ := GetContextParam(gc, "limit")
 	weekStartStr, _ := GetContextParam(gc, "week_start")
+	geolistRegionStr, _ := GetContextParam(gc, "geolist_region")
 
 	var errBuild error
 
@@ -426,9 +428,41 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 		return filters, errBuild
 	}
 
+	// Geolist
+	if geolistRegionStr != "" {
+		parts := strings.Split(geolistRegionStr, ",")
+		if len(parts) != 3 {
+			return filters, errors.New("geolist_region must contain 3 parts")
+		}
+
+		countrySlug := parts[0]
+		stateSlug := parts[1]
+		regionSlug := parts[2]
+
+		pattern := `
+			JOIN %s.geolist_country glc ON glc.slug = $%d
+			JOIN %s.geolist_state gls ON gls.country_code = glc.code AND gls.slug = $%d
+			JOIN %s.geolist_region glr ON glr.country_code = glc.code AND glr.state_code = gls.code AND glr.slug = $%d
+		`
+		filters.Args = append(filters.Args, countrySlug, stateSlug, regionSlug)
+		filters.PortalJoin = fmt.Sprintf(
+			pattern,
+			h.DbSchema, filters.ArgIndex,
+			h.DbSchema, filters.ArgIndex+1,
+			h.DbSchema, filters.ArgIndex+2)
+		filters.ArgIndex += 3
+
+		filters.PortalConditions = "AND ST_Covers(glr.wkb_geometry, COALESCE(edp.venue_point, ep.venue_point))"
+		debugf("filters.PortalConditions: %s", filters.PortalConditions)
+	}
+
 	// Portal
 	portalUuid, portalUuidExists := GetContextParam(gc, "portal")
 	if portalUuidExists {
+		if geolistRegionStr != "" {
+			return filters, errors.New("portal and geolist_region filters cannot be used together")
+		}
+
 		filters.Args = append(filters.Args, portalUuid)
 		filters.PortalJoin = fmt.Sprintf("JOIN %s.portal p ON p.uuid = $%d::uuid", h.DbSchema, filters.ArgIndex)
 		filters.ArgIndex++
@@ -466,12 +500,10 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	query = strings.Replace(query, "{{portal_join}}", filters.PortalJoin, 1)
 	query = strings.Replace(query, "{{portal_conditions}}", filters.PortalConditions, 1)
 
-	/*
-		debugf("query: %s", query)
-		for i, a := range filters.Args {
-			fmt.Printf("args[%d] = %#v\n", i, a)
-		}
-	*/
+	debugf("query: %s", query)
+	for i, a := range filters.Args {
+		fmt.Printf("args[%d] = %#v\n", i, a)
+	}
 
 	rows, err := h.DbPool.Query(ctx, query, filters.Args...)
 	if err != nil {
