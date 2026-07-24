@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -170,92 +171,58 @@ func (h *ApiHandler) GetGeoStateRegions(gc *gin.Context) {
 
 	countrySlug := gc.Param("country_slug")
 	if countrySlug == "" {
-		apiRequest.Required(
-			"parameter country_slug is required",
-		)
+		apiRequest.Required("parameter country_slug is required")
 		return
 	}
 
 	stateSlug := gc.Param("state_slug")
 	if stateSlug == "" {
-		apiRequest.Required(
-			"parameter state_slug is required",
-		)
+		apiRequest.Required("parameter state_slug is required")
 		return
 	}
 
-	apiRequest.SetMeta(
-		"country_slug",
-		countrySlug,
-	)
+	apiRequest.SetMeta("country_slug", countrySlug)
+	apiRequest.SetMeta("state_slug", stateSlug)
 
-	apiRequest.SetMeta(
-		"state_slug",
-		stateSlug,
-	)
-
-	lang := gc.DefaultQuery(
-		"lang",
-		"de",
-	)
-
-	apiRequest.SetMeta(
-		"language",
-		lang,
-	)
-
-	query := app.UranusInstance.SqlGetGeoStateRegions
-
-	rows, err := h.DbPool.Query(
-		ctx,
-		query,
-		countrySlug,
-		stateSlug,
-	)
-
+	stateNameQuery := fmt.Sprintf("SELECT name FROM %s.geolist_state WHERE slug = $1", h.DbSchema)
+	var stateName string
+	err := h.DbPool.QueryRow(ctx, stateNameQuery, stateSlug).Scan(&stateName)
 	if err != nil {
 		debugf(err.Error())
+		apiRequest.InternalServerError()
+		return
+	}
+	apiRequest.SetMeta("state_name", stateName)
+
+	query := app.UranusInstance.SqlGetGeoStateRegions
+	rows, err := h.DbPool.Query(ctx, query, countrySlug, stateSlug)
+	if err != nil {
 		apiRequest.InternalServerError()
 		return
 	}
 
 	defer rows.Close()
 
-	fieldDescriptions :=
-		rows.FieldDescriptions()
-
-	regions := make(
-		[]map[string]interface{},
-		0,
-	)
+	fieldDescriptions := rows.FieldDescriptions()
+	regions := make([]map[string]interface{}, 0)
 
 	for rows.Next() {
-
 		values, err := rows.Values()
 
 		if err != nil {
-			debugf(err.Error())
 			apiRequest.InternalServerError()
 			return
 		}
 
-		region := make(
-			map[string]interface{},
-			len(values),
-		)
+		region := make(map[string]interface{}, len(values))
 
 		for i, fd := range fieldDescriptions {
-
 			if values[i] != nil {
 				region[string(fd.Name)] = values[i]
 			}
-
 		}
 
-		regions = append(
-			regions,
-			region,
-		)
+		regions = append(regions, region)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -264,10 +231,7 @@ func (h *ApiHandler) GetGeoStateRegions(gc *gin.Context) {
 		return
 	}
 
-	apiRequest.Success(
-		http.StatusOK,
-		regions,
-	)
+	apiRequest.Success(http.StatusOK, regions)
 }
 
 func (h *ApiHandler) GetGeoRegion(gc *gin.Context) {
@@ -293,13 +257,7 @@ func (h *ApiHandler) GetGeoRegion(gc *gin.Context) {
 		geometry      string
 	)
 
-	err := h.DbPool.QueryRow(
-		ctx,
-		query,
-		countrySlug,
-		stateSlug,
-		regionSlug,
-	).Scan(
+	err := h.DbPool.QueryRow(ctx, query, countrySlug, stateSlug, regionSlug).Scan(
 		&countryCode,
 		&countryName,
 		&countrySlugDB,
