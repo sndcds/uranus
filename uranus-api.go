@@ -201,6 +201,10 @@ func main() {
 
 	publicRoute.GET("/sitemap", apiHandler.Sitemap)
 
+	publicRoute.GET("/geo/countries", apiHandler.GetGeoCountries)
+	publicRoute.GET("/geo/countries/:country_slug/states", apiHandler.GetGeoCountryStates)
+	publicRoute.GET("/geo/countries/:country_slug/states/:state_slug", apiHandler.GetGeoStateRegions)
+
 	//
 	// Authorized endpoints, user must be logged in
 	//
