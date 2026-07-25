@@ -39,7 +39,7 @@ func (h *ApiHandler) GetVenue(gc *gin.Context) {
 	}
 
 	type VenueResult struct {
-		Uuid                 *string                `json:"id"`
+		Uuid                 *string                `json:"uuid"`
 		Name                 *string                `json:"name,omitempty"`
 		Type                 *string                `json:"type,omitempty"`
 		TypeName             *string                `json:"type_name,omitempty"`
