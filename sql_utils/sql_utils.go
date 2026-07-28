@@ -50,49 +50,6 @@ func BuildSanitizedIlikeCondition(
 	return argIndex + 1, nil
 }
 
-func BuildSanitizedSearchCondition(
-	inputStr string, // the search string
-	columnExpr string, // e.g., "e.document_normalized"
-	label string,
-	argIndex int, // starting parameter index ($1, $2, ...)
-	conditions *[]string, // append SQL conditions
-	args *[]interface{}, // append args
-) (int, error) {
-	if inputStr == "" {
-		return argIndex, nil
-	}
-
-	// sanitize input (trim, remove dangerous characters, etc.)
-	sanitizedStr, err := SanitizeSearchPattern(inputStr)
-	if err != nil {
-		return argIndex, fmt.Errorf("%s format error: %s", label, inputStr)
-	}
-
-	// Normalize German input so "ä" -> "ae", "ß" -> "ss", etc.
-	normalizedInput := normalizeGerman(sanitizedStr)
-
-	// Use ILIKE for substring match with pg_trgm index
-	*conditions = append(*conditions, fmt.Sprintf("%s ILIKE $%d", columnExpr, argIndex))
-	*args = append(*args, "%"+normalizedInput+"%")
-
-	return argIndex + 1, nil
-}
-
-// Example helper to normalize German input in Go
-func normalizeGerman(s string) string {
-	s = strings.ToLower(s)
-	replacements := []struct{ old, new string }{
-		{"ä", "ae"},
-		{"ö", "oe"},
-		{"ü", "ue"},
-		{"ß", "ss"},
-	}
-	for _, r := range replacements {
-		s = strings.ReplaceAll(s, r.old, r.new)
-	}
-	return s
-}
-
 // BuildBitmaskCondition constructs a SQL bitmask filter from a string of flags.
 //
 // It supports both a single integer value (e.g., "16") representing a full bitmask,
@@ -711,7 +668,7 @@ func SanitizeSearchPattern(input string) (string, error) {
 
 	// Optional: Reject dangerous patterns like "%%" or leading wildcards
 	if strings.Count(safeInput, "%") > 2 {
-		return "", fmt.Errorf("too many wildcards in city filter")
+		return "", fmt.Errorf("too many wildcards in search pattern")
 	}
 
 	return safeInput, nil

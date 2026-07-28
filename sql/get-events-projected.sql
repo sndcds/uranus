@@ -1,4 +1,5 @@
 SELECT
+    {{search_rank}},
     edp.event_date_uuid,
     edp.event_uuid,
     ep.org_uuid,

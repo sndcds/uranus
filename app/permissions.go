@@ -49,6 +49,7 @@ const (
 	UserPermBitDeleteFavoriteList = 41
 	UserPermBitAddToFavoriteList  = 42
 
+	// Org/partner permissions
 	OrgPermBitChooseVenue    = 0
 	OrgPermBitChoosePartner  = 1
 	OrgPermBitChoosePromoter = 2

@@ -236,7 +236,7 @@ func (h *ApiHandler) buildVenueFilters(gc *gin.Context, useLang bool) (venueFilt
 	citiesStr, _ := GetContextParam(gc, "cities")
 	postalCodeStr, _ := GetContextParam(gc, "postal_code")
 	nameStr, _ := GetContextParam(gc, "name")
-	searchStr, _ := GetContextParam(gc, "search")
+	// searchStr, _ := GetContextParam(gc, "search") TODO: !
 	accessibilityStr, _ := GetContextParam(gc, "accessibility")
 	lonStr, _ := GetContextParam(gc, "lon")
 	latStr, _ := GetContextParam(gc, "lat")
@@ -288,6 +288,7 @@ func (h *ApiHandler) buildVenueFilters(gc *gin.Context, useLang bool) (venueFilt
 		}
 	}
 
+	/* TODO: Change search implementation!
 	if searchStr != "" {
 		filters.ArgIndex, errBuild = sql_utils.BuildSanitizedSearchCondition(
 			searchStr,
@@ -301,6 +302,7 @@ func (h *ApiHandler) buildVenueFilters(gc *gin.Context, useLang bool) (venueFilt
 			return filters, errBuild
 		}
 	}
+	*/
 
 	if citiesStr != "" {
 		filters.ArgIndex, errBuild = sql_utils.BuildSanitizedIlikeCondition(
