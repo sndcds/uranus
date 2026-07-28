@@ -24,6 +24,7 @@ type eventType struct {
 
 // eventResponse is the JSON structure for each event
 type eventResponse struct {
+	SearchRank              float32     `json:"search_rank"`
 	Uuid                    string      `json:"uuid"`
 	DateUuid                string      `json:"date_uuid"`
 	DateSlug                string      `json:"date_slug"`
@@ -77,6 +78,7 @@ type eventFilters struct {
 	DateConditions   string
 	ConditionsStr    string
 	LimitClause      string
+	SearchRankSelect string
 	PortalJoin       string
 	PortalConditions string
 	Args             []interface{}
@@ -240,10 +242,17 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 		return filters, errBuild
 	}
 
-	filters.ArgIndex, errBuild = sql_utils.BuildSanitizedSearchCondition(
-		searchStr, "ep.search_text", "search", filters.ArgIndex, &conditions, &filters.Args)
-	if errBuild != nil {
-		return filters, errBuild
+	// Search condition
+	if searchStr != "" {
+		filters.SearchRankSelect,
+			filters.ArgIndex = buildSearchFilter(
+			searchStr,
+			filters.ArgIndex,
+			&filters.Args,
+			&conditions,
+		)
+	} else {
+		filters.SearchRankSelect = "1 AS search_rank"
 	}
 
 	filters.ArgIndex, errBuild = sql_utils.BuildSanitizedIlikeCondition(
@@ -494,6 +503,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	}
 
 	query := app.UranusInstance.SqlGetEventsProjected
+	query = strings.Replace(query, "{{search_rank}}", filters.SearchRankSelect, 1)
 	query = strings.Replace(query, "{{date_conditions}}", filters.DateConditions, 1)
 	query = strings.Replace(query, "{{conditions}}", filters.ConditionsStr, 1)
 	query = strings.Replace(query, "{{limit}}", filters.LimitClause, 1)
@@ -507,6 +517,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 
 	rows, err := h.DbPool.Query(ctx, query, filters.Args...)
 	if err != nil {
+		debugf("Error scanning events: %v", err)
 		apiRequest.InternalServerError()
 		return
 	}
@@ -518,6 +529,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		var e eventResponse
 		var typesJSON []byte
 		err := rows.Scan(
+			&e.SearchRank,
 			&e.DateUuid,
 			&e.Uuid,
 			&e.OrgUuid,
@@ -558,6 +570,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			&e.VisitorInfoFlags,
 		)
 		if err != nil {
+			debugf("Error scanning events: %v", err)
 			apiRequest.InternalServerError()
 			return
 		}
@@ -1037,4 +1050,42 @@ func (h *ApiHandler) loadSummary(
 	}
 
 	return summary, rows.Err()
+}
+
+func buildSearchFilter(
+	searchStr string,
+	argIndex int,
+	args *[]interface{},
+	conditions *[]string,
+) (searchRankSelect string, newArgIndex int) {
+
+	if searchStr == "" {
+		return "", argIndex
+	}
+
+	*args = append(*args, searchStr)
+
+	searchParam := argIndex
+	argIndex++
+
+	rankExpression := fmt.Sprintf(`
+        uranus.event_search_rank(
+            ep.search_vector,
+            edp.search_vector,
+            ep.title,
+            ep.subtitle,
+            COALESCE(edp.venue_name, ep.venue_name),
+            $%d
+        )
+    `, searchParam)
+
+	*conditions = append(
+		*conditions,
+		fmt.Sprintf(
+			"%s > 0.4",
+			rankExpression,
+		),
+	)
+
+	return fmt.Sprintf("%s AS search_rank", rankExpression), argIndex
 }

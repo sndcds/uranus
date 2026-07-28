@@ -47,8 +47,9 @@ func RefreshEventProjections(
 	}
 
 	// Refresh events
+
 	if q.EventUuids != "" {
-		debugf("upsertEventProjection ...")
+
 		eventUuids, err := fetchUuids(ctx, tx, q.EventUuids, uuids)
 		if err != nil {
 			return err
@@ -59,12 +60,19 @@ func RefreshEventProjections(
 				debugf("Error updating event projection: %v", err)
 				return err
 			}
+
+			err = updateEventSearchVectors(ctx, tx, eventUuids)
+			if err != nil {
+				debugf("Error updating event search vectors: %v", err)
+				return err
+			}
 		}
 	}
 
 	// Refresh event dates
+
 	if q.EventDateUuids != "" {
-		debugf("upsertEventDateProjection ...")
+
 		eventDateUuids, err := fetchUuids(ctx, tx, q.EventDateUuids, uuids)
 		if err != nil {
 			return err
@@ -73,6 +81,12 @@ func RefreshEventProjections(
 			err := upsertEventDateProjection(ctx, tx, eventDateUuids)
 			if err != nil {
 				debugf("Error updating event date projection: %v", err)
+				return err
+			}
+
+			err = updateEventDateSearchVectors(ctx, tx, eventDateUuids)
+			if err != nil {
+				debugf("Error updating event date search vectors: %v", err)
 				return err
 			}
 		}
@@ -197,7 +211,7 @@ INSERT INTO %[1]s.event_projection (
     source_link, online_link, occasion_type_id, max_attendees, min_age, max_age,
     participation_info, meeting_point, ticket_flags, ticket_link,
 	price_type, currency, min_price, max_price, visitor_info_flags,
-    external_id, custom, style, search_text,
+    external_id, custom, style,
     org_name, org_contact_email, org_contact_phone, org_link,
     venue_name, venue_street, venue_house_number, venue_postal_code, venue_city,
     venue_country, venue_state, venue_point, venue_link,
@@ -243,7 +257,6 @@ SELECT DISTINCT ON (e.uuid)
     e.external_id,
     e.custom,
     e.style,
-    e.search_text,
     o.name,
     o.contact_email,
     o.contact_phone,
@@ -318,7 +331,6 @@ ON CONFLICT (event_uuid) DO UPDATE SET
     external_id = EXCLUDED.external_id,
     custom = EXCLUDED.custom,
     style = EXCLUDED.style,
-    search_text = EXCLUDED.search_text,
     org_name = EXCLUDED.org_name,
     org_contact_email = EXCLUDED.org_contact_email,
     org_contact_phone = EXCLUDED.org_contact_phone,
@@ -445,6 +457,7 @@ func fetchUuids(
 	query string,
 	uuids []string,
 ) ([]string, error) {
+
 	rows, err := tx.Query(ctx, query, uuids)
 	if err != nil {
 		return nil, err
@@ -463,17 +476,49 @@ func fetchUuids(
 			result = append(result, *uuid)
 		}
 	}
+
 	return result, nil
 }
 
 func uniqueStrings(uuids []string) []string {
+
 	seen := make(map[string]struct{}, len(uuids))
 	out := make([]string, 0, len(uuids))
+
 	for _, id := range uuids {
 		if _, ok := seen[id]; !ok {
 			seen[id] = struct{}{}
 			out = append(out, id)
 		}
 	}
+
 	return out
+}
+
+func updateEventSearchVectors(
+	ctx context.Context,
+	tx pgx.Tx,
+	eventUuids []string,
+) error {
+
+	if len(eventUuids) == 0 {
+		return nil
+	}
+
+	_, err := tx.Exec(ctx, app.UranusInstance.SqlUpdateEventSearchVector, eventUuids)
+	return err
+}
+
+func updateEventDateSearchVectors(
+	ctx context.Context,
+	tx pgx.Tx,
+	eventDateUuids []string,
+) error {
+
+	if len(eventDateUuids) == 0 {
+		return nil
+	}
+
+	_, err := tx.Exec(ctx, app.UranusInstance.SqlUpdateEventDateSearchVector, eventDateUuids)
+	return err
 }
