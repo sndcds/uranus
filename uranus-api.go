@@ -95,26 +95,27 @@ func main() {
 		gzip.WithExcludedExtensions([]string{".png", ".jpg", ".jpeg", ".webp"}),
 	))
 
-	if app.UranusInstance.Config.UseRouterMiddleware {
-		router.Use(func(gc *gin.Context) {
-			origin := gc.GetHeader("Origin")
-			if origin != "" {
-				gc.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-				gc.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS")
-				gc.Writer.Header().Set("Access-Control-Allow-Headers", "Origin, Authorization, Content-Type, Accept")
-				gc.Writer.Header().Set("Access-Control-Expose-Headers", "Authorization")
-				gc.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-				gc.Writer.Header().Set("Vary", "Origin")
-			}
+	/*
+		if app.UranusInstance.Config.UseRouterMiddleware {
+			router.Use(func(gc *gin.Context) {
+				origin := gc.GetHeader("Origin")
+				if origin != "" {
+					// gc.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS")
+					// gc.Writer.Header().Set("Access-Control-Allow-Headers", "Origin, Authorization, Content-Type, Accept")
+					// gc.Writer.Header().Set("Access-Control-Expose-Headers", "Authorization")
+					// gc.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+					// gc.Writer.Header().Set("Vary", "Origin")
+				}
 
-			if gc.Request.Method == "OPTIONS" {
-				gc.AbortWithStatus(204)
-				return
-			}
+				if gc.Request.Method == "OPTIONS" {
+					gc.AbortWithStatus(204)
+					return
+				}
 
-			gc.Next()
-		})
-	}
+				gc.Next()
+			})
+		}
+	*/
 
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
@@ -135,6 +136,7 @@ func main() {
 	//
 
 	publicRoute := router.Group("/api")
+	publicRoute.Use(PublicCORSMiddleware())
 
 	publicRoute.GET("/health", apiHandler.GetHealth)
 
@@ -211,7 +213,12 @@ func main() {
 	// Authorized endpoints, user must be logged in
 	//
 
-	adminRoute := router.Group("/api/admin", app.JWTMiddleware)
+	adminRoute := router.Group(
+		"/api/admin",
+		AdminCORSMiddleware(),
+		app.JWTMiddleware,
+	)
+
 	adminRoute.GET("/event/:eventUuid/date/:dateIdentifier", apiHandler.GetEventByDate) // TODO: Permission check
 	adminRoute.GET("/permissions/list", apiHandler.AdminGetPermissionsList)             // TODO: Permission check
 	adminRoute.POST("/refresh", apiHandler.Refresh)                                     // TODO: Permission check
@@ -344,5 +351,69 @@ func main() {
 	err = router.Run(port)
 	if err != nil {
 		fmt.Println("app server error:", err)
+	}
+}
+
+func PublicCORSMiddleware() gin.HandlerFunc {
+	return func(gc *gin.Context) {
+
+		gc.Header("Access-Control-Allow-Origin", "*")
+		gc.Header("Access-Control-Allow-Methods", "GET, OPTIONS")
+		gc.Header("Access-Control-Allow-Headers", "Content-Type")
+
+		if gc.Request.Method == "OPTIONS" {
+			gc.AbortWithStatus(204)
+			return
+		}
+
+		gc.Next()
+	}
+}
+
+func AdminCORSMiddleware() gin.HandlerFunc {
+	return func(gc *gin.Context) {
+
+		origin := gc.GetHeader("Origin")
+
+		allowed := map[string]bool{
+			"https://app.kulturbytes.de": true,
+		}
+
+		if !allowed[origin] {
+			gc.AbortWithStatus(403)
+			return
+		}
+
+		gc.Header(
+			"Access-Control-Allow-Origin",
+			origin,
+		)
+
+		gc.Header(
+			"Access-Control-Allow-Credentials",
+			"true",
+		)
+
+		gc.Header(
+			"Access-Control-Allow-Headers",
+			"Authorization, Content-Type",
+		)
+
+		gc.Header(
+			"Access-Control-Allow-Methods",
+			"GET, POST, PUT, PATCH, DELETE, OPTIONS",
+		)
+
+		gc.Header(
+			"Vary",
+			"Origin",
+		)
+
+		if gc.Request.Method == "OPTIONS" {
+			gc.AbortWithStatus(204)
+			return
+		}
+
+		gc.Next()
 	}
 }
