@@ -138,9 +138,6 @@ func main() {
 
 	publicRoute := router.Group("/api")
 	publicRoute.Use(PublicCORSMiddleware())
-	publicRoute.OPTIONS("/*path", func(c *gin.Context) {
-		c.Status(204)
-	})
 
 	publicRoute.GET("/health", apiHandler.GetHealth)
 
@@ -373,49 +370,32 @@ func PublicCORSMiddleware() gin.HandlerFunc {
 }
 
 func AdminCORSMiddleware() gin.HandlerFunc {
-	return func(gc *gin.Context) {
+	allowed := map[string]bool{
+		"https://app.kulturbytes.de": true,
+	}
 
-		origin := gc.GetHeader("Origin")
+	return func(c *gin.Context) {
 
-		allowed := map[string]bool{
-			"https://app.kulturbytes.de": true,
+		origin := c.GetHeader("Origin")
+
+		if origin != "" {
+			if !allowed[origin] {
+				c.AbortWithStatus(http.StatusForbidden)
+				return
+			}
+
+			c.Header("Access-Control-Allow-Origin", origin)
+			c.Header("Access-Control-Allow-Credentials", "true")
+			c.Header("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type")
+			c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+			c.Header("Vary", "Origin")
 		}
 
-		if !allowed[origin] {
-			gc.AbortWithStatus(403)
+		if c.Request.Method == http.MethodOptions {
+			c.AbortWithStatus(http.StatusNoContent)
 			return
 		}
 
-		gc.Header(
-			"Access-Control-Allow-Origin",
-			origin,
-		)
-
-		gc.Header(
-			"Access-Control-Allow-Credentials",
-			"true",
-		)
-
-		gc.Header(
-			"Access-Control-Allow-Headers",
-			"Authorization, Content-Type",
-		)
-
-		gc.Header(
-			"Access-Control-Allow-Methods",
-			"GET, POST, PUT, PATCH, DELETE, OPTIONS",
-		)
-
-		gc.Header(
-			"Vary",
-			"Origin",
-		)
-
-		if gc.Request.Method == "OPTIONS" {
-			gc.AbortWithStatus(204)
-			return
-		}
-
-		gc.Next()
+		c.Next()
 	}
 }
