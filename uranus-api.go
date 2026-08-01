@@ -138,6 +138,9 @@ func main() {
 
 	publicRoute := router.Group("/api")
 	publicRoute.Use(PublicCORSMiddleware())
+	publicRoute.OPTIONS("/*path", func(c *gin.Context) {
+		c.Status(204)
+	})
 
 	publicRoute.GET("/health", apiHandler.GetHealth)
 
