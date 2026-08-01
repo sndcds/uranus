@@ -213,11 +213,9 @@ func main() {
 	// Authorized endpoints, user must be logged in
 	//
 
-	adminRoute := router.Group(
-		"/api/admin",
-		AdminCORSMiddleware(),
-		app.JWTMiddleware,
-	)
+	adminRoute := router.Group("/api/admin")
+	adminRoute.Use(AdminCORSMiddleware())
+	adminRoute.Use(app.JWTMiddleware)
 
 	adminRoute.GET("/event/:eventUuid/date/:dateIdentifier", apiHandler.GetEventByDate) // TODO: Permission check
 	adminRoute.GET("/permissions/list", apiHandler.AdminGetPermissionsList)             // TODO: Permission check
@@ -355,11 +353,11 @@ func main() {
 }
 
 func PublicCORSMiddleware() gin.HandlerFunc {
-	return func(gc *gin.Context) {
 
+	return func(gc *gin.Context) {
 		gc.Header("Access-Control-Allow-Origin", "*")
 		gc.Header("Access-Control-Allow-Methods", "GET, OPTIONS")
-		gc.Header("Access-Control-Allow-Headers", "Content-Type")
+		gc.Header("Access-Control-Allow-Headers", "Accept, Content-Type, Authorization")
 
 		if gc.Request.Method == "OPTIONS" {
 			gc.AbortWithStatus(204)
@@ -371,8 +369,8 @@ func PublicCORSMiddleware() gin.HandlerFunc {
 }
 
 func AdminCORSMiddleware() gin.HandlerFunc {
-	return func(gc *gin.Context) {
 
+	return func(gc *gin.Context) {
 		origin := gc.GetHeader("Origin")
 
 		allowed := map[string]bool{
