@@ -99,12 +99,8 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 		"end":                  {},
 		"time":                 {},
 		"search":               {},
-		"events":               {},
-		"venue_uuids":          {},
 		"venue":                {},
-		"space_uuids":          {},
 		"space_types":          {},
-		"org_uuids":            {},
 		"countries":            {},
 		"postal_code":          {},
 		"title":                {},
@@ -126,6 +122,10 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 		"lang":                 {},
 		"portal":               {},
 		"week_start":           {},
+		"org_uuids":            {},
+		"venue_uuids":          {},
+		"space_uuids":          {},
+		"event_uuids":          {},
 		"geolist_region":       {},
 	}
 
@@ -150,12 +150,8 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 	lastEventDateUuid, _ := GetContextParam(gc, "last_event_date_uuid")
 	timeStr, _ := GetContextParam(gc, "time")
 	searchStr, _ := GetContextParam(gc, "search")
-	eventUuidsStr, _ := GetContextParam(gc, "events")
 	venueStr, _ := GetContextParam(gc, "venue")
-	venueUuidsStr, _ := GetContextParam(gc, "venue_uuids")
-	spaceUuidsStr, _ := GetContextParam(gc, "space_uuids")
 	spaceTypesStr, _ := GetContextParam(gc, "space_types")
-	orgUuidsStr, _ := GetContextParam(gc, "org_uuids")
 	countryCodesStr, _ := GetContextParam(gc, "countries")
 	postalCodeStr, _ := GetContextParam(gc, "postal_code")
 	titleStr, _ := GetContextParam(gc, "title")
@@ -178,6 +174,10 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 	offsetStr, _ := GetContextParam(gc, "offset")
 	limitStr, _ := GetContextParam(gc, "limit")
 	weekStartStr, _ := GetContextParam(gc, "week_start")
+	orgUuidsStr, _ := GetContextParam(gc, "org_uuids")
+	venueUuidsStr, _ := GetContextParam(gc, "venue_uuids")
+	spaceUuidsStr, _ := GetContextParam(gc, "space_uuids")
+	eventUuidsStr, _ := GetContextParam(gc, "event_uuids")
 	geolistRegionStr, _ := GetContextParam(gc, "geolist_region")
 
 	var errBuild error
@@ -295,42 +295,10 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 		}
 	}
 
-	if eventUuidsStr != "" {
-		filters.ArgIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
-			eventUuidsStr, "edp.event_uuid", filters.ArgIndex, &conditions, &filters.Args)
-		if errBuild != nil {
-			return filters, errBuild
-		}
-	}
-
-	if orgUuidsStr != "" {
-		filters.ArgIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
-			orgUuidsStr, "ep.org_uuid", filters.ArgIndex, &conditions, &filters.Args)
-		if errBuild != nil {
-			return filters, errBuild
-		}
-	}
-
 	if venueStr != "" {
 		filters.ArgIndex, errBuild = sql_utils.BuildSanitizedIlikeCondition(
 			venueStr, "COALESCE(edp.venue_name, ep.venue_name)",
 			"venue", filters.ArgIndex, &conditions, &filters.Args)
-		if errBuild != nil {
-			return filters, errBuild
-		}
-	}
-
-	if venueUuidsStr != "" {
-		filters.ArgIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
-			venueUuidsStr, "COALESCE(edp.venue_uuid, ep.venue_uuid)", filters.ArgIndex, &conditions, &filters.Args)
-		if errBuild != nil {
-			return filters, errBuild
-		}
-	}
-
-	if spaceUuidsStr != "" {
-		filters.ArgIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
-			spaceUuidsStr, "COALESCE(edp.space_uuid, ep.space_uuid)", filters.ArgIndex, &conditions, &filters.Args)
 		if errBuild != nil {
 			return filters, errBuild
 		}
@@ -424,6 +392,38 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 
 	if app.IsValidDateStr(weekStartStr) {
 		filters.WeekStart = weekStartStr
+	}
+
+	if orgUuidsStr != "" {
+		filters.ArgIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
+			orgUuidsStr, "ep.org_uuid", filters.ArgIndex, &conditions, &filters.Args)
+		if errBuild != nil {
+			return filters, errBuild
+		}
+	}
+
+	if venueUuidsStr != "" {
+		filters.ArgIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
+			venueUuidsStr, "COALESCE(edp.venue_uuid, ep.venue_uuid)", filters.ArgIndex, &conditions, &filters.Args)
+		if errBuild != nil {
+			return filters, errBuild
+		}
+	}
+
+	if spaceUuidsStr != "" {
+		filters.ArgIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
+			spaceUuidsStr, "COALESCE(edp.space_uuid, ep.space_uuid)", filters.ArgIndex, &conditions, &filters.Args)
+		if errBuild != nil {
+			return filters, errBuild
+		}
+	}
+
+	if eventUuidsStr != "" {
+		filters.ArgIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
+			eventUuidsStr, "edp.event_uuid", filters.ArgIndex, &conditions, &filters.Args)
+		if errBuild != nil {
+			return filters, errBuild
+		}
 	}
 
 	// Join all conditions

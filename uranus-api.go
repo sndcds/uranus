@@ -99,11 +99,12 @@ func main() {
 		router.Use(func(gc *gin.Context) {
 			origin := gc.GetHeader("Origin")
 			if origin != "" {
-				gc.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+				gc.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 				gc.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS")
 				gc.Writer.Header().Set("Access-Control-Allow-Headers", "Origin, Authorization, Content-Type, Accept")
 				gc.Writer.Header().Set("Access-Control-Expose-Headers", "Authorization")
 				gc.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+				gc.Writer.Header().Set("Vary", "Origin")
 			}
 
 			if gc.Request.Method == "OPTIONS" {
