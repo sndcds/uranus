@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"strconv"
 
 	"html/template"
@@ -137,6 +138,9 @@ func main() {
 
 	publicRoute := router.Group("/api")
 	publicRoute.Use(PublicCORSMiddleware())
+	publicRoute.OPTIONS("/*path", func(c *gin.Context) {
+		c.Status(204)
+	})
 
 	publicRoute.GET("/health", apiHandler.GetHealth)
 
@@ -353,24 +357,24 @@ func main() {
 }
 
 func PublicCORSMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
 
-	return func(gc *gin.Context) {
-		gc.Header("Access-Control-Allow-Origin", "*")
-		gc.Header("Access-Control-Allow-Methods", "GET, OPTIONS")
-		gc.Header("Access-Control-Allow-Headers", "Accept, Content-Type, Authorization")
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "Accept, Content-Type, Authorization")
 
-		if gc.Request.Method == "OPTIONS" {
-			gc.AbortWithStatus(204)
+		if c.Request.Method == http.MethodOptions {
+			c.AbortWithStatus(http.StatusNoContent)
 			return
 		}
 
-		gc.Next()
+		c.Next()
 	}
 }
 
 func AdminCORSMiddleware() gin.HandlerFunc {
-
 	return func(gc *gin.Context) {
+
 		origin := gc.GetHeader("Origin")
 
 		allowed := map[string]bool{
