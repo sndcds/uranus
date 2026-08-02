@@ -24,8 +24,8 @@ func debugf(format string, args ...any) {
 }
 
 type EventDateRequest struct {
-	EventUUID string
-	DateUUID  string
+	EventUuid string
+	DateUuid  string
 	Lang      string
 }
 
@@ -288,15 +288,20 @@ func BuildDateSlug(startDate, startTime string) string {
 	return startDate[:4] + startDate[5:7] + startDate[8:10] + startTime[:2] + startTime[3:5]
 }
 
-func (h *ApiHandler) ResolveEventDateRequest(gc *gin.Context, apiRequest *grains_api.Request) (*EventDateRequest, bool) {
+func (h *ApiHandler) ResolveEventDateRequest(
+	gc *gin.Context, apiRequest *grains_api.Request) (
+	*EventDateRequest, bool) {
+
 	ctx := gc.Request.Context()
 
-	eventUuid := gc.Param("eventUuid")
-	if eventUuid == "" {
+	var req EventDateRequest
+
+	req.EventUuid = gc.Param("eventUuid")
+	if req.EventUuid == "" {
 		apiRequest.Required("eventUuid is required")
 		return nil, false
 	}
-	apiRequest.SetMeta("event_uuid", eventUuid)
+	apiRequest.SetMeta("event_uuid", req.EventUuid)
 
 	dateIdentifier := gc.Param("dateIdentifier")
 	if dateIdentifier == "" {
@@ -305,27 +310,17 @@ func (h *ApiHandler) ResolveEventDateRequest(gc *gin.Context, apiRequest *grains
 	}
 	apiRequest.SetMeta("date_identifier", dateIdentifier)
 
-	var dateUuid string
-
 	if grains_uuid.IsValidUuidv7(dateIdentifier) {
-		dateUuid = dateIdentifier
+		req.DateUuid = dateIdentifier
 	} else {
-		resolvedDateUuid, err := h.ResolveEventDateUuidFromSlug(ctx, eventUuid, dateIdentifier)
-		if err != nil {
-			apiRequest.NotFound("event date not found")
-			return nil, false
+		resolvedDateUuid, err := h.ResolveEventDateUuidFromSlug(ctx, req.DateUuid, dateIdentifier)
+		if err == nil {
+			req.DateUuid = resolvedDateUuid
 		}
-		dateUuid = resolvedDateUuid
 	}
 
-	lang := gc.DefaultQuery("lang", "en")
+	req.Lang = gc.DefaultQuery("lang", "en")
+	apiRequest.SetMeta("lang", req.Lang)
 
-	apiRequest.SetMeta("date_uuid", dateUuid)
-	apiRequest.SetMeta("lang", lang)
-
-	return &EventDateRequest{
-		EventUUID: eventUuid,
-		DateUUID:  dateUuid,
-		Lang:      lang,
-	}, true
+	return &req, true
 }
