@@ -23,7 +23,7 @@ func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 	}
 
 	// eventUuid := eventDateRequest.EventUUID
-	dateUuid := eventDateRequest.DateUUID
+	dateUuid := eventDateRequest.DateUuid
 	// lang := eventDateRequest.Lang
 
 	type EventDateICS struct {

@@ -52,8 +52,8 @@ func (h *ApiHandler) GetEventByDate(gc *gin.Context) {
 		return
 	}
 
-	eventUuid := eventDateRequest.EventUUID
-	dateUuid := eventDateRequest.DateUUID
+	eventUuid := eventDateRequest.EventUuid
+	dateUuid := eventDateRequest.DateUuid
 	lang := eventDateRequest.Lang
 
 	// Load everything via shared function
@@ -75,12 +75,15 @@ func (h *ApiHandler) GetEventByDate(gc *gin.Context) {
 		return
 	}
 
-	// Attach dates back to event
-	event.Date = selectedDate
-	event.FurtherDates = furtherDates
+	if selectedDate == nil && len(furtherDates) > 0 {
+		event.Date = &furtherDates[0]
+		event.FurtherDates = furtherDates[1:]
+	} else {
+		event.Date = selectedDate
+		event.FurtherDates = furtherDates
+	}
 
 	apiRequest.SetMeta("event_date_count", len(furtherDates)+1)
-
 	apiRequest.Success(http.StatusOK, event)
 }
 
