@@ -270,17 +270,20 @@ func (h *ApiHandler) ResolveEventDateUuidFromSlug(
 	if len(slug) != 12 {
 		return "", fmt.Errorf("invalid date slug format")
 	}
+
 	startDate := slug[:8] // 20260602
 	startTime := slug[8:] // 1200
-	// optionally format:
+
 	parsedDate := fmt.Sprintf("%s-%s-%s", startDate[0:4], startDate[4:6], startDate[6:8])
 	parsedTime := fmt.Sprintf("%s:%s", startTime[0:2], startTime[2:4])
+
 	var dateUuid string
 	err := h.DbPool.QueryRow(ctx, app.UranusInstance.SqlResolveEventDateUuidFromSlug, eventUuid, parsedDate, parsedTime).
 		Scan(&dateUuid)
 	if err != nil {
 		return "", err
 	}
+
 	return dateUuid, nil
 }
 
@@ -313,7 +316,7 @@ func (h *ApiHandler) ResolveEventDateRequest(
 	if grains_uuid.IsValidUuidv7(dateIdentifier) {
 		req.DateUuid = dateIdentifier
 	} else {
-		resolvedDateUuid, err := h.ResolveEventDateUuidFromSlug(ctx, req.DateUuid, dateIdentifier)
+		resolvedDateUuid, err := h.ResolveEventDateUuidFromSlug(ctx, req.EventUuid, dateIdentifier)
 		if err == nil {
 			req.DateUuid = resolvedDateUuid
 		}

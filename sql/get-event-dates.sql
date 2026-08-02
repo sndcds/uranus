@@ -88,5 +88,5 @@ LEFT JOIN LATERAL (
         )
 ) venue_logos ON TRUE
 
--- WHERE ed.start_date >= CURRENT_DATE
+WHERE ed.start_date >= CURRENT_DATE
 ORDER BY ed.start_date, ed.start_time
