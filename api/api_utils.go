@@ -27,6 +27,7 @@ type EventDateRequest struct {
 	EventUuid string
 	DateUuid  string
 	Lang      string
+	DateMatch bool
 }
 
 // Package-level variables
@@ -292,8 +293,9 @@ func BuildDateSlug(startDate, startTime string) string {
 }
 
 func (h *ApiHandler) ResolveEventDateRequest(
-	gc *gin.Context, apiRequest *grains_api.Request) (
-	*EventDateRequest, bool) {
+	gc *gin.Context,
+	apiRequest *grains_api.Request,
+) (*EventDateRequest, bool) {
 
 	ctx := gc.Request.Context()
 
@@ -315,10 +317,14 @@ func (h *ApiHandler) ResolveEventDateRequest(
 
 	if grains_uuid.IsValidUuidv7(dateIdentifier) {
 		req.DateUuid = dateIdentifier
+		req.DateMatch = true
 	} else {
 		resolvedDateUuid, err := h.ResolveEventDateUuidFromSlug(ctx, req.EventUuid, dateIdentifier)
 		if err == nil {
 			req.DateUuid = resolvedDateUuid
+			if resolvedDateUuid != "" {
+				req.DateMatch = true
+			}
 		}
 	}
 
