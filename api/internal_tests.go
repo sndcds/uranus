@@ -52,22 +52,23 @@ func (h *ApiHandler) InternalTest(gc *gin.Context) {
 	}
 
 	// Load everything via shared function
-	event, selectedDate, _, err := h.LoadEventByDateIdentifier(
+
+	event, err := h.LoadEventByDateIdentifier(
 		gc.Request.Context(),
 		eventUuid,
 		dateUuid,
 		"",
-		"de", // TODO: locale via URL
-	)
+		"de") // TODO: locale via URL
+
 	if err != nil {
 		gc.String(http.StatusNotFound, err.Error())
 		return
 	}
 
-	if selectedDate == nil {
-		log.Println("selectedDate is nil")
+	if event.Date == nil {
+		log.Println("event.Date is nil")
 	} else {
-		log.Printf("selectedDate: %+v", *selectedDate)
+		log.Printf("selectedDate: %+v", *event.Date)
 	}
 
 	imageURL := ""
@@ -86,7 +87,7 @@ func (h *ApiHandler) InternalTest(gc *gin.Context) {
 		dateUuid,
 	)
 
-	sm := BuildShareMeta(event, selectedDate, imageURL, eventUrl)
+	sm := BuildShareMeta(event, event.Date, imageURL, eventUrl)
 	shareData := struct {
 		Share ShareMeta
 	}{

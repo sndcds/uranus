@@ -117,6 +117,7 @@ type EventDetails struct {
 	EventLinks           []WebLink        `json:"event_links,omitempty"` // Typed slice
 	Date                 *EventDate       `json:"date,omitempty"`
 	FurtherDates         []EventDate      `json:"further_dates,omitempty"`
+	DateMatch            bool             `json:"date_match"`
 	MaxAttendees         *int             `json:"max_attendees,omitempty"`
 	MinAge               *int             `json:"min_age,omitempty"`
 	MaxAge               *int             `json:"max_age,omitempty"`
