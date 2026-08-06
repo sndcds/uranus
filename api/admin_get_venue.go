@@ -52,6 +52,7 @@ func (h *ApiHandler) AdminGetVenue(gc *gin.Context) {
 		&venue.Country,
 		&venue.Lon,
 		&venue.Lat,
+		&venue.Scope,
 		&imagesRaw,
 	)
 

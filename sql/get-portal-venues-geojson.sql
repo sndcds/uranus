@@ -6,6 +6,7 @@ SELECT
     v.house_number,
     v.city,
     v.country,
+    v.scope,
     ST_X(v.point) AS lon,
     ST_Y(v.point) AS lat
 FROM {{schema}}.venue v
@@ -21,3 +22,7 @@ WHERE
         OR v.uuid = ANY($2::uuid[]) -- Whitelist
     )
     AND NOT (v.uuid = ANY($3::uuid[])) -- Blacklist
+    AND (
+        cardinality($8::text[]) = 0
+        OR v.scope = ANY($8::text[])
+    )

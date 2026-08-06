@@ -97,6 +97,7 @@ permissions AS (
 
 SELECT
     v.uuid AS venue_uuid,
+    v.scope AS venue_scope,
     v.name AS venue_name,
     COALESCE(vec.event_count, 0) AS event_count,
 

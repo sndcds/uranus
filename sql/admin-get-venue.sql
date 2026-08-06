@@ -17,6 +17,7 @@ SELECT
     v.country,
     ST_X(v.point) AS lon,
     ST_Y(v.point) AS lat,
+    v.scope,
     img.images
 FROM {{schema}}.venue v
 JOIN {{schema}}.organization o ON o.uuid = v.org_uuid

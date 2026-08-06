@@ -7,6 +7,7 @@ SELECT
     s.name AS space_name,
     v.city,
     v.country,
+    v.scope,
     oag.permissions AS permissions
 FROM {{schema}}.organization o
 JOIN {{schema}}.organization_access_grants oag ON oag.dst_org_uuid = o.uuid
@@ -27,6 +28,7 @@ SELECT
     s.name AS space_name,
     v.city,
     v.country,
+    v.scope,
     (0xffffffff::bigint) AS permissions
 FROM {{schema}}.organization o
 LEFT JOIN {{schema}}.venue v ON v.org_uuid = o.uuid

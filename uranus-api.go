@@ -253,8 +253,8 @@ func main() {
 	adminRoute.PUT("/org/:orgUuid/fields", apiHandler.UpdateOrgFields) // TODO: Permission check
 	adminRoute.DELETE("/org/:orgUuid", apiHandler.AdminDeleteOrg)      // TODO: Permission check
 
-	adminRoute.GET("/org/list", apiHandler.AdminGetOrgList)                // TODO: Permission check
-	adminRoute.GET("/org/:orgUuid/venues", apiHandler.AdminGetOrgVenues)   // TODO: Permission check
+	adminRoute.GET("/org/list", apiHandler.AdminGetOrgList) // TODO: Permission check
+	adminRoute.GET("/org/:orgUuid/venues", apiHandler.AdminGetOrgVenues)
 	adminRoute.GET("/org/:orgUuid/events", apiHandler.AdminGetOrgEvents)   // TODO: Permission check
 	adminRoute.GET("/org/:orgUuid/portals", apiHandler.AdminGetOrgPortals) // TODO: Permission check
 
@@ -375,6 +375,7 @@ func PublicCORSMiddleware() gin.HandlerFunc {
 func AdminCORSMiddleware() gin.HandlerFunc {
 	allowed := map[string]bool{
 		"https://app.kulturbytes.de": true,
+		"http://localhost:5173":      true,
 	}
 
 	return func(c *gin.Context) {

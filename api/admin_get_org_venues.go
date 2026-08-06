@@ -34,6 +34,7 @@ func (h *ApiHandler) AdminGetOrgVenues(gc *gin.Context) {
 	type VenueInfo struct {
 		VenueUuid          *string     `json:"venue_uuid"`
 		VenueName          *string     `json:"venue_name"`
+		Scope              *string     `json:"scope"`
 		EventCount         int         `json:"event_count"`
 		CanEditVenue       bool        `json:"can_edit_venue"`
 		CanDeleteVenue     bool        `json:"can_delete_venue"`
@@ -88,10 +89,10 @@ func (h *ApiHandler) AdminGetOrgVenues(gc *gin.Context) {
 
 		for rows.Next() {
 			var venue VenueInfo
-			debugf("row")
 
 			err := rows.Scan(
 				&venue.VenueUuid,
+				&venue.Scope,
 				&venue.VenueName,
 				&venue.EventCount,
 				&venue.MainLogoUuid,

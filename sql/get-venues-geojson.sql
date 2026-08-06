@@ -6,6 +6,7 @@ SELECT
     v.house_number,
     v.city,
     v.country,
+    v.scope,
     vt.marker_style,
     ST_X(v.point) AS lon,
     ST_Y(v.point) AS lat,
@@ -19,3 +20,7 @@ LEFT JOIN {{schema}}.pluto_image_link pil
 LEFT JOIN {{schema}}.venue_type vt ON vt.key = v.type
 WHERE v.point IS NOT NULL
     AND ST_Within(v.point, ST_MakeEnvelope($1, $2, $3, $4, 4326))
+    AND (
+        cardinality($5::text[]) = 0
+        OR v.scope = ANY($5::text[])
+    )
