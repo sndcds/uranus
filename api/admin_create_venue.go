@@ -21,6 +21,7 @@ func (h *ApiHandler) AdminCreateVenue(gc *gin.Context) {
 	type IncomingPayload struct {
 		OrgUuid   string `json:"org_uuid" binding:"required"`
 		VenueName string `json:"venue_name" binding:"required"`
+		Scope     string `json:"scope" binding:"required"`
 	}
 	payload, ok := grains_api.DecodeJSONBody[IncomingPayload](gc, apiRequest)
 	if !ok {
@@ -31,6 +32,12 @@ func (h *ApiHandler) AdminCreateVenue(gc *gin.Context) {
 	venueName := strings.TrimSpace(payload.VenueName)
 	if venueName == "" {
 		apiRequest.Error(http.StatusBadRequest, "venue_name cannot be empty")
+		return
+	}
+
+	scope := strings.TrimSpace(payload.Scope)
+	if scope == "" {
+		apiRequest.Error(http.StatusBadRequest, "scope cannot be empty")
 		return
 	}
 
@@ -54,10 +61,10 @@ func (h *ApiHandler) AdminCreateVenue(gc *gin.Context) {
 		}
 
 		query := fmt.Sprintf(`
-			INSERT INTO %s.venue (uuid, created_by, org_uuid, name)
-			VALUES ($1::uuid, $2::uuid, $3::uuid, $4)`,
+			INSERT INTO %s.venue (uuid, created_by, org_uuid, name, scope)
+			VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5)`,
 			h.DbSchema)
-		_, err = tx.Exec(ctx, query, venueUuid, userUuid, payload.OrgUuid, venueName)
+		_, err = tx.Exec(ctx, query, venueUuid, userUuid, payload.OrgUuid, venueName, scope)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,

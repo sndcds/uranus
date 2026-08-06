@@ -11,7 +11,7 @@ import (
 )
 
 func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "choosable-venues")
+	apiRequest := grains_api.NewRequest(gc, "get-choosable-venues")
 	ctx := gc.Request.Context()
 
 	nameStr, _ := GetContextParam(gc, "name")
@@ -35,7 +35,7 @@ func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
 		return
 	}
 
-	query := fmt.Sprintf("SELECT uuid, name, city, state, country FROM %s.venue", h.DbSchema)
+	query := fmt.Sprintf("SELECT uuid, scope, name, city, state, country FROM %s.venue", h.DbSchema)
 	if len(conditions) > 0 {
 		query += " WHERE " + strings.Join(conditions, " AND ")
 	}
@@ -50,6 +50,7 @@ func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
 
 	type Venue struct {
 		Uuid    string  `json:"uuid"`
+		Scope   string  `json:"scope"`
 		Name    *string `json:"name"`
 		City    *string `json:"city,omitempty"`
 		State   *string `json:"state,omitempty"`
@@ -62,10 +63,12 @@ func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
 		var venue Venue
 		if err := rows.Scan(
 			&venue.Uuid,
+			&venue.Scope,
 			&venue.Name,
 			&venue.City,
 			&venue.State,
 			&venue.Country,
+			&venue.Scope,
 		); err != nil {
 			apiRequest.DatabaseError()
 			return

@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sndcds/grains/grains_api"
@@ -33,6 +34,33 @@ func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 	}
 	apiRequest.SetMeta("bbox", bboxStr)
 
+	// Venue Scopes
+
+	scopesStr := gc.Query("scopes")
+
+	allowedScopes := map[string]bool{
+		"shared":       true,
+		"organization": true,
+	}
+
+	scopes := make([]string, 0)
+	if scopesStr != "" {
+		for _, value := range strings.Split(scopesStr, ",") {
+			scope := strings.TrimSpace(value)
+
+			if scope == "" || !allowedScopes[scope] {
+				apiRequest.Error(http.StatusBadRequest, "Invalid scopes")
+				return
+			}
+
+			scopes = append(scopes, scope)
+		}
+	}
+
+	apiRequest.SetMeta("scopes", scopes)
+
+	// Query
+
 	var query string
 	if portalUuid != "" {
 		query = app.UranusInstance.SqlGetPortalVenuesGeoJSON
@@ -40,7 +68,8 @@ func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 		query = app.UranusInstance.SqlGetVenuesGeoJSON
 	}
 
-	rows, err := h.DbPool.Query(ctx, query, bbox.MinLon, bbox.MinLat, bbox.MaxLon, bbox.MaxLat)
+	// TODO: if portalUuid != "" use query with 8 arguments!
+	rows, err := h.DbPool.Query(ctx, query, bbox.MinLon, bbox.MinLat, bbox.MaxLon, bbox.MaxLat, scopes)
 	if err != nil {
 		debugf(err.Error())
 		apiRequest.InternalServerError()

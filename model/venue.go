@@ -19,5 +19,6 @@ type Venue struct {
 	Country      *string          `json:"country,omitempty"`
 	Lon          *float64         `json:"lon,omitempty"`
 	Lat          *float64         `json:"lat,omitempty"`
+	Scope        string           `json:"scope"`
 	Images       map[string]Image `json:"images,omitempty"`
 }

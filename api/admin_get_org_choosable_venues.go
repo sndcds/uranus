@@ -23,6 +23,7 @@ func (h *ApiHandler) AdminGetOrgChoosableVenues(gc *gin.Context) {
 		SpaceName   *string         `db:"space_name"`
 		City        *string         `db:"city"`
 		Country     *string         `db:"country"`
+		Scope       string          `db:"scope"`
 		Permissions app.Permissions `db:"permissions"`
 	}
 
@@ -37,6 +38,7 @@ func (h *ApiHandler) AdminGetOrgChoosableVenues(gc *gin.Context) {
 		OrgUuid string     `json:"org_uuid"`
 		City    string     `json:"city"`
 		Country string     `json:"country"`
+		Scope   string     `json:"scope"`
 		Spaces  []SpaceDTO `json:"spaces"`
 	}
 
@@ -70,6 +72,7 @@ func (h *ApiHandler) AdminGetOrgChoosableVenues(gc *gin.Context) {
 				&vs.SpaceName,
 				&vs.City,
 				&vs.Country,
+				&vs.Scope,
 				&vs.Permissions,
 			)
 			if err != nil {
@@ -95,6 +98,7 @@ func (h *ApiHandler) AdminGetOrgChoosableVenues(gc *gin.Context) {
 						OrgUuid: *vs.OrgUuid,
 						City:    city,
 						Country: country,
+						Scope:   vs.Scope,
 						Spaces:  []SpaceDTO{},
 					}
 					venuesMap[*vs.VenueUuid] = venue
@@ -107,7 +111,6 @@ func (h *ApiHandler) AdminGetOrgChoosableVenues(gc *gin.Context) {
 					})
 				}
 			}
-
 		}
 
 		venues := make([]VenueDTO, 0, len(venuesMap))
