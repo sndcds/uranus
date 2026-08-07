@@ -165,9 +165,9 @@ func main() {
 	publicRoute.GET("/org/:orgUuid", apiHandler.GetOrg)
 	publicRoute.GET("/orgs", apiHandler.GetOrgs)
 
-	publicRoute.GET("/venue/:venueUuid", apiHandler.GetVenue)
+	publicRoute.GET("/venue/:venueIdentifier", apiHandler.GetVenue)
 	publicRoute.GET("/venue/slug/:slug/uuid", apiHandler.GetVenueUuidBySlug)
-	publicRoute.GET("/venue/:venueUuid/space/:spaceUuid/label", apiHandler.GetVenueSpaceLabel)
+	publicRoute.GET("/venue/:venueIdentifier/space/:spaceUuid/label", apiHandler.GetVenueSpaceLabel)
 
 	publicRoute.GET("/transport/stations", apiHandler.GetTransportStations)
 

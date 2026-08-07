@@ -12,9 +12,9 @@ func (h *ApiHandler) GetVenueSpaceLabel(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-venue-space-label")
 	ctx := gc.Request.Context()
 
-	venueUuid := gc.Param("venueUuid")
-	if venueUuid == "" {
-		apiRequest.Required("parameter venueUuid is required")
+	venueIdentifier := gc.Param("venueIdentifier")
+	if venueIdentifier == "" {
+		apiRequest.Required("parameter venueIdentifier is required")
 		return
 	}
 
@@ -24,7 +24,7 @@ func (h *ApiHandler) GetVenueSpaceLabel(gc *gin.Context) {
 		return
 	}
 
-	apiRequest.SetMeta("venue_uuid", venueUuid)
+	apiRequest.SetMeta("venue_identifier", venueIdentifier)
 	apiRequest.SetMeta("space_uuid", spaceUuid)
 
 	var spaceUuidParam *string
@@ -39,7 +39,7 @@ func (h *ApiHandler) GetVenueSpaceLabel(gc *gin.Context) {
 		WHERE v.uuid = $1::uuid LIMIT 1`,
 		h.DbSchema, h.DbSchema)
 
-	rows, err := h.DbPool.Query(ctx, query, venueUuid, spaceUuidParam)
+	rows, err := h.DbPool.Query(ctx, query, venueIdentifier, spaceUuidParam)
 	if err != nil {
 		debugf(err.Error())
 		apiRequest.InternalServerError()

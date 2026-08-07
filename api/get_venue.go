@@ -69,9 +69,9 @@ func (h *ApiHandler) GetVenue(gc *gin.Context) {
 		Images               map[string]model.Image `json:"images,omitempty"`
 	}
 
-	venueUuid := gc.Param("venueUuid")
-	if venueUuid == "" {
-		apiRequest.Required("venueUuid is required")
+	venueIdentifier := gc.Param("venueIdentifier")
+	if venueIdentifier == "" {
+		apiRequest.Required("venueIdentifier is required")
 		return
 	}
 
@@ -80,7 +80,7 @@ func (h *ApiHandler) GetVenue(gc *gin.Context) {
 
 	query := app.UranusInstance.SqlGetVenue
 
-	row := h.DbPool.QueryRow(ctx, query, venueUuid, lang)
+	row := h.DbPool.QueryRow(ctx, query, venueIdentifier, lang)
 
 	// Temporary variables for SQL scan
 
