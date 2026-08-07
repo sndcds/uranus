@@ -85,6 +85,7 @@ type EventDate struct {
 	VenueLat             *float32        `json:"venue_lat,omitempty"`
 	VenueWebLink         *string         `json:"venue_web_link,omitempty"`
 	VenueLogos           map[string]Logo `json:"venue_logos"`
+	VenueSlug            *string         `json:"venue_slug,omitempty"`
 	SpaceUuid            *string         `json:"space_uuid,omitempty"`
 	SpaceName            *string         `json:"space_name,omitempty"`
 	SpaceWebLink         *string         `json:"space_web_link,omitempty"`

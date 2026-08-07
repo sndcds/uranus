@@ -34,6 +34,7 @@ func (h *ApiHandler) AdminUpdateEventFields(gc *gin.Context) {
 		Subtitle             NullableField[string]   `json:"subtitle"`
 		Description          NullableField[string]   `json:"description"`
 		Summary              NullableField[string]   `json:"summary"`
+		LogoMode             NullableField[int]      `json:"logo_mode"`
 		Tags                 NullableField[[]string] `json:"tags"`
 		MaxAttendees         NullableField[int]      `json:"max_attendees"`
 		MinAge               NullableField[int]      `json:"min_age"`
@@ -72,6 +73,7 @@ func (h *ApiHandler) AdminUpdateEventFields(gc *gin.Context) {
 	argPos = addUpdateClauseNullable("subtitle", payload.Subtitle, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("description", payload.Description, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("summary", payload.Summary, &setClauses, &args, argPos)
+	argPos = addUpdateClauseNullable("logo_mode", payload.LogoMode, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("tags", payload.Tags, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("max_attendees", payload.MaxAttendees, &setClauses, &args, argPos)
 	argPos = addUpdateClauseNullable("min_age", payload.MinAge, &setClauses, &args, argPos)
