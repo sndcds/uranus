@@ -32,6 +32,7 @@ SELECT
     ST_X(v.point) AS venue_lon,
     ST_Y(v.point) AS venue_lat,
     v.web_link AS venue_link,
+    v.slug AS venue_slug,
     venue_logos,
 
     -- Space logic: take from event_date only if event_date.venue_uuid exists, else NULL

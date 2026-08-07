@@ -257,6 +257,7 @@ func (h *ApiHandler) LoadEventByDateIdentifier(
 			&edd.VenueLon,
 			&edd.VenueLat,
 			&edd.VenueWebLink,
+			&edd.VenueSlug,
 			&venueLogos,
 			&edd.SpaceUuid,
 			&edd.SpaceName,

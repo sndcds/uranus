@@ -38,7 +38,7 @@ SELECT
     COALESCE(edp.venue_country, ep.venue_country) AS venue_country,
     ST_Y(COALESCE(edp.venue_point, ep.venue_point)) AS venue_lat,
     ST_X(COALESCE(edp.venue_point, ep.venue_point)) AS venue_lon,
-    COALESCE(edp.space_name, ep.space_name) AS space_name,
+    COALESCE(edp.venue_name, ep.venue_name) AS venue_name,
     COALESCE(edp.space_accessibility_flags, ep.space_accessibility_flags) AS space_accessibility_flags,
     ep.min_age,
     ep.max_age,
