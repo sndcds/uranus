@@ -150,7 +150,14 @@ LEFT JOIN LATERAL (
 
 ) logos ON TRUE
 
-WHERE v.uuid = $1::uuid
+WHERE (
+    CASE
+        WHEN $1 ~ '^[0-9a-fA-F-]{36}$'
+            AND substring($1 from 15 for 1) = '7'
+        THEN v.uuid = $1::uuid
+        ELSE v.slug = $1
+    END
+)
 
 GROUP BY
     v.uuid,
