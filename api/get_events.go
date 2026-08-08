@@ -437,7 +437,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 		return filters, errBuild
 	}
 
-	// Geolist
+	// Geolist, uses the filters.PortalJoin/filters.PortalConditions
 	if geolistRegionStr != "" {
 		parts := strings.Split(geolistRegionStr, ",")
 		if len(parts) != 3 {
@@ -482,7 +482,7 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 				OR ST_Covers(p.wkb_geometry, COALESCE(edp.venue_point, ep.venue_point))
 			)
 			AND NOT EXISTS (
-    			SELECT 1 FROM %s.portal_org_blacklist b
+    			SELECT 1 FROM %s.portal_org_blocklist b
 				WHERE b.portal_uuid = p.uuid AND b.blocked_org_uuid = ep.org_uuid)
 			`,
 			h.DbSchema)
