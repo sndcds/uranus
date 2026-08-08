@@ -15,7 +15,7 @@ func (h *ApiHandler) GetPortal(gc *gin.Context) {
 
 	portalUuid := gc.Param("uuid")
 	if portalUuid == "" {
-		apiRequest.Required("parameter uuid is required")
+		apiRequest.Required("uuid is required")
 		return
 	}
 
