@@ -78,7 +78,14 @@ func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 	dtStart := formatICSDatetime(startDate, startTime)
 
 	dtEnd := ""
-	if endDate != "" && endTime != "" {
+
+	// If an explicit end time exists, use it.
+	// If no end date is supplied, assume the event ends on the start date.
+	if endTime != "" {
+		if endDate == "" {
+			endDate = startDate
+		}
+
 		dtEnd = formatICSDatetime(endDate, endTime)
 	}
 
@@ -130,7 +137,8 @@ func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 	if dtEnd != "" {
 		b.WriteString("DTEND:" + dtEnd + "\r\n")
 	} else {
-		start, err := time.Parse("20060102T150405Z", dtStart)
+		// No explicit end time: default to one hour after the start.
+		start, err := time.Parse(timeFormat, dtStart)
 		if err == nil {
 			dtEnd = start.Add(time.Hour).Format(timeFormat)
 			b.WriteString("DTEND:" + dtEnd + "\r\n")
