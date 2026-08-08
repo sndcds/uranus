@@ -86,6 +86,16 @@ func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 			endDate = startDate
 		}
 
+		// If start and end are on the same date and the end time
+		// is earlier than the start time, assume the event ends
+		// after midnight on the following day.
+		if endDate == startDate && startTime != "" && endTime < startTime {
+			start, err := time.Parse("2006-01-02", endDate)
+			if err == nil {
+				endDate = start.AddDate(0, 0, 1).Format("2006-01-02")
+			}
+		}
+
 		dtEnd = formatICSDatetime(endDate, endTime)
 	}
 
