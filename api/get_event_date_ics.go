@@ -125,12 +125,18 @@ func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 	b.WriteString("DTSTAMP:" + dtStamp + "\r\n")
 	b.WriteString("DTSTART:" + dtStart + "\r\n")
 
-	start, err := time.Parse(timeFormat, dtStart)
-	if err == nil {
-		dtEnd = start.Add(time.Hour).Format(timeFormat)
+	// Use the event's actual end date/time when available.
+	// Otherwise, default to one hour after the start.
+	if dtEnd != "" {
 		b.WriteString("DTEND:" + dtEnd + "\r\n")
 	} else {
-		debugf(err.Error())
+		start, err := time.Parse("20060102T150405Z", dtStart)
+		if err == nil {
+			dtEnd = start.Add(time.Hour).Format(timeFormat)
+			b.WriteString("DTEND:" + dtEnd + "\r\n")
+		} else {
+			debugf(err.Error())
+		}
 	}
 
 	b.WriteString("SUMMARY:" + escapeICSText(title) + "\r\n")
@@ -164,26 +170,19 @@ func formatICSDatetime(dateStr, timeStr string) string {
 	if dateStr == "" {
 		return ""
 	}
+
 	if timeStr == "" {
 		timeStr = "00:00"
 	}
 
 	combined := fmt.Sprintf("%sT%s:00", dateStr, timeStr)
 
-	// Load your local timezone (replace with your actual timezone)
-	loc, err := time.LoadLocation("Europe/Berlin") // TODO: Handle Timezone individual
-	if err != nil {
-		loc = time.Local
-	}
-
-	// Parse using local timezone (this is the FIX)
-	t, err := time.ParseInLocation("2006-01-02T15:04:05", combined, loc)
+	t, err := time.Parse("2006-01-02T15:04:05", combined)
 	if err != nil {
 		fmt.Println("formatICSDatetime parse error:", err)
 		return ""
 	}
 
-	// Convert to UTC for ICS
 	return t.Format("20060102T150405")
 }
 
