@@ -472,9 +472,13 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 			return filters, errors.New("portal and geolist_region filters cannot be used together")
 		}
 
+		fmt.Sprintf("portalUuid = %s", portalUuid)
+
 		filters.Args = append(filters.Args, portalUuid)
 		filters.PortalJoin = fmt.Sprintf("JOIN %s.portal2 p ON p.uuid = $%d::uuid", h.DbSchema, filters.ArgIndex)
 		filters.ArgIndex++
+
+		fmt.Sprintf("portalUuid 2 ...")
 
 		filters.PortalConditions = app.UranusInstance.SqlPortalCondition
 	}
