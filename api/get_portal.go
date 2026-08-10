@@ -62,3 +62,53 @@ func (h *ApiHandler) GetPortal(gc *gin.Context) {
 
 	apiRequest.Success(http.StatusOK, portal)
 }
+
+func (h *ApiHandler) GetPortal2(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "get-portal2")
+	ctx := gc.Request.Context()
+
+	portalUuid := gc.Param("uuid")
+	if portalUuid == "" {
+		apiRequest.Required("uuid is required")
+		return
+	}
+
+	var portal2 struct {
+		Uuid               string          `json:"uuid"`
+		OrgUuid            string          `json:"org_uuid"`
+		Name               string          `json:"name"`
+		Description        *string         `json:"description,omitempty"`
+		GeometryMode       *string         `json:"geometry_mode,omitempty"`
+		Geometry           json.RawMessage `json:"geometry,omitempty"`
+		Filter             json.RawMessage `json:"filter,omitempty"`
+		FilterType         string          `json:"filter_type"`
+		WebLogoUrl         *string         `json:"web_logo_url,omitempty"`
+		BackgroundImageUrl *string         `json:"background_image_url,omitempty"`
+		FooterLogoUrl      *string         `json:"footer_logo_url,omitempty"`
+	}
+
+	err := h.DbPool.QueryRow(
+		ctx,
+		app.UranusInstance.SqlGetPortal2,
+		portalUuid,
+	).Scan(
+		&portal2.Uuid,
+		&portal2.OrgUuid,
+		&portal2.Name,
+		&portal2.Description,
+		&portal2.GeometryMode,
+		&portal2.Geometry,
+		&portal2.Filter,
+		&portal2.FilterType,
+		&portal2.WebLogoUrl,
+		&portal2.BackgroundImageUrl,
+		&portal2.FooterLogoUrl,
+	)
+	if err != nil {
+		debugf(err.Error())
+		apiRequest.Error(http.StatusBadRequest, "get portal2 failed")
+		return
+	}
+
+	apiRequest.Success(http.StatusOK, portal2)
+}

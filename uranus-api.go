@@ -156,10 +156,11 @@ func main() {
 	publicRoute.GET("/event/:eventUuid/date/:dateIdentifier", apiHandler.GetEventByDate)
 	publicRoute.GET("/event/:eventUuid/date/:dateIdentifier/ics", apiHandler.GetEventDateICS)
 
-	publicRoute.GET("/portal/:uuid", apiHandler.GetPortal)
+	publicRoute.GET("/portal/:uuid", apiHandler.GetPortal)   // TODO: Evt. wieder herausnehmen
+	publicRoute.GET("/portal2/:uuid", apiHandler.GetPortal2) // TODO: Neue Version
 
 	publicRoute.GET("/venues", apiHandler.GetVenues)
-	publicRoute.GET("/venues/type-summary", apiHandler.GetVenuesSummary)
+	publicRoute.GET("/venues/type-summary", apiHandler.GetVenueTypeSummary)
 	publicRoute.GET("/venues/geojson", apiHandler.GetVenuesGeoJSON)
 
 	publicRoute.GET("/org/:orgUuid", apiHandler.GetOrg)
@@ -258,10 +259,10 @@ func main() {
 	adminRoute.GET("/org/:orgUuid/events", apiHandler.AdminGetOrgEvents)   // TODO: Permission check
 	adminRoute.GET("/org/:orgUuid/portals", apiHandler.AdminGetOrgPortals) // TODO: Permission check
 
-	adminRoute.GET("/org/:orgUuid/team", apiHandler.AdminGetOrgTeam)                              // TODO: Permission check
-	adminRoute.POST("/org/:orgUuid/team/invite", apiHandler.AdminOrgTeamInvite)                   // TODO: Permission check
-	adminRoute.POST("/org/team/invite/accept", apiHandler.AdminOrgTeamInviteAccept)               // TODO: Permission check
-	adminRoute.DELETE("/org/:orgUuid/team/member/:memberId", apiHandler.AdminDeleteOrgTeamMember) // TODO: Permission check
+	adminRoute.GET("/org/:orgUuid/team", apiHandler.AdminGetOrgTeam)                // TODO: Permission check
+	adminRoute.POST("/org/:orgUuid/team/invite", apiHandler.AdminOrgTeamInvite)     // TODO: Permission check
+	adminRoute.POST("/org/team/invite/accept", apiHandler.AdminOrgTeamInviteAccept) // TODO: Permission check
+	adminRoute.DELETE("/org/:orgUuid/team/member/:memberUuid", apiHandler.AdminDeleteOrgTeamMember)
 	adminRoute.GET("/org/:orgUuid/choosable-venues", apiHandler.AdminGetOrgChoosableVenues)
 
 	// Partner
