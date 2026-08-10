@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/grains/grains_api"
+	"github.com/sndcds/uranus/app"
 )
 
 func (h *ApiHandler) AdminDeleteOrgTeamMember(gc *gin.Context) {
@@ -27,46 +28,62 @@ func (h *ApiHandler) AdminDeleteOrgTeamMember(gc *gin.Context) {
 	}
 	apiRequest.SetMeta("org_uuid", orgUuid)
 
-	memberUserId, ok := ParamInt(gc, "memberId")
-	if !ok {
-		apiRequest.Required("memberId is required")
+	memberUuid := gc.Param("memberUuid")
+	if memberUuid == "" {
+		apiRequest.Required("memberUuid is required")
 		return
 	}
-	apiRequest.SetMeta("member_id", memberUserId)
+	apiRequest.SetMeta("member_uuid", memberUuid)
 
-	tx, err := h.DbPool.BeginTx(ctx, pgx.TxOptions{})
-	if err != nil {
-		apiRequest.Error(http.StatusInternalServerError, "(#1) transaction failed")
-		return
-	}
-	defer func() {
-		if err != nil {
-			tx.Rollback(ctx)
+	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
+
+		txErr := h.CheckAllOrgPermissionsTx(
+			gc, tx, userUuid, orgUuid,
+			app.UserPermManageTeam)
+		if txErr != nil {
+			return txErr
 		}
-	}()
 
-	query := fmt.Sprintf(
-		`DELETE FROM %s.organization_member_link WHERE organization_id = $1 AND user_id = $2`,
-		h.DbSchema)
-	_, err = tx.Exec(ctx, query, orgUuid, memberUserId)
-	if err != nil {
-		apiRequest.Error(http.StatusInternalServerError, "(#1) failed to delete team member")
+		query := fmt.Sprintf(
+			`DELETE FROM %s.organization_member_link
+			 WHERE org_uuid = $1::uuid
+			   AND user_uuid = $2::uuid`,
+			h.DbSchema)
+
+		result, err := tx.Exec(ctx, query, orgUuid, memberUuid)
+		if err != nil {
+			return TxInternalError(err)
+		}
+
+		if result.RowsAffected() == 0 {
+			return &ApiTxError{
+				Code: http.StatusNotFound,
+				Err:  fmt.Errorf("organization team member not found"),
+			}
+		}
+
+		query = fmt.Sprintf(
+			`DELETE FROM %s.user_organization_link
+			 WHERE org_uuid = $1::uuid
+			   AND user_uuid = $2::uuid`,
+			h.DbSchema)
+
+		_, err = tx.Exec(ctx, query, orgUuid, memberUuid)
+		if err != nil {
+			return TxInternalError(err)
+		}
+
+		return nil
+	})
+
+	if txErr != nil {
+		debugf(txErr.Error())
+		apiRequest.Error(txErr.Code, txErr.Error())
 		return
 	}
 
-	query = fmt.Sprintf(
-		`DELETE FROM %s.user_organization_link WHERE organization_id = $1 AND user_id = $2`,
-		h.DbSchema)
-	_, err = tx.Exec(ctx, query, orgUuid, memberUserId)
-	if err != nil {
-		apiRequest.Error(http.StatusInternalServerError, "failed to delete team member (#2)")
-		return
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		apiRequest.Error(http.StatusInternalServerError, "transaction failed (#2)")
-		return
-	}
-
-	apiRequest.SuccessNoData(http.StatusOK, "organization team member deleted successfully")
+	apiRequest.SuccessNoData(
+		http.StatusOK,
+		"organization team member deleted successfully",
+	)
 }

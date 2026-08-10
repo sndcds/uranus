@@ -57,11 +57,9 @@ type venueFilters struct {
 	LimitClause   string
 }
 
-func (h *ApiHandler) GetVenuesSummary(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "get-venues-type-summary")
+func (h *ApiHandler) GetVenueTypeSummary(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "get-venue-type-summary")
 	ctx := gc.Request.Context()
-
-	debugf("GetVenuesSummary")
 
 	filters, err := h.buildVenueFilters(gc, false)
 	if err != nil {
@@ -72,7 +70,6 @@ func (h *ApiHandler) GetVenuesSummary(gc *gin.Context) {
 	query := app.UranusInstance.SqlGetVenuesSummary
 	query = strings.Replace(query, "{{conditions}}", filters.ConditionsStr, 1)
 
-	debugf(query)
 	data, err := json.MarshalIndent(filters, "", "  ")
 	if err == nil {
 		debugf(string(data))
@@ -120,7 +117,6 @@ func (h *ApiHandler) GetVenues(gc *gin.Context) {
 	venues := make([]venueResponse, 0)
 
 	for rows.Next() {
-
 		var v venueResponse
 
 		err := rows.Scan(

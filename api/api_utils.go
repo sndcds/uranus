@@ -231,7 +231,7 @@ func (h *ApiHandler) VerifyUserPassword(gc *gin.Context, userUuid string) error 
 	}
 
 	if app.ComparePasswords(passwordHash, body.Password) != nil {
-		return errors.New("invalid password")
+		return errors.New("(invalid password")
 	}
 
 	return nil

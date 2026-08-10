@@ -473,19 +473,10 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 		}
 
 		filters.Args = append(filters.Args, portalUuid)
-		filters.PortalJoin = fmt.Sprintf("JOIN %s.portal p ON p.uuid = $%d::uuid", h.DbSchema, filters.ArgIndex)
+		filters.PortalJoin = fmt.Sprintf("JOIN %s.portal2 p ON p.uuid = $%d::uuid", h.DbSchema, filters.ArgIndex)
 		filters.ArgIndex++
 
-		filters.PortalConditions = fmt.Sprintf(`
-			AND (
-		        p.wkb_geometry IS NULL
-				OR ST_Covers(p.wkb_geometry, COALESCE(edp.venue_point, ep.venue_point))
-			)
-			AND NOT EXISTS (
-    			SELECT 1 FROM %s.portal_org_blocklist b
-				WHERE b.portal_uuid = p.uuid AND b.org_uuid = ep.org_uuid)
-			`,
-			h.DbSchema)
+		filters.PortalConditions = app.UranusInstance.SqlPortalCondition
 	}
 
 	return filters, nil
