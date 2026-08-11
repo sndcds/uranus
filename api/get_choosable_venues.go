@@ -15,9 +15,9 @@ func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
 	ctx := gc.Request.Context()
 
 	nameStr, _ := GetContextParam(gc, "name")
-	latStr, _ := GetContextParam(gc, "lat")
-	lonStr, _ := GetContextParam(gc, "lon")
-	radiusStr, _ := GetContextParam(gc, "radius")
+	lat, hasLat := GetContextParamFloat64(gc, "lat")
+	lon, hasLon := GetContextParamFloat64(gc, "lon")
+	radius, hasRadius := GetContextParamFloat64(gc, "radius")
 
 	var conditions []string
 	args := []interface{}{}
@@ -29,10 +29,12 @@ func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
 		return
 	}
 
-	argIndex, errBuild = sql_utils.BuildGeoRadiusCondition(lonStr, latStr, radiusStr, "point", argIndex, &conditions, &args)
-	if errBuild != nil {
-		apiRequest.InternalServerError()
-		return
+	if hasLat && hasLon && hasRadius {
+		argIndex, errBuild = sql_utils.BuildGeoRadiusCondition(lon, lat, radius, "point", argIndex, &conditions, &args)
+		if errBuild != nil {
+			apiRequest.InternalServerError()
+			return
+		}
 	}
 
 	query := fmt.Sprintf("SELECT uuid, scope, name, city, state, country FROM %s.venue", h.DbSchema)
@@ -41,8 +43,11 @@ func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
 	}
 	query += " ORDER BY LOWER(name) ASC"
 
+	debugf(query)
+
 	rows, err := h.DbPool.Query(ctx, query, args...)
 	if err != nil {
+		debugf(err.Error())
 		apiRequest.DatabaseError()
 		return
 	}
@@ -68,8 +73,8 @@ func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
 			&venue.City,
 			&venue.State,
 			&venue.Country,
-			&venue.Scope,
 		); err != nil {
+			debugf(err.Error())
 			apiRequest.DatabaseError()
 			return
 		}
@@ -77,6 +82,7 @@ func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
 	}
 
 	if err := rows.Err(); err != nil {
+		debugf(err.Error())
 		apiRequest.DatabaseError()
 		return
 	}

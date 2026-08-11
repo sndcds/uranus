@@ -15,9 +15,9 @@ func (h *ApiHandler) GetChoosableOrgs(gc *gin.Context) {
 	ctx := gc.Request.Context()
 
 	nameStr, _ := GetContextParam(gc, "name")
-	latStr, _ := GetContextParam(gc, "lat")
-	lonStr, _ := GetContextParam(gc, "lon")
-	radiusStr, _ := GetContextParam(gc, "radius")
+	lat, hasLat := GetContextParamFloat64(gc, "lat")
+	lon, hasLon := GetContextParamFloat64(gc, "lon")
+	radius, hasRadius := GetContextParamFloat64(gc, "radius")
 
 	var conditions []string
 	args := []interface{}{}
@@ -29,10 +29,12 @@ func (h *ApiHandler) GetChoosableOrgs(gc *gin.Context) {
 		return
 	}
 
-	argIndex, errBuild = sql_utils.BuildGeoRadiusCondition(lonStr, latStr, radiusStr, "point", argIndex, &conditions, &args)
-	if errBuild != nil {
-		apiRequest.InternalServerError()
-		return
+	if hasLat && hasLon && hasRadius {
+		argIndex, errBuild = sql_utils.BuildGeoRadiusCondition(lon, lat, radius, "point", argIndex, &conditions, &args)
+		if errBuild != nil {
+			apiRequest.InternalServerError()
+			return
+		}
 	}
 
 	query := fmt.Sprintf("SELECT uuid, name, city, state, country FROM %s.organization", h.DbSchema)

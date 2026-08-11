@@ -453,7 +453,7 @@ func (e *eventPayload) Validate() error {
 				beforeToday, err := isBeforeToday(date.StartDate)
 				if err != nil {
 					errs = append(errs, fmt.Sprintf(
-						"dates[%d].start_date has invalid format", i,
+						"dates[%d].start_date has invalid format (expected YYYY-MM-DD)", i,
 					))
 				} else if beforeToday {
 					errs = append(errs, fmt.Sprintf(

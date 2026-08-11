@@ -138,15 +138,13 @@ func main() {
 
 	publicRoute := router.Group("/api")
 	publicRoute.Use(PublicCORSMiddleware())
-	publicRoute.OPTIONS("/*path", func(c *gin.Context) {
-		c.Status(204)
-	})
 
 	publicRoute.GET("/health", apiHandler.GetHealth)
 
 	publicRoute.GET("/event/release-status-i18n", apiHandler.GetEventReleaseStatusI18n)
 
 	publicRoute.GET("/events", apiHandler.GetEvents)
+	publicRoute.POST("/events/filter", apiHandler.GetEvents)
 	publicRoute.GET("/events/week", apiHandler.GetEventsWeek)
 	publicRoute.GET("/events/type-summary", apiHandler.GetEventTypeSummary)
 	publicRoute.GET("/events/venue-summary", apiHandler.GetEventVenueSummary) // TODO: check!
@@ -221,6 +219,9 @@ func main() {
 	adminRoute := router.Group("/api/admin")
 	adminRoute.Use(AdminCORSMiddleware())
 	adminRoute.Use(app.JWTMiddleware)
+	adminRoute.OPTIONS("/*path", func(c *gin.Context) {
+		c.Status(http.StatusNoContent)
+	})
 
 	adminRoute.GET("/event/:eventUuid/date/:dateIdentifier", apiHandler.GetEventByDate) // TODO: Permission check
 	adminRoute.GET("/permissions/list", apiHandler.AdminGetPermissionsList)             // TODO: Permission check
@@ -359,10 +360,12 @@ func main() {
 
 func PublicCORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-
 		c.Header("Access-Control-Allow-Origin", "*")
-		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Accept, Content-Type, Authorization")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		c.Header(
+			"Access-Control-Allow-Headers",
+			"Accept, Content-Type, Authorization",
+		)
 
 		if c.Request.Method == http.MethodOptions {
 			c.AbortWithStatus(http.StatusNoContent)

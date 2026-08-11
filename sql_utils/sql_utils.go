@@ -246,37 +246,6 @@ func BuildContainedInColumnIntRangeCondition(
 	return argIndex, nil
 }
 
-// BuildColumnInUuidCondition builds a SQL condition using = ANY($N::uuid[]) for UUIDv7 values.
-//
-// uuidsInput can be either a comma-separated string of UUIDs (e.g., "uuid1,uuid2,uuid3")
-// or a []string slice of UUIDs. All UUIDs are validated using grains_uuid.IsValidUuidv7.
-//
-// expr is the SQL column or expression to compare against (e.g., "event_uuid").
-//
-// argIndex is the placeholder number for the SQL parameter ($1, $2, ...).
-//
-// conditions is a pointer to a slice of strings where the generated condition will be appended.
-//
-// args is a pointer to a slice of interface{} where the parsed UUID values will be appended.
-//
-// Returns the next argument index (argIndex + 1) and an error if any input is invalid.
-//
-// Example usage:
-//
-//	var conditions []string
-//	var args []interface{}
-//	argIndex := 1
-//
-//	argIndex, err := BuildColumnInUuidCondition("uuid1,uuid2", "event_uuid", argIndex, &conditions, &args)
-//	if err != nil {
-//	    return err
-//	}
-//
-// This will produce a condition similar to:
-//
-//	(event_uuid = ANY($1::uuid[]))
-//
-// with args containing ["uuid1", "uuid2"]
 func BuildColumnInIntCondition(
 	idsInput interface{},
 	expr string,
@@ -297,12 +266,12 @@ func BuildColumnInIntCondition(
 		for _, raw := range parts {
 			id, err := strconv.Atoi(strings.TrimSpace(raw))
 			if err != nil {
-				return argIndex, fmt.Errorf("invalid integer in input: %s", raw)
+				return argIndex, fmt.Errorf("invalid integer in input: %s in expr %s", raw, expr)
 			}
 			ids = append(ids, id)
 		}
 	default:
-		return argIndex, fmt.Errorf("unsupported input type: %T", idsInput)
+		return argIndex, fmt.Errorf("unsupported input type: %T in expr %s", idsInput, expr)
 	}
 
 	// Build condition
@@ -315,62 +284,26 @@ func BuildColumnInIntCondition(
 }
 
 func BuildColumnInUuidCondition(
-	uuidsInput interface{},
+	uuids []string,
 	expr string,
 	argIndex int,
 	conditions *[]string,
 	args *[]interface{},
 ) (int, error) {
 
-	var uuids []string
-
-	switch v := uuidsInput.(type) {
-
-	case string:
-		v = strings.TrimSpace(v)
-		if v == "" {
-			return argIndex, nil
-		}
-
-		parts := strings.Split(v, ",")
-		for _, raw := range parts {
-			u := strings.TrimSpace(raw)
-			if u == "" {
-				continue
-			}
-
-			if !grains_uuid.IsValidUuidv7(u) {
-				return argIndex, fmt.Errorf("invalid uuid: %s", u)
-			}
-
-			uuids = append(uuids, u)
-		}
-
-	case []string:
-		for _, raw := range v {
-			u := strings.TrimSpace(raw)
-			if u == "" {
-				continue
-			}
-
-			if !grains_uuid.IsValidUuidv7(u) {
-				return argIndex, fmt.Errorf("invalid uuid: %s", u)
-			}
-
-			uuids = append(uuids, u)
-		}
-
-	default:
-		return argIndex, fmt.Errorf("unsupported input type: %T", uuidsInput)
-	}
-
 	if len(uuids) == 0 {
 		return argIndex, nil
 	}
 
-	condition := fmt.Sprintf("(%s = ANY($%d::uuid[]))", expr, argIndex)
-	*conditions = append(*conditions, condition)
+	for _, uuid := range uuids {
+		if !grains_uuid.IsValidUuidv7(uuid) {
+			return argIndex, fmt.Errorf("invalid uuid: %s", uuid)
+		}
+	}
 
+	condition := fmt.Sprintf("(%s = ANY($%d::uuid[]))", expr, argIndex)
+
+	*conditions = append(*conditions, condition)
 	*args = append(*args, uuids)
 
 	return argIndex + 1, nil
@@ -402,7 +335,7 @@ func BuildColumnArrayOverlapCondition(
 		for _, raw := range parts {
 			id, err := strconv.Atoi(strings.TrimSpace(raw))
 			if err != nil {
-				return argIndex, fmt.Errorf("invalid integer in input: %s", raw)
+				return argIndex, fmt.Errorf("invalid integer in input: %s in expr %s", raw, expr)
 			}
 			ids = append(ids, id)
 		}
@@ -674,43 +607,29 @@ func SanitizeSearchPattern(input string) (string, error) {
 	return safeInput, nil
 }
 
-// BuildLimitOffsetClause parses limit and offset strings into integers,
-// validates them, and appends the appropriate LIMIT and OFFSET clauses
-// and arguments to the provided args slice.
-//
-// Parameters:
-//   - limitStr:   Query string for limit (may be empty).
-//   - offsetStr:  Query string for offset (may be empty).
-//   - startIndex: Index for SQL placeholders ($N).
-//   - args:       Pointer to the slice of arguments to be extended.
-//
-// Returns:
-//   - clause:     A SQL clause like "LIMIT $1 OFFSET $2", or just one part.
-//   - newIndex:   The updated index after adding args.
-//   - err:        A validation error, if any.
-func BuildLimitOffsetClause(limitStr, offsetStr string, startIndex int, args *[]interface{}) (string, int, error) {
+func BuildLimitOffsetClause(
+	limit, offset *int64,
+	startIndex int,
+	args *[]interface{},
+) (string, int, error) {
 	var clauses []string
 	argIndex := startIndex
 
-	// Parse limit
-	if limitStr != "" {
-		limit, err := strconv.Atoi(limitStr)
-		if err != nil || limit <= 0 {
-			return "", argIndex, fmt.Errorf("invalid limit: %s", limitStr)
+	if limit != nil {
+		if *limit < 0 {
+			return "", argIndex, fmt.Errorf("limit %d is negative", *limit)
 		}
 		clauses = append(clauses, fmt.Sprintf("LIMIT $%d", argIndex))
-		*args = append(*args, limit)
+		*args = append(*args, *limit)
 		argIndex++
 	}
 
-	// Parse offset
-	if offsetStr != "" {
-		offset, err := strconv.Atoi(offsetStr)
-		if err != nil || offset < 0 {
-			return "", argIndex, fmt.Errorf("invalid offset: %s", offsetStr)
+	if offset != nil {
+		if *offset < 0 {
+			return "", argIndex, fmt.Errorf("offset %d is negative", *offset)
 		}
 		clauses = append(clauses, fmt.Sprintf("OFFSET $%d", argIndex))
-		*args = append(*args, offset)
+		*args = append(*args, *offset)
 		argIndex++
 	}
 
@@ -721,7 +640,7 @@ func BuildLimitOffsetClause(limitStr, offsetStr string, startIndex int, args *[]
 // if all three input strings (lonStr, latStr, radiusStr) are valid and non-empty.
 //
 // Parameters:
-//   - lonStr, latStr, radiusStr: string inputs for longitude, latitude, and radius in meters.
+//   - lon, lat, radius: inputs for longitude, latitude, and radius in meters.
 //   - columnExpr: the SQL expression for the geometry column (e.g., "v.point").
 //   - startIndex: the starting placeholder index for the SQL arguments.
 //   - conditions: a pointer to the slice of WHERE conditions to append to.
@@ -731,26 +650,15 @@ func BuildLimitOffsetClause(limitStr, offsetStr string, startIndex int, args *[]
 //   - nextArgIndex: the next available argument index after this condition.
 //   - err: any error encountered while parsing the inputs.
 func BuildGeoRadiusCondition(
-	lonStr, latStr, radiusStr, columnExpr string,
+	lon, lat, radius *float64,
+	columnExpr string,
 	startIndex int,
 	conditions *[]string,
 	args *[]interface{},
 ) (int, error) {
-	if lonStr == "" || latStr == "" || radiusStr == "" {
-		return startIndex, nil
-	}
 
-	lon, err := strconv.ParseFloat(lonStr, 64)
-	if err != nil {
-		return startIndex, fmt.Errorf("lon '%s' is invalid", lonStr)
-	}
-	lat, err := strconv.ParseFloat(latStr, 64)
-	if err != nil {
-		return startIndex, fmt.Errorf("lat '%s' is invalid", latStr)
-	}
-	radius, err := strconv.ParseFloat(radiusStr, 64)
-	if err != nil {
-		return startIndex, fmt.Errorf("radius '%s' is invalid", radiusStr)
+	if lon == nil || lat == nil || radius == nil {
+		return startIndex, nil
 	}
 
 	*conditions = append(*conditions,
@@ -764,8 +672,8 @@ func BuildGeoRadiusCondition(
 }
 
 func BuildJSONArrayIntCondition(
-	mode string, // Can be "or" or "and"
-	input string,
+	mode string, // "or" or "and"
+	ids []int,
 	jsonbColumn string, // e.g. "ep.types"
 	jsonIndex int, // 0 = type_id, 1 = genre_id
 	argIndex int,
@@ -773,40 +681,47 @@ func BuildJSONArrayIntCondition(
 	args *[]interface{},
 ) (int, error) {
 
-	if input == "" {
+	if len(ids) == 0 {
 		return argIndex, nil
-	}
-
-	ids, err := app.ParseIntSliceCsv(input)
-	if err != nil {
-		return argIndex, err
 	}
 
 	var condition string
 
-	if mode == "and" {
+	switch mode {
+	case "and":
 		condition = fmt.Sprintf(`
-		NOT EXISTS (
- 			SELECT 1
-			FROM unnest($%d::int[]) req(val)
-			WHERE req.val NOT IN (
- 				SELECT (elem->>%d)::int
-				FROM jsonb_array_elements(%s) elem
-			)
-		)`,
-			argIndex, jsonIndex, jsonbColumn)
-	} else if mode == "or" {
-		condition = fmt.Sprintf(
-			`EXISTS (
-				SELECT 1 FROM jsonb_array_elements(%s) AS t(elem)
-				WHERE (elem->>%d)::int = ANY($%d)
+			NOT EXISTS (
+				SELECT 1
+				FROM unnest($%d::int[]) req(val)
+				WHERE req.val NOT IN (
+					SELECT (elem->>%d)::int
+					FROM jsonb_array_elements(%s) elem
+				)
 			)`,
-			jsonbColumn, jsonIndex, argIndex)
+			argIndex,
+			jsonIndex,
+			jsonbColumn,
+		)
+
+	case "or":
+		condition = fmt.Sprintf(`
+			EXISTS (
+				SELECT 1
+				FROM jsonb_array_elements(%s) AS t(elem)
+				WHERE (elem->>%d)::int = ANY($%d::int[])
+			)`,
+			jsonbColumn,
+			jsonIndex,
+			argIndex,
+		)
+
+	default:
+		return argIndex, fmt.Errorf("invalid mode %q: expected \"or\" or \"and\"", mode)
 	}
 
 	*conditions = append(*conditions, condition)
-
 	*args = append(*args, ids)
+
 	return argIndex + 1, nil
 }
 
