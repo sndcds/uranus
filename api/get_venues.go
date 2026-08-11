@@ -234,17 +234,16 @@ func (h *ApiHandler) buildVenueFilters(gc *gin.Context, useLang bool) (venueFilt
 	nameStr, _ := GetContextParam(gc, "name")
 	// searchStr, _ := GetContextParam(gc, "search") TODO: !
 	accessibilityStr, _ := GetContextParam(gc, "accessibility")
-	lonStr, _ := GetContextParam(gc, "lon")
-	latStr, _ := GetContextParam(gc, "lat")
-	radiusStr, _ := GetContextParam(gc, "radius")
-	offsetStr, _ := GetContextParam(gc, "offset")
-	limitStr, _ := GetContextParam(gc, "limit")
+	lon, hasLon := GetContextParamFloat64(gc, "lon")
+	lat, hasLat := GetContextParamFloat64(gc, "lat")
+	radius, hasRadius := GetContextParamFloat64(gc, "radius")
 
 	// Uuid filters
 
 	if venueUuidsStr != "" {
+		venueUuids := strings.Split(venueUuidsStr, ",")
 		filters.ArgIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
-			venueUuidsStr,
+			venueUuids,
 			"v.uuid",
 			filters.ArgIndex,
 			&conditions,
@@ -256,8 +255,9 @@ func (h *ApiHandler) buildVenueFilters(gc *gin.Context, useLang bool) (venueFilt
 	}
 
 	if orgUuidsStr != "" {
+		orgUuids := strings.Split(orgUuidsStr, ",")
 		filters.ArgIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
-			orgUuidsStr,
+			orgUuids,
 			"v.org_uuid",
 			filters.ArgIndex,
 			&conditions,
@@ -373,17 +373,19 @@ func (h *ApiHandler) buildVenueFilters(gc *gin.Context, useLang bool) (venueFilt
 
 	// Radius
 
-	filters.ArgIndex, errBuild = sql_utils.BuildGeoRadiusCondition(
-		lonStr,
-		latStr,
-		radiusStr,
-		"v.point",
-		filters.ArgIndex,
-		&conditions,
-		&filters.Args,
-	)
-	if errBuild != nil {
-		return filters, errBuild
+	if hasLon && hasLat && hasRadius {
+		filters.ArgIndex, errBuild = sql_utils.BuildGeoRadiusCondition(
+			lon,
+			lat,
+			radius,
+			"v.point",
+			filters.ArgIndex,
+			&conditions,
+			&filters.Args,
+		)
+		if errBuild != nil {
+			return filters, errBuild
+		}
 	}
 
 	// WHERE
@@ -392,19 +394,30 @@ func (h *ApiHandler) buildVenueFilters(gc *gin.Context, useLang bool) (venueFilt
 		filters.ConditionsStr = " AND " + strings.Join(conditions, " AND ")
 	}
 
-	// LIMIT/OFFSET
+	// Limit and Offset
 
-	filters.LimitClause,
-		filters.ArgIndex,
-		errBuild = sql_utils.BuildLimitOffsetClause(
-		limitStr,
-		offsetStr,
-		filters.ArgIndex,
-		&filters.Args,
-	)
+	offset, err := GetContextParamInt64(gc, "offset")
+	if err != nil {
+		return filters, err
+	}
 
-	if errBuild != nil {
-		return filters, errBuild
+	limit, err := GetContextParamInt64(gc, "limit")
+	if err != nil {
+		return filters, err
+	}
+
+	if offset != nil && limit != nil {
+		filters.LimitClause,
+			filters.ArgIndex,
+			err = sql_utils.BuildLimitOffsetClause(
+			limit,
+			offset,
+			filters.ArgIndex,
+			&filters.Args,
+		)
+		if err != nil {
+			return filters, errBuild
+		}
 	}
 
 	return filters, nil

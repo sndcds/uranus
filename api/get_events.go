@@ -16,6 +16,53 @@ import (
 	"github.com/sndcds/uranus/sql_utils"
 )
 
+type EventFilterRequest struct {
+	Offset     *int64   `json:"offset,omitempty"`
+	Limit      *int64   `json:"limit,omitempty"`
+	Start      string   `json:"start,omitempty"`
+	End        string   `json:"end,omitempty"`
+	Time       string   `json:"time,omitempty"`
+	Categories []string `json:"categories,omitempty"`
+
+	Search string `json:"search,omitempty"`
+	Venue  string `json:"venue,omitempty"`
+
+	SpaceTypes []string `json:"space_types,omitempty"`
+	Countries  []string `json:"countries,omitempty"`
+
+	PostalCode string `json:"postal_code,omitempty"`
+	Title      string `json:"title,omitempty"`
+	City       string `json:"city,omitempty"`
+
+	EventTypes []int    `json:"event_types,omitempty"`
+	Genres     []int    `json:"genres,omitempty"`
+	Tags       []string `json:"tags,omitempty"`
+
+	Accessibility string `json:"accessibility,omitempty"`
+	VisitorInfos  string `json:"visitor_infos,omitempty"`
+
+	Age   string `json:"age,omitempty"`
+	Price string `json:"price,omitempty"`
+
+	Lon    *float64 `json:"lon,omitempty"`
+	Lat    *float64 `json:"lat,omitempty"`
+	Radius *float64 `json:"radius,omitempty"`
+
+	LastEventStartAt  string `json:"last_event_start_at,omitempty"`
+	LastEventDateUuid string `json:"last_event_date_uuid,omitempty"`
+
+	Lang       string `json:"lang,omitempty"`
+	PortalUuid string `json:"portal,omitempty"`
+	WeekStart  string `json:"week_start,omitempty"`
+
+	OrgUuids   []string `json:"org_uuids,omitempty"`
+	VenueUuids []string `json:"venue_uuids,omitempty"`
+	SpaceUuids []string `json:"space_uuids,omitempty"`
+	EventUuids []string `json:"event_uuids,omitempty"`
+
+	GeolistRegion string `json:"geolist_region,omitempty"`
+}
+
 // eventType represents a type-genre mapping (example)
 type eventType struct {
 	TypeId  int `json:"type_id"`
@@ -85,106 +132,25 @@ type eventFilters struct {
 	ArgIndex         int
 }
 
-// buildEventFilters parses all query parameters from the context
-// and returns:
-// - dateConditions: the date-specific condition string
-// - conditionsStr: all other conditions concatenated
-// - limitClause: SQL LIMIT/OFFSET clause
-// - args: list of query arguments
-// - nextArgIndex: next placeholder index
-func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eventFilters, error) {
-	allowed := map[string]struct{}{
-		"categories":           {},
-		"start":                {},
-		"end":                  {},
-		"time":                 {},
-		"search":               {},
-		"venue":                {},
-		"space_types":          {},
-		"countries":            {},
-		"postal_code":          {},
-		"title":                {},
-		"city":                 {},
-		"event_types":          {},
-		"genres":               {},
-		"tags":                 {},
-		"accessibility":        {},
-		"visitor_infos":        {},
-		"age":                  {},
-		"price":                {},
-		"lon":                  {},
-		"lat":                  {},
-		"radius":               {},
-		"offset":               {},
-		"limit":                {},
-		"last_event_start_at":  {},
-		"last_event_date_uuid": {},
-		"lang":                 {},
-		"portal":               {},
-		"week_start":           {},
-		"org_uuids":            {},
-		"venue_uuids":          {},
-		"space_uuids":          {},
-		"event_uuids":          {},
-		"geolist_region":       {},
+func (h *ApiHandler) buildEventFilters(request EventFilterRequest, useTypeFilter bool) (eventFilters, error) {
+
+	filters := eventFilters{
+		Args:     []interface{}{},
+		ArgIndex: 1,
 	}
 
-	filters := eventFilters{}
-
-	validationErr := validateAllowedQueryParams(gc, allowed)
-	if validationErr != nil {
-		return filters, errors.New(validationErr.Error())
-	}
-	filters.Args = []interface{}{}
-	filters.ArgIndex = 1
 	var conditions []string
-
-	var eventTypesStr string
-	var genresStr string
-
-	// langStr, _ := GetContextParam(gc, "language") // TODO: Implement language support!
-	categoriesStr, hasCategories := GetContextParam(gc, "categories")
-	startStr, _ := GetContextParam(gc, "start")
-	endStr, _ := GetContextParam(gc, "end")
-	lastEventStartAt, _ := GetContextParam(gc, "last_event_start_at")
-	lastEventDateUuid, _ := GetContextParam(gc, "last_event_date_uuid")
-	timeStr, _ := GetContextParam(gc, "time")
-	searchStr, _ := GetContextParam(gc, "search")
-	venueStr, _ := GetContextParam(gc, "venue")
-	spaceTypesStr, _ := GetContextParam(gc, "space_types")
-	countryCodesStr, _ := GetContextParam(gc, "countries")
-	postalCodeStr, _ := GetContextParam(gc, "postal_code")
-	titleStr, _ := GetContextParam(gc, "title")
-	cityStr, _ := GetContextParam(gc, "city")
-	if useTypeFilter {
-		eventTypesStr, _ = GetContextParam(gc, "event_types")
-		genresStr, _ = GetContextParam(gc, "genres")
-		if eventTypesStr != "" && genresStr != "" {
-			return filters, fmt.Errorf("only one of 'event_types' or 'genres' may be specified")
-		}
-	}
-	tagsStr, _ := GetContextParam(gc, "tags")
-	accessibilityFlagsStr, _ := GetContextParam(gc, "accessibility")
-	visitorInfosStr, _ := GetContextParam(gc, "visitor_infos")
-	ageStr, _ := GetContextParam(gc, "age")
-	priceStr, _ := GetContextParam(gc, "price")
-	lonStr, _ := GetContextParam(gc, "lon")
-	latStr, _ := GetContextParam(gc, "lat")
-	radiusStr, _ := GetContextParam(gc, "radius")
-	offsetStr, _ := GetContextParam(gc, "offset")
-	limitStr, _ := GetContextParam(gc, "limit")
-	weekStartStr, _ := GetContextParam(gc, "week_start")
-	orgUuidsStr, _ := GetContextParam(gc, "org_uuids")
-	venueUuidsStr, _ := GetContextParam(gc, "venue_uuids")
-	spaceUuidsStr, _ := GetContextParam(gc, "space_uuids")
-	eventUuidsStr, _ := GetContextParam(gc, "event_uuids")
-	geolistRegionStr, _ := GetContextParam(gc, "geolist_region")
-
 	var errBuild error
 
-	if hasCategories {
+	if len(request.Categories) > 0 {
+		categoriesStr := strings.Join(request.Categories, ",")
 		filters.ArgIndex, errBuild = sql_utils.BuildColumnArrayOverlapCondition(
-			categoriesStr, "ep.categories", filters.ArgIndex, &conditions, &filters.Args)
+			categoriesStr,
+			"ep.categories",
+			filters.ArgIndex,
+			&conditions,
+			&filters.Args)
+
 		if errBuild != nil {
 			return filters, errBuild
 		}
@@ -192,22 +158,22 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 
 	// Date conditions
 	dateConditionCount := 0
-	if app.IsValidDateStr(startStr) {
+	if app.IsValidDateStr(request.Start) {
 		filters.DateConditions += "COALESCE(edp.event_end_at, edp.event_start_at) >= $" + strconv.Itoa(filters.ArgIndex)
-		filters.Args = append(filters.Args, startStr)
+		filters.Args = append(filters.Args, request.Start)
 		filters.ArgIndex++
 		dateConditionCount++
-	} else if startStr != "" {
-		return filters, fmt.Errorf("'start' has invalid format: %s", startStr)
+	} else if request.Start != "" {
+		return filters, fmt.Errorf("start has invalid format: %s (expected YYYY-MM-DD)", request.Start)
 	} else {
 		filters.DateConditions += "COALESCE(edp.event_end_at, edp.event_start_at) >= CURRENT_DATE"
 		dateConditionCount++
 	}
 
-	if app.IsValidDateStr(endStr) {
-		endDate, err := time.Parse("2006-01-02", endStr)
+	if app.IsValidDateStr(request.End) {
+		endDate, err := time.Parse("2006-01-02", request.End)
 		if err != nil {
-			return filters, fmt.Errorf("end %s has invalid format", endStr)
+			return filters, fmt.Errorf("end has invalid format: %s (expected YYYY-MM-DD)", endDate)
 		}
 		endDate = endDate.AddDate(0, 0, 1)
 		if dateConditionCount > 0 {
@@ -220,16 +186,16 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 		filters.Args = append(filters.Args, endDate)
 		filters.ArgIndex++
 
-	} else if endStr != "" {
-		return filters, fmt.Errorf("end %s has invalid format", endStr)
+	} else if request.End != "" {
+		return filters, fmt.Errorf("end has invalid format: %s (expected YYYY-MM-DD)", request.End)
 	}
 
-	if lastEventStartAt != "" {
+	if request.LastEventStartAt != "" {
 		if dateConditionCount > 0 {
 			filters.DateConditions += " AND "
 		}
 		filters.DateConditions += "(edp.event_start_at, edp.event_date_uuid) > ($" + strconv.Itoa(filters.ArgIndex) + "::timestamptz, $" + strconv.Itoa(filters.ArgIndex+1) + "::uuid)"
-		filters.Args = append(filters.Args, lastEventStartAt, lastEventDateUuid)
+		filters.Args = append(filters.Args, request.LastEventStartAt, request.LastEventDateUuid)
 		filters.ArgIndex += 2
 	}
 
@@ -237,16 +203,21 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 
 	// Other conditions
 	filters.ArgIndex, errBuild = sql_utils.BuildTimeCondition(
-		timeStr, "edp.start_time", "time", filters.ArgIndex, &conditions, &filters.Args)
+		request.Time,
+		"edp.start_time",
+		"time",
+		filters.ArgIndex,
+		&conditions,
+		&filters.Args)
 	if errBuild != nil {
 		return filters, errBuild
 	}
 
 	// Search condition
-	if searchStr != "" {
+	if request.Search != "" {
 		filters.SearchRankSelect,
 			filters.ArgIndex = buildSearchFilter(
-			searchStr,
+			request.Search,
 			filters.ArgIndex,
 			&filters.Args,
 			&conditions,
@@ -256,12 +227,18 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 	}
 
 	filters.ArgIndex, errBuild = sql_utils.BuildSanitizedIlikeCondition(
-		titleStr, "ep.title", "title", filters.ArgIndex, &conditions, &filters.Args)
+		request.Title,
+		"ep.title",
+		"title",
+		filters.ArgIndex,
+		&conditions,
+		&filters.Args)
 	if errBuild != nil {
 		return filters, errBuild
 	}
 
-	if countryCodesStr != "" {
+	if len(request.Countries) > 0 {
+		countryCodesStr := strings.Join(request.Countries, ",")
 		filters.ArgIndex, errBuild = sql_utils.BuildInConditionForStringSlice(
 			countryCodesStr,
 			"COALESCE(edp.venue_country, ep.venue_country) = ANY($%d::text[])", // "column_name && $%d::text[]",
@@ -274,9 +251,9 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 		}
 	}
 
-	if postalCodeStr != "" {
+	if request.PostalCode != "" {
 		filters.ArgIndex, errBuild = sql_utils.BuildLikeConditions(
-			postalCodeStr,
+			request.PostalCode,
 			"COALESCE(edp.venue_postal_code, ep.venue_postal_code)",
 			filters.ArgIndex,
 			&conditions,
@@ -286,71 +263,111 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 		}
 	}
 
-	if cityStr != "" {
+	if request.City != "" {
 		filters.ArgIndex, errBuild = sql_utils.BuildSanitizedIlikeCondition(
-			cityStr, "COALESCE(edp.venue_city, ep.venue_city)",
-			"city", filters.ArgIndex, &conditions, &filters.Args)
+			request.City,
+			"COALESCE(edp.venue_city, ep.venue_city)",
+			"city",
+			filters.ArgIndex,
+			&conditions,
+			&filters.Args)
 		if errBuild != nil {
 			return filters, errBuild
 		}
 	}
 
-	if venueStr != "" {
+	if request.Venue != "" {
 		filters.ArgIndex, errBuild = sql_utils.BuildSanitizedIlikeCondition(
-			venueStr, "COALESCE(edp.venue_name, ep.venue_name)",
-			"venue", filters.ArgIndex, &conditions, &filters.Args)
+			request.Venue,
+			"COALESCE(edp.venue_name, ep.venue_name)",
+			"venue",
+			filters.ArgIndex,
+			&conditions,
+			&filters.Args)
 		if errBuild != nil {
 			return filters, errBuild
 		}
 	}
 
-	if spaceTypesStr != "" {
+	if len(request.SpaceTypes) > 0 {
+		spaceTypesStr := strings.Join(request.SpaceTypes, ",")
 		filters.ArgIndex, errBuild = sql_utils.BuildInConditionForStringSlice(
 			spaceTypesStr,
 			"COALESCE(edp.space_type, ep.space_type) = ANY($%d::text[])",
-			filters.ArgIndex, &conditions, &filters.Args,
+			filters.ArgIndex,
+			&conditions,
+			&filters.Args,
 		)
 		if errBuild != nil {
 			return filters, errBuild
 		}
 	}
 
-	filters.ArgIndex, errBuild = sql_utils.BuildGeoRadiusCondition(
-		lonStr, latStr, radiusStr,
-		"COALESCE(edp.venue_point, ep.venue_point)",
-		filters.ArgIndex, &conditions, &filters.Args)
-	if errBuild != nil {
-		return filters, errBuild
+	if request.Lon != nil && request.Lat != nil {
+		filters.ArgIndex, errBuild = sql_utils.BuildGeoRadiusCondition(
+			request.Lon,
+			request.Lat,
+			request.Radius,
+			"COALESCE(edp.venue_point, ep.venue_point)",
+			filters.ArgIndex,
+			&conditions,
+			&filters.Args)
+		if errBuild != nil {
+			return filters, errBuild
+		}
 	}
 
 	filters.ArgIndex, errBuild = sql_utils.BuildContainedInColumnIntRangeCondition(
-		ageStr, "ep.min_age", "ep.max_age", filters.ArgIndex, &conditions, &filters.Args)
+		request.Age,
+		"ep.min_age",
+		"ep.max_age",
+		filters.ArgIndex,
+		&conditions,
+		&filters.Args)
 	if errBuild != nil {
 		return filters, errBuild
 	}
 
 	filters.ArgIndex, errBuild = sql_utils.BuildPriceCondition(
-		priceStr, "ep.price_type", "ep.currency", "ep.min_price", "ep.max_price", "price", filters.ArgIndex, &conditions, &filters.Args)
+		request.Price,
+		"ep.price_type",
+		"ep.currency",
+		"ep.min_price",
+		"ep.max_price",
+		"price",
+		filters.ArgIndex,
+		&conditions,
+		&filters.Args)
 	if errBuild != nil {
 		return filters, errBuild
 	}
 
 	filters.ArgIndex, errBuild = sql_utils.BuildBitmaskCondition(
-		accessibilityFlagsStr, "edp.space_accessibility_flags", "accessibility", filters.ArgIndex, &conditions, &filters.Args)
+		request.Accessibility,
+		"edp.space_accessibility_flags",
+		"accessibility",
+		filters.ArgIndex,
+		&conditions,
+		&filters.Args)
 	if errBuild != nil {
 		return filters, errBuild
 	}
 
 	filters.ArgIndex, errBuild = sql_utils.BuildBitmaskCondition(
-		visitorInfosStr, "ep.visitor_info_flags", "visitor_infos", filters.ArgIndex, &conditions, &filters.Args)
+		request.VisitorInfos,
+		"ep.visitor_info_flags",
+		"visitor_infos",
+		filters.ArgIndex,
+		&conditions,
+		&filters.Args)
 	if errBuild != nil {
 		return filters, errBuild
 	}
 
-	if eventTypesStr != "" {
+	if len(request.EventTypes) > 0 {
 		filters.ArgIndex, errBuild = sql_utils.BuildJSONArrayIntCondition(
 			"or",
-			eventTypesStr,
+			request.EventTypes,
 			"types",
 			0, // index 0 = type_id
 			filters.ArgIndex,
@@ -362,10 +379,10 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 		}
 	}
 
-	if genresStr != "" {
+	if len(request.Genres) > 0 {
 		filters.ArgIndex, errBuild = sql_utils.BuildJSONArrayIntCondition(
 			"or",
-			genresStr,
+			request.Genres,
 			"types",
 			1, // index 1 = genre_id
 			filters.ArgIndex,
@@ -377,7 +394,8 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 		}
 	}
 
-	if tagsStr != "" {
+	if len(request.Tags) > 0 {
+		tagsStr := strings.Join(request.Tags, ",")
 		filters.ArgIndex, errBuild = sql_utils.BuildInConditionForStringSlice(
 			tagsStr,
 			"tags && $%d::text[]", // Array overlap operator
@@ -390,37 +408,53 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 		}
 	}
 
-	if app.IsValidDateStr(weekStartStr) {
-		filters.WeekStart = weekStartStr
+	if app.IsValidDateStr(request.WeekStart) {
+		filters.WeekStart = request.WeekStart
 	}
 
-	if orgUuidsStr != "" {
+	if len(request.OrgUuids) > 0 {
 		filters.ArgIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
-			orgUuidsStr, "ep.org_uuid", filters.ArgIndex, &conditions, &filters.Args)
+			request.OrgUuids,
+			"ep.org_uuid",
+			filters.ArgIndex,
+			&conditions,
+			&filters.Args)
 		if errBuild != nil {
 			return filters, errBuild
 		}
 	}
 
-	if venueUuidsStr != "" {
+	if len(request.VenueUuids) > 0 {
 		filters.ArgIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
-			venueUuidsStr, "COALESCE(edp.venue_uuid, ep.venue_uuid)", filters.ArgIndex, &conditions, &filters.Args)
+			request.VenueUuids,
+			"COALESCE(edp.venue_uuid, ep.venue_uuid)",
+			filters.ArgIndex,
+			&conditions,
+			&filters.Args)
 		if errBuild != nil {
 			return filters, errBuild
 		}
 	}
 
-	if spaceUuidsStr != "" {
+	if len(request.SpaceUuids) > 0 {
 		filters.ArgIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
-			spaceUuidsStr, "COALESCE(edp.space_uuid, ep.space_uuid)", filters.ArgIndex, &conditions, &filters.Args)
+			request.SpaceUuids,
+			"COALESCE(edp.space_uuid, ep.space_uuid)",
+			filters.ArgIndex,
+			&conditions,
+			&filters.Args)
 		if errBuild != nil {
 			return filters, errBuild
 		}
 	}
 
-	if eventUuidsStr != "" {
+	if len(request.EventUuids) > 0 {
 		filters.ArgIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
-			eventUuidsStr, "edp.event_uuid", filters.ArgIndex, &conditions, &filters.Args)
+			request.EventUuids,
+			"edp.event_uuid",
+			filters.ArgIndex,
+			&conditions,
+			&filters.Args)
 		if errBuild != nil {
 			return filters, errBuild
 		}
@@ -432,14 +466,21 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 	}
 
 	// Build limit/offset clause
-	filters.LimitClause, filters.ArgIndex, errBuild = sql_utils.BuildLimitOffsetClause(limitStr, offsetStr, filters.ArgIndex, &filters.Args)
+	filters.LimitClause,
+		filters.ArgIndex,
+		errBuild =
+		sql_utils.BuildLimitOffsetClause(
+			request.Limit,
+			request.Offset,
+			filters.ArgIndex,
+			&filters.Args)
 	if errBuild != nil {
 		return filters, errBuild
 	}
 
 	// Geolist, uses the filters.PortalJoin/filters.PortalConditions
-	if geolistRegionStr != "" {
-		parts := strings.Split(geolistRegionStr, ",")
+	if request.GeolistRegion != "" {
+		parts := strings.Split(request.GeolistRegion, ",")
 		if len(parts) != 3 {
 			return filters, errors.New("geolist_region must contain 3 parts")
 		}
@@ -466,19 +507,14 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 	}
 
 	// Portal
-	portalUuid, portalUuidExists := GetContextParam(gc, "portal")
-	if portalUuidExists {
-		if geolistRegionStr != "" {
+	if request.PortalUuid != "" {
+		if request.GeolistRegion != "" {
 			return filters, errors.New("portal and geolist_region filters cannot be used together")
 		}
 
-		fmt.Sprintf("portalUuid = %s", portalUuid)
-
-		filters.Args = append(filters.Args, portalUuid)
+		filters.Args = append(filters.Args, request.PortalUuid)
 		filters.PortalJoin = fmt.Sprintf("JOIN %s.portal2 p ON p.uuid = $%d::uuid", h.DbSchema, filters.ArgIndex)
 		filters.ArgIndex++
-
-		fmt.Sprintf("portalUuid 2 ...")
 
 		filters.PortalConditions = app.UranusInstance.SqlPortalCondition
 	}
@@ -489,9 +525,16 @@ func (h *ApiHandler) buildEventFilters(gc *gin.Context, useTypeFilter bool) (eve
 func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-events")
 	ctx := gc.Request.Context()
+
+	request, err := getEventFilterRequest(gc)
+	if err != nil {
+		apiRequest.Error(http.StatusBadRequest, err.Error())
+		return
+	}
+
 	filters := eventFilters{}
 
-	filters, err := h.buildEventFilters(gc, true)
+	filters, err = h.buildEventFilters(request, true)
 	if err != nil {
 		apiRequest.Error(http.StatusBadRequest, err.Error())
 		return
@@ -625,11 +668,20 @@ func (h *ApiHandler) GetEventsWeek(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-events-week")
 	ctx := gc.Request.Context()
 
-	filters, err := h.buildEventFilters(gc, true)
+	request, err := getEventFilterRequest(gc)
 	if err != nil {
 		apiRequest.Error(http.StatusBadRequest, err.Error())
 		return
 	}
+
+	filters := eventFilters{}
+
+	filters, err = h.buildEventFilters(request, true)
+	if err != nil {
+		apiRequest.Error(http.StatusBadRequest, err.Error())
+		return
+	}
+
 	if filters.WeekStart == "" {
 		apiRequest.Error(http.StatusBadRequest, "week_start is required")
 		return
@@ -725,9 +777,17 @@ func (h *ApiHandler) GetEventsWeek(gc *gin.Context) {
 func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-events-type-summary")
 
-	filters, err := h.buildEventFilters(gc, false)
+	request, err := getEventFilterRequest(gc)
 	if err != nil {
-		apiRequest.Error(http.StatusBadRequest, "filter error")
+		apiRequest.Error(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	filters := eventFilters{}
+
+	filters, err = h.buildEventFilters(request, true)
+	if err != nil {
+		apiRequest.Error(http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -776,14 +836,22 @@ func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 }
 
 func (h *ApiHandler) GetEventVenueSummary(gc *gin.Context) {
-	// TODO: Use apiRequest
-	filters := eventFilters{}
+	apiRequest := grains_api.NewRequest(gc, "get-events-venue-summary")
 
-	filters, err := h.buildEventFilters(gc, true)
+	request, err := getEventFilterRequest(gc)
 	if err != nil {
-		gc.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		apiRequest.Error(http.StatusBadRequest, err.Error())
 		return
 	}
+
+	filters := eventFilters{}
+
+	filters, err = h.buildEventFilters(request, true)
+	if err != nil {
+		apiRequest.Error(http.StatusBadRequest, err.Error())
+		return
+	}
+
 	conds := []string{"ep.release_status IN ('released', 'cancelled', 'deferred', 'rescheduled'"}
 
 	if filters.DateConditions != "" {
@@ -820,25 +888,32 @@ func (h *ApiHandler) GetEventVenueSummary(gc *gin.Context) {
 	var jsonResult []byte
 	err = h.DbPool.QueryRow(gc.Request.Context(), query, filters.Args...).Scan(&jsonResult)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		apiRequest.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	var venues interface{}
 	if err := json.Unmarshal(jsonResult, &venues); err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		apiRequest.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	gc.JSON(http.StatusOK, gin.H{"venue-summary": venues})
+	apiRequest.Success(http.StatusOK, gin.H{"venue-summary": venues})
 }
 
 func (h *ApiHandler) GetEventsGeoJSON(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-events-geojson")
 	ctx := gc.Request.Context()
+
+	request, err := getEventFilterRequest(gc)
+	if err != nil {
+		apiRequest.Error(http.StatusBadRequest, err.Error())
+		return
+	}
+
 	filters := eventFilters{}
 
-	filters, err := h.buildEventFilters(gc, true)
+	filters, err = h.buildEventFilters(request, true)
 	if err != nil {
 		apiRequest.Error(http.StatusBadRequest, "")
 		return
@@ -1083,4 +1158,204 @@ func buildSearchFilter(
 	)
 
 	return fmt.Sprintf("%s AS search_rank", rankExpression), argIndex
+}
+
+func getEventFilterRequest(gc *gin.Context) (EventFilterRequest, error) {
+	if gc.Request.Method == http.MethodPost {
+		return getEventFilterRequestFromJSON(gc)
+	}
+
+	return getEventFilterRequestFromQuery(gc)
+}
+
+func getEventFilterRequestFromJSON(gc *gin.Context) (EventFilterRequest, error) {
+	var request EventFilterRequest
+
+	if err := gc.ShouldBindJSON(&request); err != nil {
+		return request, err
+	}
+
+	return request, nil
+}
+
+func getEventFilterRequestFromQuery(gc *gin.Context) (EventFilterRequest, error) {
+	allowed := map[string]struct{}{
+		"offset":               {},
+		"limit":                {},
+		"categories":           {},
+		"start":                {},
+		"end":                  {},
+		"time":                 {},
+		"search":               {},
+		"venue":                {},
+		"space_types":          {},
+		"countries":            {},
+		"postal_code":          {},
+		"title":                {},
+		"city":                 {},
+		"event_types":          {},
+		"genres":               {},
+		"tags":                 {},
+		"accessibility":        {},
+		"visitor_infos":        {},
+		"age":                  {},
+		"price":                {},
+		"lon":                  {},
+		"lat":                  {},
+		"radius":               {},
+		"last_event_start_at":  {},
+		"last_event_date_uuid": {},
+		"lang":                 {},
+		"week_start":           {},
+		"org_uuids":            {},
+		"venue_uuids":          {},
+		"space_uuids":          {},
+		"event_uuids":          {},
+		"geolist_region":       {},
+		"portal":               {},
+	}
+
+	if err := validateAllowedQueryParams(gc, allowed); err != nil {
+		return EventFilterRequest{}, err
+	}
+
+	var request EventFilterRequest
+
+	request.Start, _ = GetContextParam(gc, "start")
+	request.End, _ = GetContextParam(gc, "end")
+	request.Time, _ = GetContextParam(gc, "time")
+	request.Search, _ = GetContextParam(gc, "search")
+	request.Venue, _ = GetContextParam(gc, "venue")
+	request.PostalCode, _ = GetContextParam(gc, "postal_code")
+	request.Title, _ = GetContextParam(gc, "title")
+	request.City, _ = GetContextParam(gc, "city")
+
+	request.Accessibility, _ = GetContextParam(gc, "accessibility")
+	request.VisitorInfos, _ = GetContextParam(gc, "visitor_infos")
+	request.Age, _ = GetContextParam(gc, "age")
+	request.Price, _ = GetContextParam(gc, "price")
+
+	request.LastEventStartAt, _ =
+		GetContextParam(gc, "last_event_start_at")
+
+	request.LastEventDateUuid, _ =
+		GetContextParam(gc, "last_event_date_uuid")
+
+	request.Lang, _ = GetContextParam(gc, "lang")
+	request.PortalUuid, _ = GetContextParam(gc, "portal")
+	request.WeekStart, _ = GetContextParam(gc, "week_start")
+
+	request.GeolistRegion, _ =
+		GetContextParam(gc, "geolist_region")
+
+	categories, _ := GetContextParam(gc, "categories")
+	if categories != "" {
+		request.Categories = strings.Split(categories, ",")
+	}
+
+	request.SpaceTypes, _ = getStringSliceParam(gc, "space_types")
+	request.Countries, _ = getStringSliceParam(gc, "countries")
+	request.Tags, _ = getStringSliceParam(gc, "tags")
+
+	request.OrgUuids, _ = getStringSliceParam(gc, "org_uuids")
+	request.VenueUuids, _ = getStringSliceParam(gc, "venue_uuids")
+	request.SpaceUuids, _ = getStringSliceParam(gc, "space_uuids")
+	request.EventUuids, _ = getStringSliceParam(gc, "event_uuids")
+
+	// Numeric values
+	if value, exists := GetContextParam(gc, "lon"); exists && value != "" {
+		v, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return request, fmt.Errorf("lon has invalid format: %s", value)
+		}
+		request.Lon = &v
+	}
+
+	if value, exists := GetContextParam(gc, "lat"); exists && value != "" {
+		v, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return request, fmt.Errorf("lat has invalid format: %s", value)
+		}
+		request.Lat = &v
+	}
+
+	if value, exists := GetContextParam(gc, "radius"); exists && value != "" {
+		v, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return request, fmt.Errorf("radius has invalid format: %s (expected float)", value)
+		}
+		request.Radius = &v
+	}
+
+	var err error
+	request.Offset, err = GetContextParamInt64(gc, "offset")
+	if err != nil {
+		return request, err
+	}
+
+	request.Limit, err = GetContextParamInt64(gc, "limit")
+	if err != nil {
+		return request, err
+	}
+
+	// event_types / genres are special because only one is allowed
+	request.EventTypes, _ = getIntSliceParam(gc, "event_types")
+	request.Genres, _ = getIntSliceParam(gc, "genres")
+
+	if len(request.EventTypes) > 0 && len(request.Genres) > 0 {
+		return request,
+			fmt.Errorf("only one of 'event_types' or 'genres' may be specified")
+	}
+
+	return request, nil
+}
+
+func getStringSliceParam(
+	gc *gin.Context,
+	name string,
+) ([]string, error) {
+
+	value, exists := GetContextParam(gc, name)
+	if !exists || value == "" {
+		return nil, nil
+	}
+
+	parts := strings.Split(value, ",")
+
+	for i := range parts {
+		parts[i] = strings.TrimSpace(parts[i])
+	}
+
+	return parts, nil
+}
+
+func getIntSliceParam(
+	gc *gin.Context,
+	name string,
+) ([]int, error) {
+
+	value, exists := GetContextParam(gc, name)
+	if !exists || value == "" {
+		return nil, nil
+	}
+
+	parts := strings.Split(value, ",")
+	result := make([]int, 0, len(parts))
+
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+
+		v, err := strconv.Atoi(part)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"%s contains invalid integer: %s",
+				name,
+				part,
+			)
+		}
+
+		result = append(result, v)
+	}
+
+	return result, nil
 }
