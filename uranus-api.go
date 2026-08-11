@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"html/template"
 
@@ -120,6 +121,7 @@ func main() {
 
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
+	router.Use(CORSMiddleware())
 
 	// Serve all files in ./static under /static
 	router.Static("/api/info", "./static")
@@ -137,7 +139,6 @@ func main() {
 	//
 
 	publicRoute := router.Group("/api")
-	publicRoute.Use(PublicCORSMiddleware())
 
 	publicRoute.GET("/health", apiHandler.GetHealth)
 
@@ -217,11 +218,7 @@ func main() {
 	//
 
 	adminRoute := router.Group("/api/admin")
-	adminRoute.Use(AdminCORSMiddleware())
 	adminRoute.Use(app.JWTMiddleware)
-	adminRoute.OPTIONS("/*path", func(c *gin.Context) {
-		c.Status(http.StatusNoContent)
-	})
 
 	adminRoute.GET("/event/:eventUuid/date/:dateIdentifier", apiHandler.GetEventByDate) // TODO: Permission check
 	adminRoute.GET("/permissions/list", apiHandler.AdminGetPermissionsList)             // TODO: Permission check
@@ -358,45 +355,49 @@ func main() {
 	}
 }
 
-func PublicCORSMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "*")
-		c.Header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-		c.Header(
-			"Access-Control-Allow-Headers",
-			"Accept, Content-Type, Authorization",
-		)
-
-		if c.Request.Method == http.MethodOptions {
-			c.AbortWithStatus(http.StatusNoContent)
-			return
-		}
-
-		c.Next()
-	}
-}
-
-func AdminCORSMiddleware() gin.HandlerFunc {
-	allowed := map[string]bool{
+func CORSMiddleware() gin.HandlerFunc {
+	allowedAdminOrigins := map[string]bool{
 		"https://app.kulturbytes.de": true,
 		"http://localhost:5173":      true,
 	}
 
 	return func(c *gin.Context) {
-
 		origin := c.GetHeader("Origin")
+		path := c.Request.URL.Path
 
-		if origin != "" {
-			if !allowed[origin] {
-				c.AbortWithStatus(http.StatusForbidden)
-				return
+		if strings.HasPrefix(path, "/api/admin/") {
+			// Admin API
+			if origin != "" {
+				if !allowedAdminOrigins[origin] {
+					c.AbortWithStatus(http.StatusForbidden)
+					return
+				}
+
+				c.Header("Access-Control-Allow-Origin", origin)
+				c.Header("Access-Control-Allow-Credentials", "true")
+				c.Header("Vary", "Origin")
 			}
 
-			c.Header("Access-Control-Allow-Origin", origin)
-			c.Header("Access-Control-Allow-Credentials", "true")
-			c.Header("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type")
-			c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-			c.Header("Vary", "Origin")
+			c.Header(
+				"Access-Control-Allow-Headers",
+				"Accept, Authorization, Content-Type",
+			)
+			c.Header(
+				"Access-Control-Allow-Methods",
+				"GET, POST, PUT, PATCH, DELETE, OPTIONS",
+			)
+
+		} else if strings.HasPrefix(path, "/api/") {
+			// Public API
+			c.Header("Access-Control-Allow-Origin", "*")
+			c.Header(
+				"Access-Control-Allow-Headers",
+				"Accept, Content-Type, Authorization",
+			)
+			c.Header(
+				"Access-Control-Allow-Methods",
+				"GET, POST, OPTIONS",
+			)
 		}
 
 		if c.Request.Method == http.MethodOptions {
