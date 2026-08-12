@@ -17,12 +17,12 @@ import (
 )
 
 type EventFilterRequest struct {
-	Offset     *int64   `json:"offset,omitempty"`
-	Limit      *int64   `json:"limit,omitempty"`
-	Start      string   `json:"start,omitempty"`
-	End        string   `json:"end,omitempty"`
-	Time       string   `json:"time,omitempty"`
-	Categories []string `json:"categories,omitempty"`
+	Offset     *int64 `json:"offset,omitempty"`
+	Limit      *int64 `json:"limit,omitempty"`
+	Start      string `json:"start,omitempty"`
+	End        string `json:"end,omitempty"`
+	Time       string `json:"time,omitempty"`
+	Categories []int  `json:"categories,omitempty"`
 
 	Search string `json:"search,omitempty"`
 	Venue  string `json:"venue,omitempty"`
@@ -143,9 +143,8 @@ func (h *ApiHandler) buildEventFilters(request EventFilterRequest, useTypeFilter
 	var errBuild error
 
 	if len(request.Categories) > 0 {
-		categoriesStr := strings.Join(request.Categories, ",")
 		filters.ArgIndex, errBuild = sql_utils.BuildColumnArrayOverlapCondition(
-			categoriesStr,
+			request.Categories,
 			"ep.categories",
 			filters.ArgIndex,
 			&conditions,
@@ -1250,7 +1249,11 @@ func getEventFilterRequestFromQuery(gc *gin.Context) (EventFilterRequest, error)
 
 	categories, _ := GetContextParam(gc, "categories")
 	if categories != "" {
-		request.Categories = strings.Split(categories, ",")
+		var err error
+		request.Categories, err = app.ParseIntSliceCsv(categories)
+		if err != nil {
+			return request, fmt.Errorf("invalid categories: %w", err)
+		}
 	}
 
 	request.SpaceTypes, _ = getStringSliceParam(gc, "space_types")

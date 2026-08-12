@@ -310,55 +310,25 @@ func BuildColumnInUuidCondition(
 }
 
 // BuildColumnArrayOverlapCondition builds a SQL condition for integer array columns using `&&` (overlap).
-// idsInput can be either a string ("1,2,3") or a []int.
-// expr is the SQL column/expression (e.g., "categories").
-// argIndex is the placeholder number ($1, $2, ...).
-// conditions is a pointer to the slice of WHERE conditions to append to.
-// args is a pointer to the slice of query arguments to append to.
 func BuildColumnArrayOverlapCondition(
-	idsInput interface{},
+	values []int,
 	expr string,
 	argIndex int,
 	conditions *[]string,
 	args *[]interface{},
 ) (int, error) {
-	var ids []int
-
-	// Parse input
-	switch v := idsInput.(type) {
-	case string:
-		v = strings.TrimSpace(v)
-		if v == "" {
-			return argIndex, nil
-		}
-		parts := strings.Split(v, ",")
-		for _, raw := range parts {
-			id, err := strconv.Atoi(strings.TrimSpace(raw))
-			if err != nil {
-				return argIndex, fmt.Errorf("invalid integer in input: %s in expr %s", raw, expr)
-			}
-			ids = append(ids, id)
-		}
-	case []int:
-		if len(v) == 0 {
-			return argIndex, nil
-		}
-		ids = v
-	default:
-		return argIndex, fmt.Errorf("unsupported input type: %T", idsInput)
-	}
-
-	// If no valid IDs, skip
-	if len(ids) == 0 {
+	if len(values) == 0 {
 		return argIndex, nil
 	}
 
-	// Build condition using Postgres array overlap
-	condition := fmt.Sprintf("(%s && $%d)", expr, argIndex)
-	*conditions = append(*conditions, condition)
+	condition := fmt.Sprintf(
+		"%s && $%d::int[]",
+		expr,
+		argIndex,
+	)
 
-	// Append argument as a Postgres int array
-	*args = append(*args, pq.Array(ids)) // requires "github.com/lib/pq"
+	*conditions = append(*conditions, condition)
+	*args = append(*args, values)
 
 	return argIndex + 1, nil
 }
