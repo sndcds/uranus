@@ -525,7 +525,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-events")
 	ctx := gc.Request.Context()
 
-	request, err := getEventFilterRequest(gc)
+	request, err := getEventFilterRequest(gc, []string{})
 	if err != nil {
 		apiRequest.Error(http.StatusBadRequest, err.Error())
 		return
@@ -667,7 +667,7 @@ func (h *ApiHandler) GetEventsWeek(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-events-week")
 	ctx := gc.Request.Context()
 
-	request, err := getEventFilterRequest(gc)
+	request, err := getEventFilterRequest(gc, []string{})
 	if err != nil {
 		apiRequest.Error(http.StatusBadRequest, err.Error())
 		return
@@ -776,7 +776,10 @@ func (h *ApiHandler) GetEventsWeek(gc *gin.Context) {
 func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-events-type-summary")
 
-	request, err := getEventFilterRequest(gc)
+	request, err := getEventFilterRequest(gc, []string{
+		"limit",
+		"offset",
+	})
 	if err != nil {
 		apiRequest.Error(http.StatusBadRequest, err.Error())
 		return
@@ -792,12 +795,14 @@ func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 
 	typeSummary, err := h.loadSummary(gc.Request.Context(), filters, 0)
 	if err != nil {
+		debugf("1: %s", err.Error())
 		apiRequest.InternalServerError()
 		return
 	}
 
 	genreSummary, err := h.loadSummary(gc.Request.Context(), filters, 1)
 	if err != nil {
+		debugf("2: %s", err.Error())
 		apiRequest.InternalServerError()
 		return
 	}
@@ -823,6 +828,7 @@ func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 	var totalCount int64
 	err = h.DbPool.QueryRow(gc.Request.Context(), totalQuery, filters.Args...).Scan(&totalCount)
 	if err != nil {
+		debugf("3: %s", err.Error())
 		apiRequest.InternalServerError()
 		return
 	}
@@ -837,7 +843,10 @@ func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 func (h *ApiHandler) GetEventVenueSummary(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-events-venue-summary")
 
-	request, err := getEventFilterRequest(gc)
+	request, err := getEventFilterRequest(gc, []string{
+		"limit",
+		"offset",
+	})
 	if err != nil {
 		apiRequest.Error(http.StatusBadRequest, err.Error())
 		return
@@ -904,7 +913,7 @@ func (h *ApiHandler) GetEventsGeoJSON(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-events-geojson")
 	ctx := gc.Request.Context()
 
-	request, err := getEventFilterRequest(gc)
+	request, err := getEventFilterRequest(gc, []string{})
 	if err != nil {
 		apiRequest.Error(http.StatusBadRequest, err.Error())
 		return
@@ -1159,25 +1168,58 @@ func buildSearchFilter(
 	return fmt.Sprintf("%s AS search_rank", rankExpression), argIndex
 }
 
-func getEventFilterRequest(gc *gin.Context) (EventFilterRequest, error) {
-	if gc.Request.Method == http.MethodPost {
-		return getEventFilterRequestFromJSON(gc)
+func getEventFilterRequest(
+	gc *gin.Context,
+	ignoreList []string,
+) (EventFilterRequest, error) {
+
+	// Convert ignoreList to a set
+	ignoredSet := make(map[string]struct{}, len(ignoreList))
+	for _, name := range ignoreList {
+		ignoredSet[name] = struct{}{}
 	}
 
-	return getEventFilterRequestFromQuery(gc)
+	if gc.Request.Method == http.MethodPost {
+		return getEventFilterRequestFromJSON(gc, ignoredSet)
+	}
+
+	return getEventFilterRequestFromQuery(gc, ignoredSet)
 }
 
-func getEventFilterRequestFromJSON(gc *gin.Context) (EventFilterRequest, error) {
+func getEventFilterRequestFromJSON(
+	gc *gin.Context,
+	ignoreSet map[string]struct{},
+) (EventFilterRequest, error) {
+
 	var request EventFilterRequest
 
-	if err := gc.ShouldBindJSON(&request); err != nil {
+	var raw map[string]json.RawMessage
+
+	if err := gc.ShouldBindJSON(&raw); err != nil {
+		return request, err
+	}
+
+	for key := range ignoreSet {
+		delete(raw, key)
+	}
+
+	data, err := json.Marshal(raw)
+	if err != nil {
+		return request, err
+	}
+
+	if err := json.Unmarshal(data, &request); err != nil {
 		return request, err
 	}
 
 	return request, nil
 }
 
-func getEventFilterRequestFromQuery(gc *gin.Context) (EventFilterRequest, error) {
+func getEventFilterRequestFromQuery(
+	gc *gin.Context,
+	ignoreSet map[string]struct{},
+) (EventFilterRequest, error) {
+
 	allowed := map[string]struct{}{
 		"offset":               {},
 		"limit":                {},
@@ -1296,9 +1338,11 @@ func getEventFilterRequestFromQuery(gc *gin.Context) (EventFilterRequest, error)
 		return request, err
 	}
 
-	request.Limit, err = GetContextParamInt64(gc, "limit")
-	if err != nil {
-		return request, err
+	if !isIgnored(ignoreSet, "limit") {
+		request.Limit, err = GetContextParamInt64(gc, "limit")
+		if err != nil {
+			return request, err
+		}
 	}
 
 	// event_types / genres are special because only one is allowed
@@ -1361,4 +1405,12 @@ func getIntSliceParam(
 	}
 
 	return result, nil
+}
+
+func isIgnored(
+	ignoreSet map[string]struct{},
+	name string,
+) bool {
+	_, ok := ignoreSet[name]
+	return ok
 }
