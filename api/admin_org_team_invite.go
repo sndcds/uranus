@@ -184,8 +184,8 @@ func (h *ApiHandler) AdminOrgTeamInvite(gc *gin.Context) {
 	apiRequest.SuccessNoData(http.StatusCreated, "member invitation sent successfully")
 }
 
-func (h *ApiHandler) AdminOrgTeamInviteAccept(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "admin-org-team-invite-accept")
+func (h *ApiHandler) OrgTeamInviteAccept(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "org-team-invite-accept")
 	ctx := gc.Request.Context()
 
 	var req struct {
