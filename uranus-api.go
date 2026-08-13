@@ -203,6 +203,7 @@ func main() {
 	publicRoute.POST("/signup", apiHandler.Signup)
 	publicRoute.POST("/login", apiHandler.Login)
 	publicRoute.POST("/activate", apiHandler.Activate)
+	publicRoute.POST("/org/team/invite/accept", apiHandler.OrgTeamInviteAccept)
 	publicRoute.POST("/forgot-password", apiHandler.ForgotPassword)
 	publicRoute.POST("/reset-password", apiHandler.ResetPassword)
 
@@ -257,9 +258,8 @@ func main() {
 	adminRoute.GET("/org/:orgUuid/events", apiHandler.AdminGetOrgEvents)   // TODO: Permission check
 	adminRoute.GET("/org/:orgUuid/portals", apiHandler.AdminGetOrgPortals) // TODO: Permission check
 
-	adminRoute.GET("/org/:orgUuid/team", apiHandler.AdminGetOrgTeam)                // TODO: Permission check
-	adminRoute.POST("/org/:orgUuid/team/invite", apiHandler.AdminOrgTeamInvite)     // TODO: Permission check
-	adminRoute.POST("/org/team/invite/accept", apiHandler.AdminOrgTeamInviteAccept) // TODO: Permission check
+	adminRoute.GET("/org/:orgUuid/team", apiHandler.AdminGetOrgTeam)            // TODO: Permission check
+	adminRoute.POST("/org/:orgUuid/team/invite", apiHandler.AdminOrgTeamInvite) // TODO: Permission check
 	adminRoute.DELETE("/org/:orgUuid/team/member/:memberUuid", apiHandler.AdminDeleteOrgTeamMember)
 	adminRoute.GET("/org/:orgUuid/choosable-venues", apiHandler.AdminGetOrgChoosableVenues)
 
