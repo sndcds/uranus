@@ -7,11 +7,32 @@ SELECT
     v.city,
     v.country,
     v.scope,
+    vt.marker_style,
     ST_X(v.point) AS lon,
-    ST_Y(v.point) AS lat
+    ST_Y(v.point) AS lat,
+    v.web_link,
+    CASE
+        WHEN pil.pluto_image_uuid IS NOT NULL
+            THEN format(
+                '{{base_api_url}}/api/image/%s',
+                pil.pluto_image_uuid::text
+                 )
+        ELSE NULL
+        END AS logo_url
+
 FROM {{schema}}.venue v
+
+LEFT JOIN {{schema}}.pluto_image_link pil
+    ON pil.context = 'venue'
+        AND pil.context_uuid = v.uuid
+        AND pil.identifier = 'main_logo'
+
+LEFT JOIN {{schema}}.venue_type vt
+    ON vt.key = v.type
+
 JOIN {{schema}}.portal2 p
     ON p.uuid = $5::uuid
+
 WHERE
     -- API bounding box
     v.point IS NOT NULL
