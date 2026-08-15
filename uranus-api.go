@@ -226,6 +226,7 @@ func main() {
 	adminRoute.POST("/refresh", apiHandler.Refresh)                                     // TODO: Permission check
 
 	// User
+
 	adminRoute.GET("/user/profile", apiHandler.AdminGetUserProfile)             // TODO: Permission check
 	adminRoute.PUT("/user/profile", apiHandler.AdminUpdateUserProfile)          // TODO: Permission check
 	adminRoute.PUT("/user/settings", apiHandler.AdminUpdateUserProfileSettings) // TODO: Permission check
@@ -245,6 +246,7 @@ func main() {
 	adminRoute.GET("/user/choosable-event-venues", apiHandler.AdminGetChoosableUserEventVenues) // TODO: Unused, can be removed!
 
 	// Organization
+
 	adminRoute.GET("/org/:orgUuid/member/:memberUuid/permissions", apiHandler.AdminGetOrgMemberPermissions)    // TODO: Permission check
 	adminRoute.PUT("/org/:orgUuid/member/:memberUuid/permissions", apiHandler.AdminUpdateOrgMemberPermissions) // TODO: Permission check
 
@@ -264,6 +266,7 @@ func main() {
 	adminRoute.GET("/org/:orgUuid/choosable-venues", apiHandler.AdminGetOrgChoosableVenues)
 
 	// Partner
+
 	adminRoute.GET("/org/:orgUuid/partnership-connections", apiHandler.AdminOrgPartnershipConnections)           // TODO: Permission check
 	adminRoute.GET("/org/partnership-connections-by-user", apiHandler.AdminOrgPartnershipConnectionsByUser)      // TODO: Permission check
 	adminRoute.GET("/org/:orgUuid/partner/grants", apiHandler.AdminGetOrgPartnerGrants)                          // TODO: Permission check
@@ -274,6 +277,7 @@ func main() {
 	adminRoute.POST("/org/:orgUuid/partner/request/:partnerUuid/reject", apiHandler.AdminOrgPartnerReject)       // TODO: Permission check
 
 	// Venue
+
 	adminRoute.GET("/venue/:venueUuid", apiHandler.AdminGetVenue) // TODO: Permission check
 	adminRoute.POST("/venue/create", apiHandler.AdminCreateVenue) // TODO: Permission check
 	// adminRoute.PUT("/venue", apiHandler.AdminUpsertVenue) // TODO: refactor to be create with complete data set
@@ -281,6 +285,7 @@ func main() {
 	adminRoute.DELETE("/venue/:venueUuid", apiHandler.AdminDeleteVenue)           // TODO: Permission check
 
 	// Space
+
 	adminRoute.GET("/space/:spaceUuid", apiHandler.AdminGetSpace) // Permission check ok
 	adminRoute.POST("/space/create", apiHandler.AdminCreateSpace) // TODO: Permission check
 	// adminRoute.PUT("/space", apiHandler.AdminUpsertSpace) // TODO: refactor to be create with complete data set
@@ -288,6 +293,7 @@ func main() {
 	adminRoute.DELETE("/space/:spaceUuid", apiHandler.AdminDeleteSpace)           // Permission check ok
 
 	// Event
+
 	adminRoute.GET("/event/:eventUuid", apiHandler.AdminGetEvent)                          // TODO: Permission check
 	adminRoute.POST("/event/:eventUuid/date", apiHandler.AdminUpsertEventDate)             // TODO: Permission check
 	adminRoute.PUT("/event/:eventUuid/date/:dateUuid", apiHandler.AdminUpsertEventDate)    // TODO: Permission check
@@ -310,6 +316,7 @@ func main() {
 	adminRoute.PUT("/event/:eventUuid/participation-infos", apiHandler.AdminUpdateEventParticipationInfos) // TODO: Permission check
 
 	// Portal
+
 	adminRoute.GET("/portal/:portalUuid", apiHandler.AdminGetPortal)                 // TODO: Permission check
 	adminRoute.POST("/portal/create", apiHandler.AdminCreatePortal)                  // TODO: Permission check
 	adminRoute.PUT("/portal/:portalUuid/fields", apiHandler.AdminUpdatePortalFields) // TODO: Permission check
@@ -319,12 +326,14 @@ func main() {
 	adminRoute.PUT("/portal/:portalUuid/footer", apiHandler.AdminUpdatePortalFooter) // TODO: Permission check
 
 	// Favorites
+
 	adminRoute.GET("/org/:orgUuid/favorite-lists", apiHandler.AdminGetFavoriteLists)               // TODO: Permission check
 	adminRoute.POST("/favorite-list/create", apiHandler.AdminCreateFavoriteList)                   // TODO: Permission check
 	adminRoute.POST("/favorite-list/toggle-event-date", apiHandler.AdminToggleFavoriteEventDate)   // TODO: Permission check
 	adminRoute.POST("/favorite-list/check-event-date", apiHandler.AdminCheckFavoriteListEventDate) // TODO: Permission check
 
 	// Pluto Image
+
 	adminRoute.POST("/image/:context/:contextUuid/:identifier", apiHandler.AdminUpsertPlutoImage)   // TODO: Permission check
 	adminRoute.DELETE("/image/:context/:contextUuid/:identifier", apiHandler.AdminDeletePlutoImage) // TODO: Permission check
 
