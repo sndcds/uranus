@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
 	"github.com/sndcds/uranus/model"
@@ -21,9 +22,9 @@ func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 	lang := gc.DefaultQuery("lang", "en")
 	apiRequest.SetMeta("language", lang)
 
-	portalUuid := gc.Query("portal-uuid")
+	portalUuid := gc.Query("portal")
 	if portalUuid != "" {
-		apiRequest.SetMeta("portal_uuid", portalUuid)
+		apiRequest.SetMeta("portal", portalUuid)
 	}
 
 	bboxStr := gc.Query("bbox")
@@ -62,14 +63,37 @@ func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 	// Query
 
 	var query string
+	var rows pgx.Rows
+
 	if portalUuid != "" {
 		query = app.UranusInstance.SqlGetPortalVenuesGeoJSON
+
+		rows, err = h.DbPool.Query(
+			ctx,
+			query,
+			bbox.MinLon,
+			bbox.MinLat,
+			bbox.MaxLon,
+			bbox.MaxLat,
+			portalUuid,
+			scopes,
+		)
 	} else {
 		query = app.UranusInstance.SqlGetVenuesGeoJSON
+
+		rows, err = h.DbPool.Query(
+			ctx,
+			query,
+			bbox.MinLon,
+			bbox.MinLat,
+			bbox.MaxLon,
+			bbox.MaxLat,
+			scopes,
+		)
 	}
 
-	// TODO: if portalUuid != "" use query with 8 arguments!
-	rows, err := h.DbPool.Query(ctx, query, bbox.MinLon, bbox.MinLat, bbox.MaxLon, bbox.MaxLat, scopes)
+	// debugf(query)
+
 	if err != nil {
 		debugf(err.Error())
 		apiRequest.InternalServerError()
