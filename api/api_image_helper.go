@@ -13,10 +13,15 @@ func IsEventImageIdentifier(identifier string) bool {
 		"gallery1":  2,
 		"gallery2":  3,
 		"gallery3":  4,
-		"some_16_9": 5,
-		"some_1_1":  6,
-		"some_4_5":  7,
-		"some_9_16": 8,
+		"some_16x9": 5,
+		"some_1x1":  6,
+		"some_4x5":  7,
+		"some_9x16": 8,
+		"ad_1x1":    9,
+		"ad_9x16":   10,
+		"ad_16x9":   11,
+		"poster":    12,
+		"insta_5x4": 13,
 	}
 
 	_, ok := mapping[identifier]
