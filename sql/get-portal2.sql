@@ -1,5 +1,6 @@
 SELECT
     uuid,
+    slug,
     org_uuid,
     name,
     description,
@@ -21,7 +22,9 @@ SELECT
     CASE
         WHEN pil_footer_logo.pluto_image_uuid IS NOT NULL
             THEN format('{{base_api_url}}/api/image/%s', pil_footer_logo.pluto_image_uuid)
-        END AS footer_logo_url
+        END AS footer_logo_url,
+
+    config
 
 FROM {{schema}}.portal2 p
 
@@ -40,4 +43,4 @@ LEFT JOIN {{schema}}.pluto_image_link pil_footer_logo
         AND pil_footer_logo.context_uuid = p.uuid
         AND pil_footer_logo.identifier = 'footer_logo'
 
-WHERE uuid = $1::uuid
+{{condition}}
