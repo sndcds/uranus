@@ -155,8 +155,8 @@ func main() {
 	publicRoute.GET("/event/:eventUuid/date/:dateIdentifier", apiHandler.GetEventByDate)
 	publicRoute.GET("/event/:eventUuid/date/:dateIdentifier/ics", apiHandler.GetEventDateICS)
 
-	publicRoute.GET("/portal/:uuid", apiHandler.GetPortal)   // TODO: Evt. wieder herausnehmen
-	publicRoute.GET("/portal2/:uuid", apiHandler.GetPortal2) // TODO: Neue Version
+	publicRoute.GET("/portal/:uuid", apiHandler.GetPortal)               // TODO: Evt. wieder herausnehmen
+	publicRoute.GET("/portal2/:portalIdentifier", apiHandler.GetPortal2) // TODO: Neue Version
 
 	publicRoute.GET("/venues", apiHandler.GetVenues)
 	publicRoute.GET("/venues/type-summary", apiHandler.GetVenueTypeSummary)
