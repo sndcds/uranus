@@ -157,6 +157,7 @@ func main() {
 
 	publicRoute.GET("/portal/:uuid", apiHandler.GetPortal)               // TODO: Evt. wieder herausnehmen
 	publicRoute.GET("/portal2/:portalIdentifier", apiHandler.GetPortal2) // TODO: Neue Version
+	publicRoute.GET("/portal/:uuid/geojson", apiHandler.GetPortalGeoJSON)
 
 	publicRoute.GET("/display-preset/:uuid", apiHandler.GetDisplayPreset)
 

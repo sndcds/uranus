@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
@@ -17,7 +18,7 @@ func (h *ApiHandler) GetDisplayPreset(gc *gin.Context) {
 
 	uuid := gc.Param("uuid")
 	code := gc.Query("code")
-	if len(code) < 4 {
+	if utf8.RuneCountInString(code) < 4 {
 		apiRequest.Error(http.StatusBadRequest, "code must be at least 4 characters")
 		return
 	}
