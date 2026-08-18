@@ -17,7 +17,7 @@ SELECT
     CASE
         WHEN pil_main_image.pluto_image_uuid IS NOT NULL
             THEN format('{{base_api_url}}/api/image/%s', pil_main_image.pluto_image_uuid)
-        END AS main_image,
+        END AS main_image_url,
 
     CASE
         WHEN pil_background.pluto_image_uuid IS NOT NULL
@@ -39,9 +39,9 @@ LEFT JOIN {{schema}}.pluto_image_link pil_web_logo
         AND pil_web_logo.identifier = 'web_logo'
 
 LEFT JOIN {{schema}}.pluto_image_link pil_main_image
-    ON pil_web_logo.context = 'portal'
-        AND pil_web_logo.context_uuid = p.uuid
-        AND pil_web_logo.identifier = 'main_image'
+    ON pil_main_image.context = 'portal'
+        AND pil_main_image.context_uuid = p.uuid
+        AND pil_main_image.identifier = 'main_image'
 
 LEFT JOIN {{schema}}.pluto_image_link pil_background
     ON pil_background.context = 'portal'
