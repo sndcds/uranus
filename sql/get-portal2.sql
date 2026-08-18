@@ -15,6 +15,11 @@ SELECT
         END AS web_logo_url,
 
     CASE
+        WHEN pil_main_image.pluto_image_uuid IS NOT NULL
+            THEN format('{{base_api_url}}/api/image/%s', pil_main_image.pluto_image_uuid)
+        END AS main_image,
+
+    CASE
         WHEN pil_background.pluto_image_uuid IS NOT NULL
             THEN format('{{base_api_url}}/api/image/%s', pil_background.pluto_image_uuid)
         END AS background_image_url,
@@ -32,6 +37,11 @@ LEFT JOIN {{schema}}.pluto_image_link pil_web_logo
     ON pil_web_logo.context = 'portal'
         AND pil_web_logo.context_uuid = p.uuid
         AND pil_web_logo.identifier = 'web_logo'
+
+LEFT JOIN {{schema}}.pluto_image_link pil_main_image
+    ON pil_web_logo.context = 'portal'
+        AND pil_web_logo.context_uuid = p.uuid
+        AND pil_web_logo.identifier = 'main_image'
 
 LEFT JOIN {{schema}}.pluto_image_link pil_background
     ON pil_background.context = 'portal'
