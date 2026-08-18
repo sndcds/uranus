@@ -61,6 +61,7 @@ func IsPortalImageIdentifier(identifier string) bool {
 		"web_logo":         1,
 		"background_image": 2,
 		"footer_logo":      3,
+		"main_image":       4,
 	}
 
 	_, ok := mapping[identifier]
