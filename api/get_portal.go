@@ -96,6 +96,7 @@ func (h *ApiHandler) GetPortal2(gc *gin.Context) {
 		Filter             json.RawMessage  `json:"filter,omitempty"`
 		FilterType         string           `json:"filter_type"`
 		WebLogoUrl         *string          `json:"web_logo_url,omitempty"`
+		MainImageUrl       *string          `json:"main_image_url,omitempty"`
 		BackgroundImageUrl *string          `json:"background_image_url,omitempty"`
 		FooterLogoUrl      *string          `json:"footer_logo_url,omitempty"`
 		Config             *json.RawMessage `json:"config,omitempty"`
@@ -116,6 +117,7 @@ func (h *ApiHandler) GetPortal2(gc *gin.Context) {
 		&portal.Filter,
 		&portal.FilterType,
 		&portal.WebLogoUrl,
+		&portal.MainImageUrl,
 		&portal.BackgroundImageUrl,
 		&portal.FooterLogoUrl,
 		&portal.Config,
