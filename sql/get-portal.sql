@@ -5,7 +5,7 @@ SELECT
     org_uuid,
     spatial_filter_mode,
     prefilter,
-    ST_AsGeoJSON(wkb_geometry)::json AS geometry,
+    ST_AsGeoJSON(geometry)::json AS geometry,
     style,
     header,
     footer,
