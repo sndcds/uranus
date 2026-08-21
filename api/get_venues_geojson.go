@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
 	"strings"
 
@@ -37,12 +38,12 @@ func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 
 	// Venue Scopes
 
-	scopesStr := gc.Query("scopes")
-
 	allowedScopes := map[string]bool{
 		"shared":       true,
 		"organization": true,
 	}
+
+	scopesStr := gc.Query("scopes")
 
 	scopes := make([]string, 0)
 	if scopesStr != "" {
@@ -110,7 +111,8 @@ func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 
 	type Feature struct {
 		Type       string                 `json:"type"`
-		Geometry   map[string]interface{} `json:"geometry"`
+		Point      map[string]interface{} `json:"point"`
+		Building   map[string]interface{} `json:"building,omitempty"`
 		Properties map[string]interface{} `json:"properties"`
 	}
 
@@ -124,20 +126,41 @@ func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 		}
 
 		props := make(map[string]interface{})
-		var lon, lat float64
+		var point map[string]interface{}
+		var building map[string]interface{}
 
 		for i, col := range columnNames {
 			val := values[i]
 
 			switch col {
-			case "lon":
-				if v, ok := val.(float64); ok {
-					lon = v
+			case "point":
+				if val != nil {
+					pointJSON, ok := val.(string)
+					if !ok {
+						apiRequest.InternalServerError()
+						return
+					}
+
+					if err := json.Unmarshal([]byte(pointJSON), &point); err != nil {
+						apiRequest.InternalServerError()
+						return
+					}
 				}
-			case "lat":
-				if v, ok := val.(float64); ok {
-					lat = v
+
+			case "building":
+				if val != nil {
+					buildingJSON, ok := val.(string)
+					if !ok {
+						apiRequest.InternalServerError()
+						return
+					}
+
+					if err := json.Unmarshal([]byte(buildingJSON), &building); err != nil {
+						apiRequest.InternalServerError()
+						return
+					}
 				}
+
 			case "count":
 				switch v := val.(type) {
 				case int:
@@ -149,17 +172,16 @@ func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 				default:
 					props["count"] = 0
 				}
+
 			default:
 				props[col] = val
 			}
 		}
 
 		features = append(features, Feature{
-			Type: "Feature",
-			Geometry: map[string]interface{}{
-				"type":        "Point",
-				"coordinates": []float64{lon, lat},
-			},
+			Type:       "Feature",
+			Point:      point,
+			Building:   building,
 			Properties: props,
 		})
 	}
