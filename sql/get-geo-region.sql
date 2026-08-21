@@ -8,7 +8,7 @@ SELECT
     r.code,
     r.name,
     r.slug,
-    ST_AsGeoJSON(r.wkb_geometry)
+    ST_AsGeoJSON(r.geometry)
 
 FROM {{schema}}.geolist_country c
 

@@ -501,7 +501,7 @@ func (h *ApiHandler) buildEventFilters(request EventFilterRequest, useTypeFilter
 			h.DbSchema, filters.ArgIndex+2)
 		filters.ArgIndex += 3
 
-		filters.PortalConditions = "AND ST_Covers(glr.wkb_geometry, COALESCE(edp.venue_point, ep.venue_point))"
+		filters.PortalConditions = "AND ST_Covers(glr.geometry, COALESCE(edp.venue_point, ep.venue_point))"
 		debugf("filters.PortalConditions: %s", filters.PortalConditions)
 	}
 
