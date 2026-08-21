@@ -8,8 +8,8 @@ SELECT
     v.country,
     v.scope,
     vt.marker_style,
-    ST_X(v.point) AS lon,
-    ST_Y(v.point) AS lat,
+    ST_AsGeoJSON(v.point) AS point,
+    ST_AsGeoJSON(v.building) AS building,
     v.web_link,
     CASE
         WHEN pil.pluto_image_uuid IS NOT NULL
