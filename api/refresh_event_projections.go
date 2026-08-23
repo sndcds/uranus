@@ -314,6 +314,7 @@ ON CONFLICT (event_uuid) DO UPDATE SET
     description = EXCLUDED.description,
     summary = EXCLUDED.summary,
     image_uuid = EXCLUDED.image_uuid,
+    image_ai_label = EXCLUDED.image_ai_label,
     languages = EXCLUDED.languages,
     tags = EXCLUDED.tags,
     categories = EXCLUDED.categories,
