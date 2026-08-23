@@ -88,7 +88,8 @@ LEFT JOIN LATERAL (
                 'copyright', pi.copyright,
                 'license', COALESCE(lic.key, lic_fallback.key),
                 'license_name', COALESCE(lic.name, lic_fallback.name),
-                'license_description', COALESCE(lic.description, lic_fallback.description)
+                'license_description', COALESCE(lic.description, lic_fallback.description),
+                'ai_label', COALESCE(pi.ai_label, 'none')
             )
         ),
        '{}'::jsonb
