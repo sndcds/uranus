@@ -146,7 +146,7 @@ func main() {
 
 	publicRoute.GET("/events", apiHandler.GetEvents)
 	publicRoute.POST("/events/filter", apiHandler.GetEvents)
-	publicRoute.GET("/events/week", apiHandler.GetEventsWeek)
+	publicRoute.GET("/events/week", apiHandler.GetEventsWeek) // TODO: check!
 	publicRoute.GET("/events/type-summary", apiHandler.GetEventTypeSummary)
 	publicRoute.GET("/events/venue-summary", apiHandler.GetEventVenueSummary) // TODO: check!
 	publicRoute.GET("/events/geojson", apiHandler.GetEventsGeoJSON)           // TODO: Reduce data

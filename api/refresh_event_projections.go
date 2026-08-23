@@ -207,7 +207,7 @@ func initProjectionSql() {
 		eventProjectionUpsertSql = fmt.Sprintf(`
 INSERT INTO %[1]s.event_projection (
     event_uuid, org_uuid, venue_uuid, space_uuid, release_status,
-    title, subtitle, description, summary, image_uuid, languages, tags, categories, types,
+    title, subtitle, description, summary, image_uuid, image_ai_label, languages, tags, categories, types,
     source_link, online_link, occasion_type_id, max_attendees, min_age, max_age,
     participation_info, meeting_point, ticket_flags, ticket_link,
 	price_type, currency, min_price, max_price, visitor_info_flags,
@@ -230,7 +230,8 @@ SELECT DISTINCT ON (e.uuid)
     e.subtitle,
     e.description,
     e.summary,
-    main_image.pluto_image_uuid AS image_uuid,
+	main_image.pluto_image_uuid AS image_uuid,
+	main_image.ai_label AS image_ai_label,
     e.languages,
     e.tags,
     e.categories,
@@ -289,8 +290,12 @@ JOIN %[1]s.event_date ed ON ed.event_uuid = e.uuid
 
 -- fetch main image
 LEFT JOIN LATERAL (
-    SELECT pil.pluto_image_uuid
+    SELECT
+        pil.pluto_image_uuid,
+        COALESCE(pi.ai_label, 'none') AS ai_label
     FROM %[1]s.pluto_image_link pil
+    LEFT JOIN %[1]s.pluto_image pi
+        ON pi.uuid = pil.pluto_image_uuid
     WHERE pil.context = 'event'
     	AND pil.context_uuid = e.uuid
       	AND pil.identifier = 'main'
