@@ -54,15 +54,15 @@ final_data AS (
     LEFT JOIN venue_counts vc ON vc.org_uuid = o.uuid
     LEFT JOIN space_counts sc ON sc.org_uuid = o.uuid
     LEFT JOIN {{schema}}.user_organization_link uol ON uol.org_uuid = o.uuid AND uol.user_uuid = $1
-    LEFT JOIN LATERAL (
+    LEFT JOIN LATERAL(
         SELECT pil.pluto_image_uuid FROM {{schema}}.pluto_image_link pil
         WHERE pil.context = 'organization' AND pil.context_uuid = o.uuid AND pil.identifier = 'main_logo' LIMIT 1
     ) main_logo_link ON TRUE
-    LEFT JOIN LATERAL (
+    LEFT JOIN LATERAL(
         SELECT pil.pluto_image_uuid FROM {{schema}}.pluto_image_link pil
         WHERE pil.context = 'organization' AND pil.context_uuid = o.uuid AND pil.identifier = 'dark_theme_logo' LIMIT 1
     ) dark_theme_logo_link ON TRUE
-    LEFT JOIN LATERAL (
+    LEFT JOIN LATERAL(
         SELECT pil.pluto_image_uuid FROM {{schema}}.pluto_image_link pil
         WHERE pil.context = 'organization' AND pil.context_uuid = o.uuid AND pil.identifier = 'light_theme_logo' LIMIT 1
     ) light_theme_logo_link ON TRUE

@@ -62,7 +62,7 @@ LEFT JOIN {{schema}}.space s
         ELSE e.space_uuid
 END
 
-LEFT JOIN LATERAL (
+LEFT JOIN LATERAL(
     SELECT
         COALESCE(
             jsonb_object_agg(

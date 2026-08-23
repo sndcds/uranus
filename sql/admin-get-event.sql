@@ -69,7 +69,7 @@ LEFT JOIN {{schema}}.user_organization_link uol
     ON uol.org_uuid = o.uuid
         AND uol.user_uuid = $3::uuid
 
-LEFT JOIN LATERAL (
+LEFT JOIN LATERAL(
     SELECT *
     FROM {{schema}}.space s2
     WHERE s2.uuid = e.space_uuid

@@ -289,7 +289,7 @@ LEFT JOIN %[1]s.space s ON s.uuid = e.space_uuid
 JOIN %[1]s.event_date ed ON ed.event_uuid = e.uuid
 
 -- fetch main image
-LEFT JOIN LATERAL (
+LEFT JOIN LATERAL(
     SELECT
         pil.pluto_image_uuid,
         COALESCE(pi.ai_label, 'none') AS ai_label

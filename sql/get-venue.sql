@@ -73,7 +73,7 @@ LEFT JOIN {{schema}}.space_type_i18n sti
         AND sti.iso_639_1 = $2
 
 -- Images
-LEFT JOIN LATERAL (
+LEFT JOIN LATERAL(
     SELECT COALESCE(
         jsonb_object_agg(
             pil.identifier,
@@ -121,7 +121,7 @@ LEFT JOIN LATERAL (
 ) images ON TRUE
 
 -- Logos
-LEFT JOIN LATERAL (
+LEFT JOIN LATERAL(
     SELECT COALESCE(
         jsonb_object_agg(
             pil.identifier,
