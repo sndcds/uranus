@@ -101,6 +101,7 @@ type eventResponse struct {
 	VenueLon                *float64    `json:"venue_lon,omitempty"`
 	ImageUuid               *string     `json:"image_uuid,omitempty"`
 	ImagePath               *string     `json:"image_path,omitempty"`
+	ImageAiLabel            *string     `json:"image_ai_label,omitempty"`
 	OrgUuid                 string      `json:"org_uuid"`
 	OrgName                 string      `json:"org_name"`
 	Categories              []int       `json:"categories,omitempty"`
@@ -547,10 +548,12 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	query = strings.Replace(query, "{{portal_join}}", filters.PortalJoin, 1)
 	query = strings.Replace(query, "{{portal_conditions}}", filters.PortalConditions, 1)
 
+	/*
 	debugf("query: %s", query)
 	for i, a := range filters.Args {
 		fmt.Printf("args[%d] = %#v\n", i, a)
 	}
+	*/
 
 	rows, err := h.DbPool.Query(ctx, query, filters.Args...)
 	if err != nil {
@@ -590,6 +593,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			&e.Tags,
 			&e.OrgName,
 			&e.ImageUuid,
+			&e.ImageAiLabel,
 			&e.VenueName,
 			&e.VenueCity,
 			&e.VenueStreet,

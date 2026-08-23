@@ -29,6 +29,7 @@ SELECT
     ep.tags,
     ep.org_name,
     ep.image_uuid,
+    COALESCE(ep.image_ai_label, 'none') AS image_ai_label,
     COALESCE(edp.venue_name, ep.venue_name) AS venue_name,
     COALESCE(edp.venue_city, ep.venue_city) AS venue_city,
     COALESCE(edp.venue_street, ep.venue_street) AS venue_street,

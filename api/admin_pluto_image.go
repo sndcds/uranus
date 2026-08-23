@@ -95,8 +95,6 @@ func (h *ApiHandler) AdminUpsertPlutoImage(gc *gin.Context) {
 		return
 	}
 
-	debugf("context: %s, contextUuid: %s, identifier: %s", plutoContext, contextUuid, identifier)
-
 	// Upsert image in Pluto
 	plutoUpsertImageResult, err := pluto.UpsertImage(
 		gc,
