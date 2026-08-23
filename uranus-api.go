@@ -337,7 +337,7 @@ func main() {
 
 	// Pluto Image
 
-	adminRoute.POST("/image/:context/:contextUuid/:identifier", apiHandler.AdminUpsertPlutoImage)   // TODO: Permission check
+	adminRoute.PUT("/image/:context/:contextUuid/:identifier", apiHandler.AdminUpsertPlutoImage)    // TODO: Permission check
 	adminRoute.DELETE("/image/:context/:contextUuid/:identifier", apiHandler.AdminDeletePlutoImage) // TODO: Permission check
 
 	//

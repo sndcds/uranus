@@ -82,6 +82,7 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 		&event.VisitorInfoFlags,
 		&event.Custom,
 		&event.Style,
+		&event.LogoMode,
 		&event.CanRelease,
 	)
 
