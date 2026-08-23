@@ -50,6 +50,7 @@ SELECT
     e.visitor_info_flags,
     e.custom,
     e.style,
+    e.logo_mode,
     (uol.permissions & (1 << 27)) <> 0 AS can_release
 
 FROM {{schema}}.event e
