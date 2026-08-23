@@ -10,7 +10,7 @@ FROM {{schema}}.event_date_projection edp
 
 JOIN {{schema}}.event_projection ep ON ep.event_uuid = edp.event_uuid
 
-LEFT JOIN LATERAL (
+LEFT JOIN LATERAL(
     SELECT
     COALESCE(edp.venue_uuid, ep.venue_uuid) AS venue_uuid,
     COALESCE(edp.venue_name, ep.venue_name) AS venue_name,

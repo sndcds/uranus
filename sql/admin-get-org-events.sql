@@ -75,7 +75,7 @@ LEFT JOIN {{schema}}.venue v
 LEFT JOIN {{schema}}.space s
     ON s.uuid = COALESCE(ed.space_uuid, e.space_uuid)
 
-LEFT JOIN LATERAL (
+LEFT JOIN LATERAL(
     SELECT COALESCE(
         jsonb_agg(
             event_type
@@ -93,7 +93,7 @@ LEFT JOIN LATERAL (
 ) et_data ON TRUE
 
 
-LEFT JOIN LATERAL (
+LEFT JOIN LATERAL(
     SELECT
         pil.pluto_image_uuid AS uuid,
         format('{{base_api_url}}/api/image/%s', pil.pluto_image_uuid::text) AS url

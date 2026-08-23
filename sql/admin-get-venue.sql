@@ -22,7 +22,7 @@ SELECT
 FROM {{schema}}.venue v
 JOIN {{schema}}.organization o ON o.uuid = v.org_uuid
 JOIN {{schema}}.user_organization_link uol ON uol.org_uuid = o.uuid AND uol.user_uuid = $2::uuid
-LEFT JOIN LATERAL (
+LEFT JOIN LATERAL(
     SELECT COALESCE(
         jsonb_object_agg(
             pil.identifier,

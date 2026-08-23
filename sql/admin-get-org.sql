@@ -21,7 +21,7 @@ SELECT
 FROM {{schema}}.organization o
 JOIN {{schema}}.user_organization_link uol
 ON uol.org_uuid = o.uuid AND uol.user_uuid = $2
-LEFT JOIN LATERAL (
+LEFT JOIN LATERAL(
     SELECT COALESCE(
         jsonb_object_agg(
             pil.identifier,

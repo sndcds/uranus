@@ -32,7 +32,7 @@ SELECT
 FROM {{schema}}.event_date ed
 JOIN {{schema}}.event e ON ed.event_uuid = e.uuid
 LEFT JOIN {{schema}}.venue v ON v.uuid = COALESCE(ed.venue_uuid, e.venue_uuid)
-LEFT JOIN LATERAL (
+LEFT JOIN LATERAL(
     SELECT *
     FROM {{schema}}.space s2
     WHERE s2.uuid = CASE

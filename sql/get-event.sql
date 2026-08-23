@@ -45,8 +45,8 @@ LEFT JOIN {{schema}}.venue v ON v.uuid = e.venue_uuid
 LEFT JOIN {{schema}}.space s ON s.uuid = e.space_uuid
 
 -- Images
-LEFT JOIN LATERAL (
-    SELECT COALESCE (
+LEFT JOIN LATERAL(
+    SELECT COALESCE(
         jsonb_object_agg(
             pil.identifier,
             jsonb_build_object(
@@ -82,9 +82,9 @@ LEFT JOIN LATERAL (
         )
 ) images ON TRUE
 
-LEFT JOIN LATERAL (
+LEFT JOIN LATERAL(
     SELECT
-        COALESCE (
+        COALESCE(
             jsonb_object_agg(
                 pil.identifier,
                 jsonb_build_object(
@@ -106,7 +106,7 @@ LEFT JOIN LATERAL (
 ) org_logos ON TRUE
 
 -- Event types
-LEFT JOIN LATERAL (
+LEFT JOIN LATERAL(
     SELECT COALESCE(
         jsonb_agg(DISTINCT jsonb_build_object(
             'type_id', etl.type_id,
@@ -126,7 +126,7 @@ LEFT JOIN LATERAL (
 ) et_data ON TRUE
 
 -- Event URLs
-LEFT JOIN LATERAL (
+LEFT JOIN LATERAL(
     SELECT jsonb_agg(
         jsonb_build_object(
             'label', eu.label,
