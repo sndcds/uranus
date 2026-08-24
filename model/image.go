@@ -13,7 +13,7 @@ type Image struct {
 	License            *string  `json:"license,omitempty"`
 	LicenseName        *string  `json:"license_name,omitempty"`
 	LicenseDescription *string  `json:"license_descriptio,omitempty"`
-	AiLabel            *string  `json:"ai_label,omitempty"`
+	AiLabel            *string  `json:"ai_label"`
 	FocusX             *float64 `json:"focus_x,omitempty"`
 	FocusY             *float64 `json:"focus_y,omitempty"`
 }
