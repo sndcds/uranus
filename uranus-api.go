@@ -39,6 +39,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if app.UranusInstance.Config.ContactSecret == "" {
+		panic(fmt.Errorf("config, contact_secret missing"))
+	}
+
 	err = app.UranusInstance.CheckAllDatabaseConsistency(context.Background())
 	if err != nil {
 		fmt.Println("Uranus database not consistent")

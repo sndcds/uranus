@@ -43,6 +43,12 @@ type Config struct {
 	AuthReplyEmail              string   `json:"auth_reply_email"`
 	AuthResetPasswordUrl        string   `json:"auth_reset_password_url"`
 	InvitationExpirationMinutes int      `json:"invitation_expiration_minutes"`
+	ContactRateLimit            int64    `json:"contact_rate_limit"`
+	ContactRatePeriodMinutes    int      `json:"contact_rate_period_minutes"`
+	ContactEmailRateLimit       int64    `json:"contact_email_rate_limit"`
+	ContactSecret               string   `json:"contact_secret"`
+	ContactMassageMinLength     int      `json:"contact_message_min_length"`
+	ContactMassageMaxLength     int      `json:"contact_message_max_length"`
 }
 
 func (config Config) Print() {
@@ -75,5 +81,10 @@ func DefaultConfig() Config {
 		PlutoImageMaxPx:             1920,
 		AuthTokenExpirationTime:     360,
 		InvitationExpirationMinutes: 60,
+		ContactRateLimit:            5,
+		ContactEmailRateLimit:       3,
+		ContactRatePeriodMinutes:    60,
+		ContactMassageMinLength:     10,
+		ContactMassageMaxLength:     1000,
 	}
 }
