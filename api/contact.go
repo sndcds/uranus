@@ -22,15 +22,26 @@ func (h *ApiHandler) Contact(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "contact")
 	ctx := gc.Request.Context()
 
+	var payload struct {
+		Email    string `json:"email"`
+		Message  string `json:"message"`
+		Honeypot string `json:"website"`
+	}
+
+	if err := gc.ShouldBindJSON(&payload); err != nil {
+		apiRequest.Error(http.StatusBadRequest, "invalid JSON payload")
+		return
+	}
+
 	clientIP := gc.ClientIP()
 	ipHash := HashIPAddress(
 		clientIP,
 		app.UranusInstance.Config.ContactSecret,
 	)
 
-	email := strings.TrimSpace(gc.PostForm("email"))
-	message := strings.TrimSpace(gc.PostForm("message"))
-	website := strings.TrimSpace(gc.PostForm("website"))
+	email := strings.ToLower(strings.TrimSpace(payload.Email))
+	message := strings.TrimSpace(payload.Message)
+	honeypot := strings.TrimSpace(payload.Honeypot)
 
 	if email == "" {
 		apiRequest.Required("email is required")
@@ -63,8 +74,7 @@ func (h *ApiHandler) Contact(gc *gin.Context) {
 		return
 	}
 
-	// Honeypot.
-	if website != "" {
+	if honeypot != "" {
 		// Do not reveal that the honeypot was triggered.
 		apiRequest.SuccessNoData(
 			http.StatusCreated,
