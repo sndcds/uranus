@@ -88,7 +88,10 @@ func main() {
 
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New() // Use `Default()` for built-in logging and recovery
-	router.SetTrustedProxies([]string{"127.0.0.1", "::1"})
+	err = router.SetTrustedProxies([]string{"127.0.0.1", "::1"})
+	if err != nil {
+		panic(err)
+	}
 
 	// Enable gzip compression (recommended level), exclude images and already-compressed data
 
@@ -141,6 +144,7 @@ func main() {
 	publicRoute := router.Group("/api")
 
 	publicRoute.GET("/health", apiHandler.GetHealth)
+	publicRoute.POST("/contact", apiHandler.Contact)
 
 	publicRoute.GET("/event/release-status-i18n", apiHandler.GetEventReleaseStatusI18n)
 

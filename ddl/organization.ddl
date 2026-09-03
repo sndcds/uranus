@@ -27,12 +27,14 @@ CREATE TABLE uranus.organization (
     point geometry(Point,4326),
     api_import_token text,
     api_import_enabled boolean DEFAULT false,
-    content_iso_639_1 character varying(2)
+    content_iso_639_1 character varying(2),
+    member_of_orgs jsonb
 );
 
 -- Indices -------------------------------------------------------
 
 CREATE UNIQUE INDEX organization_pkey ON uranus.organization(uuid uuid_ops);
+CREATE INDEX organization_member_of_orgs_gin_idx ON uranus.organization USING GIN (member_of_orgs jsonb_ops);
 
 -- Triggers -------------------------------------------------------
 
