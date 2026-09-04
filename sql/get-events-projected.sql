@@ -54,6 +54,10 @@ JOIN {{schema}}.event_projection ep
 
 WHERE ep.release_status IN ('released', 'cancelled', 'deferred', 'rescheduled')
     AND {{date_conditions}}
+    AND (
+        edp.end_date IS NULL
+        OR edp.end_date - edp.start_date < 5
+    )
 
 {{conditions}}
 {{portal_conditions}}
