@@ -218,6 +218,11 @@ func (app *Uranus) LoadConfig(fileName string) error {
 		app.Config.AuthTokenExpirationTime = 600 // default: 10 minutes
 	}
 
+	// Set default if not specified in the JSON config
+	if app.Config.AuthTokenExpirationTime == 0 {
+		app.Config.AuthTokenExpirationTime = 600 // default: 10 minutes
+	}
+
 	app.Config.Print()
 	return nil
 }

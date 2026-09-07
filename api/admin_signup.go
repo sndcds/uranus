@@ -18,8 +18,6 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-// Permission to use endpoint checked, 2026-01-11, Roald
-
 func (h *ApiHandler) Signup(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "signup")
 	ctx := gc.Request.Context()
@@ -36,37 +34,56 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 		return
 	}
 
-	if payload.Email == "" || payload.Password == "" {
-		apiRequest.Error(http.StatusBadRequest, "(#1) email and password required")
-		return
-	}
+	// Validate the password before performing the expensive bcrypt hash.
+	if err := grains_validation.ValidatePassword(
+		payload.Email,
+		payload.Password,
+		grains_validation.DefaultMinPasswordLength,
+	); err != nil {
+		debugf("invalid password during signup: %v", err)
 
-	err := grains_validation.ValidatePassword(payload.Email, payload.Password, 12)
-	if err != nil {
-		apiRequest.Error(http.StatusUnprocessableEntity, "(#2) password does not meet security requirements")
+		// Do not expose the exact validation reason to the client.
+		apiRequest.Error(
+			http.StatusUnprocessableEntity,
+			"(#2) password does not meet security requirements",
+		)
 		return
 	}
 
 	if !app.IsValidEmail(payload.Email) {
-		apiRequest.Error(http.StatusBadRequest, "(#3) invalid email")
+		apiRequest.Error(
+			http.StatusBadRequest,
+			"(#3) invalid email",
+		)
 		return
 	}
 
 	passwordHash, err := app.EncryptPassword(payload.Password)
 	if err != nil {
-		debugf(err.Error())
+		debugf("failed to hash password: %v", err)
 		apiRequest.InternalServerError()
 		return
 	}
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-		// Check if user already exists
+		// Check if user already exists.
 		var exists bool
-		checkQuery := fmt.Sprintf("SELECT EXISTS(SELECT 1 FROM %s.user WHERE email = $1)", h.DbSchema)
-		err = tx.QueryRow(ctx, checkQuery, payload.Email).Scan(&exists)
+
+		checkQuery := fmt.Sprintf(
+			"SELECT EXISTS(SELECT 1 FROM %s.user WHERE email = $1)",
+			h.DbSchema,
+		)
+
+		err := tx.QueryRow(
+			ctx,
+			checkQuery,
+			payload.Email,
+		).Scan(&exists)
+
 		if err != nil {
 			return TxInternalError(nil)
 		}
+
 		if exists {
 			return TxInternalError(nil)
 		}
@@ -76,53 +93,119 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 			return TxInternalError(nil)
 		}
 
-		insertQuery := fmt.Sprintf(`INSERT INTO %s.user (uuid, email, password_hash) VALUES ($1::uuid, $2, $3)`, h.DbSchema)
-		_, err = tx.Exec(ctx, insertQuery, userUuid, payload.Email, passwordHash)
+		insertQuery := fmt.Sprintf(
+			`INSERT INTO %s.user
+				(uuid, email, password_hash)
+			 VALUES
+				($1::uuid, $2, $3)`,
+			h.DbSchema,
+		)
+
+		_, err = tx.Exec(
+			ctx,
+			insertQuery,
+			userUuid,
+			payload.Email,
+			passwordHash,
+		)
+
 		if err != nil {
 			return TxInternalError(nil)
 		}
 
-		// Generate token and send email to users
-		expiryHour := 1
-		signupExp := time.Now().Add(time.Duration(expiryHour) * time.Hour)
+		// Generate account activation token.
+		const expiryHours = 1
+
+		signupExp := time.Now().Add(
+			time.Duration(expiryHours) * time.Hour,
+		)
+
 		signupClaims := &app.Claims{
 			UserUuid: userUuid,
 			RegisteredClaims: jwt.RegisteredClaims{
 				ExpiresAt: jwt.NewNumericDate(signupExp),
 			},
 		}
-		signupToken := jwt.NewWithClaims(jwt.SigningMethodHS256, signupClaims)
-		signupTokenString, err := signupToken.SignedString([]byte(h.Config.JwtSecret))
+
+		signupToken := jwt.NewWithClaims(
+			jwt.SigningMethodHS256,
+			signupClaims,
+		)
+
+		signupTokenString, err := signupToken.SignedString(
+			[]byte(h.Config.JwtSecret),
+		)
 		if err != nil {
 			return TxInternalError(nil)
 		}
 
-		updateQuery := fmt.Sprintf(`UPDATE %s.user SET activate_token = $1 WHERE uuid = $2::uuid`, h.DbSchema)
-		_, err = tx.Exec(ctx, updateQuery, signupTokenString, userUuid)
+		updateQuery := fmt.Sprintf(
+			`UPDATE %s.user
+			 SET activate_token = $1
+			 WHERE uuid = $2::uuid`,
+			h.DbSchema,
+		)
+
+		_, err = tx.Exec(
+			ctx,
+			updateQuery,
+			signupTokenString,
+			userUuid,
+		)
+
 		if err != nil {
 			return TxInternalError(nil)
 		}
 
-		messageQuery := fmt.Sprintf(`SELECT subject, template FROM %s.system_email_template WHERE context = 'user-email-verification' AND iso_639_1 = $1`, h.DbSchema)
+		// Load email template.
+		messageQuery := fmt.Sprintf(
+			`SELECT subject, template
+			 FROM %s.system_email_template
+			 WHERE context = 'user-email-verification'
+			   AND iso_639_1 = $1`,
+			h.DbSchema,
+		)
+
 		var subject string
 		var template string
-		err = tx.QueryRow(ctx, messageQuery, lang).Scan(&subject, &template)
+
+		err = tx.QueryRow(
+			ctx,
+			messageQuery,
+			lang,
+		).Scan(&subject, &template)
+
 		if err != nil {
 			return TxInternalError(nil)
 		}
 
-		expiryHour = 1
-		signupUrl := payload.Referer + "/app/activate/account?token=" + signupTokenString
+		signupURL := payload.Referer +
+			"/app/activate/account?token=" +
+			signupTokenString
 
-		emailMessage := strings.Replace(template, "{{link}}", signupUrl, -1)
-		emailMessage = strings.Replace(emailMessage, "{{expiry_hours}}", strconv.Itoa(expiryHour), -1)
+		emailMessage := strings.ReplaceAll(
+			template,
+			"{{link}}",
+			signupURL,
+		)
 
-		err = sendEmailWithTimeout(payload.Email, subject, emailMessage, 20*time.Second)
-		if err != nil {
+		emailMessage = strings.ReplaceAll(
+			emailMessage,
+			"{{expiry_hours}}",
+			strconv.Itoa(expiryHours),
+		)
+
+		if err := sendEmailWithTimeout(
+			payload.Email,
+			subject,
+			emailMessage,
+			20*time.Second,
+		); err != nil {
 			return TxInternalError(nil)
 		}
 
 		apiRequest.SetMeta("user_uuid", userUuid)
+
 		return nil
 	})
 
@@ -132,7 +215,10 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 		return
 	}
 
-	apiRequest.SuccessNoData(http.StatusCreated, "user registered successfully")
+	apiRequest.SuccessNoData(
+		http.StatusCreated,
+		"user registered successfully",
+	)
 }
 
 func sendEmailWithContext(ctx context.Context, to, subject, body string) error {
@@ -161,12 +247,16 @@ func (h *ApiHandler) Activate(gc *gin.Context) {
 	}
 
 	// Parse JWT token using the same signing method
-	token, err := jwt.ParseWithClaims(requestData.Token, &app.Claims{}, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return []byte(h.Config.JwtSecret), nil
-	})
+	token, err := jwt.ParseWithClaims(
+		requestData.Token,
+		&app.Claims{},
+		func(token *jwt.Token) (interface{}, error) {
+			return []byte(h.Config.JwtSecret), nil
+		},
+		jwt.WithValidMethods([]string{
+			jwt.SigningMethodHS256.Alg(),
+		}),
+	)
 	if err != nil {
 		apiRequest.Error(http.StatusUnauthorized, "invalid or expired token")
 		return

@@ -19,25 +19,25 @@ func (h *ApiHandler) Login(gc *gin.Context) {
 	var userCredentials model.UserCredentials
 
 	// Parse credentials
-	err := gc.BindJSON(&userCredentials)
+	err := gc.ShouldBindJSON(&userCredentials)
 	if err != nil {
-		debugf(err.Error())
-		apiRequest.Error(http.StatusUnauthorized, "invalid credentials")
+		debugf("invalid login request: %v", err)
+		apiRequest.Error(http.StatusBadRequest, "invalid request")
 		return
 	}
 
 	if userCredentials.Email == "" || userCredentials.Password == "" {
-		debugf(err.Error())
 		apiRequest.Error(http.StatusUnauthorized, "invalid email or password")
 		return
 	}
 
+	email := strings.TrimSpace(userCredentials.Email)
 	var user model.User
 	query := fmt.Sprintf(
 		`SELECT uuid, email, password_hash, first_name, last_name, display_name, locale, theme, is_active
 		FROM %s.user WHERE email = $1`,
 		h.DbSchema)
-	err = h.DbPool.QueryRow(gc, query, userCredentials.Email).Scan(
+	err = h.DbPool.QueryRow(gc, query, email).Scan(
 		&user.Uuid,
 		&user.Email,
 		&user.PasswordHash,
@@ -50,21 +50,34 @@ func (h *ApiHandler) Login(gc *gin.Context) {
 	)
 	if err != nil {
 		debugf(err.Error())
-		apiRequest.Error(http.StatusUnauthorized, "login error")
+		apiRequest.Error(http.StatusUnauthorized, "invalid email or password")
 		return
 	}
 
-	if !user.IsActive || app.ComparePasswords(*user.PasswordHash, userCredentials.Password) != nil {
-		debugf(err.Error())
-		apiRequest.Error(http.StatusUnauthorized, "login failed")
+	if !user.IsActive {
+		apiRequest.Error(http.StatusUnauthorized, "invalid email or password")
 		return
 	}
+
+	if user.PasswordHash == nil {
+		apiRequest.Error(http.StatusUnauthorized, "invalid email or password")
+		return
+	}
+
+	if app.ComparePasswords(*user.PasswordHash, userCredentials.Password) != nil {
+		apiRequest.Error(http.StatusUnauthorized, "invalid email or password")
+		return
+	}
+
+	now := time.Now()
 
 	// Create access token
-	accessExp := time.Now().Add(time.Duration(h.Config.AuthTokenExpirationTime) * time.Second)
+	accessExp := now.Add(time.Duration(h.Config.AuthTokenExpirationTime) * time.Second)
 	accessClaims := &app.Claims{
-		UserUuid: user.Uuid,
+		UserUuid:  user.Uuid,
+		TokenType: "access",
 		RegisteredClaims: jwt.RegisteredClaims{
+			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(accessExp),
 		},
 	}
@@ -77,10 +90,12 @@ func (h *ApiHandler) Login(gc *gin.Context) {
 	}
 
 	// Create refresh token
-	refreshExp := time.Now().Add(7 * 24 * time.Hour)
+	refreshExp := now.Add(time.Duration(h.Config.RefreshTokenExpirationTime) * time.Second)
 	refreshClaims := &app.Claims{
-		UserUuid: user.Uuid,
+		UserUuid:  user.Uuid,
+		TokenType: "refresh",
 		RegisteredClaims: jwt.RegisteredClaims{
+			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(refreshExp),
 		},
 	}
@@ -111,33 +126,60 @@ func (h *ApiHandler) Refresh(gc *gin.Context) {
 
 	// Get token from Authorization header
 	authHeader := gc.GetHeader("Authorization")
-	parts := strings.SplitN(authHeader, " ", 2)
-	if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-		debugf("Invalid refresh header: %s", authHeader)
-		apiRequest.Error(http.StatusUnauthorized, "failed")
+	parts := strings.Fields(authHeader)
+
+	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
+		debugf("invalid refresh authorization header")
+		apiRequest.Error(http.StatusUnauthorized, refreshErrorMsg)
 		return
 	}
+
 	refreshToken := parts[1]
 
 	// Parse token
 	claims := &app.Claims{}
-	tkn, err := jwt.ParseWithClaims(refreshToken, claims, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return app.UranusInstance.JwtKey, nil
-	})
+	tkn, err := jwt.ParseWithClaims(
+		refreshToken,
+		claims,
+		func(token *jwt.Token) (any, error) {
+			return app.UranusInstance.JwtKey, nil
+		},
+		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
+	)
 	if err != nil || !tkn.Valid {
-		debugf("Invalid refresh token: %v", err)
-		apiRequest.Error(http.StatusUnauthorized, "failed")
+		apiRequest.Error(http.StatusUnauthorized, refreshErrorMsg)
 		return
 	}
 
+	if claims.TokenType != "refresh" {
+		apiRequest.Error(http.StatusUnauthorized, refreshErrorMsg)
+		return
+	}
+
+	// Query user and check if active
+
+	var isActive bool
+
+	query := fmt.Sprintf(
+		`SELECT is_active FROM %s.user WHERE uuid = $1`,
+		h.DbSchema,
+	)
+
+	err = h.DbPool.QueryRow(gc, query, claims.UserUuid).Scan(&isActive)
+	if err != nil || !isActive {
+		apiRequest.Error(http.StatusUnauthorized, refreshErrorMsg)
+		return
+	}
+
+	now := time.Now()
+
 	// Issue new access token
-	accessExp := time.Now().Add(time.Duration(h.Config.AuthTokenExpirationTime) * time.Second)
+	accessExp := now.Add(time.Duration(h.Config.AuthTokenExpirationTime) * time.Second)
 	newClaims := &app.Claims{
-		UserUuid: claims.UserUuid,
+		UserUuid:  claims.UserUuid,
+		TokenType: "access",
 		RegisteredClaims: jwt.RegisteredClaims{
+			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(accessExp),
 		},
 	}

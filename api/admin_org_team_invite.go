@@ -198,13 +198,16 @@ func (h *ApiHandler) OrgTeamInviteAccept(gc *gin.Context) {
 	}
 
 	// Parse JWT token
-	token, err := jwt.ParseWithClaims(req.Token, &OrganizationTeamInviteClaims{}, func(token *jwt.Token) (interface{}, error) {
-		_, ok := token.Method.(*jwt.SigningMethodHMAC)
-		if !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return []byte(h.Config.JwtSecret), nil
-	})
+	token, err := jwt.ParseWithClaims(
+		req.Token,
+		&OrganizationTeamInviteClaims{},
+		func(token *jwt.Token) (interface{}, error) {
+			return []byte(h.Config.JwtSecret), nil
+		},
+		jwt.WithValidMethods([]string{
+			jwt.SigningMethodHS256.Alg(),
+		}),
+	)
 	if err != nil {
 		apiRequest.Error(http.StatusUnauthorized, "")
 		return

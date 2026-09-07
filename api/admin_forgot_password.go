@@ -22,6 +22,9 @@ import (
 func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "forgot-password")
 	ctx := gc.Request.Context()
+	successMessage := "If an account exists, a reset link has been sent."
+
+	fmt.Println("Hallo")
 
 	var payload struct {
 		Email   string `json:"email" binding:"required,email"`
@@ -40,8 +43,7 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 	var userUuid string
 	err := h.DbPool.QueryRow(ctx, query, payload.Email).Scan(&userUuid)
 	if err != nil {
-		debugf(err.Error())
-		apiRequest.InternalServerError()
+		apiRequest.SuccessNoData(http.StatusOK, successMessage)
 		return
 	}
 
@@ -97,7 +99,7 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 		return
 	}
 
-	apiRequest.SuccessNoData(http.StatusOK, "If an account exists, a reset link has been sent.")
+	apiRequest.SuccessNoData(http.StatusOK, successMessage)
 }
 
 func (h *ApiHandler) ResetPassword(gc *gin.Context) {
