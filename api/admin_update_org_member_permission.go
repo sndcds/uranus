@@ -106,7 +106,7 @@ func (h *ApiHandler) AdminUpdateOrgMemberPermissions(gc *gin.Context) {
 		var orgMemberLink model.OrgMemberLink
 		orgMemberLink.UserUuid = memberUuid
 		err := tx.QueryRow(
-			ctx, app.UranusInstance.SqlAdminGetOrgMemberLink, memberUuid).
+			ctx, app.UranusInstance.SqlAdminGetOrgMemberLink, memberUuid, orgUuid).
 			Scan(
 				&orgMemberLink.OrgUuid,
 				&orgMemberLink.UserUuid,
@@ -116,23 +116,15 @@ func (h *ApiHandler) AdminUpdateOrgMemberPermissions(gc *gin.Context) {
 				&orgMemberLink.CreatedAt,
 				&orgMemberLink.ModifiedAt)
 		if err != nil {
-			return &ApiTxError{
-				Code: http.StatusUnauthorized,
-				Err:  fmt.Errorf("failed to get organization member link, %v", err),
-			}
-		}
-
-		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return &ApiTxError{
-					Code: http.StatusNoContent,
-					Err:  fmt.Errorf("failed to check membership, %s", err.Error()),
+					Code: http.StatusNotFound,
+					Err:  fmt.Errorf("failed to get organization member link, %v", err),
 				}
-			} else {
-				return &ApiTxError{
-					Code: http.StatusInternalServerError,
-					Err:  fmt.Errorf("failed to check membership, %s", err.Error()),
-				}
+			}
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  fmt.Errorf("failed to get organization member link, %v", err),
 			}
 		}
 
@@ -178,7 +170,7 @@ func (h *ApiHandler) AdminUpdateOrgMemberPermissions(gc *gin.Context) {
 
 	if txErr != nil {
 		debugf(txErr.Error())
-		apiRequest.InternalServerError()
+		apiRequest.Error(txErr.Code, "permissions could not be updated")
 		return
 	}
 

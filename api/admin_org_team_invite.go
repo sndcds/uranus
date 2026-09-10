@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
@@ -89,6 +90,7 @@ func (h *ApiHandler) AdminOrgTeamInvite(gc *gin.Context) {
 					Err:  errors.New(apiMessage),
 				}
 			}
+			return ApiErrInternal("failed to load invited member")
 		}
 
 		// Generate token and send email to user
@@ -154,7 +156,11 @@ func (h *ApiHandler) AdminOrgTeamInvite(gc *gin.Context) {
 		emailMessage = strings.Replace(emailMessage, "{{display_name}}", displayName, -1)
 		emailMessage = strings.Replace(emailMessage, "{{organization_name}}", orgName, -1)
 
-		err = sendEmailWithTimeout(payload.Email, subject, emailMessage, 20*time.Second)
+		sender := h.emailSender
+		if sender == nil {
+			sender = sendEmailWithTimeout
+		}
+		err = sender(payload.Email, subject, emailMessage, 20*time.Second)
 		if err != nil {
 			debugf(err.Error())
 			return &ApiTxError{
@@ -172,7 +178,7 @@ func (h *ApiHandler) AdminOrgTeamInvite(gc *gin.Context) {
 			return
 		}
 		debugf(txErr.Error())
-		apiRequest.InternalServerError()
+		apiRequest.Error(txErr.Code, "invitation could not be sent")
 		return
 	}
 
@@ -214,13 +220,21 @@ func (h *ApiHandler) OrgTeamInviteAccept(gc *gin.Context) {
 	}
 
 	claims, ok := token.Claims.(*OrganizationTeamInviteClaims)
-	if !ok || !token.Valid {
+	if !ok || !token.Valid || claims.ExpiresAt == nil {
 		apiRequest.Error(http.StatusUnauthorized, "")
 		return
 	}
 
 	userUuid := claims.UserUuid
 	orgUuid := claims.OrgUuid
+	if _, err := uuid.Parse(userUuid); err != nil {
+		apiRequest.Error(http.StatusUnauthorized, "invalid invitation")
+		return
+	}
+	if _, err := uuid.Parse(orgUuid); err != nil {
+		apiRequest.Error(http.StatusUnauthorized, "invalid invitation")
+		return
+	}
 
 	var orgInfo OrganizationTeamInviteInfo
 	orgInfo.OrgUuid = orgUuid
@@ -229,8 +243,10 @@ func (h *ApiHandler) OrgTeamInviteAccept(gc *gin.Context) {
 
 		// Query stored activation token
 		var storedToken *string
-		query := fmt.Sprintf(`SELECT accept_token FROM %s.organization_member_link WHERE user_uuid = $1::uuid AND org_uuid = $2::uuid FOR UPDATE`, h.DbSchema)
-		err = tx.QueryRow(ctx, query, userUuid, orgUuid).Scan(&storedToken)
+		var inviter *string
+		var joined bool
+		query := fmt.Sprintf(`SELECT accept_token, invited_by_user_uuid, has_joined FROM %s.organization_member_link WHERE user_uuid = $1::uuid AND org_uuid = $2::uuid FOR UPDATE`, h.DbSchema)
+		err = tx.QueryRow(ctx, query, userUuid, orgUuid).Scan(&storedToken, &inviter, &joined)
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return &ApiTxError{
@@ -245,7 +261,7 @@ func (h *ApiHandler) OrgTeamInviteAccept(gc *gin.Context) {
 		}
 
 		// Compare tokens
-		if storedToken == nil {
+		if storedToken == nil || joined {
 			return &ApiTxError{
 				Code: http.StatusUnauthorized,
 				Err:  fmt.Errorf("token mismatch"),
@@ -275,8 +291,8 @@ func (h *ApiHandler) OrgTeamInviteAccept(gc *gin.Context) {
 		// Create user organization link
 		uolQuery := fmt.Sprintf(`
 			INSERT INTO %s.user_organization_link (user_uuid, org_uuid, permissions)
-			VALUES ($1::uuid, $2::uuid, $3)`,
-			h.DbSchema)
+			SELECT $1::uuid, $2::uuid, $3 WHERE NOT EXISTS (SELECT 1 FROM %s.user_organization_link WHERE user_uuid = $1::uuid AND org_uuid = $2::uuid)`,
+			h.DbSchema, h.DbSchema)
 		_, err = tx.Exec(ctx, uolQuery, userUuid, orgUuid, 0)
 		if err != nil {
 			return &ApiTxError{
@@ -297,11 +313,14 @@ func (h *ApiHandler) OrgTeamInviteAccept(gc *gin.Context) {
 			}
 		}
 
+		if err := h.enqueueTeamOnboarding(ctx, tx, req.Token, orgUuid, orgInfo.OrgName, userUuid, inviter); err != nil {
+			return ApiErrInternal("failed to persist onboarding notifications")
+		}
 		return nil
 	})
 
 	if txErr != nil {
-		apiRequest.Error(http.StatusInternalServerError, txErr.Error())
+		apiRequest.Error(txErr.Code, "invitation could not be accepted")
 		// apiRequest.InternalServerError()
 		return
 	}
