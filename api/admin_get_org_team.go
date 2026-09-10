@@ -28,6 +28,9 @@ func (h *ApiHandler) AdminGetOrgTeam(gc *gin.Context) {
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		permissions, err := h.GetUserOrgPermissionsTx(gc, tx, userUuid, orgUuid)
+		if err != nil {
+			return ApiErrInternal("failed to load permissions")
+		}
 		if !permissions.Has(app.UserPermManageTeam) {
 			return ApiErrForbidden("Insufficient permissions")
 		}
@@ -36,7 +39,7 @@ func (h *ApiHandler) AdminGetOrgTeam(gc *gin.Context) {
 
 		memberRows, err := tx.Query(ctx, app.UranusInstance.SqlAdminGetOrgMembers, orgUuid)
 		if err != nil {
-			return ApiErrInternal(err.Error())
+			return ApiErrInternal("%s", err.Error())
 		}
 		defer memberRows.Close()
 
@@ -49,15 +52,19 @@ func (h *ApiHandler) AdminGetOrgTeam(gc *gin.Context) {
 				&m.DisplayName,
 				&m.LastActiveAt,
 				&m.JoinedAt,
+				&m.PermissionsMissing,
 			)
 			if err != nil {
-				return ApiErrInternal(err.Error())
+				return ApiErrInternal("%s", err.Error())
 			}
 
 			m.AvatarUrl = h.getAvatarURL(m.UserUuid)
 			members = append(members, m)
 		}
 
+		if err := memberRows.Err(); err != nil {
+			return ApiErrInternal("failed to load members")
+		}
 		invitedMemberQuery := fmt.Sprintf(`
 			SELECT
 				oml.user_uuid,
@@ -77,7 +84,7 @@ func (h *ApiHandler) AdminGetOrgTeam(gc *gin.Context) {
 
 		rows, err := tx.Query(ctx, invitedMemberQuery, orgUuid)
 		if err != nil {
-			return ApiErrInternal(err.Error())
+			return ApiErrInternal("%s", err.Error())
 		}
 		defer rows.Close()
 
@@ -85,13 +92,16 @@ func (h *ApiHandler) AdminGetOrgTeam(gc *gin.Context) {
 			var m model.InvitedOrgMember
 			err = rows.Scan(&m.UserUuid, &m.InvitedBy, &m.InvitedAt, &m.Email, &m.DisplayName)
 			if err != nil {
-				return ApiErrInternal(err.Error())
+				return ApiErrInternal("%s", err.Error())
 			}
 
 			m.AvatarUrl = h.getAvatarURL(m.UserUuid)
 			invitedMembers = append(invitedMembers, m)
 		}
 
+		if err := rows.Err(); err != nil {
+			return ApiErrInternal("failed to load invitations")
+		}
 		return nil
 	})
 

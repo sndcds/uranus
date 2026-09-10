@@ -16,6 +16,8 @@ import (
 // TODO: Review code
 
 type ApiHandler struct {
+	// Optional transport override used by tests; production uses the existing SMTP helper.
+	emailSender   notificationEmailSender
 	Config        *app.Config
 	DbPool        *pgxpool.Pool
 	DbSchema      string

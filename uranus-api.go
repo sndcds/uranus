@@ -88,6 +88,10 @@ func main() {
 		panic(err)
 	}
 
+	workerCtx, stopWorker := context.WithCancel(context.Background())
+	defer stopWorker()
+	go apiHandler.RunNotificationEmailWorker(workerCtx)
+
 	// Create a Gin router
 
 	gin.SetMode(gin.ReleaseMode)
@@ -231,6 +235,9 @@ func main() {
 
 	adminRoute := router.Group("/api/admin")
 	adminRoute.Use(app.JWTMiddleware)
+	adminRoute.GET("/user/notifications", apiHandler.AdminGetNotifications)
+	adminRoute.PATCH("/user/notifications/:notificationUuid/read", apiHandler.AdminReadNotification)
+	adminRoute.PATCH("/user/notifications/:notificationUuid/dismiss", apiHandler.AdminDismissNotification)
 
 	adminRoute.GET("/event/:eventUuid/date/:dateIdentifier", apiHandler.GetEventByDate) // TODO: Permission check
 	adminRoute.GET("/permissions/list", apiHandler.AdminGetPermissionsList)             // TODO: Permission check
