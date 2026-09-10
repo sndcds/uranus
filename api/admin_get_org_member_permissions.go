@@ -58,7 +58,7 @@ func (h *ApiHandler) AdminGetOrgMemberPermissions(gc *gin.Context) {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return &ApiTxError{
 					Code: http.StatusNotFound,
-					Err:  fmt.Errorf("No member with id %d found in organization %d", memberUuid, orgUuid),
+					Err:  fmt.Errorf("No member with id %s found in organization %s", memberUuid, orgUuid),
 				}
 			}
 			return &ApiTxError{
@@ -76,7 +76,7 @@ func (h *ApiHandler) AdminGetOrgMemberPermissions(gc *gin.Context) {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return &ApiTxError{
 					Code: http.StatusNotFound,
-					Err:  fmt.Errorf("No permissions found for user %d in organization %d", memberUserUuid, orgUuid),
+					Err:  fmt.Errorf("No permissions found for user %s in organization %s", memberUserUuid, orgUuid),
 				}
 			}
 			return &ApiTxError{
