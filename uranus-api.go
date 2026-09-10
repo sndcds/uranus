@@ -270,6 +270,7 @@ func main() {
 	adminRoute.GET("/org/:orgUuid/venues", apiHandler.AdminGetOrgVenues)
 	adminRoute.GET("/org/:orgUuid/events", apiHandler.AdminGetOrgEvents)   // TODO: Permission check
 	adminRoute.GET("/org/:orgUuid/portals", apiHandler.AdminGetOrgPortals) // TODO: Permission check
+	adminRoute.GET("/org/:orgUuid/relations", apiHandler.AdminGetOrgRelations)
 
 	adminRoute.GET("/org/:orgUuid/team", apiHandler.AdminGetOrgTeam)            // TODO: Permission check
 	adminRoute.POST("/org/:orgUuid/team/invite", apiHandler.AdminOrgTeamInvite) // TODO: Permission check
