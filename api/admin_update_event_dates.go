@@ -75,9 +75,14 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 		}
 
 		query := fmt.Sprintf(
-			`DELETE FROM %s.event_date WHERE event_uuid = $1::uuid AND NOT (uuid = ANY($2::uuid[]))`,
-			h.DbSchema)
-		_, err := tx.Exec(ctx, query, eventUuid, uuidsInPayload)
+			`DELETE FROM %s.event_date
+			 WHERE event_uuid = $1::uuid
+			 AND NOT (uuid = ANY($2::uuid[]))
+			 RETURNING uuid`,
+			h.DbSchema,
+		)
+
+		rows, err := tx.Query(ctx, query, eventUuid, uuidsInPayload)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
@@ -85,9 +90,34 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 			}
 		}
 
+		if app.UranusInstance.Config.DebugLevel == 1 {
+			defer rows.Close()
+
+			for rows.Next() {
+				var uuid string
+
+				if err := rows.Scan(&uuid); err != nil {
+					return &ApiTxError{
+						Code: http.StatusInternalServerError,
+						Err:  fmt.Errorf("scan deleted event date uuid failed: %w", err),
+					}
+				}
+
+				debugf("AdminUpdateEventDates: DELETE event = %s date = %s", eventUuid, uuid)
+			}
+		}
+
 		for _, d := range payload {
 			if d.DateUuid != nil {
 				// UPDATE
+				if app.UranusInstance.Config.DebugLevel == 1 {
+					debugf(
+						"AdminUpdateEventDates: UPDATE event = %s date = %s",
+						eventUuid,
+						*d.DateUuid,
+					)
+				}
+
 				_, err := tx.Exec(ctx, app.UranusInstance.SqlAdminUpdateEventDate,
 					*d.DateUuid,
 					eventUuid,
@@ -118,6 +148,19 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 						Err:  fmt.Errorf("failed to generate uuid: %v", err),
 					}
 				}
+
+				if app.UranusInstance.Config.DebugLevel == 1 {
+					debugf(
+						"AdminUpdateEventDates: INSERT event = %s date = %s start = %s %s end = %v %v",
+						eventUuid,
+						eventDateUuid,
+						d.StartDate,
+						d.StartTime,
+						d.EndDate,
+						d.EndTime,
+					)
+				}
+
 				_, err = tx.Exec(ctx, app.UranusInstance.SqlAdminInsertEventDate,
 					eventDateUuid,
 					eventUuid,

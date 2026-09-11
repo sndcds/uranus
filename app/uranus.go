@@ -77,6 +77,7 @@ type Uranus struct {
 	SqlAdminGetOrgPartnershipConnectionsByUser string
 	SqlAdminGetOrgVenues                       string
 	SqlAdminGetOrgPortals                      string
+	SqlAdminGetOrgRelations                    string
 	SqlAdminGetOrgEvents                       string
 	SqlAdminGetOrgMemberLink                   string
 	SqlAdminGetOrgMembers                      string
@@ -218,6 +219,11 @@ func (app *Uranus) LoadConfig(fileName string) error {
 		app.Config.AuthTokenExpirationTime = 600 // default: 10 minutes
 	}
 
+	// Set default if not specified in the JSON config
+	if app.Config.AuthTokenExpirationTime == 0 {
+		app.Config.AuthTokenExpirationTime = 600 // default: 10 minutes
+	}
+
 	app.Config.Print()
 	return nil
 }
@@ -349,6 +355,7 @@ func (app *Uranus) PrepareSql() error {
 		{"sql/admin-get-org-events.sql", &app.SqlAdminGetOrgEvents, nil},
 		{"sql/admin-get-org-venues.sql", &app.SqlAdminGetOrgVenues, nil},
 		{"sql/admin-get-org-portals.sql", &app.SqlAdminGetOrgPortals, nil},
+		{"sql/admin-get-org-relations.sql", &app.SqlAdminGetOrgRelations, nil},
 
 		{"sql/admin-insert-org-partner-request.sql", &app.SqlAdminInsertOrgPartnerRequest, nil},
 		{"sql/admin-chooseable-venues.sql", &app.SqlAdminChoosableVenues, nil},

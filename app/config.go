@@ -36,6 +36,7 @@ type Config struct {
 	JwtSecret                   string   `json:"jwt_secret"`
 	SecretKey                   string   `json:"secret_key"`
 	AuthTokenExpirationTime     int      `json:"auth_token_expiration_time"`
+	RefreshTokenExpirationTime  int      `json:"refresh_token_expiration_time"`
 	AuthSmtpHost                string   `json:"auth_smtp_host"`
 	AuthSmtpPort                int      `json:"auth_smtp_port"`
 	AuthSmtpLogin               string   `json:"auth_smtp_login"`
@@ -79,7 +80,8 @@ func DefaultConfig() Config {
 		ProfileImageQuality:         0.8,
 		PlutoImageMaxFileSize:       5_000_000,
 		PlutoImageMaxPx:             1920,
-		AuthTokenExpirationTime:     360,
+		AuthTokenExpirationTime:     3600,
+		RefreshTokenExpirationTime:  604800,
 		InvitationExpirationMinutes: 60,
 		ContactRateLimit:            5,
 		ContactEmailRateLimit:       3,

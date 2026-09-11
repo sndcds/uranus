@@ -8,7 +8,8 @@ import (
 
 // Claims struct for JWT
 type Claims struct {
-	UserUuid string `json:"user_uuid"`
+	UserUuid  string `json:"user_uuid"`
+	TokenType string `json:"token_type"`
 	jwt.RegisteredClaims
 }
 
