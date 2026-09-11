@@ -106,7 +106,7 @@ func (h *ApiHandler) AdminUpdateOrgMemberPermissions(gc *gin.Context) {
 		var orgMemberLink model.OrgMemberLink
 		orgMemberLink.UserUuid = memberUuid
 		err := tx.QueryRow(
-			ctx, app.UranusInstance.SqlAdminGetOrgMemberLink, memberUuid).
+			ctx, app.UranusInstance.SqlAdminGetOrgMemberLink, memberUuid, orgUuid).
 			Scan(
 				&orgMemberLink.OrgUuid,
 				&orgMemberLink.UserUuid,

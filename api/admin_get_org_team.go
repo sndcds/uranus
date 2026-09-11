@@ -28,8 +28,11 @@ func (h *ApiHandler) AdminGetOrgTeam(gc *gin.Context) {
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		permissions, err := h.GetUserOrgPermissionsTx(gc, tx, userUuid, orgUuid)
+		if err != nil {
+			return ApiErrInternal("failed to load permissions")
+		}
 		if !permissions.Has(app.UserPermManageTeam) {
-			return ApiErrForbidden("Insufficient permissions")
+			return ApiErrForbidden("insufficient permissions")
 		}
 
 		canManagePermissions = permissions.Has(app.UserPermManagePermissions)
@@ -49,6 +52,7 @@ func (h *ApiHandler) AdminGetOrgTeam(gc *gin.Context) {
 				&m.DisplayName,
 				&m.LastActiveAt,
 				&m.JoinedAt,
+				&m.PermissionsMissing,
 			)
 			if err != nil {
 				return ApiErrInternal(err.Error())
@@ -56,6 +60,10 @@ func (h *ApiHandler) AdminGetOrgTeam(gc *gin.Context) {
 
 			m.AvatarUrl = h.getAvatarURL(m.UserUuid)
 			members = append(members, m)
+		}
+
+		if err := memberRows.Err(); err != nil {
+			return ApiErrInternal("failed to load members")
 		}
 
 		invitedMemberQuery := fmt.Sprintf(`
@@ -90,6 +98,10 @@ func (h *ApiHandler) AdminGetOrgTeam(gc *gin.Context) {
 
 			m.AvatarUrl = h.getAvatarURL(m.UserUuid)
 			invitedMembers = append(invitedMembers, m)
+		}
+
+		if err := rows.Err(); err != nil {
+			return ApiErrInternal("failed to load invitations")
 		}
 
 		return nil

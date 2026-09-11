@@ -251,7 +251,7 @@ func (h *ApiHandler) VerifyUserPassword(gc *gin.Context, userUuid string) error 
 	query := fmt.Sprintf(`SELECT password_hash FROM %s.user WHERE uuid = $1::uuid`, h.DbSchema)
 	err := h.DbPool.QueryRow(gc.Request.Context(), query, userUuid).Scan(&passwordHash)
 	if err != nil {
-		err.Error()
+		return errors.New("failed to verify password")
 	}
 
 	if app.ComparePasswords(passwordHash, body.Password) != nil {

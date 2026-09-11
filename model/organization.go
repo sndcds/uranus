@@ -5,13 +5,14 @@ import (
 )
 
 type OrgMember struct {
-	UserUuid     string     `json:"user_uuid"`
-	Email        string     `json:"email"`
-	Username     *string    `json:"username"`
-	DisplayName  *string    `json:"display_name"`
-	AvatarUrl    *string    `json:"avatar_url"`
-	LastActiveAt *time.Time `json:"last_active_at"`
-	JoinedAt     time.Time  `json:"joined_at"`
+	UserUuid           string     `json:"user_uuid"`
+	Email              string     `json:"email"`
+	Username           *string    `json:"username"`
+	DisplayName        *string    `json:"display_name"`
+	AvatarUrl          *string    `json:"avatar_url"`
+	LastActiveAt       *time.Time `json:"last_active_at"`
+	JoinedAt           time.Time  `json:"joined_at"`
+	PermissionsMissing bool       `json:"permissions_missing"`
 }
 
 type InvitedOrgMember struct {

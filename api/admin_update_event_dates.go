@@ -25,7 +25,7 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 
 	type datePayload struct {
 		DateUuid      *string `json:"uuid"`
-		ReleaseStatus *string `json:"release_status" binding:"required"`
+		ReleaseStatus *string `json:"release_status"`
 		VenueUuid     *string `json:"venue_uuid"`
 		SpaceUuid     *string `json:"space_uuid"`
 		StartDate     string  `json:"start_date" binding:"required"`
@@ -89,21 +89,22 @@ func (h *ApiHandler) AdminUpdateEventDates(gc *gin.Context) {
 				Err:  fmt.Errorf("delete missing event dates failed: %w", err),
 			}
 		}
+		defer rows.Close()
 
-		if app.UranusInstance.Config.DebugLevel == 1 {
-			defer rows.Close()
-
-			for rows.Next() {
-				var uuid string
-
-				if err := rows.Scan(&uuid); err != nil {
-					return &ApiTxError{
-						Code: http.StatusInternalServerError,
-						Err:  fmt.Errorf("scan deleted event date uuid failed: %w", err),
-					}
+		for rows.Next() {
+			var uuid string
+			if err := rows.Scan(&uuid); err != nil {
+				return &ApiTxError{
+					Code: http.StatusInternalServerError,
+					Err: fmt.Errorf("scan deleted event date uuid failed: %w", err),
 				}
+			}
+		}
 
-				debugf("AdminUpdateEventDates: DELETE event = %s date = %s", eventUuid, uuid)
+		if err := rows.Err(); err != nil {
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err: fmt.Errorf("reading deleted event date rows failed: %w", err),
 			}
 		}
 
