@@ -186,7 +186,7 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
-				Err:  fmt.Errorf("failed to insert event: %v, userUuid: %d", err, userUuid),
+				Err:  fmt.Errorf("failed to insert event: %v, userUuid: %s", err, userUuid),
 			}
 		}
 
@@ -214,7 +214,6 @@ func (h *ApiHandler) AdminCreateEvent(gc *gin.Context) {
 					return &ApiTxError{Code: http.StatusInternalServerError, Err: err}
 				}
 				if !venuePermissions.Has(app.UserPermChooseVenue) {
-					debugf("Forbidden userId %d, venueId: %d", userUuid, *d.VenueUuid)
 					return ApiErrForbidden("")
 				}
 
