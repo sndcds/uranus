@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -17,13 +15,13 @@ import (
 	"github.com/sndcds/uranus/app"
 )
 
-type OrganizationTeamInviteClaims struct {
+type OrgTeamInviteClaims struct {
 	UserUuid string `json:"user_uuid"`
 	OrgUuid  string `json:"org_uuid"`
 	jwt.RegisteredClaims
 }
 
-type OrganizationTeamInviteInfo struct {
+type OrgTeamInviteInfo struct {
 	OrgUuid    string  `json:"org_uuid"`
 	OrgName    string  `json:"org_name"`
 	OrgCity    *string `json:"org_city,omitempty"`
@@ -32,12 +30,20 @@ type OrganizationTeamInviteInfo struct {
 	OrgEmail   *string `json:"org_email,omitempty"`
 }
 
+type OrgTeamInviteXX struct {
+	Uuid        string
+	Email       string
+	DisplayName *string
+	FirstName   *string
+	LastName    *string
+	OrgName     *string
+	AcceptUrl   string
+}
+
 func (h *ApiHandler) AdminOrgTeamInvite(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-org-team-invite")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
-
-	lang := gc.DefaultQuery("lang", "en")
 
 	orgUuid := gc.Param("orgUuid")
 	if orgUuid == "" {
@@ -55,84 +61,100 @@ func (h *ApiHandler) AdminOrgTeamInvite(gc *gin.Context) {
 		return
 	}
 
-	apiMessage := ""
-	userAlreadyJoined := false
+	var invitedUser OrgTeamInviteXX
+	var userAlreadyJoined bool
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 
-		// Permission check
-		txErr := h.CheckOrgPermissionTx(gc, tx, userUuid, orgUuid, app.UserPermManageTeam)
+		// ---------------------------------------------------------------------
+		// Check permissions
+		// ---------------------------------------------------------------------
+
+		txErr := h.CheckOrgPermissionTx(
+			gc,
+			tx,
+			userUuid,
+			orgUuid,
+			app.UserPermManageTeam,
+		)
 		if txErr != nil {
 			return txErr
 		}
 
-		// Fetch invited user + org info
-		var invitedUserUuid string
-		var invitedUserDisplayName *string
-		var invitedUserFirstName *string
-		var invitedUserLastName *string
-		var orgName string
+		// ---------------------------------------------------------------------
+		// Fetch invited user and organization information
+		// ---------------------------------------------------------------------
+
 		err := tx.QueryRow(
 			ctx,
 			app.UranusInstance.SqlAdminInvitedOrgTeamMember,
 			orgUuid,
-			payload.Email).
-			Scan(
-				&invitedUserUuid,
-				&invitedUserDisplayName,
-				&invitedUserFirstName,
-				&invitedUserLastName,
-				&orgName)
+			payload.Email,
+		).Scan(
+			&invitedUser.Uuid,
+			&invitedUser.DisplayName,
+			&invitedUser.FirstName,
+			&invitedUser.LastName,
+			&invitedUser.OrgName,
+		)
 		if err != nil {
-			if err == pgx.ErrNoRows {
-				apiMessage = "user not found"
+			if errors.Is(err, pgx.ErrNoRows) {
 				return &ApiTxError{
 					Code: http.StatusNotFound,
-					Err:  errors.New(apiMessage),
+					Err:  errors.New("user not found"),
 				}
+			}
+
+			return &ApiTxError{
+				Code: http.StatusInternalServerError,
+				Err:  err,
 			}
 		}
 
-		// Generate token and send email to user
+		invitedUser.Email = payload.Email
+
+		// ---------------------------------------------------------------------
+		// Generate invitation token
+		// ---------------------------------------------------------------------
+
 		expiryMinutes := app.UranusInstance.Config.InvitationExpirationMinutes
-		tokenExp := time.Now().Add(time.Duration(expiryMinutes) * time.Minute)
-		tokenClaims := &OrganizationTeamInviteClaims{
-			UserUuid: invitedUserUuid,
+
+		tokenExp := time.Now().Add(
+			time.Duration(expiryMinutes) * time.Minute,
+		)
+
+		tokenClaims := &OrgTeamInviteClaims{
+			UserUuid: invitedUser.Uuid,
 			OrgUuid:  orgUuid,
 			RegisteredClaims: jwt.RegisteredClaims{
 				ExpiresAt: jwt.NewNumericDate(tokenExp),
 			},
 		}
 
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, tokenClaims)
-		tokenString, err := token.SignedString([]byte(h.Config.JwtSecret))
+		token := jwt.NewWithClaims(
+			jwt.SigningMethodHS256,
+			tokenClaims,
+		)
+
+		tokenString, err := token.SignedString(
+			[]byte(h.Config.JwtSecret),
+		)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
-				Err:  errors.New("error signing token"),
+				Err:  errors.New("error signing invitation token"),
 			}
 		}
 
-		var subject string
-		var template string
-		err = tx.QueryRow(
-			ctx,
-			app.UranusInstance.SqlGetSystemEmailTemplate,
-			"team-invite",
-			lang).
-			Scan(&subject, &template)
-		if err != nil {
-			return &ApiTxError{
-				Code: http.StatusInternalServerError,
-				Err:  errors.New("failed to get message template"),
-			}
-		}
+		// ---------------------------------------------------------------------
+		// Create/update invitation
+		// ---------------------------------------------------------------------
 
 		res, err := tx.Exec(
 			ctx,
 			app.UranusInstance.SqlAdminUpsertInvitedOrgTeamMember,
 			orgUuid,
-			invitedUserUuid,
+			invitedUser.Uuid,
 			tokenString,
 			userUuid,
 		)
@@ -148,42 +170,115 @@ func (h *ApiHandler) AdminOrgTeamInvite(gc *gin.Context) {
 			return nil
 		}
 
-		displayName := BuildUserLabel(payload.Email, invitedUserDisplayName, invitedUserFirstName, invitedUserLastName)
+		// ---------------------------------------------------------------------
+		// Prepare invitation URL
+		//
+		// The URL is only prepared here. The email is rendered and sent after
+		// the transaction has successfully committed.
+		// ---------------------------------------------------------------------
 
-		inviteAcceptUrl := payload.Referer + "/app/activate/team-invitation?token=" + tokenString
-		emailMessage := strings.Replace(template, "{{invite_link}}", inviteAcceptUrl, -1)
-		emailMessage = strings.Replace(emailMessage, "{{expiry_minutes}}", strconv.Itoa(expiryMinutes), -1)
-		emailMessage = strings.Replace(emailMessage, "{{display_name}}", displayName, -1)
-		emailMessage = strings.Replace(emailMessage, "{{organization_name}}", orgName, -1)
-
-		err = sendEmailWithTimeout(payload.Email, subject, emailMessage, 20*time.Second) // Todo: Use Config!
-		if err != nil {
-			debugf(err.Error())
-			return &ApiTxError{
-				Code: http.StatusInternalServerError,
-				Err:  err,
-			}
-		}
+		invitedUser.AcceptUrl =
+			payload.Referer +
+				"/app/activate/team-invitation?token=" +
+				tokenString
 
 		return nil
 	})
 
 	if txErr != nil {
-		if apiMessage != "" {
-			apiRequest.SuccessNoData(http.StatusOK, apiMessage)
-			return
-		}
 		debugf(txErr.Error())
-		apiRequest.Error(txErr.Code, "invitation could not be sent")
+		apiRequest.Error(
+			txErr.Code,
+			"invitation could not be created",
+		)
 		return
 	}
 
+	// The user is already a member, so no invitation email is required.
 	if userAlreadyJoined {
-		apiRequest.SuccessNoData(http.StatusCreated, "user has already joined the organization")
+		apiRequest.SuccessNoData(
+			http.StatusCreated,
+			"user has already joined the organization",
+		)
 		return
 	}
 
-	apiRequest.SuccessNoData(http.StatusCreated, "member invitation sent successfully")
+	// -------------------------------------------------------------------------
+	// Render invitation email
+	//
+	// The transaction has already committed at this point.
+	// -------------------------------------------------------------------------
+
+	locale, err := h.GetUserLocale(ctx, invitedUser.Uuid)
+	if err != nil {
+		debugf("failed to get invited user's locale: %v", err)
+		apiRequest.InternalServerError()
+		return
+	}
+
+	locale = app.NormalizeLocale(locale)
+
+	layoutPath := fmt.Sprintf(
+		"template/email/layout/%s.html",
+		locale,
+	)
+
+	contentPath := fmt.Sprintf(
+		"template/email/team-invite/%s.html",
+		locale,
+	)
+
+	displayName := BuildUserLabel(
+		invitedUser.Email,
+		invitedUser.DisplayName,
+		invitedUser.FirstName,
+		invitedUser.LastName,
+	)
+
+	data := struct {
+		Language         string
+		DisplayName      string
+		OrganizationName *string
+		InviteLink       string
+		ExpiryMinutes    int
+	}{
+		Language:         locale,
+		DisplayName:      displayName,
+		OrganizationName: invitedUser.OrgName,
+		InviteLink:       invitedUser.AcceptUrl,
+		ExpiryMinutes:    app.UranusInstance.Config.InvitationExpirationMinutes,
+	}
+
+	subject, emailMessage, err := app.RenderEmailTemplate(
+		layoutPath,
+		contentPath,
+		data,
+	)
+	if err != nil {
+		debugf("failed to render team invitation email: %v", err)
+		apiRequest.InternalServerError()
+		return
+	}
+
+	// -------------------------------------------------------------------------
+	// Send email asynchronously
+	// -------------------------------------------------------------------------
+
+	go func() {
+		if err := sendEmailWithTimeout(
+			payload.Email,
+			subject,
+			emailMessage,
+			20*time.Second,
+		); err != nil {
+			debugf("team invitation email failed: %v", err)
+		}
+	}()
+
+	apiRequest.SuccessNoData(
+		http.StatusCreated,
+		"member invitation sent successfully",
+	)
 }
 
 func (h *ApiHandler) OrgTeamInviteAccept(gc *gin.Context) {
@@ -199,10 +294,13 @@ func (h *ApiHandler) OrgTeamInviteAccept(gc *gin.Context) {
 		return
 	}
 
-	// Parse JWT token
+	// -------------------------------------------------------------------------
+	// Parse and validate invitation token
+	// -------------------------------------------------------------------------
+
 	token, err := jwt.ParseWithClaims(
 		req.Token,
-		&OrganizationTeamInviteClaims{},
+		&OrgTeamInviteClaims{},
 		func(token *jwt.Token) (interface{}, error) {
 			return []byte(h.Config.JwtSecret), nil
 		},
@@ -211,13 +309,19 @@ func (h *ApiHandler) OrgTeamInviteAccept(gc *gin.Context) {
 		}),
 	)
 	if err != nil {
-		apiRequest.Error(http.StatusUnauthorized, "")
+		apiRequest.Error(
+			http.StatusUnauthorized,
+			"invalid invitation",
+		)
 		return
 	}
 
-	claims, ok := token.Claims.(*OrganizationTeamInviteClaims)
+	claims, ok := token.Claims.(*OrgTeamInviteClaims)
 	if !ok || !token.Valid || claims.ExpiresAt == nil {
-		apiRequest.Error(http.StatusUnauthorized, "")
+		apiRequest.Error(
+			http.StatusUnauthorized,
+			"invalid invitation",
+		)
 		return
 	}
 
@@ -225,34 +329,48 @@ func (h *ApiHandler) OrgTeamInviteAccept(gc *gin.Context) {
 	orgUuid := claims.OrgUuid
 
 	if _, err := uuid.Parse(userUuid); err != nil {
-		apiRequest.Error(http.StatusUnauthorized, "invalid invitation")
-		return
-	}
-	if _, err := uuid.Parse(orgUuid); err != nil {
-		apiRequest.Error(http.StatusUnauthorized, "invalid invitation")
+		apiRequest.Error(
+			http.StatusUnauthorized,
+			"invalid invitation",
+		)
 		return
 	}
 
-	var orgInfo OrganizationTeamInviteInfo
+	if _, err := uuid.Parse(orgUuid); err != nil {
+		apiRequest.Error(
+			http.StatusUnauthorized,
+			"invalid invitation",
+		)
+		return
+	}
+
+	var orgInfo OrgTeamInviteInfo
 	orgInfo.OrgUuid = orgUuid
 
-	var invitedAt time.Time
 	var invitedByUserUuid *string
-	var hasJoined bool
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 
-		// Query stored activation token
+		// ---------------------------------------------------------------------
+		// Load and lock invitation
+		// ---------------------------------------------------------------------
+
 		var storedToken *string
+		var hasJoined bool
 
 		query := fmt.Sprintf(`
-			SELECT accept_token, invited_by_user_uuid, has_joined
+			SELECT
+				accept_token,
+				invited_by_user_uuid,
+				has_joined
 			FROM %s.organization_member_link
 			WHERE user_uuid = $1::uuid
-			    AND org_uuid = $2::uuid
+			  AND org_uuid = $2::uuid
 			FOR UPDATE`,
-			h.DbSchema)
-		err = tx.QueryRow(
+			h.DbSchema,
+		)
+
+		err := tx.QueryRow(
 			ctx,
 			query,
 			userUuid,
@@ -260,75 +378,107 @@ func (h *ApiHandler) OrgTeamInviteAccept(gc *gin.Context) {
 		).Scan(
 			&storedToken,
 			&invitedByUserUuid,
-			&hasJoined)
+			&hasJoined,
+		)
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return &ApiTxError{
 					Code: http.StatusNotFound,
-					Err:  err,
+					Err:  errors.New("invitation not found"),
 				}
 			}
+
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
 				Err:  err,
 			}
 		}
 
-		// Compare tokens
-		if storedToken == nil {
-			return &ApiTxError{
-				Code: http.StatusUnauthorized,
-				Err:  fmt.Errorf("missing token"),
-			}
-		}
+		// ---------------------------------------------------------------------
+		// Validate stored invitation
+		// ---------------------------------------------------------------------
 
 		if hasJoined {
 			return &ApiTxError{
 				Code: http.StatusUnauthorized,
-				Err:  fmt.Errorf("allready joined"),
+				Err:  errors.New("already joined"),
+			}
+		}
+
+		if storedToken == nil || *storedToken == "" {
+			return &ApiTxError{
+				Code: http.StatusUnauthorized,
+				Err:  errors.New("missing invitation token"),
 			}
 		}
 
 		if *storedToken != req.Token {
 			return &ApiTxError{
 				Code: http.StatusUnauthorized,
-				Err:  fmt.Errorf("token mismatch"),
+				Err:  errors.New("invitation token mismatch"),
 			}
 		}
 
-		// Activate account
+		// ---------------------------------------------------------------------
+		// Accept invitation
+		// ---------------------------------------------------------------------
+
 		updateQuery := fmt.Sprintf(
 			`UPDATE %s.organization_member_link
-			SET has_joined = TRUE, accept_token = NULL
-			WHERE org_uuid = $1::uuid
-			    AND user_uuid = $2::uuid`,
-			h.DbSchema)
-		_, err = tx.Exec(ctx, updateQuery, orgUuid, userUuid)
+			 SET has_joined = TRUE,
+			     accept_token = NULL
+			 WHERE org_uuid = $1::uuid
+			   AND user_uuid = $2::uuid`,
+			h.DbSchema,
+		)
+
+		_, err = tx.Exec(
+			ctx,
+			updateQuery,
+			orgUuid,
+			userUuid,
+		)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
-				Err:  fmt.Errorf("failed to accept invite"),
+				Err:  errors.New("failed to accept invitation"),
 			}
 		}
 
-		// Create user organization link
+		// ---------------------------------------------------------------------
+		// Create user/organization link
+		// ---------------------------------------------------------------------
+
 		uolQuery := fmt.Sprintf(`
 			INSERT INTO %s.user_organization_link (user_uuid, org_uuid, permissions)
-			VALUES ($1::uuid, $2::uuid, $3)`,
+			VALUES ($1::uuid, $2::uuid, $3)
+			ON CONFLICT (user_uuid, org_uuid) DO NOTHING`,
 			h.DbSchema)
+
 		_, err = tx.Exec(ctx, uolQuery, userUuid, orgUuid, 0)
 		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
-				Err:  fmt.Errorf("failed to accept invite"),
+				Err:  fmt.Errorf("failed to add user to organization: %w", err),
 			}
 		}
 
-		orgQuery := fmt.Sprintf(`
-			SELECT name, city, country, web_link, contact_email
+		// ---------------------------------------------------------------------
+		// Fetch organization information
+		// ---------------------------------------------------------------------
+
+		orgQuery := fmt.Sprintf(
+			`SELECT
+				name,
+				city,
+				country,
+				web_link,
+				contact_email
 			FROM %s.organization
 			WHERE uuid = $1::uuid`,
-			h.DbSchema)
+			h.DbSchema,
+		)
+
 		err = tx.QueryRow(
 			ctx,
 			orgQuery,
@@ -341,43 +491,37 @@ func (h *ApiHandler) OrgTeamInviteAccept(gc *gin.Context) {
 			&orgInfo.OrgEmail,
 		)
 		if err != nil {
-			return &ApiTxError{
-				Code: http.StatusInternalServerError,
-				Err:  fmt.Errorf("failed to get organization info"),
+			if errors.Is(err, pgx.ErrNoRows) {
+				return &ApiTxError{
+					Code: http.StatusNotFound,
+					Err:  errors.New("organization not found"),
+				}
 			}
-		}
 
-		omlQuery := fmt.Sprintf(`
-			SELECT invited_at, invited_by_user_uuid
-			FROM %s.organization_member_link
-			WHERE user_uuid = $1::uuid
-		        AND org_uuid = $2::uuid`,
-			h.DbSchema)
-
-		err = tx.QueryRow(ctx, omlQuery, userUuid, orgUuid).
-			Scan(&invitedAt, &invitedByUserUuid)
-		if err != nil {
 			return &ApiTxError{
 				Code: http.StatusInternalServerError,
-				Err:  fmt.Errorf("failed to get organization member link: %w", err),
+				Err:  errors.New("failed to get organization information"),
 			}
 		}
 
 		return nil
 	})
+
 	if txErr != nil {
-		apiRequest.InternalServerError()
+		debugf(txErr.Error())
+		apiRequest.Error(txErr.Code, txErr.Error())
 		return
 	}
 
-	// Invitation was successfully accepted.
-	// Trigger notification to the original inviter here.
+	// -------------------------------------------------------------------------
+	// Notify inviter after successful commit
+	// -------------------------------------------------------------------------
+
 	if invitedByUserUuid != nil {
 		go func() {
 			if err := h.sendOrgInviteAcceptedEmail(
 				userUuid,
 				*invitedByUserUuid,
-				invitedAt,
 				orgUuid,
 			); err != nil {
 				debugf("invite acceptance email failed: %v", err)
@@ -391,41 +535,79 @@ func (h *ApiHandler) OrgTeamInviteAccept(gc *gin.Context) {
 func (h *ApiHandler) sendOrgInviteAcceptedEmail(
 	userUuid string,
 	invitedByUserUuid string,
-	invitedAt time.Time,
 	orgUuid string,
 ) error {
 
-	userEmail, err := h.GetUserEmail(context.Background(), userUuid)
+	ctx := context.Background()
+
+	userEmail, err := h.GetUserEmail(ctx, userUuid)
 	if err != nil {
-		// Todo: Log
 		return err
 	}
 
-	inviterEmail, err := h.GetUserEmail(context.Background(), invitedByUserUuid)
+	inviterEmail, err := h.GetUserEmail(ctx, invitedByUserUuid)
 	if err != nil {
-		// Todo: Log
 		return err
 	}
 
-	orgName, orgCity, err := h.GetOrgNameAndCity(context.Background(), orgUuid)
+	orgName, orgCity, err := h.GetOrgNameAndCity(ctx, orgUuid)
 	if err != nil {
-		// Todo: Log
 		return err
 	}
 
-	fmt.Println("userEmail:", userEmail)
-	fmt.Println("inviterEmail:", inviterEmail)
-	fmt.Println("orgName:", orgName)
-	fmt.Println("orgCity:", orgCity)
-	/*
-		err = sendEmailWithTimeout(
-			"inviter@example.com",
-			"Invitation accepted",
-			"<p>Your invitation has been accepted.</p>",
-			10*time.Second,
-		)
+	locale, err := h.GetUserLocale(ctx, invitedByUserUuid)
+	if err != nil {
+		return err
+	}
 
-		fmt.Println("SendOrgInviteAcceptedEmail", invitedAt, invitedByUserUuid, orgUuid)
-	*/
-	return nil
+	locale = app.NormalizeLocale(locale)
+
+	layoutPath := fmt.Sprintf(
+		"template/email/layout/%s.html",
+		locale,
+	)
+
+	contentPath := fmt.Sprintf(
+		"template/email/team-member-accepted/%s.html",
+		locale,
+	)
+
+	// http://localhost:5173/admin/org/{orguuid}/member/{invitedByUserUuid}/permissions
+
+	redirectLink := fmt.Sprintf(
+		"%s/admin/org/%s/member/%s/permissions",
+		app.UranusInstance.Config.FrontendDashboard,
+		orgUuid,
+		userUuid,
+	)
+
+	data := struct {
+		Language     string
+		UserEmail    string
+		OrgName      string
+		OrgCity      string
+		RedirectLink string
+	}{
+		Language:     locale,
+		UserEmail:    userEmail,
+		OrgName:      orgName,
+		OrgCity:      orgCity,
+		RedirectLink: redirectLink,
+	}
+
+	subject, body, err := app.RenderEmailTemplate(
+		layoutPath,
+		contentPath,
+		data,
+	)
+	if err != nil {
+		return err
+	}
+
+	return sendEmailWithTimeout(
+		inviterEmail,
+		subject,
+		body,
+		60*time.Second,
+	)
 }

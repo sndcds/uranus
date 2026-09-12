@@ -32,7 +32,7 @@ func (h *ApiHandler) GetOrgNameAndCity(ctx context.Context, orgUuid string) (str
 	var name string
 	var city string
 
-	err := h.DbPool.QueryRow(ctx, query, orgUuid).Scan(&name, city)
+	err := h.DbPool.QueryRow(ctx, query, orgUuid).Scan(&name, &city)
 	if err != nil {
 		return "", "", err
 	}

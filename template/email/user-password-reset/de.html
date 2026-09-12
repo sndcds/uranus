@@ -1,0 +1,42 @@
+{{define "subject"}}kulturbytes – Setze dein Passwort zurück{{end}}
+
+{{define "content"}}
+
+<h1 class="heading">
+    Passwort zurücksetzen
+</h1>
+
+<p class="text">
+    Du hast angefordert, dein Passwort für kulturbytes zurückzusetzen.
+</p>
+
+<p class="text">
+    Klicke auf den folgenden Button, um ein neues Passwort festzulegen:
+</p>
+
+<p class="button-container">
+    <a href="{{.ResetLink}}"
+       class="button"
+       target="_blank"
+       rel="noopener noreferrer">
+        Passwort zurücksetzen
+    </a>
+</p>
+
+<p class="muted">
+    Der Link ist {{.ExpiryHours}} Stunde gültig.
+</p>
+
+<p class="muted">
+    Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br/>
+    <a href="{{.ResetLink}}" class="link">
+        {{.ResetLink}}
+    </a>
+</p>
+
+<p class="footer">
+    Viele Grüße,<br/>
+    <strong>Dein kulturbytes-Team</strong>
+</p>
+
+{{end}}

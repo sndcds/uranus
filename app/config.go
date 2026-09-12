@@ -15,7 +15,8 @@ type Config struct {
 	Port                        int      `json:"port"`
 	BaseApiUrl                  string   `json:"base_api_url"`
 	IcsDomain                   string   `json:"ics_domain"`
-	Frontend                    string   `json:"frontend"`
+	FrontendDashboard           string   `json:"frontend-dashboard"`
+	FrontendClient              string   `json:"frontend-client"`
 	UseRouterMiddleware         bool     `json:"use_router_middleware"`
 	SupportedLanguages          []string `json:"supported_languages"`
 	DbHost                      string   `json:"db_host"`

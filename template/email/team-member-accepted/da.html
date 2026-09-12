@@ -1,0 +1,46 @@
+{{define "subject"}}kulturbytes – En bruger har accepteret din invitation{{end}}
+
+{{define "content"}}
+
+<h1 class="heading">
+    Hej,
+</h1>
+
+<p class="text">
+    Brugeren med e-mailadressen <strong>{{.UserEmail}}</strong>
+    har accepteret din invitation og er nu medlem af teamet hos
+    <strong>{{.OrgName}}</strong>, {{.OrgCity}}.
+</p>
+
+<p class="text">
+    Du kan nu fastsætte rettighederne for det nye teammedlem
+    og dermed bestemme, hvilke data personen kan redigere
+    for organisationen.
+</p>
+
+<p class="button-container">
+    <a href="{{.RedirectLink}}"
+       class="button"
+       target="_blank"
+       rel="noopener noreferrer">
+        Administrer rettigheder
+    </a>
+</p>
+
+<p class="muted">
+    Hvis knappen ikke fungerer, kan du kopiere dette link til din browser:<br/>
+    <a href="{{.RedirectLink}}" class="link">
+        {{.RedirectLink}}
+    </a>
+</p>
+
+<p class="footer">
+    Mange hilsner,<br/>
+    <strong>Dit kulturbytes-team</strong><br/><br/>
+
+    <a href="https://kulturbytes.de" class="link">
+        kulturbytes.de
+    </a>
+</p>
+
+{{end}}
