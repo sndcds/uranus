@@ -1,13 +1,11 @@
 package api
 
 import (
-	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
 	"net/http"
 	"net/smtp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -24,8 +22,6 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	successMessage := "If an account exists, a reset link has been sent."
 
-	fmt.Println("Hallo")
-
 	var payload struct {
 		Email   string `json:"email" binding:"required,email"`
 		Referer string `json:"referer" binding:"required"`
@@ -36,7 +32,9 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 		return
 	}
 
-	lang := gc.DefaultQuery("lang", "en")
+	locale := app.NormalizeLocale(
+		gc.DefaultQuery("lang", "en"),
+	)
 
 	query := fmt.Sprintf("SELECT uuid FROM %s.user WHERE email = $1", h.DbSchema)
 
@@ -54,14 +52,17 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 		return
 	}
 
+	//--------------------------------------------------------------------------
 	// Store token in DB with expiry
+	//--------------------------------------------------------------------------
+
 	query = fmt.Sprintf(`
 		INSERT INTO %s.password_reset (user_uuid, token, expires_at)
 		VALUES ($1::uuid, $2, $3)`,
 		h.DbSchema)
 
-	expiryHour := 1
-	_, err = h.DbPool.Exec(ctx, query, userUuid, token, time.Now().Add(time.Duration(expiryHour)*time.Hour))
+	expiryHours := 1
+	_, err = h.DbPool.Exec(ctx, query, userUuid, token, time.Now().Add(time.Duration(expiryHours)*time.Hour))
 	if err != nil {
 		debugf(err.Error())
 		apiRequest.InternalServerError()
@@ -70,34 +71,51 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 
 	resetUrl := payload.Referer + "/app/reset-password?token=" + token
 
-	messageQuery := fmt.Sprintf(`SELECT subject, template FROM %s.system_email_template WHERE context = 'reset-user-password' AND iso_639_1 = $1`, h.DbSchema)
-	_, err = h.DbPool.Exec(gc, messageQuery, lang)
-	if err != nil {
-		debugf(err.Error())
-		apiRequest.InternalServerError()
-		return
-	}
-	var subject string
-	var template string
-	err = h.DbPool.QueryRow(gc, messageQuery, lang).Scan(&subject, &template)
-	if err != nil {
-		debugf(err.Error())
-		apiRequest.InternalServerError()
-		return
-	}
-	emailContent := strings.Replace(template, "{{link}}", resetUrl, -1)
-	emailContent = strings.Replace(emailContent, "{{expiry_hours}}", strconv.Itoa(expiryHour), -1)
+	//--------------------------------------------------------------------------
+	// Email template
+	//--------------------------------------------------------------------------
 
-	// Create a context with timeout for sending email
-	emailCtx, cancel := context.WithTimeout(ctx, 10*time.Second) // 10s timeout
-	defer cancel()
+	layoutPath := fmt.Sprintf(
+		"template/email/layout/%s.html",
+		locale,
+	)
 
-	err = sendEmailWithContext(emailCtx, payload.Email, subject, emailContent)
+	contentPath := fmt.Sprintf(
+		"template/email/user-password-reset/%s.html",
+		locale,
+	)
+
+	data := struct {
+		Language    string
+		ResetLink   string
+		ExpiryHours int
+	}{
+		Language:    locale,
+		ResetLink:   resetUrl,
+		ExpiryHours: expiryHours,
+	}
+
+	subject, emailContent, err := app.RenderEmailTemplate(
+		layoutPath,
+		contentPath,
+		data,
+	)
 	if err != nil {
-		debugf(err.Error())
+		debugf("failed to render password reset email: %v", err)
 		apiRequest.InternalServerError()
 		return
 	}
+
+	go func() {
+		if err := sendEmailWithTimeout(
+			payload.Email,
+			subject,
+			emailContent,
+			20*time.Second,
+		); err != nil {
+			debugf("password reset email failed: %v", err)
+		}
+	}()
 
 	apiRequest.SuccessNoData(http.StatusOK, successMessage)
 }
@@ -121,18 +139,34 @@ func (h *ApiHandler) ResetPassword(gc *gin.Context) {
 	var expiresAt time.Time
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-		query := fmt.Sprintf(`SELECT user_uuid, expires_at FROM %s.password_reset WHERE token = $1`, h.DbSchema)
+		query := fmt.Sprintf(`
+			SELECT user_uuid, expires_at
+			FROM %s.password_reset
+			WHERE token = $1
+			AND expires_at > NOW()`,
+			h.DbSchema)
+
 		err := tx.QueryRow(
 			ctx,
 			query,
-			req.Token).Scan(&userUuid, &expiresAt)
+			req.Token,
+		).Scan(&userUuid, &expiresAt)
+
+		if err != nil {
+			return TxInternalError(err)
+		}
+
 		if err != nil {
 			return TxInternalError(nil)
 		}
 
 		var userEmail string
 		query = fmt.Sprintf(`SELECT email FROM %s.user WHERE uuid = $1::uuid`, h.DbSchema)
-		err = tx.QueryRow(ctx, query, userUuid).Scan(&userEmail)
+		err = tx.QueryRow(
+			ctx, query,
+			userUuid,
+		).Scan(&userEmail)
+
 		if err != nil {
 			return TxInternalError(nil)
 		}
@@ -182,22 +216,25 @@ func generateResetToken() (string, error) {
 	return base64.URLEncoding.EncodeToString(b), nil
 }
 
-func sendEmailWithTimeout(to, subject, htmlContent string, timeout time.Duration) error {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
+func sendEmailWithTimeout(
+	to, subject, htmlContent string,
+	timeout time.Duration,
+) error {
 	errCh := make(chan error, 1)
 
 	go func() {
 		errCh <- sendEmail(to, subject, htmlContent)
 	}()
 
-	select {
-	case <-ctx.Done():
-		return fmt.Errorf("send email timeout: %w", ctx.Err())
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
 
+	select {
 	case err := <-errCh:
 		return err
+
+	case <-timer.C:
+		return fmt.Errorf("send email timeout after %s", timeout)
 	}
 }
 
@@ -208,13 +245,11 @@ func sendEmail(to, subject string, htmlContent string) error {
 	smtpHost := app.UranusInstance.Config.AuthSmtpHost
 	smtpPort := app.UranusInstance.Config.AuthSmtpPort // int
 
-	debugf("sendEmail from: %s", from)
 	asciiFrom, err := encodeEmailAddress(from)
 	if err != nil {
 		return fmt.Errorf("unable to send email 1: %s", err.Error())
 	}
 
-	debugf("sendEmail to: %s", to)
 	asciiTo, err := encodeEmailAddress(to)
 	if err != nil {
 		return fmt.Errorf("unable to send email 2: %s", err.Error())
@@ -229,15 +264,16 @@ func sendEmail(to, subject string, htmlContent string) error {
 			"To: " + asciiTo + "\r\n" +
 			"From: " + asciiFrom + "\r\n" +
 			"Content-Type: text/html; charset=\"UTF-8\"\r\n" +
+			"Content-Transfer-Encoding: 8bit\r\n" +
 			"\r\n" +
 			htmlContent + "\r\n")
 
 	auth := smtp.PlainAuth("", userName, password, smtpHost)
 	addr := fmt.Sprintf("%s:%d", smtpHost, smtpPort)
 
-	err = smtp.SendMail(addr, auth, userName, []string{to}, message)
+	err = smtp.SendMail(addr, auth, userName, []string{asciiTo}, message)
 	if err != nil {
-		return fmt.Errorf("unable to send email 3: %s", err.Error())
+		return fmt.Errorf("unable to send email: %w", err)
 	}
 
 	return nil

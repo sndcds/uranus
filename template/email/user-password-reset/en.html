@@ -1,0 +1,42 @@
+{{define "subject"}}kulturbytes – Reset your password{{end}}
+
+{{define "content"}}
+
+<h1 class="heading">
+    Reset your password
+</h1>
+
+<p class="text">
+    You requested to reset your password for kulturbytes.
+</p>
+
+<p class="text">
+    Click the button below to set a new password:
+</p>
+
+<p class="button-container">
+    <a href="{{.ResetLink}}"
+       class="button"
+       target="_blank"
+       rel="noopener noreferrer">
+        Reset password
+    </a>
+</p>
+
+<p class="muted">
+    The link is valid for {{.ExpiryHours}} hour.
+</p>
+
+<p class="muted">
+    If the button does not work, copy this link into your browser:<br/>
+    <a href="{{.ResetLink}}" class="link">
+        {{.ResetLink}}
+    </a>
+</p>
+
+<p class="footer">
+    Best regards,<br/>
+    <strong>Your kulturbytes team</strong>
+</p>
+
+{{end}}

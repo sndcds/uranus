@@ -1,0 +1,46 @@
+{{define "subject"}}kulturbytes – Ein User hat deine Einladung angenommen{{end}}
+
+{{define "content"}}
+
+<h1 class="heading">
+    Hallo,
+</h1>
+
+<p class="text">
+    Der User mit der E-Mail-Adresse <strong>{{.UserEmail}}</strong>
+    hat deine Einladung angenommen und ist nun Mitglied im Team von
+    <strong>{{.OrgName}}</strong>, {{.OrgCity}}.
+</p>
+
+<p class="text">
+    Du kannst nun die Rechte des neuen Teammitglieds festlegen
+    und damit steuern, welche Daten es für die Organisation
+    bearbeiten kann.
+</p>
+
+<p class="button-container">
+    <a href="{{.RedirectLink}}"
+       class="button"
+       target="_blank"
+       rel="noopener noreferrer">
+        Rechte verwalten
+    </a>
+</p>
+
+<p class="muted">
+    Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br/>
+    <a href="{{.RedirectLink}}" class="link">
+        {{.RedirectLink}}
+    </a>
+</p>
+
+<p class="footer">
+    Viele Grüße,<br/>
+    <strong>Dein kulturbytes-Team</strong><br/><br/>
+
+    <a href="https://kulturbytes.de" class="link">
+        kulturbytes.de
+    </a>
+</p>
+
+{{end}}

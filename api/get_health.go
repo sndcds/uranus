@@ -1,47 +1,21 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"runtime/metrics"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/grains/grains_file"
 	"github.com/sndcds/uranus/app"
+	"github.com/sndcds/uranus/model"
 
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/host"
 	"github.com/shirou/gopsutil/v3/mem"
 )
-
-type HealthResponse struct {
-	Status      string                     `json:"status"`
-	Goroutines  map[string]uint64          `json:"goroutines"`
-	Threads     map[string]uint64          `json:"threads"`
-	CPU         CPUInfo                    `json:"cpu"`
-	Memory      MemoryInfo                 `json:"memory"`
-	Host        HostInfo                   `json:"host"`
-	Dirs        []grains_file.MultiDirInfo `json:"dirs"`
-	Temperature interface{}                `json:"temperature"`
-}
-
-type CPUInfo struct {
-	UsagePercent []float64 `json:"usage_percent"`
-}
-
-type MemoryInfo struct {
-	Total       uint64  `json:"total"`
-	Available   uint64  `json:"available"`
-	Used        uint64  `json:"used"`
-	UsedPercent float64 `json:"used_percent"`
-}
-
-type HostInfo struct {
-	Hostname string `json:"hostname"`
-	Uptime   uint64 `json:"uptime"`
-	OS       string `json:"os"`
-	Platform string `json:"platform"`
-}
 
 func (h *ApiHandler) GetHealth(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-health")
@@ -81,20 +55,20 @@ func (h *ApiHandler) GetHealth(gc *gin.Context) {
 
 	multiStats := grains_file.MultiDirStats(dirs)
 
-	resp := HealthResponse{
+	resp := model.HealthResponse{
 		Status:     "ok",
 		Goroutines: goroutines,
 		Threads:    threads,
-		CPU: CPUInfo{
+		CPU: model.CPUInfo{
 			UsagePercent: cpuPercent,
 		},
-		Memory: MemoryInfo{
+		Memory: model.MemoryInfo{
 			Total:       vmStat.Total,
 			Available:   vmStat.Available,
 			Used:        vmStat.Used,
 			UsedPercent: vmStat.UsedPercent,
 		},
-		Host: HostInfo{
+		Host: model.HostInfo{
 			Hostname: hostInfo.Hostname,
 			Uptime:   hostInfo.Uptime,
 			OS:       hostInfo.OS,
@@ -105,6 +79,46 @@ func (h *ApiHandler) GetHealth(gc *gin.Context) {
 	}
 
 	apiRequest.Success(http.StatusOK, resp)
+}
+
+func (h *ApiHandler) GetServerInfo(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "get-server-info")
+
+	ctx := gc.Request.Context()
+
+	// Database check with its own short timeout.
+	dbCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
+	databaseStatus := "ok"
+
+	var result int
+	if err := h.DbPool.QueryRow(dbCtx, "SELECT 1").Scan(&result); err != nil {
+		databaseStatus = "error"
+	}
+
+	// Server uptime.
+	hostInfo, err := host.Info()
+	if err != nil {
+		apiRequest.InternalServerError()
+		return
+	}
+
+	status := "ok"
+	httpStatus := http.StatusOK
+
+	if databaseStatus != "ok" {
+		status = "error"
+		httpStatus = http.StatusServiceUnavailable
+	}
+
+	resp := model.ServerInfoResponse{
+		Status:   status,
+		Database: databaseStatus,
+		Uptime:   hostInfo.Uptime,
+	}
+
+	apiRequest.Success(httpStatus, resp)
 }
 
 // Helper function to read a metric safely

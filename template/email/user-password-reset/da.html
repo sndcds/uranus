@@ -1,0 +1,42 @@
+{{define "subject"}}kulturbytes – Nulstil din adgangskode{{end}}
+
+{{define "content"}}
+
+<h1 class="heading">
+    Nulstil adgangskode
+</h1>
+
+<p class="text">
+    Du har bedt om at få nulstillet din adgangskode til kulturbytes.
+</p>
+
+<p class="text">
+    Klik på knappen nedenfor for at oprette en ny adgangskode:
+</p>
+
+<p class="button-container">
+    <a href="{{.ResetLink}}"
+       class="button"
+       target="_blank"
+       rel="noopener noreferrer">
+        Nulstil adgangskode
+    </a>
+</p>
+
+<p class="muted">
+    Linket er gyldigt i {{.ExpiryHours}} time.
+</p>
+
+<p class="muted">
+    Hvis knappen ikke virker, kan du kopiere dette link til din browser:<br/>
+    <a href="{{.ResetLink}}" class="link">
+        {{.ResetLink}}
+    </a>
+</p>
+
+<p class="footer">
+    Mange hilsner,<br/>
+    <strong>Dit kulturbytes-team</strong>
+</p>
+
+{{end}}

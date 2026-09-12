@@ -1,0 +1,45 @@
+{{define "subject"}}kulturbytes – A user has accepted your invitation{{end}}
+
+{{define "content"}}
+
+<h1 class="heading">
+    Hello,
+</h1>
+
+<p class="text">
+    The user with the email address <strong>{{.UserEmail}}</strong>
+    has accepted your invitation and is now a member of the team at
+    <strong>{{.OrgName}}</strong>, {{.OrgCity}}.
+</p>
+
+<p class="text">
+    You can now set the permissions for the new team member
+    and control which data they can edit for the organization.
+</p>
+
+<p class="button-container">
+    <a href="{{.RedirectLink}}"
+       class="button"
+       target="_blank"
+       rel="noopener noreferrer">
+        Manage permissions
+    </a>
+</p>
+
+<p class="muted">
+    If the button does not work, copy this link into your browser:<br/>
+    <a href="{{.RedirectLink}}" class="link">
+        {{.RedirectLink}}
+    </a>
+</p>
+
+<p class="footer">
+    Best regards,<br/>
+    <strong>Your kulturbytes team</strong><br/><br/>
+
+    <a href="https://kulturbytes.de" class="link">
+        kulturbytes.de
+    </a>
+</p>
+
+{{end}}

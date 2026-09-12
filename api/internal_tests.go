@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -12,7 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/grains/grains_api"
-	"github.com/sndcds/grains/grains_uuid"
 	"github.com/sndcds/uranus/model"
 	"golang.org/x/net/html"
 )
@@ -30,74 +28,6 @@ type ShareMeta struct {
 	StartTimeSEO  string
 	EndTimeSEO    string
 	OGDescription string
-}
-
-func (h *ApiHandler) InternalTest(gc *gin.Context) {
-	ctx := gc.Request.Context()
-	eventUuid := gc.Param("eventUuid")
-	dateIdentifier := gc.Param("dateIdentifier")
-
-	var dateUuid string
-	if grains_uuid.IsValidUuidv7(dateIdentifier) {
-		dateUuid = dateIdentifier
-	} else {
-		resolvedDateUuid, err := h.ResolveEventDateUuidFromSlug(ctx, eventUuid, dateIdentifier)
-		if err != nil {
-			gc.JSON(http.StatusNotFound, gin.H{
-				"error": "internal server error",
-			})
-			return
-		}
-		dateUuid = resolvedDateUuid
-	}
-
-	// Load everything via shared function
-
-	event, err := h.LoadEventByDateIdentifier(
-		gc.Request.Context(),
-		eventUuid,
-		dateUuid,
-		"",
-		"de") // TODO: locale via URL
-
-	if err != nil {
-		gc.String(http.StatusNotFound, err.Error())
-		return
-	}
-
-	if event.Date == nil {
-		log.Println("event.Date is nil")
-	} else {
-		log.Printf("selectedDate: %+v", *event.Date)
-	}
-
-	imageURL := ""
-	if event.Images != nil {
-		if main, ok := event.Images["main"]; ok && main.Uuid != "" {
-			imageURL = h.BuildOGImageURL(main.Uuid)
-		}
-	}
-
-	gc.Header("Content-Type", "text/html; charset=utf-8")
-
-	eventUrl := fmt.Sprintf(
-		"%s/event/%s/date/%s",
-		h.Config.Frontend,
-		eventUuid,
-		dateUuid,
-	)
-
-	sm := BuildShareMeta(event, event.Date, imageURL, eventUrl)
-	shareData := struct {
-		Share ShareMeta
-	}{
-		Share: sm,
-	}
-
-	if err := h.EventTemplate.Execute(gc.Writer, shareData); err != nil {
-		gc.String(http.StatusInternalServerError, err.Error())
-	}
-	return
 }
 
 func (h *ApiHandler) InternalMigrateVenues(gc *gin.Context) {
