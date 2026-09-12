@@ -1,12 +1,9 @@
 package api
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -21,7 +18,6 @@ import (
 func (h *ApiHandler) Signup(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "signup")
 	ctx := gc.Request.Context()
-	lang := gc.DefaultQuery("lang", "en")
 
 	var payload struct {
 		Email    string `json:"email" binding:"required,email"`
@@ -34,7 +30,14 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 		return
 	}
 
-	// Validate the password before performing the expensive bcrypt hash.
+	locale := app.NormalizeLocale(
+		gc.DefaultQuery("lang", "en"),
+	)
+
+	//--------------------------------------------------------------------------
+	// Validate input
+	//--------------------------------------------------------------------------
+
 	if err := grains_validation.ValidatePassword(
 		payload.Email,
 		payload.Password,
@@ -58,6 +61,10 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 		return
 	}
 
+	//--------------------------------------------------------------------------
+	// Hash password
+	//--------------------------------------------------------------------------
+
 	passwordHash, err := app.EncryptPassword(payload.Password)
 	if err != nil {
 		debugf("failed to hash password: %v", err)
@@ -65,57 +72,62 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 		return
 	}
 
-	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-		// Check if user already exists.
-		var exists bool
+	//--------------------------------------------------------------------------
+	// Create user
+	//--------------------------------------------------------------------------
 
-		checkQuery := fmt.Sprintf(
+	const expiryHours = 1
+
+	var userUuid string
+	var signupTokenString string
+
+	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
+
+		// Check if user already exists.
+		query := fmt.Sprintf(
 			"SELECT EXISTS(SELECT 1 FROM %s.user WHERE email = $1)",
 			h.DbSchema,
 		)
 
-		err := tx.QueryRow(
+		var exists bool
+		if err := tx.QueryRow(
 			ctx,
-			checkQuery,
+			query,
 			payload.Email,
-		).Scan(&exists)
-
-		if err != nil {
-			return TxInternalError(nil)
+		).Scan(&exists); err != nil {
+			return TxInternalError(err)
 		}
 
 		if exists {
 			return TxInternalError(nil)
 		}
 
-		userUuid, err := grains_uuid.Uuidv7String()
+		// Generate user UUID.
+		userUuid, err = grains_uuid.Uuidv7String()
 		if err != nil {
-			return TxInternalError(nil)
+			return TxInternalError(err)
 		}
 
-		insertQuery := fmt.Sprintf(
+		// Insert user.
+		query = fmt.Sprintf(
 			`INSERT INTO %s.user
-				(uuid, email, password_hash)
-			 VALUES
-				($1::uuid, $2, $3)`,
+			(uuid, email, password_hash)
+			VALUES
+			($1::uuid, $2, $3)`,
 			h.DbSchema,
 		)
 
-		_, err = tx.Exec(
+		if _, err = tx.Exec(
 			ctx,
-			insertQuery,
+			query,
 			userUuid,
 			payload.Email,
 			passwordHash,
-		)
-
-		if err != nil {
-			return TxInternalError(nil)
+		); err != nil {
+			return TxInternalError(err)
 		}
 
 		// Generate account activation token.
-		const expiryHours = 1
-
 		signupExp := time.Now().Add(
 			time.Duration(expiryHours) * time.Hour,
 		)
@@ -132,79 +144,29 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 			signupClaims,
 		)
 
-		signupTokenString, err := signupToken.SignedString(
+		signupTokenString, err = signupToken.SignedString(
 			[]byte(h.Config.JwtSecret),
 		)
 		if err != nil {
-			return TxInternalError(nil)
+			return TxInternalError(err)
 		}
 
-		updateQuery := fmt.Sprintf(
+		// Store activation token.
+		query = fmt.Sprintf(
 			`UPDATE %s.user
-			 SET activate_token = $1
-			 WHERE uuid = $2::uuid`,
+			SET activate_token = $1
+			WHERE uuid = $2::uuid`,
 			h.DbSchema,
 		)
 
-		_, err = tx.Exec(
+		if _, err = tx.Exec(
 			ctx,
-			updateQuery,
+			query,
 			signupTokenString,
 			userUuid,
-		)
-
-		if err != nil {
-			return TxInternalError(nil)
-		}
-
-		// Load email template.
-		messageQuery := fmt.Sprintf(
-			`SELECT subject, template
-			 FROM %s.system_email_template
-			 WHERE context = 'user-email-verification'
-			   AND iso_639_1 = $1`,
-			h.DbSchema,
-		)
-
-		var subject string
-		var template string
-
-		err = tx.QueryRow(
-			ctx,
-			messageQuery,
-			lang,
-		).Scan(&subject, &template)
-
-		if err != nil {
-			return TxInternalError(nil)
-		}
-
-		signupURL := payload.Referer +
-			"/app/activate/account?token=" +
-			signupTokenString
-
-		emailMessage := strings.ReplaceAll(
-			template,
-			"{{link}}",
-			signupURL,
-		)
-
-		emailMessage = strings.ReplaceAll(
-			emailMessage,
-			"{{expiry_hours}}",
-			strconv.Itoa(expiryHours),
-		)
-
-		if err := sendEmailWithTimeout(
-			payload.Email,
-			subject,
-			emailMessage,
-			20*time.Second,
 		); err != nil {
-			return TxInternalError(nil)
+			return TxInternalError(err)
 		}
-
-		apiRequest.SetMeta("user_uuid", userUuid)
 
 		return nil
 	})
@@ -215,24 +177,66 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 		return
 	}
 
+	//--------------------------------------------------------------------------
+	// Render verification email
+	//--------------------------------------------------------------------------
+
+	verificationURL := payload.Referer +
+		"/app/activate/account?token=" +
+		signupTokenString
+
+	layoutPath := fmt.Sprintf(
+		"template/email/layout/%s.html",
+		locale,
+	)
+
+	contentPath := fmt.Sprintf(
+		"template/email/user-email-verification/%s.html",
+		locale,
+	)
+
+	data := struct {
+		Language         string
+		VerificationLink string
+		ExpiryHours      int
+	}{
+		Language:         locale,
+		VerificationLink: verificationURL,
+		ExpiryHours:      expiryHours,
+	}
+
+	subject, emailContent, err := app.RenderEmailTemplate(
+		layoutPath,
+		contentPath,
+		data,
+	)
+	if err != nil {
+		debugf("failed to render email verification email: %v", err)
+		apiRequest.InternalServerError()
+		return
+	}
+
+	//--------------------------------------------------------------------------
+	// Send email
+	//--------------------------------------------------------------------------
+
+	go func() {
+		if err := app.SendEmailWithTimeout(
+			payload.Email,
+			subject,
+			emailContent,
+			20*time.Second,
+		); err != nil {
+			debugf("email verification email failed: %v", err)
+		}
+	}()
+
+	apiRequest.SetMeta("user_uuid", userUuid)
+
 	apiRequest.SuccessNoData(
 		http.StatusCreated,
 		"user registered successfully",
 	)
-}
-
-func sendEmailWithContext(ctx context.Context, to, subject, body string) error {
-	done := make(chan error, 1)
-	go func() {
-		done <- sendEmail(to, subject, body) // your existing sendEmail
-	}()
-
-	select {
-	case err := <-done:
-		return err
-	case <-ctx.Done():
-		return ctx.Err()
-	}
 }
 
 func (h *ApiHandler) Activate(gc *gin.Context) {
@@ -273,8 +277,14 @@ func (h *ApiHandler) Activate(gc *gin.Context) {
 
 	// Query stored activation token
 	var storedToken string
-	query := fmt.Sprintf(`SELECT activate_token FROM %s.user WHERE uuid = $1::uuid`, h.DbSchema)
+
+	query := fmt.Sprintf(`
+		SELECT activate_token
+		FROM %s.user
+		WHERE uuid = $1::uuid`,
+		h.DbSchema)
 	err = h.DbPool.QueryRow(gc, query, userUuid).Scan(&storedToken)
+
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			apiRequest.Error(http.StatusNotFound, "user not found")
@@ -291,7 +301,12 @@ func (h *ApiHandler) Activate(gc *gin.Context) {
 	}
 
 	// Activate account
-	updateQuery := fmt.Sprintf(`UPDATE %s.user SET is_active = true, activate_token = NULL WHERE uuid = $1::uuid`, h.DbSchema)
+	updateQuery := fmt.Sprintf(`
+		UPDATE %s.user
+		SET is_active = true, activate_token = NULL
+		WHERE uuid = $1::uuid`,
+		h.DbSchema)
+
 	if _, err := h.DbPool.Exec(gc, updateQuery, userUuid); err != nil {
 		apiRequest.Error(http.StatusInternalServerError, "failed to activate user")
 		return
