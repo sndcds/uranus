@@ -1,0 +1,48 @@
+{{define "subject"}}kulturbytes – Bekræft din e-mailadresse{{end}}
+
+{{define "content"}}
+
+<h1 class="heading">
+    Hej,
+</h1>
+
+<p class="text">
+    Tak for din registrering hos <strong>kulturbytes</strong>!
+</p>
+
+<p class="text">
+    Bekræft venligst din e-mailadresse for at aktivere din konto:
+</p>
+
+<p class="button-container">
+    <a href="{{.VerificationLink}}"
+       class="button"
+       target="_blank"
+       rel="noopener noreferrer">
+        Aktivér konto
+    </a>
+</p>
+
+<p class="muted">
+    Dette link er <strong>tidsbegrænset</strong>
+    (f.eks. {{.ExpiryHours}} timer).
+</p>
+
+<p class="muted">
+    Hvis knappen ikke virker, kan du kopiere dette link til din browser:<br/>
+    <a href="{{.VerificationLink}}" class="link" style="word-break:break-all;">
+        {{.VerificationLink}}
+    </a>
+</p>
+
+<p class="text">
+    Hvis du ikke har registreret dig hos kulturbytes, kan du blot ignorere
+    denne besked.
+</p>
+
+<p class="footer">
+    Mange hilsner,<br/>
+    <strong>Dit kulturbytes-team</strong>
+</p>
+
+{{end}}

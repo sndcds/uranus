@@ -1,0 +1,48 @@
+{{define "subject"}}kulturbytes – Verify your email address{{end}}
+
+{{define "content"}}
+
+<h1 class="heading">
+    Hello,
+</h1>
+
+<p class="text">
+    Thank you for registering with <strong>kulturbytes</strong>!
+</p>
+
+<p class="text">
+    Please verify your email address to activate your account:
+</p>
+
+<p class="button-container">
+    <a href="{{.VerificationLink}}"
+       class="button"
+       target="_blank"
+       rel="noopener noreferrer">
+        Activate account
+    </a>
+</p>
+
+<p class="muted">
+    This link is <strong>time-limited</strong>
+    (e.g. {{.ExpiryHours}} hours).
+</p>
+
+<p class="muted">
+    If the button does not work, copy this link into your browser:<br/>
+    <a href="{{.VerificationLink}}" class="link" style="word-break:break-all;">
+        {{.VerificationLink}}
+    </a>
+</p>
+
+<p class="text">
+    If you did not register with kulturbytes, you can simply ignore
+    this message.
+</p>
+
+<p class="footer">
+    Best regards,<br/>
+    <strong>Your kulturbytes team</strong>
+</p>
+
+{{end}}

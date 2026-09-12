@@ -5,8 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
-	"net/smtp"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -14,7 +12,6 @@ import (
 	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/grains/grains_validation"
 	"github.com/sndcds/uranus/app"
-	"golang.org/x/net/idna"
 )
 
 func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
@@ -107,7 +104,7 @@ func (h *ApiHandler) ForgotPassword(gc *gin.Context) {
 	}
 
 	go func() {
-		if err := sendEmailWithTimeout(
+		if err := app.SendEmailWithTimeout(
 			payload.Email,
 			subject,
 			emailContent,
@@ -214,85 +211,4 @@ func generateResetToken() (string, error) {
 		return "", err
 	}
 	return base64.URLEncoding.EncodeToString(b), nil
-}
-
-func sendEmailWithTimeout(
-	to, subject, htmlContent string,
-	timeout time.Duration,
-) error {
-	errCh := make(chan error, 1)
-
-	go func() {
-		errCh <- sendEmail(to, subject, htmlContent)
-	}()
-
-	timer := time.NewTimer(timeout)
-	defer timer.Stop()
-
-	select {
-	case err := <-errCh:
-		return err
-
-	case <-timer.C:
-		return fmt.Errorf("send email timeout after %s", timeout)
-	}
-}
-
-func sendEmail(to, subject string, htmlContent string) error {
-	from := app.UranusInstance.Config.AuthReplyEmail
-	userName := app.UranusInstance.Config.AuthSmtpLogin
-	password := app.UranusInstance.Config.AuthSmtpPassword
-	smtpHost := app.UranusInstance.Config.AuthSmtpHost
-	smtpPort := app.UranusInstance.Config.AuthSmtpPort // int
-
-	asciiFrom, err := encodeEmailAddress(from)
-	if err != nil {
-		return fmt.Errorf("unable to send email 1: %s", err.Error())
-	}
-
-	asciiTo, err := encodeEmailAddress(to)
-	if err != nil {
-		return fmt.Errorf("unable to send email 2: %s", err.Error())
-	}
-
-	// Encode subject in Base64 for UTF-8
-	encodedSubject := fmt.Sprintf("=?UTF-8?B?%s?=", base64.StdEncoding.EncodeToString([]byte(subject)))
-
-	message := []byte(
-		"Subject: " + encodedSubject + "\r\n" +
-			"MIME-Version: 1.0\r\n" +
-			"To: " + asciiTo + "\r\n" +
-			"From: " + asciiFrom + "\r\n" +
-			"Content-Type: text/html; charset=\"UTF-8\"\r\n" +
-			"Content-Transfer-Encoding: 8bit\r\n" +
-			"\r\n" +
-			htmlContent + "\r\n")
-
-	auth := smtp.PlainAuth("", userName, password, smtpHost)
-	addr := fmt.Sprintf("%s:%d", smtpHost, smtpPort)
-
-	err = smtp.SendMail(addr, auth, userName, []string{asciiTo}, message)
-	if err != nil {
-		return fmt.Errorf("unable to send email: %w", err)
-	}
-
-	return nil
-}
-
-// Encode an email address for SMTP
-func encodeEmailAddress(email string) (string, error) {
-	parts := strings.Split(email, "@")
-	if len(parts) != 2 {
-		return "", fmt.Errorf("invalid email: %s", email)
-	}
-
-	local := parts[0]  // user
-	domain := parts[1] // domain
-
-	asciiDomain, err := idna.ToASCII(domain)
-	if err != nil {
-		return "", err
-	}
-
-	return local + "@" + asciiDomain, nil
 }

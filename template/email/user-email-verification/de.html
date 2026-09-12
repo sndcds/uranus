@@ -1,0 +1,48 @@
+{{define "subject"}}kulturbytes – E-Mail-Adresse bestätigen{{end}}
+
+{{define "content"}}
+
+<h1 class="heading">
+    Hallo,
+</h1>
+
+<p class="text">
+    Vielen Dank für deine Registrierung bei <strong>kulturbytes</strong>!
+</p>
+
+<p class="text">
+    Bitte bestätige deine E-Mail-Adresse, um dein Konto zu aktivieren:
+</p>
+
+<p class="button-container">
+    <a href="{{.VerificationLink}}"
+       class="button"
+       target="_blank"
+       rel="noopener noreferrer">
+        Konto aktivieren
+    </a>
+</p>
+
+<p class="muted">
+    Dieser Link ist <strong>zeitlich begrenzt</strong>
+    (z. B. {{.ExpiryHours}} Stunden).
+</p>
+
+<p class="muted">
+    Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br/>
+    <a href="{{.VerificationLink}}" class="link" style="word-break:break-all;">
+        {{.VerificationLink}}
+    </a>
+</p>
+
+<p class="text">
+    Falls du dich nicht bei kulturbytes registriert hast, kannst du diese
+    Nachricht einfach ignorieren.
+</p>
+
+<p class="footer">
+    Viele Grüße,<br/>
+    <strong>Dein kulturbytes-Team</strong>
+</p>
+
+{{end}}

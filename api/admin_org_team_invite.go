@@ -265,7 +265,7 @@ func (h *ApiHandler) AdminOrgTeamInvite(gc *gin.Context) {
 	// -------------------------------------------------------------------------
 
 	go func() {
-		if err := sendEmailWithTimeout(
+		if err := app.SendEmailWithTimeout(
 			payload.Email,
 			subject,
 			emailMessage,
@@ -604,7 +604,7 @@ func (h *ApiHandler) sendOrgInviteAcceptedEmail(
 		return err
 	}
 
-	return sendEmailWithTimeout(
+	return app.SendEmailWithTimeout(
 		inviterEmail,
 		subject,
 		body,
