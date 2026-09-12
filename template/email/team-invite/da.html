@@ -1,0 +1,49 @@
+{{define "subject"}}kulturbytes – Invitation til et team{{end}}
+
+{{define "content"}}
+
+<h1 class="heading">
+    Hej {{.DisplayName}},
+</h1>
+
+<p class="text">
+    Du er blevet inviteret til teamet hos arrangøren
+    <strong>{{.OrganizationName}}</strong>.
+</p>
+
+<p class="button-container">
+    <a href="{{.InviteLink}}"
+       class="button"
+       target="_blank"
+       rel="noopener noreferrer">
+        Accepter invitation
+    </a>
+</p>
+
+<p class="muted">
+    Hvis knappen ikke virker, kan du kopiere dette link til din browser:<br/>
+    <a href="{{.InviteLink}}" class="link" style="word-break:break-all;">
+        {{.InviteLink}}
+    </a>
+</p>
+
+<p class="muted">
+    Dette link er <strong>tidsbegrænset</strong>
+    (f.eks. {{.ExpiryMinutes}} minutter).
+</p>
+
+<p class="text">
+    Hvis du ikke har bedt om denne invitation, kan du blot ignorere
+    denne besked.
+</p>
+
+<p class="footer">
+    Mange hilsner,<br/>
+    <strong>Dit kulturbytes-team</strong><br/><br/>
+
+    <a href="https://kulturbytes.de" class="link">
+        kulturbytes.de
+    </a>
+</p>
+
+{{end}}

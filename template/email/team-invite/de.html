@@ -1,47 +1,47 @@
+{{define "subject"}}kulturbytes – Einladung in ein Team{{end}}
+
 {{define "content"}}
 
-<h1 style="margin:0 0 12px 0; font-size:20px; color:#111827;">
+<h1 class="heading">
     Hallo {{.DisplayName}},
 </h1>
 
-<p style="margin:0 0 18px 0; color:#374151; line-height:1.5;">
+<p class="text">
     Du wurdest zum Team des Veranstalters
     <strong>{{.OrganizationName}}</strong> eingeladen.
 </p>
 
-<p style="margin:0 0 20px 0;">
+<p class="button-container">
     <a href="{{.InviteLink}}"
-       style="display:inline-block; background-color:#3f2dd2; color:#ffffff; padding:12px 24px; text-decoration:none; border-radius:999px; font-weight:500;"
+       class="button"
        target="_blank"
        rel="noopener noreferrer">
         Einladung annehmen
     </a>
 </p>
 
-<p style="margin:0 0 16px 0; color:#6b7280; font-size:14px;">
+<p class="muted">
     Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br/>
-    <a href="{{.InviteLink}}"
-       style="color:#3f2dd2; word-break:break-all;">
+    <a href="{{.InviteLink}}" class="link" style="word-break:break-all;">
         {{.InviteLink}}
     </a>
 </p>
 
-<p style="margin:0 0 18px 0; color:#6b7280; font-size:13px;">
+<p class="muted">
     Dieser Link ist <strong>zeitlich begrenzt</strong>
     (z. B. {{.ExpiryMinutes}} Minuten).
 </p>
 
-<p style="margin:0 0 22px 0; color:#374151; line-height:1.5;">
+<p class="text">
     Falls du diese Einladung nicht angefordert hast, kannst du diese
     Nachricht einfach ignorieren.
 </p>
 
-<p style="margin:0 0 8px 0; color:#374151;">
+<p class="footer">
     Viele Grüße,<br/>
     <strong>Dein kulturbytes-Team</strong><br/><br/>
 
-    <a href="https://kulturbytes.de"
-       style="color:#3f2dd2; text-decoration:none;">
+    <a href="https://kulturbytes.de" class="link">
         kulturbytes.de
     </a>
 </p>
