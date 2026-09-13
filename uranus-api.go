@@ -534,6 +534,9 @@ func main() {
 	adminRoute.GET(
 		"/event/:eventUuid",
 		apiHandler.AdminGetEvent) // TODO: Permission check
+	adminRoute.GET(
+		"/event/:eventUuid/quality",
+		apiHandler.AdminGetEventQuality) // Permission check in event query
 	adminRoute.POST(
 		"/event/:eventUuid/date",
 		apiHandler.AdminUpsertEventDate) // TODO: Permission check

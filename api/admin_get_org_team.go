@@ -39,7 +39,7 @@ func (h *ApiHandler) AdminGetOrgTeam(gc *gin.Context) {
 
 		memberRows, err := tx.Query(ctx, app.UranusInstance.SqlAdminGetOrgMembers, orgUuid)
 		if err != nil {
-			return ApiErrInternal(err.Error())
+			return ApiErrInternal("%s", err.Error())
 		}
 		defer memberRows.Close()
 
@@ -55,7 +55,7 @@ func (h *ApiHandler) AdminGetOrgTeam(gc *gin.Context) {
 				&m.PermissionsMissing,
 			)
 			if err != nil {
-				return ApiErrInternal(err.Error())
+				return ApiErrInternal("%s", err.Error())
 			}
 
 			m.AvatarUrl = h.getAvatarURL(m.UserUuid)
@@ -85,7 +85,7 @@ func (h *ApiHandler) AdminGetOrgTeam(gc *gin.Context) {
 
 		rows, err := tx.Query(ctx, invitedMemberQuery, orgUuid)
 		if err != nil {
-			return ApiErrInternal(err.Error())
+			return ApiErrInternal("%s", err.Error())
 		}
 		defer rows.Close()
 
@@ -93,7 +93,7 @@ func (h *ApiHandler) AdminGetOrgTeam(gc *gin.Context) {
 			var m model.InvitedOrgMember
 			err = rows.Scan(&m.UserUuid, &m.InvitedBy, &m.InvitedAt, &m.Email, &m.DisplayName)
 			if err != nil {
-				return ApiErrInternal(err.Error())
+				return ApiErrInternal("%s", err.Error())
 			}
 
 			m.AvatarUrl = h.getAvatarURL(m.UserUuid)

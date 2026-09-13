@@ -1,6 +1,9 @@
 package api
 
 import (
+	"context"
+	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -24,6 +27,22 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 	lang := gc.DefaultQuery("lang", "en")
 	apiRequest.SetMeta("language", lang)
 
+	event, err := h.loadAdminEvent(ctx, eventUuid, lang, userUuid)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			apiRequest.Error(http.StatusNotFound, "Event not found")
+			return
+		}
+		debugf("%v", err)
+		apiRequest.InternalServerError()
+		return
+	}
+	apiRequest.Success(http.StatusOK, event)
+}
+
+// loadAdminEvent applies the same organizer permissions to details and quality reports.
+// Any failed relation query aborts the load to avoid evaluating incomplete data.
+func (h *ApiHandler) loadAdminEvent(ctx context.Context, eventUuid, lang, userUuid string) (model.AdminEvent, error) {
 	permission := app.UserPermEditEvent | app.UserPermViewEventInsights
 
 	row := h.DbPool.QueryRow(ctx, app.UranusInstance.SqlAdminGetEvent, eventUuid, lang, userUuid, permission)
@@ -87,69 +106,68 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 	)
 
 	if err != nil {
-		if err == pgx.ErrNoRows {
-			apiRequest.Error(http.StatusNotFound, "Event not found")
-			return
-		}
-		debugf(err.Error())
-		apiRequest.InternalServerError()
-		apiRequest.SetMeta("error_type", "event")
-		return
+		return event, fmt.Errorf("event: %w", err)
 	}
 
 	// Event Types
 	rows, err := h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventTypes, eventUuid, lang)
 	if err != nil {
-		debugf(err.Error())
-		apiRequest.SetMeta("error_type", "event-types")
-		apiRequest.InternalServerError()
-		return
+		return event, fmt.Errorf("event relations: %w", err)
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var et model.EventType
-		rows.Scan(&et.Type, &et.TypeName, &et.Genre, &et.GenreName)
+		if err := rows.Scan(&et.Type, &et.TypeName, &et.Genre, &et.GenreName); err != nil {
+			return event, fmt.Errorf("event types: %w", err)
+		}
 		event.EventTypes = append(event.EventTypes, et)
+	}
+
+	if err := rows.Err(); err != nil {
+		return event, fmt.Errorf("event relations: %w", err)
 	}
 
 	// Event Images
 	rows, err = h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventImages, eventUuid)
 	if err != nil {
-		debugf(err.Error())
-		apiRequest.InternalServerError()
-		apiRequest.SetMeta("error_type", "event-images")
-		return
+		return event, fmt.Errorf("event relations: %w", err)
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var img model.Image
-		rows.Scan(&img.Uuid, &img.Identifier, &img.FocusX, &img.FocusY, &img.Alt, &img.Copyright, &img.Creator, &img.License)
+		if err := rows.Scan(&img.Uuid, &img.Identifier, &img.FocusX, &img.FocusY, &img.Alt, &img.Copyright, &img.Creator, &img.License, &img.Width, &img.Height); err != nil {
+			return event, fmt.Errorf("event images: %w", err)
+		}
 		img.Url = ImageUrl(img.Uuid)
 		event.Images = append(event.Images, img)
+	}
+
+	if err := rows.Err(); err != nil {
+		return event, fmt.Errorf("event relations: %w", err)
 	}
 
 	// Event Links
 	rows, err = h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventLinks, eventUuid)
 	if err != nil {
-		debugf(err.Error())
-		apiRequest.InternalServerError()
-		apiRequest.SetMeta("error_type", "event-links")
-		return
+		return event, fmt.Errorf("event relations: %w", err)
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var link model.WebLink
-		rows.Scan(&link.Label, &link.Type, &link.Url)
+		if err := rows.Scan(&link.Label, &link.Type, &link.Url); err != nil {
+			return event, fmt.Errorf("event links: %w", err)
+		}
 		event.EventLinks = append(event.EventLinks, link)
+	}
+
+	if err := rows.Err(); err != nil {
+		return event, fmt.Errorf("event relations: %w", err)
 	}
 
 	// Dates
 	rows, err = h.DbPool.Query(ctx, app.UranusInstance.SqlAdminGetEventDates, eventUuid)
 	if err != nil {
-		debugf(err.Error())
-		apiRequest.InternalServerError()
-		apiRequest.SetMeta("error_type", "event-dates")
-		return
+		return event, fmt.Errorf("event relations: %w", err)
 	}
 	defer rows.Close()
 	for rows.Next() {
@@ -186,13 +204,15 @@ func (h *ApiHandler) AdminGetEvent(gc *gin.Context) {
 		)
 
 		if err != nil {
-			debugf(err.Error())
-			apiRequest.DatabaseError()
-			return
+			return event, fmt.Errorf("event dates: %w", err)
 		}
 
 		event.EventDates = append(event.EventDates, date)
 	}
 
-	apiRequest.Success(http.StatusOK, event)
+	if err := rows.Err(); err != nil {
+		return event, fmt.Errorf("event relations: %w", err)
+	}
+
+	return event, nil
 }
