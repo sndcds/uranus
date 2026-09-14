@@ -7,11 +7,11 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 func JWTMiddleware(gc *gin.Context) {
 	var tokenStr string
+	fromCookie := false
 
 	// 1. Try Authorization header first.
 	authHeader := gc.GetHeader("Authorization")
@@ -26,6 +26,7 @@ func JWTMiddleware(gc *gin.Context) {
 		cookie, err := gc.Cookie("access_token")
 		if err == nil {
 			tokenStr = cookie
+			fromCookie = true
 		}
 	}
 
@@ -36,39 +37,12 @@ func JWTMiddleware(gc *gin.Context) {
 		return
 	}
 
-	// 3. Parse and validate token.
-	claims := &Claims{}
-
-	token, err := jwt.ParseWithClaims(
-		tokenStr,
-		claims,
-		func(token *jwt.Token) (any, error) {
-			return UranusInstance.JwtKey, nil
-		},
-		jwt.WithValidMethods([]string{
-			jwt.SigningMethodHS256.Alg(),
-		}),
-	)
-
-	if err != nil || !token.Valid {
-		gc.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-			"error": "invalid token",
-		})
+	claims, err := ParseJWT(tokenStr)
+	if err != nil || claims.TokenType != AccessTokenType || !ValidUUID(claims.UserUuid) {
+		gc.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
 		return
 	}
-
-	// 4. Only access tokens may authenticate API requests.
-	if claims.TokenType != "access" {
-		gc.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-			"error": "invalid token",
-		})
-		return
-	}
-
-	if claims.UserUuid == "" {
-		gc.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-			"error": "invalid token",
-		})
+	if fromCookie && !SafeMethod(gc.Request.Method) && !RequireAuthOrigin(gc) {
 		return
 	}
 

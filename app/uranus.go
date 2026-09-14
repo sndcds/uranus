@@ -128,6 +128,11 @@ func Initialize(configFilePath string) (*Uranus, error) {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
 
+	if uranus.Config.JwtSecret == "" {
+		return nil, fmt.Errorf("configuration error: jwt_secret must not be empty")
+	}
+	uranus.JwtKey = []byte(uranus.Config.JwtSecret)
+
 	if len(uranus.Config.SupportedLanguages) == 0 {
 		return nil, fmt.Errorf("configuration error: at least one language must be set in 'supported_languages'")
 	}
