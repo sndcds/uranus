@@ -250,26 +250,9 @@ func (h *ApiHandler) Activate(gc *gin.Context) {
 		return
 	}
 
-	// Parse JWT token using the same signing method
-	token, err := jwt.ParseWithClaims(
-		requestData.Token,
-		&app.Claims{},
-		func(token *jwt.Token) (interface{}, error) {
-			return []byte(h.Config.JwtSecret), nil
-		},
-		jwt.WithValidMethods([]string{
-			jwt.SigningMethodHS256.Alg(),
-		}),
-	)
-	if err != nil {
+	claims, err := app.ParseJWT(requestData.Token)
+	if err != nil || !app.ValidUUID(claims.UserUuid) {
 		apiRequest.Error(http.StatusUnauthorized, "invalid or expired token")
-		return
-	}
-
-	// Extract claims
-	claims, ok := token.Claims.(*app.Claims)
-	if !ok || !token.Valid {
-		apiRequest.Error(http.StatusUnauthorized, "invalid token")
 		return
 	}
 

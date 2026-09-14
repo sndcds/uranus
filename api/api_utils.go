@@ -9,7 +9,6 @@ import (
 	"sync"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/grains/grains_uuid"
 	"github.com/sndcds/uranus/app"
@@ -217,13 +216,8 @@ func UseUuidFromAccessToken(gc *gin.Context) string {
 	}
 	accessToken := parts[1]
 
-	// Parse the token
-	claims := &app.Claims{}
-	token, err := jwt.ParseWithClaims(accessToken, claims, func(token *jwt.Token) (interface{}, error) {
-		return app.UranusInstance.JwtKey, nil
-	})
-
-	if err != nil || !token.Valid {
+	claims, err := app.ParseJWT(accessToken)
+	if err != nil || claims.TokenType != app.AccessTokenType || !app.ValidUUID(claims.UserUuid) {
 		return ""
 	}
 

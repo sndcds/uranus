@@ -334,6 +334,9 @@ func main() {
 	// Authorized endpoints, user must be logged in
 	//--------------------------------------------------------------------------
 
+	// Refresh and logout authenticate refresh tokens directly, never via JWTMiddleware.
+	apiHandler.RegisterSessionRoutes(router)
+
 	adminRoute := router.Group("/api/admin")
 	adminRoute.Use(app.JWTMiddleware)
 
@@ -343,9 +346,6 @@ func main() {
 	adminRoute.GET(
 		"/permissions/list",
 		apiHandler.AdminGetPermissionsList) // TODO: Permission check
-	adminRoute.POST(
-		"/refresh",
-		apiHandler.Refresh) // TODO: Permission check
 
 	//--------------------------------------------------------------------------
 	// User
@@ -674,19 +674,14 @@ func main() {
 }
 
 func CORSMiddleware() gin.HandlerFunc {
-	allowedAdminOrigins := map[string]bool{
-		"https://app.kulturbytes.de": true,
-		"http://localhost:5173":      true,
-	}
-
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
 		path := c.Request.URL.Path
 
-		if strings.HasPrefix(path, "/api/admin/") {
+		if strings.HasPrefix(path, "/api/admin/") || path == "/api/login" {
 			// Admin API
 			if origin != "" {
-				if !allowedAdminOrigins[origin] {
+				if !app.AllowedAuthOrigin(origin) {
 					c.AbortWithStatus(http.StatusForbidden)
 					return
 				}
