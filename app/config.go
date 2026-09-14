@@ -56,6 +56,8 @@ type Config struct {
 func (config Config) Print() {
 	fmt.Println("Uranus Config")
 
+	// Print works on a value copy; never disclose the JWT signing secret.
+	config.JwtSecret = "[redacted]"
 	b, err := json.MarshalIndent(config, "  ", "  ")
 	if err != nil {
 		fmt.Println("  Error printing config:", err)
@@ -81,7 +83,7 @@ func DefaultConfig() Config {
 		ProfileImageQuality:         0.8,
 		PlutoImageMaxFileSize:       5_000_000,
 		PlutoImageMaxPx:             1920,
-		AuthTokenExpirationTime:     3600,
+		AuthTokenExpirationTime:     900,
 		RefreshTokenExpirationTime:  604800,
 		InvitationExpirationMinutes: 60,
 		ContactRateLimit:            5,
