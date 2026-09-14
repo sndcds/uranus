@@ -318,10 +318,6 @@ func main() {
 		apiHandler.ResetPassword)
 
 	publicRoute.GET(
-		"/sitemap",
-		apiHandler.Sitemap)
-
-	publicRoute.GET(
 		"/geolist/countries",
 		apiHandler.GetGeoCountries)
 	publicRoute.GET(
