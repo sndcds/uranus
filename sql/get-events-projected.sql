@@ -44,6 +44,9 @@ SELECT
     ep.min_age,
     ep.max_age,
     ep.price_type,
+    ep.min_price,
+    ep.max_price,
+    ep.currency,
     ep.visitor_info_flags
 
 FROM {{schema}}.event_date_projection edp
