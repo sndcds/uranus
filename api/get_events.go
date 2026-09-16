@@ -111,8 +111,12 @@ type eventResponse struct {
 	MinAge                  *int        `json:"min_age"`
 	MaxAge                  *int        `json:"max_age"`
 	PriceType               *string     `json:"price_type,omitempty"`
-	VisitorInfoFlags        *string     `json:"visitor_info_flags,omitempty"`
-	ReleaseStatus           *string     `json:"release_status,omitempty"`
+	MinPrice                *float64    `json:"min_price,omitempty"`
+	MaxPrice                *float64    `json:"max_price,omitempty"`
+	Currency                *string     `json:"currency,omitempty"`
+
+	VisitorInfoFlags *string `json:"visitor_info_flags,omitempty"`
+	ReleaseStatus    *string `json:"release_status,omitempty"`
 }
 
 type eventsResponse struct {
@@ -549,10 +553,10 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	query = strings.Replace(query, "{{portal_conditions}}", filters.PortalConditions, 1)
 
 	/*
-	debugf("query: %s", query)
-	for i, a := range filters.Args {
-		fmt.Printf("args[%d] = %#v\n", i, a)
-	}
+		debugf("query: %s", query)
+		for i, a := range filters.Args {
+			fmt.Printf("args[%d] = %#v\n", i, a)
+		}
 	*/
 
 	rows, err := h.DbPool.Query(ctx, query, filters.Args...)
@@ -608,6 +612,9 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			&e.MinAge,
 			&e.MaxAge,
 			&e.PriceType,
+			&e.MinPrice,
+			&e.MaxPrice,
+			&e.Currency,
 			&e.VisitorInfoFlags,
 		)
 		if err != nil {
