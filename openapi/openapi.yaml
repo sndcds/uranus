@@ -1,0 +1,1123 @@
+openapi: 3.0.3
+info:
+  title: Uranus API
+  version: "1.0"
+  description: |
+    Public event API for Uranus.
+
+    The event endpoints are public and support filtering, pagination,
+    calendar views, summaries, and GeoJSON venue output.
+
+servers:
+  - url: https://api.kulturbytes.de
+    description: Production API
+  - url: http://localhost:9090
+    description: Local API
+
+tags:
+  - name: Events
+    description: Event search, filtering, calendar and geographic endpoints
+
+paths:
+  /api/events:
+    get:
+      tags: [Events]
+      summary: List events
+      description: |
+        Returns events matching the supplied filters.
+
+        GET query parameters are validated by the API.<br>
+        Unknown query parameters result in a bad-request response.<br>
+        Array-valued filters are supplied as comma-separated values.
+      operationId: getEvents
+      parameters:
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Start'
+        - $ref: '#/components/parameters/End'
+        - $ref: '#/components/parameters/Time'
+        - $ref: '#/components/parameters/Categories'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Venue'
+        - $ref: '#/components/parameters/SpaceTypes'
+        - $ref: '#/components/parameters/Countries'
+        - $ref: '#/components/parameters/PostalCode'
+        - $ref: '#/components/parameters/Title'
+        - $ref: '#/components/parameters/City'
+        - $ref: '#/components/parameters/EventTypes'
+        - $ref: '#/components/parameters/Genres'
+        - $ref: '#/components/parameters/Tags'
+        - $ref: '#/components/parameters/Accessibility'
+        - $ref: '#/components/parameters/VisitorInfos'
+        - $ref: '#/components/parameters/Age'
+        - $ref: '#/components/parameters/Price'
+        - $ref: '#/components/parameters/Lon'
+        - $ref: '#/components/parameters/Lat'
+        - $ref: '#/components/parameters/Radius'
+        - $ref: '#/components/parameters/LastEventStartAt'
+        - $ref: '#/components/parameters/LastEventDateUuid'
+        - $ref: '#/components/parameters/Lang'
+        - $ref: '#/components/parameters/WeekStart'
+        - $ref: '#/components/parameters/OrgUuids'
+        - $ref: '#/components/parameters/VenueUuids'
+        - $ref: '#/components/parameters/SpaceUuids'
+        - $ref: '#/components/parameters/EventUuids'
+        - $ref: '#/components/parameters/GeolistRegion'
+        - $ref: '#/components/parameters/Portal'
+      responses:
+        '200':
+          description: Events returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/events/filter:
+    post:
+      tags: [Events]
+      summary: Filter events
+      description: |
+        Returns events matching the supplied JSON filter object.
+
+        Unknown JSON properties are ignored by the current implementation.
+        Array-valued properties are represented as JSON arrays.
+      operationId: filterEvents
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventFilterRequest'
+      responses:
+        '200':
+          description: Events returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/events/week:
+    get:
+      tags: [Events]
+      summary: Get events for a week
+      description: |
+        Returns events grouped by day. week_start is required and must use
+        YYYY-MM-DD format. The endpoint computes the week end as week_start
+        plus six days.
+      operationId: getEventsWeek
+      parameters:
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Start'
+        - $ref: '#/components/parameters/End'
+        - $ref: '#/components/parameters/Time'
+        - $ref: '#/components/parameters/Categories'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Venue'
+        - $ref: '#/components/parameters/SpaceTypes'
+        - $ref: '#/components/parameters/Countries'
+        - $ref: '#/components/parameters/PostalCode'
+        - $ref: '#/components/parameters/Title'
+        - $ref: '#/components/parameters/City'
+        - $ref: '#/components/parameters/EventTypes'
+        - $ref: '#/components/parameters/Genres'
+        - $ref: '#/components/parameters/Tags'
+        - $ref: '#/components/parameters/Accessibility'
+        - $ref: '#/components/parameters/VisitorInfos'
+        - $ref: '#/components/parameters/Age'
+        - $ref: '#/components/parameters/Price'
+        - $ref: '#/components/parameters/Lon'
+        - $ref: '#/components/parameters/Lat'
+        - $ref: '#/components/parameters/Radius'
+        - $ref: '#/components/parameters/LastEventStartAt'
+        - $ref: '#/components/parameters/LastEventDateUuid'
+        - $ref: '#/components/parameters/Lang'
+        - $ref: '#/components/parameters/WeekStartRequired'
+        - $ref: '#/components/parameters/OrgUuids'
+        - $ref: '#/components/parameters/VenueUuids'
+        - $ref: '#/components/parameters/SpaceUuids'
+        - $ref: '#/components/parameters/EventUuids'
+        - $ref: '#/components/parameters/GeolistRegion'
+        - $ref: '#/components/parameters/Portal'
+      responses:
+        '200':
+          description: Week data returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventsWeekResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/events/type-summary:
+    get:
+      tags: [Events]
+      summary: Get event type and genre summary
+      description: |
+        Returns aggregate counts for event types and genres matching the
+        supplied filters. The limit and offset parameters are accepted by
+        the filter parser but are ignored by this endpoint.
+      operationId: getEventTypeSummary
+      parameters:
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Start'
+        - $ref: '#/components/parameters/End'
+        - $ref: '#/components/parameters/Time'
+        - $ref: '#/components/parameters/Categories'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Venue'
+        - $ref: '#/components/parameters/SpaceTypes'
+        - $ref: '#/components/parameters/Countries'
+        - $ref: '#/components/parameters/PostalCode'
+        - $ref: '#/components/parameters/Title'
+        - $ref: '#/components/parameters/City'
+        - $ref: '#/components/parameters/EventTypes'
+        - $ref: '#/components/parameters/Genres'
+        - $ref: '#/components/parameters/Tags'
+        - $ref: '#/components/parameters/Accessibility'
+        - $ref: '#/components/parameters/VisitorInfos'
+        - $ref: '#/components/parameters/Age'
+        - $ref: '#/components/parameters/Price'
+        - $ref: '#/components/parameters/Lon'
+        - $ref: '#/components/parameters/Lat'
+        - $ref: '#/components/parameters/Radius'
+        - $ref: '#/components/parameters/LastEventStartAt'
+        - $ref: '#/components/parameters/LastEventDateUuid'
+        - $ref: '#/components/parameters/Lang'
+        - $ref: '#/components/parameters/WeekStart'
+        - $ref: '#/components/parameters/OrgUuids'
+        - $ref: '#/components/parameters/VenueUuids'
+        - $ref: '#/components/parameters/SpaceUuids'
+        - $ref: '#/components/parameters/EventUuids'
+        - $ref: '#/components/parameters/GeolistRegion'
+        - $ref: '#/components/parameters/Portal'
+      responses:
+        '200':
+          description: Summary returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventTypeSummaryResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/events/venue-summary:
+    get:
+      tags: [Events]
+      summary: Get venue summary
+      description: |
+        Returns event-date counts grouped by venue. The limit and offset
+        parameters are accepted by the filter parser but are ignored by
+        this endpoint.
+      operationId: getEventVenueSummary
+      parameters:
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Start'
+        - $ref: '#/components/parameters/End'
+        - $ref: '#/components/parameters/Time'
+        - $ref: '#/components/parameters/Categories'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Venue'
+        - $ref: '#/components/parameters/SpaceTypes'
+        - $ref: '#/components/parameters/Countries'
+        - $ref: '#/components/parameters/PostalCode'
+        - $ref: '#/components/parameters/Title'
+        - $ref: '#/components/parameters/City'
+        - $ref: '#/components/parameters/EventTypes'
+        - $ref: '#/components/parameters/Genres'
+        - $ref: '#/components/parameters/Tags'
+        - $ref: '#/components/parameters/Accessibility'
+        - $ref: '#/components/parameters/VisitorInfos'
+        - $ref: '#/components/parameters/Age'
+        - $ref: '#/components/parameters/Price'
+        - $ref: '#/components/parameters/Lon'
+        - $ref: '#/components/parameters/Lat'
+        - $ref: '#/components/parameters/Radius'
+        - $ref: '#/components/parameters/LastEventStartAt'
+        - $ref: '#/components/parameters/LastEventDateUuid'
+        - $ref: '#/components/parameters/Lang'
+        - $ref: '#/components/parameters/WeekStart'
+        - $ref: '#/components/parameters/OrgUuids'
+        - $ref: '#/components/parameters/VenueUuids'
+        - $ref: '#/components/parameters/SpaceUuids'
+        - $ref: '#/components/parameters/EventUuids'
+        - $ref: '#/components/parameters/GeolistRegion'
+        - $ref: '#/components/parameters/Portal'
+      responses:
+        '200':
+          description: Summary returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventVenueSummaryResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/events/geojson:
+    get:
+      tags: [Events]
+      summary: Get event venues as GeoJSON
+      description: |
+        Returns venues with matching events as a GeoJSON FeatureCollection.
+        Geometry coordinates are [longitude, latitude].
+
+        Venues for which valid point geometry cannot be produced are skipped.
+        If no venues are found, the API returns 204 No Content.
+      operationId: getEventsGeoJSON
+      parameters:
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Start'
+        - $ref: '#/components/parameters/End'
+        - $ref: '#/components/parameters/Time'
+        - $ref: '#/components/parameters/Categories'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Venue'
+        - $ref: '#/components/parameters/SpaceTypes'
+        - $ref: '#/components/parameters/Countries'
+        - $ref: '#/components/parameters/PostalCode'
+        - $ref: '#/components/parameters/Title'
+        - $ref: '#/components/parameters/City'
+        - $ref: '#/components/parameters/EventTypes'
+        - $ref: '#/components/parameters/Genres'
+        - $ref: '#/components/parameters/Tags'
+        - $ref: '#/components/parameters/Accessibility'
+        - $ref: '#/components/parameters/VisitorInfos'
+        - $ref: '#/components/parameters/Age'
+        - $ref: '#/components/parameters/Price'
+        - $ref: '#/components/parameters/Lon'
+        - $ref: '#/components/parameters/Lat'
+        - $ref: '#/components/parameters/Radius'
+        - $ref: '#/components/parameters/LastEventStartAt'
+        - $ref: '#/components/parameters/LastEventDateUuid'
+        - $ref: '#/components/parameters/Lang'
+        - $ref: '#/components/parameters/WeekStart'
+        - $ref: '#/components/parameters/OrgUuids'
+        - $ref: '#/components/parameters/VenueUuids'
+        - $ref: '#/components/parameters/SpaceUuids'
+        - $ref: '#/components/parameters/EventUuids'
+        - $ref: '#/components/parameters/GeolistRegion'
+        - $ref: '#/components/parameters/Portal'
+      responses:
+        '200':
+          description: GeoJSON FeatureCollection returned successfully.
+          content:
+            application/geo+json:
+              schema:
+                $ref: '#/components/schemas/GeoJSONFeatureCollection'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeoJSONFeatureCollection'
+        '204':
+          description: No venues found.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  parameters:
+    Offset:
+      name: offset
+      in: query
+      description: Legacy offset pagination. Integer value.
+      required: false
+      schema:
+        type: integer
+        format: int64
+        minimum: 0
+
+    Limit:
+      name: limit
+      in: query
+      description: Maximum number of results requested.
+      required: false
+      schema:
+        type: integer
+        format: int64
+        minimum: 0
+      example: 10
+
+    Start:
+      name: start
+      in: query
+      description: Start date in YYYY-MM-DD format. Defaults to the current date when omitted.
+      required: false
+      schema:
+        type: string
+        pattern: '^\d{4}-\d{2}-\d{2}$'
+
+    End:
+      name: end
+      in: query
+      description: Inclusive end date in YYYY-MM-DD format.
+      required: false
+      schema:
+        type: string
+        pattern: '^\d{4}-\d{2}-\d{2}$'
+
+    Time:
+      name: time
+      in: query
+      description: |
+        Event-time filter. The value must contain a start time and an end time,
+        separated by a comma.
+    
+        Supported time formats:
+          - `HH,HH` for hours in 24-hour format.
+          - `HHMM,HHMM` for hours and minutes in 24-hour format.
+    
+        Examples:
+          - `10,14` matches events from 10:00 to 14:00.
+          - `1030,1545` matches events from 10:30 to 15:45.
+    
+        The start time must be before the end time.
+      required: false
+      schema:
+        type: string
+      examples:
+        Hours:
+          summary: Hours only
+          value: "10,14"
+        HoursMinutes:
+          summary: Hours and minutes
+          value: "1030,1545"
+
+    Categories:
+      name: categories
+      in: query
+      description: |
+        Comma-separated list of one or more category IDs.
+
+        Available categories:
+          - `1` — Culture
+          - `2` — Education
+          - `3` — Sports
+          - `4` — Leisure
+          - `5` — Family
+          - `6` — Society
+
+        Multiple categories can be combined using commas.
+      required: false
+      schema:
+        type: string
+      examples:
+        Culture:
+          summary: Culture
+          value: "1"
+        Education:
+          summary: Education
+          value: "2"
+        Sports:
+          summary: Sports
+          value: "3"
+        Leisure:
+          summary: Leisure
+          value: "4"
+        Family:
+          summary: Family
+          value: "5"
+        Society:
+          summary: Society
+          value: "6"
+        Multiple:
+          summary: Multiple categories
+          value: "1,2,5"
+
+    Search:
+      name: search
+      in: query
+      description: Full-text search query.
+      required: false
+      schema:
+        type: string
+
+    Venue:
+      name: venue
+      in: query
+      description: Venue name/text filter.
+      required: false
+      schema:
+        type: string
+
+    SpaceTypes:
+      name: space_types
+      in: query
+      description: Comma-separated space type values.
+      required: false
+      schema:
+        type: string
+
+    Countries:
+      name: countries
+      in: query
+      description: Comma-separated country codes.
+      required: false
+      schema:
+        type: string
+
+    PostalCode:
+      name: postal_code
+      in: query
+      description: |
+        Comma-separated list of postal code patterns.
+    
+        Use `*` as a wildcard for partial matching:
+          - `249*` matches postal codes starting with `249`.
+          - `*509` matches postal codes ending with `509`.
+          - `*608*` matches postal codes containing `608`.
+          - `249*,2348*,*6000*` matches any of the specified patterns.
+
+        Without `*`, an exact match is performed.
+      required: false
+      schema:
+        type: string
+      examples:
+        Prefix:
+          summary: Postal code prefix
+          value: "249*"
+        Suffix:
+          summary: Postal code suffix
+          value: "*937"
+        Contains:
+          summary: Partial postal code
+          value: "*49*"
+        Multiple:
+          summary: Multiple patterns
+          value: "249*,2348*,*6000*"
+
+    Title:
+      name: title
+      in: query
+      description: Title text filter.
+      required: false
+      schema:
+        type: string
+
+    City:
+      name: city
+      in: query
+      description: Venue city filter.
+      required: false
+      schema:
+        type: string
+
+    EventTypes:
+      name: event_types
+      in: query
+      description: |
+        Comma-separated event type IDs. Cannot be used together with genres.
+      required: false
+      schema:
+        type: string
+
+    Genres:
+      name: genres
+      in: query
+      description: |
+        Comma-separated genre IDs. Cannot be used together with event_types.
+      required: false
+      schema:
+        type: string
+
+    Tags:
+      name: tags
+      in: query
+      description: Comma-separated tags.
+      required: false
+      schema:
+        type: string
+
+    Accessibility:
+      name: accessibility
+      in: query
+      description: Accessibility filter. Syntax is interpreted by the API filter parser.
+      required: false
+      schema:
+        type: string
+
+    VisitorInfos:
+      name: visitor_infos
+      in: query
+      description: Visitor-information filter. Syntax is interpreted by the API filter parser.
+      required: false
+      schema:
+        type: string
+
+    Age:
+      name: age
+      in: query
+      description: Age filter. Syntax is interpreted by the API filter parser.
+      required: false
+      schema:
+        type: string
+
+    Price:
+      name: price
+      in: query
+      description: Price filter. Syntax is interpreted by the API filter parser.
+      required: false
+      schema:
+        type: string
+
+    Lon:
+      name: lon
+      in: query
+      description: Longitude used for radius filtering.
+      required: false
+      schema:
+        type: number
+        format: double
+
+    Lat:
+      name: lat
+      in: query
+      description: Latitude used for radius filtering.
+      required: false
+      schema:
+        type: number
+        format: double
+
+    Radius:
+      name: radius
+      in: query
+      description: Radius used for geographic filtering.
+      required: false
+      schema:
+        type: number
+        format: double
+
+    LastEventStartAt:
+      name: last_event_start_at
+      in: query
+      description: Cursor timestamp used with last_event_date_uuid for stable pagination.
+      required: false
+      schema:
+        type: string
+
+    LastEventDateUuid:
+      name: last_event_date_uuid
+      in: query
+      description: Cursor event-date UUID used with last_event_start_at.
+      required: false
+      schema:
+        type: string
+
+    Lang:
+      name: lang
+      in: query
+      description: Language/locale value accepted by the event filter.
+      required: false
+      schema:
+        type: string
+
+    WeekStart:
+      name: week_start
+      in: query
+      description: Optional week start date in YYYY-MM-DD format.
+      required: false
+      schema:
+        type: string
+        pattern: '^\d{4}-\d{2}-\d{2}$'
+
+    WeekStartRequired:
+      name: week_start
+      in: query
+      description: Required week start date in YYYY-MM-DD format.
+      required: true
+      schema:
+        type: string
+        pattern: '^\d{4}-\d{2}-\d{2}$'
+
+    OrgUuids:
+      name: org_uuids
+      in: query
+      description: Comma-separated organization UUID values.
+      required: false
+      schema:
+        type: string
+
+    VenueUuids:
+      name: venue_uuids
+      in: query
+      description: Comma-separated venue UUID values.
+      required: false
+      schema:
+        type: string
+
+    SpaceUuids:
+      name: space_uuids
+      in: query
+      description: Comma-separated space UUID values.
+      required: false
+      schema:
+        type: string
+
+    EventUuids:
+      name: event_uuids
+      in: query
+      description: Comma-separated event UUID values.
+      required: false
+      schema:
+        type: string
+
+    GeolistRegion:
+      name: geolist_region
+      in: query
+      description: |
+        Geographic region filter. Must contain exactly three comma-separated
+        components (lon,lat,radius). Cannot be combined with portal.
+      required: false
+      schema:
+        type: string
+
+    Portal:
+      name: portal
+      in: query
+      description: Portal UUID filter. Cannot be combined with geolist_region.
+      required: false
+      schema:
+        type: string
+
+  schemas:
+    EventFilterRequest:
+      type: object
+      description: |
+        Event filtering request used by POST /api/events/filter.
+        Array fields are represented as JSON arrays.
+      properties:
+        offset:
+          type: integer
+          format: int64
+          minimum: 0
+        limit:
+          type: integer
+          format: int64
+          minimum: 0
+        start:
+          type: string
+          pattern: '^\d{4}-\d{2}-\d{2}$'
+        end:
+          type: string
+          pattern: '^\d{4}-\d{2}-\d{2}$'
+        time:
+          type: string
+        categories:
+          type: array
+          items:
+            type: integer
+        search:
+          type: string
+        venue:
+          type: string
+        space_types:
+          type: array
+          items:
+            type: string
+        countries:
+          type: array
+          items:
+            type: string
+        postal_code:
+          type: string
+        title:
+          type: string
+        city:
+          type: string
+        event_types:
+          type: array
+          items:
+            type: integer
+        genres:
+          type: array
+          items:
+            type: integer
+        tags:
+          type: array
+          items:
+            type: string
+        accessibility:
+          type: string
+        visitor_infos:
+          type: string
+        age:
+          type: string
+        price:
+          type: string
+        lon:
+          type: number
+          format: double
+        lat:
+          type: number
+          format: double
+        radius:
+          type: number
+          format: double
+        last_event_start_at:
+          type: string
+        last_event_date_uuid:
+          type: string
+        lang:
+          type: string
+        portal:
+          type: string
+        week_start:
+          type: string
+          pattern: '^\d{4}-\d{2}-\d{2}$'
+        org_uuids:
+          type: array
+          items:
+            type: string
+        venue_uuids:
+          type: array
+          items:
+            type: string
+        space_uuids:
+          type: array
+          items:
+            type: string
+        event_uuids:
+          type: array
+          items:
+            type: string
+        geolist_region:
+          type: string
+
+    EventType:
+      type: object
+      required: [type_id, genre_id]
+      properties:
+        type_id:
+          type: integer
+        genre_id:
+          type: integer
+
+    EventResponse:
+      type: object
+      required:
+        - search_rank
+        - uuid
+        - date_uuid
+        - date_slug
+        - title
+        - start_date
+        - org_uuid
+        - org_name
+        - languages
+        - tags
+        - min_age
+        - max_age
+      properties:
+        search_rank:
+          type: number
+          format: float
+        uuid:
+          type: string
+        date_uuid:
+          type: string
+        date_slug:
+          type: string
+        title:
+          type: string
+        subtitle:
+          type: string
+          nullable: true
+        summary:
+          type: string
+          nullable: true
+        start_date:
+          type: string
+        start_time:
+          type: string
+          nullable: true
+        end_date:
+          type: string
+          nullable: true
+        end_time:
+          type: string
+          nullable: true
+        entry_time:
+          type: string
+          nullable: true
+        duration:
+          type: integer
+          nullable: true
+        all_day:
+          type: boolean
+          nullable: true
+        ticket_link:
+          type: string
+          nullable: true
+        space_uuid:
+          type: string
+          nullable: true
+        space_name:
+          type: string
+          nullable: true
+        space_accessibility_flags:
+          type: string
+          nullable: true
+        venue_uuid:
+          type: string
+          nullable: true
+        venue_name:
+          type: string
+          nullable: true
+        venue_city:
+          type: string
+          nullable: true
+        venue_street:
+          type: string
+          nullable: true
+        venue_house_number:
+          type: string
+          nullable: true
+        venue_postal_code:
+          type: string
+          nullable: true
+        venue_state:
+          type: string
+          nullable: true
+        venue_country:
+          type: string
+          nullable: true
+        venue_lat:
+          type: number
+          format: double
+          nullable: true
+        venue_lon:
+          type: number
+          format: double
+          nullable: true
+        image_uuid:
+          type: string
+          nullable: true
+        image_path:
+          type: string
+          nullable: true
+        image_ai_label:
+          type: string
+          nullable: true
+        org_uuid:
+          type: string
+        org_name:
+          type: string
+        categories:
+          type: array
+          items:
+            type: integer
+        event_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventType'
+        languages:
+          type: array
+          items:
+            type: string
+        tags:
+          type: array
+          items:
+            type: string
+        min_age:
+          type: integer
+          nullable: true
+        max_age:
+          type: integer
+          nullable: true
+        price_type:
+          type: string
+          nullable: true
+        min_price:
+          type: number
+          format: double
+          nullable: true
+        max_price:
+          type: number
+          format: double
+          nullable: true
+        currency:
+          type: string
+          nullable: true
+        visitor_info_flags:
+          type: string
+          nullable: true
+        release_status:
+          type: string
+          nullable: true
+
+    EventsResponse:
+      type: object
+      required: [events]
+      properties:
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventResponse'
+        last_event_date_uuid:
+          type: string
+          nullable: true
+        last_event_start_at:
+          type: string
+          nullable: true
+
+    CalendarDayResponse:
+      type: object
+      required: [event_day, events, more_count]
+      properties:
+        event_day:
+          type: string
+        events:
+          description: JSON-encoded event collection returned by the current implementation.
+          type: object
+          additionalProperties: true
+        more_count:
+          type: integer
+
+    EventsWeekResponse:
+      type: object
+      required: [days]
+      properties:
+        days:
+          type: array
+          items:
+            $ref: '#/components/schemas/CalendarDayResponse'
+
+    SummaryEntry:
+      type: object
+      required: [id, count]
+      properties:
+        id:
+          type: integer
+        count:
+          type: integer
+
+    EventTypeSummaryResponse:
+      type: object
+      required: [total_event_count, type_summary, genre_summary]
+      properties:
+        total_event_count:
+          type: integer
+        type_summary:
+          type: array
+          items:
+            $ref: '#/components/schemas/SummaryEntry'
+        genre_summary:
+          type: array
+          items:
+            $ref: '#/components/schemas/SummaryEntry'
+
+    VenueSummaryEntry:
+      type: object
+      required: [venue_uuid, venue_name, date_count]
+      properties:
+        venue_uuid:
+          type: string
+        venue_name:
+          type: string
+        date_count:
+          type: integer
+
+    EventVenueSummaryResponse:
+      type: object
+      required: [venue-summary]
+      properties:
+        venue-summary:
+          type: array
+          items:
+            $ref: '#/components/schemas/VenueSummaryEntry'
+
+    GeoJSONGeometry:
+      type: object
+      required: [type, coordinates]
+      properties:
+        type:
+          type: string
+          enum: [Point]
+        coordinates:
+          type: array
+          minItems: 2
+          maxItems: 2
+          items:
+            type: number
+            format: double
+          description: '[longitude, latitude]'
+
+    GeoJSONVenueProperties:
+      type: object
+      required: [uuid, name, event_count]
+      properties:
+        uuid:
+          type: string
+        name:
+          type: string
+        city:
+          type: string
+          nullable: true
+        country:
+          type: string
+          nullable: true
+        event_count:
+          type: integer
+
+    GeoJSONFeature:
+      type: object
+      required: [type, geometry, properties]
+      properties:
+        type:
+          type: string
+          enum: [Feature]
+        geometry:
+          $ref: '#/components/schemas/GeoJSONGeometry'
+        properties:
+          $ref: '#/components/schemas/GeoJSONVenueProperties'
+
+    GeoJSONFeatureCollection:
+      type: object
+      required: [type, features]
+      properties:
+        type:
+          type: string
+          enum: [FeatureCollection]
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/GeoJSONFeature'
+
+    ErrorResponse:
+      type: object
+      description: |
+        Error response envelope. The exact envelope is provided by
+        grains_api.ApiRequest and is intentionally not constrained here
+        until that package's implementation is documented.
+      additionalProperties: true
+
+  responses:
+    BadRequest:
+      description: Invalid request or filter parameter.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    InternalServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

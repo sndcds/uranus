@@ -268,7 +268,7 @@ func (h *ApiHandler) buildEventFilters(request EventFilterRequest, useTypeFilter
 	}
 
 	if request.City != "" {
-		filters.ArgIndex, errBuild = sql_utils.BuildSanitizedIlikeCondition(
+		filters.ArgIndex, errBuild = sql_utils.BuildSanitizedIlikeConditions(
 			request.City,
 			"COALESCE(edp.venue_city, ep.venue_city)",
 			"city",
@@ -281,7 +281,7 @@ func (h *ApiHandler) buildEventFilters(request EventFilterRequest, useTypeFilter
 	}
 
 	if request.Venue != "" {
-		filters.ArgIndex, errBuild = sql_utils.BuildSanitizedIlikeCondition(
+		filters.ArgIndex, errBuild = sql_utils.BuildSanitizedIlikeConditions(
 			request.Venue,
 			"COALESCE(edp.venue_name, ep.venue_name)",
 			"venue",

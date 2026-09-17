@@ -271,7 +271,7 @@ func (h *ApiHandler) buildVenueFilters(gc *gin.Context, useLang bool) (venueFilt
 	// Text filters
 
 	if nameStr != "" {
-		filters.ArgIndex, errBuild = sql_utils.BuildSanitizedIlikeCondition(
+		filters.ArgIndex, errBuild = sql_utils.BuildSanitizedIlikeConditions(
 			nameStr,
 			"v.name",
 			"name",
@@ -301,7 +301,7 @@ func (h *ApiHandler) buildVenueFilters(gc *gin.Context, useLang bool) (venueFilt
 	*/
 
 	if citiesStr != "" {
-		filters.ArgIndex, errBuild = sql_utils.BuildSanitizedIlikeCondition(
+		filters.ArgIndex, errBuild = sql_utils.BuildSanitizedIlikeConditions(
 			citiesStr,
 			"v.city",
 			"cities",

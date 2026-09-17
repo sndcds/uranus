@@ -23,7 +23,7 @@ func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
 	args := []interface{}{}
 	argIndex := 1
 
-	argIndex, errBuild := sql_utils.BuildSanitizedIlikeCondition(nameStr, "name", "name", argIndex, &conditions, &args)
+	argIndex, errBuild := sql_utils.BuildSanitizedIlikeConditions(nameStr, "name", "name", argIndex, &conditions, &args)
 	if errBuild != nil {
 		apiRequest.InternalServerError()
 		return
