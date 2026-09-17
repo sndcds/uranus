@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"time"
 
@@ -76,7 +77,7 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 	// Create user
 	//--------------------------------------------------------------------------
 
-	const expiryHours = 1
+	expiryMinutes := app.UranusInstance.Config.SignupTokenExpirationTime
 
 	var userUuid string
 	var signupTokenString string
@@ -129,7 +130,7 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 
 		// Generate account activation token.
 		signupExp := time.Now().Add(
-			time.Duration(expiryHours) * time.Hour,
+			time.Duration(expiryMinutes) * time.Minute,
 		)
 
 		signupClaims := &app.Claims{
@@ -202,7 +203,7 @@ func (h *ApiHandler) Signup(gc *gin.Context) {
 	}{
 		Language:         locale,
 		VerificationLink: verificationURL,
-		ExpiryHours:      expiryHours,
+		ExpiryHours:      int(math.Round(float64(expiryMinutes) / 60)),
 	}
 
 	subject, emailContent, err := app.RenderEmailTemplate(

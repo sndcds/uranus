@@ -44,6 +44,7 @@ type Config struct {
 	AuthSmtpPassword            string   `json:"auth_smtp_password"`
 	AuthReplyEmail              string   `json:"auth_reply_email"`
 	AuthResetPasswordUrl        string   `json:"auth_reset_password_url"`
+	SignupTokenExpirationTime   int      `json:"signup_token_expiration_time"`
 	InvitationExpirationMinutes int      `json:"invitation_expiration_minutes"`
 	ContactRateLimit            int64    `json:"contact_rate_limit"`
 	ContactRatePeriodMinutes    int      `json:"contact_rate_period_minutes"`
@@ -85,7 +86,8 @@ func DefaultConfig() Config {
 		PlutoImageMaxPx:             1920,
 		AuthTokenExpirationTime:     900,
 		RefreshTokenExpirationTime:  604800,
-		InvitationExpirationMinutes: 60,
+		SignupTokenExpirationTime:   1440,
+		InvitationExpirationMinutes: 2880,
 		ContactRateLimit:            5,
 		ContactEmailRateLimit:       3,
 		ContactRatePeriodMinutes:    60,
