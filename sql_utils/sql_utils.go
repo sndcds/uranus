@@ -50,6 +50,54 @@ func BuildSanitizedIlikeCondition(
 	return argIndex + 1, nil
 }
 
+func BuildSanitizedIlikeConditions(
+	inputStr string,
+	columnExpr string,
+	label string,
+	argIndex int,
+	conditions *[]string,
+	args *[]interface{},
+) (int, error) {
+	if inputStr == "" {
+		return argIndex, nil
+	}
+
+	parts := strings.Split(inputStr, ",")
+	var likeClauses []string
+
+	for _, part := range parts {
+		pattern := strings.TrimSpace(part)
+		if pattern == "" {
+			continue
+		}
+
+		sanitizedStr, err := SanitizeSearchPattern(pattern)
+		if err != nil {
+			return argIndex, fmt.Errorf(
+				"%s format error: %s",
+				label,
+				pattern,
+			)
+		}
+
+		likeClauses = append(
+			likeClauses,
+			fmt.Sprintf("%s ILIKE $%d", columnExpr, argIndex),
+		)
+		*args = append(*args, sanitizedStr)
+		argIndex++
+	}
+
+	if len(likeClauses) == 0 {
+		return argIndex, nil
+	}
+
+	condition := "(" + strings.Join(likeClauses, " OR ") + ")"
+	*conditions = append(*conditions, condition)
+
+	return argIndex, nil
+}
+
 // BuildBitmaskCondition constructs a SQL bitmask filter from a string of flags.
 //
 // It supports both a single integer value (e.g., "16") representing a full bitmask,
