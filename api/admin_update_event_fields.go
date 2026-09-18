@@ -126,6 +126,13 @@ func (h *ApiHandler) AdminUpdateEventFields(gc *gin.Context) {
 			}
 		}
 
+		if !orgPermissions.Has(app.UserPermEditEvent) {
+			return &ApiTxError{
+				Code: http.StatusForbidden,
+				Err:  fmt.Errorf("insufficient permissions to edit event"),
+			}
+		}
+
 		res, err := tx.Exec(ctx, query, args...)
 		if err != nil {
 			return &ApiTxError{
