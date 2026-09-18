@@ -66,7 +66,7 @@ JOIN {{schema}}.user_organization_link uol
         AND uol.user_uuid = $1::uuid
         AND (
             (uol.permissions & (1 << 25)) <> 0
-            OR uol.permissions & (1 << 28)) <> 0)
+            OR (uol.permissions & (1 << 28)) <> 0
         )
 
 LEFT JOIN {{schema}}.organization o
