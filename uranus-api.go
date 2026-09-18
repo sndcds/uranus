@@ -429,7 +429,7 @@ func main() {
 		apiHandler.AdminGetOrgVenues)
 	adminRoute.GET(
 		"/org/:orgUuid/events",
-		apiHandler.AdminGetOrgEvents) // TODO: Permission check
+		apiHandler.AdminGetOrgEvents)
 	adminRoute.GET(
 		"/org/:orgUuid/portals",
 		apiHandler.AdminGetOrgPortals) // TODO: Permission check
@@ -574,9 +574,6 @@ func main() {
 	adminRoute.PUT(
 		"/event/:eventUuid/release-status",
 		apiHandler.AdminUpdateEventReleaseStatus) // TODO: Permission check
-	adminRoute.PUT(
-		"/event/:eventUuid/header",
-		apiHandler.AdminUpdateEventHeader) // TODO: Permission check
 	adminRoute.PUT(
 		"/event/:eventUuid/description",
 		apiHandler.AdminUpdateEventDescription) // TODO: Permission check
