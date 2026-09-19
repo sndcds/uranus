@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
+	ics "github.com/arran4/golang-ical"
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
 )
@@ -42,7 +42,12 @@ func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 	}
 
 	var event EventDateICS
-	err := h.DbPool.QueryRow(ctx, app.UranusInstance.SqlGetEventDateICS, dateUuid).Scan(
+
+	err := h.DbPool.QueryRow(
+		ctx,
+		app.UranusInstance.SqlGetEventDateICS,
+		dateUuid,
+	).Scan(
 		&event.EventDateUUID,
 		&event.VenueName,
 		&event.VenueStreet,
@@ -58,6 +63,7 @@ func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 		&event.OrgName,
 		&event.OrgContactEmail,
 	)
+
 	if err != nil {
 		apiRequest.InternalServerError()
 		return
@@ -75,7 +81,16 @@ func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 	endDate := str(event.EndDate)
 	endTime := str(event.EndTime)
 
+	// ------------------------------------------------------------
+	// Start / end
+	// ------------------------------------------------------------
+
 	dtStart := formatICSDatetime(startDate, startTime)
+
+	if dtStart == "" {
+		apiRequest.InternalServerError()
+		return
+	}
 
 	dtEnd := ""
 
@@ -89,7 +104,10 @@ func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 		// If start and end are on the same date and the end time
 		// is earlier than the start time, assume the event ends
 		// after midnight on the following day.
-		if endDate == startDate && startTime != "" && endTime < startTime {
+		if endDate == startDate &&
+			startTime != "" &&
+			endTime < startTime {
+
 			start, err := time.Parse("2006-01-02", endDate)
 			if err == nil {
 				endDate = start.AddDate(0, 0, 1).Format("2006-01-02")
@@ -101,7 +119,9 @@ func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 
 	debugf("dtStart: %s, dtEnd: %s", dtStart, dtEnd)
 
+	// ------------------------------------------------------------
 	// Content
+	// ------------------------------------------------------------
 
 	title := str(event.Title)
 	if title == "" {
@@ -109,81 +129,129 @@ func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 	}
 
 	description := str(event.Description)
-	if sub := str(event.Subtitle); sub != "" {
-		description = sub + "\n\n" + description
+
+	if subtitle := str(event.Subtitle); subtitle != "" {
+		if description != "" {
+			description = subtitle + "\n\n" + description
+		} else {
+			description = subtitle
+		}
 	}
 
-	location := fmt.Sprintf("%s, %s %s, %s",
+	location := fmt.Sprintf(
+		"%s, %s %s, %s",
 		str(event.VenueName),
 		str(event.VenueStreet),
 		str(event.VenueHouseNumber),
 		str(event.VenueCity),
 	)
 
-	// ICS fields
+	// ------------------------------------------------------------
+	// Calendar metadata
+	// ------------------------------------------------------------
 
-	// Floating time format
-	timeFormat := "20060102T150405"
+	uid := fmt.Sprintf(
+		"%s@%s",
+		event.EventDateUUID,
+		h.Config.IcsDomain,
+	)
 
-	uid := fmt.Sprintf("%s@%s", event.EventDateUUID, h.Config.IcsDomain)
-	dtStamp := time.Now().UTC().Format(timeFormat)
+	now := time.Now().UTC()
 
-	// Build ICS
+	// ------------------------------------------------------------
+	// Build calendar
+	// ------------------------------------------------------------
 
-	var b strings.Builder
+	cal, err := ics.NewCalendarWithOptions(
+		ics.WithVersion("2.0"),
+		ics.WithProductId("-//Uranus//EN"),
+	)
+	if err != nil {
+		apiRequest.InternalServerError()
+		return
+	}
 
-	b.WriteString("BEGIN:VCALENDAR\r\n")
-	b.WriteString("VERSION:2.0\r\n")
-	b.WriteString("PRODID:-//Uranus//EN\r\n")
-	b.WriteString("METHOD:PUBLISH\r\n")
+	cal.SetMethod(ics.MethodPublish)
 
-	b.WriteString("BEGIN:VEVENT\r\n")
-	b.WriteString("UID:" + uid + "\r\n")
-	b.WriteString("DTSTAMP:" + dtStamp + "\r\n")
-	b.WriteString("DTSTART:" + dtStart + "\r\n")
+	icalEvent := cal.AddEvent(uid)
 
-	// Use the event's actual end date/time when available.
-	// Otherwise, default to one hour after the start.
+	icalEvent.SetDtStampTime(now)
+
+	// The original implementation uses floating local time.
+	//
+	// SetStartAt / SetEndAt serialize a time.Time. We therefore
+	// construct the time without converting it to UTC so that the
+	// local event time remains floating in the generated ICS.
+	start, err := parseICSLocalTime(startDate, startTime)
+	if err != nil {
+		apiRequest.InternalServerError()
+		return
+	}
+
+	icalEvent.SetStartAt(start)
+
 	if dtEnd != "" {
-		b.WriteString("DTEND:" + dtEnd + "\r\n")
-	} else {
-		// No explicit end time: default to one hour after the start.
-		start, err := time.Parse(timeFormat, dtStart)
+		end, err := parseICSLocalTime(endDate, endTime)
 		if err == nil {
-			dtEnd = start.Add(time.Hour).Format(timeFormat)
-			b.WriteString("DTEND:" + dtEnd + "\r\n")
-		} else {
-			debugf(err.Error())
+			icalEvent.SetEndAt(end)
 		}
+	} else {
+		// No explicit end time: default to one hour after start.
+		icalEvent.SetEndAt(start.Add(time.Hour))
 	}
 
-	b.WriteString("SUMMARY:" + escapeICSText(title) + "\r\n")
-	b.WriteString("DESCRIPTION:" + escapeICSText(description) + "\r\n")
-	b.WriteString("LOCATION:" + escapeICSText(location) + "\r\n")
+	icalEvent.SetSummary(title)
 
+	if description != "" {
+		icalEvent.SetDescription(description)
+	}
+
+	if location != "" {
+		icalEvent.SetLocation(location)
+	}
+
+	// SetOrganizer takes the email address separately from the
+	// display name. The library handles serialization of the
+	// ORGANIZER property and its CN parameter.
 	if email := str(event.OrgContactEmail); email != "" {
-		b.WriteString("ORGANIZER;CN=" + escapeICSText(str(event.OrgName)) +
-			":mailto:" + email + "\r\n")
+		icalEvent.SetOrganizer(
+			email,
+			ics.WithCN(str(event.OrgName)),
+		)
 	}
 
-	b.WriteString("END:VEVENT\r\n")
-	b.WriteString("END:VCALENDAR\r\n")
+	// RFC 5545 requires CRLF line endings for iCalendar content.
+	icsContent := cal.Serialize(ics.WithNewLineWindows)
 
-	ics := b.String()
-
+	// ------------------------------------------------------------
 	// Response
+	// ------------------------------------------------------------
 
 	filename := title
 	if filename == "" {
 		filename = "event"
 	}
 
+	// Prevent the event title from becoming a header injection
+	// vector through Content-Disposition.
+	filename = sanitizeICSFilename(filename)
+
 	gc.Header("Content-Type", "text/calendar; charset=utf-8")
-	gc.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.ics"`, filename))
-	gc.String(http.StatusOK, ics)
+	gc.Header(
+		"Content-Disposition",
+		fmt.Sprintf(`attachment; filename="%s.ics"`, filename),
+	)
+
+	gc.String(http.StatusOK, icsContent)
 }
 
-// formatICSDatetime parses date (YYYY-MM-DD) and time (HH:MM) strings and returns UTC ICS format
+// formatICSDatetime parses date (YYYY-MM-DD) and time (HH:MM)
+// and returns the floating ICS datetime representation.
+//
+// Example:
+//
+//	2026-09-19 + 18:30
+//	=> 20260919T183000
 func formatICSDatetime(dateStr, timeStr string) string {
 	if dateStr == "" {
 		return ""
@@ -193,74 +261,50 @@ func formatICSDatetime(dateStr, timeStr string) string {
 		timeStr = "00:00"
 	}
 
-	combined := fmt.Sprintf("%sT%s:00", dateStr, timeStr)
-
-	t, err := time.Parse("2006-01-02T15:04:05", combined)
+	t, err := time.Parse(
+		"2006-01-02T15:04:05",
+		fmt.Sprintf("%sT%s:00", dateStr, timeStr),
+	)
 	if err != nil {
-		fmt.Println("formatICSDatetime parse error:", err)
+		debugf("formatICSDatetime parse error: %s", err)
 		return ""
 	}
 
 	return t.Format("20060102T150405")
 }
 
-// escapeICSText escapes commas, semicolons, and newlines for ICS
-func escapeICSText(value string) string {
-	value = strings.ReplaceAll(value, "\\", "\\\\")
-	value = strings.ReplaceAll(value, ",", "\\,")
-	value = strings.ReplaceAll(value, ";", "\\;")
-	value = strings.ReplaceAll(value, "\n", "\\n")
+// parseICSLocalTime parses an event date/time into a time.Time.
+//
+// UTC conversion is deliberately not performed here because the
+// original ICS implementation uses floating local times.
+func parseICSLocalTime(dateStr, timeStr string) (time.Time, error) {
+	if dateStr == "" {
+		return time.Time{}, fmt.Errorf("missing event date")
+	}
+
+	if timeStr == "" {
+		timeStr = "00:00"
+	}
+
+	return time.Parse(
+		"2006-01-02T15:04:05",
+		fmt.Sprintf("%sT%s:00", dateStr, timeStr),
+	)
+}
+
+// sanitizeICSFilename prevents CR/LF and quotes from entering
+// the HTTP Content-Disposition header.
+//
+// This is separate from ICS escaping because this value is used
+// in an HTTP header, not in an iCalendar property.
+func sanitizeICSFilename(value string) string {
+	value = strings.ReplaceAll(value, "\r", "")
+	value = strings.ReplaceAll(value, "\n", "")
+	value = strings.ReplaceAll(value, `"`, "'")
+
+	if value == "" {
+		return "event"
+	}
+
 	return value
-}
-
-// Map a sql.Row to map[string]interface{}
-func mapRowToMap(row pgx.Rows) map[string]interface{} {
-	fieldDesc := row.FieldDescriptions()
-	cols := make([]string, len(fieldDesc))
-	for i, fd := range fieldDesc {
-		cols[i] = string(fd.Name)
-	}
-
-	values, err := row.Values()
-	if err != nil {
-		return nil
-	}
-
-	data := make(map[string]interface{})
-	for i, col := range cols {
-		data[col] = values[i]
-	}
-	return data
-}
-
-func formatAddress(selectedDate map[string]interface{}) string {
-	var addrStr string
-	var streetStr string
-	var cityStr string
-
-	if selectedDate["venue_street"] != nil {
-		streetStr = selectedDate["venue_street"].(string)
-		if selectedDate["venue_house_number"] != nil {
-			streetStr += " " + selectedDate["venue_house_number"].(string)
-		}
-	}
-
-	if selectedDate["venue_city"] != nil {
-		if selectedDate["venue_postal_code"] != nil {
-			cityStr = selectedDate["venue_postal_code"].(string) + " "
-		}
-		cityStr += selectedDate["venue_city"].(string)
-	}
-
-	if selectedDate["venue_name"] != nil {
-		addrStr = selectedDate["venue_name"].(string)
-		if streetStr != "" {
-			addrStr += "\\, " + streetStr
-		}
-		if cityStr != "" {
-			addrStr += "\\, " + cityStr
-		}
-	}
-
-	return addrStr
 }
