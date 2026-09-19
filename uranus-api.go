@@ -565,11 +565,8 @@ func main() {
 		"/event/:eventUuid/links",
 		apiHandler.AdminUpdateEventLinks) // TODO: Permission check
 	adminRoute.PUT(
-		"/event/:eventUuid/venue",
-		apiHandler.AdminUpdateEventVenue) // TODO: Permission check
-	adminRoute.PUT(
 		"/event/:eventUuid/fields",
-		apiHandler.AdminUpdateEventFields) // TODO: Permission check
+		apiHandler.AdminUpdateEvent)
 
 	adminRoute.PUT(
 		"/event/:eventUuid/release-status",

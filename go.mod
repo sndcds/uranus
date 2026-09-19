@@ -3,6 +3,7 @@ module github.com/sndcds/uranus
 go 1.25.0
 
 require (
+	github.com/arran4/golang-ical v0.3.6
 	github.com/chai2010/webp v1.4.0
 	github.com/gin-contrib/gzip v1.2.6
 	github.com/gin-gonic/gin v1.12.0
@@ -58,7 +59,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.3.1 // indirect
-	github.com/sndcds/pluto v0.5.6
+	github.com/sndcds/pluto v0.6.0
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.1 // indirect
 	github.com/yuin/goldmark v1.7.13
