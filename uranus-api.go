@@ -233,11 +233,11 @@ func main() {
 		apiHandler.GetUserAvatar)
 
 	publicRoute.GET(
-		"/event/type-genre-lookup",
-		apiHandler.GetEventTypeGenreLookup)
-	publicRoute.GET(
 		"/event/category-lookup",
 		apiHandler.GetEventCategoryLookup)
+	publicRoute.GET(
+		"/event/type-genre-lookup",
+		apiHandler.GetEventTypeGenreLookup)
 
 	publicRoute.GET(
 		"/choosable-link-types",
@@ -263,15 +263,17 @@ func main() {
 	publicRoute.GET(
 		"/choosable-languages",
 		apiHandler.GetChoosableLanguages)
-	publicRoute.GET(
-		"/choosable-price-types",
-		apiHandler.GetChoosablePriceTypes) // TODO: check!
+	/*
+		publicRoute.GET(
+			"/choosable-price-types",
+			apiHandler.GetChoosablePriceTypes) // TODO: Not used anymore, can be removed!
+	*/
 	publicRoute.GET(
 		"/choosable-currencies",
-		apiHandler.GetChoosableCurrencies) // TODO: check!
+		apiHandler.GetChoosableCurrencies)
 	publicRoute.GET(
-		"/choosable-event-ocassions",
-		apiHandler.GetChoosableEventOccasions) // TODO: check!
+		"/choosable-event-occasions",
+		apiHandler.GetChoosableEventOccasions)
 
 	publicRoute.GET(
 		"/choosable-venues",
@@ -289,7 +291,7 @@ func main() {
 		"/choosable-event-genres/event-type/:id",
 		apiHandler.GetChoosableEventGenres) // TODO: check!
 
-	publicRoute.GET(""+
+	publicRoute.GET(
 		"/accessibility/flags",
 		apiHandler.GetAccessibilityFlags) // TODO: check!
 

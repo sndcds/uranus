@@ -1,0 +1,371 @@
+openapi: 3.0.3
+
+info:
+  title: Uranus API
+  description: API for the Uranus / kulturbytes platform.
+  version: '1.0'
+
+servers:
+  - url: https://api.kulturbytes.de
+  - url: http://localhost:9090
+
+paths:
+  /api/event/type-genre-lookup:
+    get:
+      operationId: getEventTypeGenreLookup
+      summary: Get event type and genre lookup
+      description: Returns event types and their associated genres grouped by language.
+      responses:
+        '200':
+          description: Event type and genre lookup retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetEventTypeGenreLookupResponse200'
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-event-type-genre-lookup
+                status: 200
+                timestamp: '2026-09-20T13:02:31Z'
+                metadata:
+                  response_time_ms: 18
+                data:
+                  da:
+                    types:
+                      "1":
+                        name: Koncert
+                        genres:
+                          "1001": Elektronisk musik
+                          "1002": Rock
+                          "1003": Jazz
+                          "1004": Metal
+                          "1005": R&B
+                      "2":
+                        name: Teater & scene
+                        genres:
+                          "2001": Musical
+                          "2002": Musikteater
+                          "2003": Cirkusteater
+                          "2004": Drama
+                          "2005": Komedie
+                      "3":
+                        name: Party
+                        genres:
+                          "3001": Trance
+                          "3002": Edm
+                          "3003": Drum and bass
+                          "3004": Disco
+                          "3005": Dancehall
+                      "4":
+                        name: Comedy
+                        genres:
+                          "4001": Stand-up
+                          "4002": Kabaret
+                          "4003": Satire
+                          "4004": Sketch
+                          "4005": Parodi
+                      "5":
+                        name: Børneteater
+                        genres:
+                          "5001": Dukketeater
+                          "5002": Eventyr
+                          "5003": Fabel
+                          "5004": Klassiker
+                          "5005": Klovneteater
+                  de:
+                    types:
+                      "1":
+                        name: Konzert
+                        genres:
+                          "1001": Elektronische Musik
+                          "1002": Rock
+                          "1003": Jazz
+                          "1004": Metal
+                          "1005": R&B
+                      "2":
+                        name: Theater & Bühne
+                        genres:
+                          "2001": Musical
+                          "2002": Musiktheater
+                          "2003": Zirkus-Theater
+                          "2004": Drama
+                          "2005": Komödie
+                      "3":
+                        name: Party
+                        genres:
+                          "3001": Trance
+                          "3002": EDM
+                          "3003": Drum and Bass
+                          "3004": Disco
+                          "3005": Dancehall
+                      "4":
+                        name: Comedy
+                        genres:
+                          "4001": Stand-up
+                          "4002": Kabarett
+                          "4003": Satire
+                          "4004": Sketch
+                          "4005": Parodie
+                      "5":
+                        name: Kindertheater
+                        genres:
+                          "5001": Puppenspiel
+                          "5002": Märchen
+                          "5003": Fabel
+                          "5004": Klassiker
+                          "5005": Clownstheater
+                  en:
+                    types:
+                      "1":
+                        name: Concert
+                        genres:
+                          "1001": Electronic music
+                          "1002": Rock
+                          "1003": Jazz
+                          "1004": Metal
+                          "1005": R&B
+                      "2":
+                        name: Theater & Stage
+                        genres:
+                          "2001": Musical
+                          "2002": Musical theater
+                          "2003": Circus theatre
+                          "2004": Drama
+                          "2005": Comedy
+                      "3":
+                        name: Party
+                        genres:
+                          "3001": Trance
+                          "3002": Edm
+                          "3003": Drum and bass
+                          "3004": Disco
+                          "3005": Dancehall
+                      "4":
+                        name: Comedy
+                        genres:
+                          "4001": Stand-up
+                          "4002": Cabaret
+                          "4003": Satire
+                          "4004": Sketch
+                          "4005": Parody
+                      "5":
+                        name: Children’s Theater
+                        genres:
+                          "5001": Puppet show
+                          "5002": Fairy tale
+                          "5003": Fable
+                          "5004": Classic
+                          "5005": Clown theater
+                  fr:
+                    types:
+                      "1":
+                        name: Concert
+                        genres:
+                          "1001": Musique électronique
+                          "1002": Rock
+                          "1003": Jazz
+                          "1004": Metal
+                          "1005": R&B
+                      "2":
+                        name: Théâtre & scène
+                        genres:
+                          "2001": Comédie musicale
+                          "2002": Théâtre musical
+                          "2003": Théâtre de cirque
+                          "2004": Drame
+                          "2005": Comédie
+                      "3":
+                        name: Fête
+                        genres:
+                          "3001": Trance
+                          "3002": EDM
+                          "3003": Drum and bass
+                          "3004": Disco
+                          "3005": Dancehall
+                      "4":
+                        name: Comédie
+                        genres:
+                          "4001": Stand-up
+                          "4002": Cabaret
+                          "4003": Satire
+                          "4004": Sketch
+                          "4005": Parodie
+                      "5":
+                        name: Théâtre pour enfants
+                        genres:
+                          "5001": Marionnettes
+                          "5002": Conte de fées
+                          "5003": Fable
+                          "5004": Classique
+                          "5005": Théâtre de clowns
+                  sv:
+                    types:
+                      "1":
+                        name: Konsert
+                        genres:
+                          "1001": Elektronisk musik
+                          "1002": Rock
+                          "1003": Jazz
+                          "1004": Metal
+                          "1005": R&B
+                      "2":
+                        name: Teater & scen
+                        genres:
+                          "2001": Musikal
+                          "2002": Musikteater
+                          "2003": Cirkusteater
+                          "2004": Drama
+                          "2005": Komedi
+                      "3":
+                        name: Fest
+                        genres:
+                          "3001": Trance
+                          "3002": EDM
+                          "3003": Drum and bass
+                          "3004": Disco
+                          "3005": Dancehall
+                      "4":
+                        name: Komedi
+                        genres:
+                          "4001": Stand-up
+                          "4002": Kabarett
+                          "4003": Satir
+                          "4004": Sketch
+                          "4005": Parodi
+                      "5":
+                        name: Barnteater
+                        genres:
+                          "5001": Dockteater
+                          "5002": Saga
+                          "5003": Fabel
+                          "5004": Klassiker
+                          "5005": Clownteater
+
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseEnvelope500'
+
+components:
+  schemas:
+
+    GetEventTypeGenreLookupResponse200:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope200'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/EventTypeGenreLookup'
+          required:
+            - data
+
+    EventTypeGenreLookup:
+      type: object
+      description: Event type and genre lookup grouped by ISO 639-1 language code.
+      additionalProperties:
+        $ref: '#/components/schemas/LanguageLookup'
+
+    LanguageLookup:
+      type: object
+      properties:
+        types:
+          $ref: '#/components/schemas/EventTypes'
+      required:
+        - types
+      additionalProperties: false
+
+    EventTypes:
+      type: object
+      description: Event types keyed by numeric event type ID.
+      additionalProperties:
+        $ref: '#/components/schemas/EventType'
+
+    EventType:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Localized name of the event type.
+        genres:
+          $ref: '#/components/schemas/Genres'
+      required:
+        - name
+        - genres
+      additionalProperties: false
+
+    Genres:
+      type: object
+      description: Genres keyed by numeric genre ID.
+      additionalProperties:
+        type: string
+      example:
+        "1001": Electronic music
+        "1002": Rock
+        "1003": Jazz
+
+    ResponseEnvelope:
+      type: object
+      properties:
+        service:
+          type: string
+          example: Uranus API
+        api_version:
+          type: string
+          example: '1.0'
+        response_type:
+          type: string
+          example: get-event-type-genre-lookup
+        status:
+          type: integer
+          example: 200
+        timestamp:
+          type: string
+          format: date-time
+          example: '2026-09-20T13:02:31Z'
+        metadata:
+          $ref: '#/components/schemas/ResponseMetadata'
+        data:
+          nullable: true
+        message:
+          type: string
+        required:
+          - service
+          - api_version
+          - response_type
+          - status
+          - timestamp
+        additionalProperties: false
+
+    ResponseEnvelope200:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 200
+              example: 200
+
+    ResponseEnvelope500:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 500
+              example: 500
+
+    ResponseMetadata:
+      type: object
+      properties:
+        response_time_ms:
+          type: integer
+          description: Response generation time in milliseconds.
+          example: 18
+      additionalProperties: true

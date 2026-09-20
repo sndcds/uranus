@@ -9,7 +9,7 @@ import (
 )
 
 func (h *ApiHandler) GetChoosableLicenseTypes(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "get-chooseable-licenses")
+	apiRequest := grains_api.NewRequest(gc, "get-choosable-license-types")
 	ctx := gc.Request.Context()
 
 	lang := gc.DefaultQuery("lang", "en")
@@ -57,6 +57,6 @@ func (h *ApiHandler) GetChoosableLicenseTypes(gc *gin.Context) {
 		return
 	}
 
-	apiRequest.SetMeta("license_count", len(licences))
+	apiRequest.SetMeta("license_type_count", len(licences))
 	apiRequest.Success(http.StatusOK, licences)
 }

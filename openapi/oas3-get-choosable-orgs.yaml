@@ -1,0 +1,250 @@
+openapi: 3.0.3
+
+info:
+  title: Uranus API
+  description: API for the Uranus / kulturbytes platform.
+  version: '1.0'
+
+servers:
+  - url: https://api.kulturbytes.de
+  - url: http://localhost:9090
+
+paths:
+  /api/choosable-orgs:
+    get:
+      summary: Get choosable organizations
+      description: Returns organizations matching the optional name and geographic filters.
+      operationId: getChoosableOrgs
+
+      parameters:
+        - name: name
+          in: query
+          required: false
+          description: >-
+            Case-insensitive name search. An asterisk (`*`) at the beginning and/or end
+            acts as a wildcard. Examples: `Kultur*` (starts with), `*haus` (ends with),
+            `*kultur*` (contains).
+          schema:
+            type: string
+            example: Kultur*
+
+        - name: lat
+          in: query
+          required: false
+          description: Latitude of the center point for the geographic search.
+          schema:
+            type: number
+            format: double
+            minimum: -90
+            maximum: 90
+            example: 54.7937
+
+        - name: lon
+          in: query
+          required: false
+          description: Longitude of the center point for the geographic search.
+          schema:
+            type: number
+            format: double
+            minimum: -180
+            maximum: 180
+            example: 9.4469
+
+        - name: radius
+          in: query
+          required: false
+          description: >-
+            Search radius around the specified latitude and longitude, in meters.
+          schema:
+            type: number
+            format: double
+            minimum: 0
+            example: 10000
+
+      responses:
+        '200':
+          description: Organizations successfully retrieved.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ResponseEnvelope200'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        description: List of matching organizations.
+                        items:
+                          $ref: '#/components/schemas/Organization'
+                      metadata:
+                        $ref: '#/components/schemas/ChoosableOrgsMetadata'
+                    required:
+                      - data
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-orgs
+                status: 200
+                timestamp: '2026-09-20T12:24:00Z'
+                metadata:
+                  venue_count: 3
+                  response_time_ms: 15
+                data:
+                  - uuid: 550e8400-e29b-41d4-a716-446655440000
+                    name: Kulturzentrum Flensburg
+                    city: Flensburg
+                    state: Schleswig-Holstein
+                    country: DE
+                  - uuid: 6ba7b810-9dad-11d1-80b4-00c04fd430c8
+                    name: Kulturverein
+                    city: Flensburg
+                    state: Schleswig-Holstein
+                    country: DE
+                  - uuid: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+                    name: Kulturhaus Glücksburg
+                    city: Glücksburg
+                    state: Schleswig-Holstein
+                    country: DE
+
+        '500':
+          description: Database or internal server error.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ResponseEnvelope500'
+                  - type: object
+                    properties:
+                      data:
+                        nullable: true
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-orgs
+                status: 500
+                timestamp: '2026-09-20T12:24:00Z'
+                metadata:
+                  response_time_ms: 8
+                data: null
+                message: Database error.
+
+components:
+  schemas:
+
+    Organization:
+      type: object
+      description: A selectable organization.
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          description: Unique identifier of the organization.
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          nullable: true
+          description: Name of the organization.
+          example: Kulturzentrum Flensburg
+        city:
+          type: string
+          nullable: true
+          description: City in which the organization is located.
+          example: Flensburg
+        state:
+          type: string
+          nullable: true
+          description: State or administrative region in which the organization is located.
+          example: Schleswig-Holstein
+        country:
+          type: string
+          nullable: true
+          description: Country code of the organization.
+          example: DE
+      required:
+        - uuid
+        - name
+      additionalProperties: false
+
+    ChoosableOrgsMetadata:
+      type: object
+      description: Metadata returned with the list of organizations.
+      properties:
+        venue_count:
+          type: integer
+          description: Number of organizations matching the requested filters.
+          minimum: 0
+          example: 3
+        response_time_ms:
+          type: integer
+          description: Time required to generate the response in milliseconds.
+          minimum: 0
+          example: 15
+      required:
+        - venue_count
+        - response_time_ms
+      additionalProperties: false
+
+    ResponseEnvelope:
+      type: object
+      description: Common response envelope used by the API.
+      properties:
+        service:
+          type: string
+          description: Name of the API service.
+          example: Uranus API
+        api_version:
+          type: string
+          description: API version.
+          example: '1.0'
+        response_type:
+          type: string
+          description: Identifier of the response type.
+          example: get-choosable-orgs
+        status:
+          type: integer
+          description: HTTP status code of the response.
+          example: 200
+        timestamp:
+          type: string
+          format: date-time
+          description: Time at which the response was generated.
+          example: '2026-09-20T12:24:00Z'
+        metadata:
+          type: object
+          description: Response metadata.
+        data:
+          nullable: true
+          description: Response payload.
+        message:
+          type: string
+          description: Human-readable response message.
+          example: Database error.
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+      additionalProperties: false
+
+    ResponseEnvelope200:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 200
+              example: 200
+
+    ResponseEnvelope500:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 500
+              example: 500

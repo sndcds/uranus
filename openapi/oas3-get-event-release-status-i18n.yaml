@@ -1,0 +1,221 @@
+openapi: 3.0.3
+
+info:
+  title: Uranus API
+  version: '1.0'
+
+servers:
+  - url: https://api.kulturbytes.de
+    description: Production
+
+  - url: http://localhost:9090
+    description: Local development
+
+paths:
+  /api/event/release-status-i18n:
+    get:
+      tags:
+        - Events
+      summary: Get event release status translations
+      description: |
+        Returns the localized names of all event release statuses for the
+        requested languages.
+
+        Multiple languages can be requested as a comma-separated list.
+        If no language is specified, English (`en`) is used.
+
+        The response contains:
+        - `i18n`: translations grouped by ISO 639-1 language code
+        - `order`: the ordered list of event release status keys
+      operationId: getEventReleaseStatusI18n
+
+      parameters:
+        - name: lang
+          in: query
+          required: false
+          description: |
+            Comma-separated list of ISO 639-1 language codes.
+            The default language is `en`.
+          schema:
+            type: string
+            default: en
+            example: de,da,en
+
+      responses:
+        '200':
+          description: |
+            HTTP 200 OK — event release status translations were retrieved
+            successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventReleaseStatusI18nResponse'
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: event-release-status-i18n
+                status: 200
+                timestamp: '2026-09-20T09:44:00+02:00'
+                metadata:
+                  languages: de,da,en
+                  response_time_ms: 8
+                message: ''
+                data:
+                  i18n:
+                    de:
+                      draft: Entwurf
+                      review: Prüfung
+                      released: Veröffentlicht
+                      cancelled: Abgesagt
+                      deferred: Verschoben
+                      rescheduled: Neu terminiert
+                    da:
+                      draft: Kladde
+                      review: Gennemgang
+                      released: Udgivet
+                      cancelled: Aflyst
+                      deferred: Udskudt
+                      rescheduled: Omlagt
+                    en:
+                      draft: Draft
+                      review: Review
+                      released: Released
+                      cancelled: Cancelled
+                      deferred: Deferred
+                      rescheduled: Rescheduled
+                  order:
+                    - draft
+                    - review
+                    - released
+                    - cancelled
+                    - deferred
+                    - rescheduled
+
+        '500':
+          description: |
+            HTTP 500 Internal Server Error — the event release status
+            translations could not be retrieved from the database.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseEnvelope500'
+
+
+components:
+  schemas:
+
+    ResponseEnvelope:
+      type: object
+      properties:
+        service:
+          type: string
+          example: Uranus API
+
+        api_version:
+          type: string
+          example: '1.0'
+
+        response_type:
+          type: string
+          example: event-release-status-i18n
+
+        status:
+          type: integer
+          description: HTTP status code of the current response.
+          example: 200
+
+        timestamp:
+          type: string
+          format: date-time
+
+        metadata:
+          type: object
+          properties:
+            languages:
+              type: string
+              description: Comma-separated list of requested ISO 639-1 language codes.
+              example: de,da,en
+
+            response_time_ms:
+              type: integer
+              minimum: 0
+              example: 8
+
+          additionalProperties: false
+
+        message:
+          type: string
+
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+
+    EventReleaseStatusI18nResponse:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                i18n:
+                  type: object
+                  description: |
+                    Translations grouped by ISO 639-1 language code.
+                  additionalProperties:
+                    type: object
+                    additionalProperties:
+                      type: string
+                  example:
+                    de:
+                      draft: Entwurf
+                      review: Prüfung
+                      released: Veröffentlicht
+                      cancelled: Abgesagt
+                      deferred: Verschoben
+                      rescheduled: Neu terminiert
+                    en:
+                      draft: Draft
+                      review: Review
+                      released: Released
+                      cancelled: Cancelled
+                      deferred: Deferred
+                      rescheduled: Rescheduled
+
+                order:
+                  type: array
+                  description: |
+                    Event release status keys ordered by their configured
+                    database order.
+                  items:
+                    type: string
+                  example:
+                    - draft
+                    - review
+                    - released
+                    - cancelled
+                    - deferred
+                    - rescheduled
+
+              required:
+                - i18n
+                - order
+
+          required:
+            - data
+
+    ResponseEnvelope500:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 500
+              example: 500

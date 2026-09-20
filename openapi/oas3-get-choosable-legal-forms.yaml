@@ -1,0 +1,304 @@
+openapi: 3.0.3
+
+info:
+  title: Uranus API
+  description: API for the Uranus / kulturbytes platform.
+  version: '1.0'
+
+servers:
+  - url: https://api.kulturbytes.de
+  - url: http://localhost:9090
+
+paths:
+
+  /api/choosable-legal-forms:
+    get:
+      operationId: getChoosableLegalForms
+      summary: Get choosable legal forms
+      description: |
+        Returns all legal forms that can be selected for an organization.
+
+        Names and descriptions are localized according to the requested
+        ISO 639-1 language code.
+
+      parameters:
+        - name: lang
+          in: query
+          required: false
+          description: ISO 639-1 language code. Defaults to English.
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 2
+            default: en
+            example: en
+
+      responses:
+
+        '200':
+          description: Legal forms found.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ResponseEnvelope200'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        description: List of available legal forms.
+                        items:
+                          $ref: '#/components/schemas/LegalForm'
+                    required:
+                      - data
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-legal-forms
+                status: 200
+                timestamp: '2026-09-20T09:29:04Z'
+                metadata:
+                  language: en
+                  legal_form_count: 15
+                  response_time_ms: 19
+                data:
+                  - key: civil_law_partnership
+                    name: Civil-law Partnership
+                    description: null
+                  - key: foundation
+                    name: Foundation
+                    description: null
+                  - key: general_partnership
+                    name: General Partnership
+                    description: null
+                  - key: independent_operator
+                    name: Independently operated
+                    description: null
+                  - key: initiative
+                    name: Initiative
+                    description: null
+                  - key: limited
+                    name: Limited
+                    description: null
+                  - key: limited_partnership
+                    name: Limited Partnership
+                    description: null
+                  - key: municipal_administration
+                    name: Municipal administration
+                    description: null
+                  - key: municipal_facility
+                    name: Municipal facility
+                    description: null
+                  - key: non_profit_limited_liability_company
+                    name: Non-profit Limited Liability Company
+                    description: null
+                  - key: not_specified
+                    name: Not specified
+                    description: null
+                  - key: public_law_institution
+                    name: Public-law Institution
+                    description: null
+                  - key: registered_association
+                    name: Registered association
+                    description: null
+                  - key: registered_cooperative
+                    name: Registered Cooperative
+                    description: null
+                  - key: stock_corporation
+                    name: Stock Corporation / Joint-stock Company
+                    description: null
+
+        '404':
+          description: No legal forms found.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ResponseEnvelope404'
+                  - type: object
+                    properties:
+                      data:
+                        nullable: true
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-legal-forms
+                status: 404
+                timestamp: '2026-09-20T09:29:04Z'
+                metadata:
+                  language: xx
+                  response_time_ms: 1
+                data: null
+                message: No legal forms found
+
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ResponseEnvelope500'
+                  - type: object
+                    properties:
+                      data:
+                        nullable: true
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-legal-forms
+                status: 500
+                timestamp: '2026-09-20T09:29:04Z'
+                metadata:
+                  language: en
+                  response_time_ms: 19
+                data: null
+                message: Internal server error
+
+
+components:
+
+  schemas:
+
+    LegalForm:
+      type: object
+      description: A selectable legal form for an organization.
+      properties:
+        key:
+          type: string
+          description: Internal identifier of the legal form.
+          example: registered_association
+
+        name:
+          type: string
+          nullable: true
+          description: Localized name of the legal form.
+          example: Registered association
+
+        description:
+          type: string
+          nullable: true
+          description: Optional localized description of the legal form.
+          example: A legally registered association.
+
+      required:
+        - key
+        - name
+        - description
+
+      additionalProperties: false
+
+
+    ChoosableLegalFormsMetadata:
+      type: object
+      description: Metadata returned by the choosable legal forms endpoint.
+      properties:
+
+        language:
+          type: string
+          description: ISO 639-1 language code used for localization.
+          example: en
+
+        legal_form_count:
+          type: integer
+          minimum: 0
+          description: Number of returned legal forms.
+          example: 15
+
+        response_time_ms:
+          type: integer
+          minimum: 0
+          description: Server-side response time in milliseconds.
+          example: 19
+
+      additionalProperties: false
+
+
+    ResponseEnvelope:
+      type: object
+      properties:
+
+        service:
+          type: string
+          description: Name of the API service.
+          example: Uranus API
+
+        api_version:
+          type: string
+          description: API version.
+          example: '1.0'
+
+        response_type:
+          type: string
+          description: Identifier of the response type.
+          example: get-choosable-legal-forms
+
+        status:
+          type: integer
+          description: HTTP status code of the response.
+          example: 200
+
+        timestamp:
+          type: string
+          format: date-time
+          description: Time at which the response was generated.
+          example: '2026-09-20T09:29:04Z'
+
+        metadata:
+          $ref: '#/components/schemas/ChoosableLegalFormsMetadata'
+
+        data:
+          nullable: true
+          description: Response payload.
+
+        message:
+          type: string
+          description: Human-readable response message.
+          example: legal forms found
+
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+
+      additionalProperties: false
+
+
+    ResponseEnvelope200:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 200
+              example: 200
+
+
+    ResponseEnvelope404:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 404
+              example: 404
+
+
+    ResponseEnvelope500:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 500
+              example: 500

@@ -1,0 +1,160 @@
+openapi: 3.0.3
+
+info:
+  title: Uranus API
+  version: '1.0'
+
+servers:
+  - url: https://api.kulturbytes.de
+    description: Production
+  - url: https://localhost:9090
+
+paths:
+  /api/server/info:
+    get:
+      tags:
+        - Server
+      summary: Get server information
+      description: |
+        Returns the current server status, database status, and server uptime.
+
+        The database connection is checked with a timeout of 3 seconds.
+        If the database check fails, HTTP 503 Service Unavailable is returned.
+      operationId: getServerInfo
+
+      responses:
+        '200':
+          description: |
+            HTTP 200 OK — the server is operational and the database
+            connection check succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerInfoResponse'
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-server-info
+                status: 200
+                timestamp: '2026-09-20T09:26:00+02:00'
+                metadata:
+                  response_time_ms: 12
+                message: ''
+                data:
+                  status: ok
+                  database: ok
+                  uptime: 86400
+
+        '503':
+          description: |
+            HTTP 503 Service Unavailable — the server is running,
+            but the database connection check failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerInfoResponse'
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-server-info
+                status: 503
+                timestamp: '2026-09-20T09:26:00+02:00'
+                metadata:
+                  response_time_ms: 3010
+                message: ''
+                data:
+                  status: error
+                  database: error
+                  uptime: 86400
+
+        '500':
+          description: |
+            HTTP 500 Internal Server Error — server information
+            could not be retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseEnvelope'
+
+components:
+  schemas:
+
+    ResponseEnvelope:
+      type: object
+      properties:
+        service:
+          type: string
+          example: Uranus API
+
+        api_version:
+          type: string
+          example: '1.0'
+
+        response_type:
+          type: string
+          example: get-server-info
+
+        status:
+          type: integer
+          description: HTTP status code of the current response.
+          example: 200
+
+        timestamp:
+          type: string
+          format: date-time
+
+        metadata:
+          type: object
+          properties:
+            response_time_ms:
+              type: integer
+              minimum: 0
+              example: 12
+
+        message:
+          type: string
+
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+
+    ServerInfoResponse:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - ok
+                    - error
+                  example: ok
+
+                database:
+                  type: string
+                  enum:
+                    - ok
+                    - error
+                  example: ok
+
+                uptime:
+                  type: integer
+                  format: int64
+                  minimum: 0
+                  description: Server uptime in seconds.
+                  example: 86400
+
+              required:
+                - status
+                - database
+                - uptime
+
+          required:
+            - data

@@ -93,7 +93,8 @@ func (h *ApiHandler) GetServerInfo(gc *gin.Context) {
 	databaseStatus := "ok"
 
 	var result int
-	if err := h.DbPool.QueryRow(dbCtx, "SELECT 1").Scan(&result); err != nil {
+	err := h.DbPool.QueryRow(dbCtx, "SELECT 1").Scan(&result)
+	if err != nil {
 		databaseStatus = "error"
 	}
 

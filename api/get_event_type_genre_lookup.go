@@ -26,6 +26,10 @@ func (h *ApiHandler) GetEventTypeGenreLookup(gc *gin.Context) {
 	}
 
 	result := map[string]LanguageLookup{}
+
+	// Number of event types per language.
+	typeCount := map[string]int{}
+
 	for rows.Next() {
 		var (
 			lang  string
@@ -37,7 +41,7 @@ func (h *ApiHandler) GetEventTypeGenreLookup(gc *gin.Context) {
 			return
 		}
 
-		// Defensive: ensure non-null JSON
+		// Defensive: ensure non-null JSON.
 		if types == nil {
 			types = json.RawMessage(`{}`)
 		}
@@ -45,12 +49,23 @@ func (h *ApiHandler) GetEventTypeGenreLookup(gc *gin.Context) {
 		result[lang] = LanguageLookup{
 			Types: types,
 		}
+
+		// Count the event types in the JSON object.
+		var typeMap map[string]json.RawMessage
+		if err := json.Unmarshal(types, &typeMap); err != nil {
+			apiRequest.DatabaseError()
+			return
+		}
+
+		typeCount[lang] = len(typeMap)
 	}
 
 	if err := rows.Err(); err != nil {
 		apiRequest.DatabaseError()
 		return
 	}
+
+	apiRequest.SetMeta("event_type_count", typeCount)
 
 	apiRequest.Success(http.StatusOK, result)
 }

@@ -1,0 +1,261 @@
+openapi: 3.0.3
+
+info:
+  title: Uranus API
+  description: API for the Uranus / kulturbytes platform.
+  version: '1.0'
+
+servers:
+  - url: https://api.kulturbytes.de
+  - url: http://localhost:9090
+
+paths:
+
+  /api/choosable-languages:
+    get:
+      operationId: getChoosableLanguages
+      summary: Get choosable languages
+      description: |
+        Returns all languages that can be selected.
+
+        Language names are localized according to the requested
+        ISO 639-1 language code.
+
+        If no languages are found for the requested language, the endpoint
+        still returns HTTP 200 with an empty data array.
+
+      parameters:
+        - name: lang
+          in: query
+          required: false
+          description: ISO 639-1 language code used to localize language names.
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 2
+            default: en
+            example: en
+
+      responses:
+
+        '200':
+          description: Languages found, or no languages available for the requested language.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ResponseEnvelope200'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        description: List of available languages.
+                        items:
+                          $ref: '#/components/schemas/Language'
+                    required:
+                      - data
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-languages
+                status: 200
+                timestamp: '2026-09-20T10:17:15Z'
+                metadata:
+                  language: en
+                  response_time_ms: 3
+                data:
+                  - id: da
+                    name: Danish
+                  - id: de
+                    name: German
+                  - id: en
+                    name: English
+                  - id: fr
+                    name: French
+                  - id: sv
+                    name: Swedish
+
+        '400':
+          description: Invalid JSON input.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ResponseEnvelope400'
+                  - type: object
+                    properties:
+                      data:
+                        nullable: true
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-languages
+                status: 400
+                timestamp: '2026-09-20T10:17:15Z'
+                metadata:
+                  language: en
+                  response_time_ms: 3
+                data: null
+                message: Invalid JSON input
+
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ResponseEnvelope500'
+                  - type: object
+                    properties:
+                      data:
+                        nullable: true
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-languages
+                status: 500
+                timestamp: '2026-09-20T10:17:15Z'
+                metadata:
+                  language: en
+                  response_time_ms: 3
+                data: null
+                message: Internal server error
+
+
+components:
+
+  schemas:
+
+    Language:
+      type: object
+      description: A selectable language.
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: ISO 639-1 language code.
+          minLength: 2
+          maxLength: 2
+          example: de
+
+        name:
+          type: string
+          nullable: true
+          description: Localized name of the language.
+          example: German
+
+      required:
+        - id
+        - name
+
+      additionalProperties: false
+
+
+    ChoosableLanguagesMetadata:
+      type: object
+      description: Metadata returned by the choosable languages endpoint.
+      properties:
+
+        language:
+          type: string
+          description: ISO 639-1 language code used for localization.
+          example: en
+
+        response_time_ms:
+          type: integer
+          minimum: 0
+          description: Server-side response time in milliseconds.
+          example: 3
+
+      additionalProperties: false
+
+
+    ResponseEnvelope:
+      type: object
+      properties:
+
+        service:
+          type: string
+          description: Name of the API service.
+          example: Uranus API
+
+        api_version:
+          type: string
+          description: API version.
+          example: '1.0'
+
+        response_type:
+          type: string
+          description: Identifier of the response type.
+          example: get-choosable-languages
+
+        status:
+          type: integer
+          description: HTTP status code of the response.
+          example: 200
+
+        timestamp:
+          type: string
+          format: date-time
+          description: Time at which the response was generated.
+          example: '2026-09-20T10:17:15Z'
+
+        metadata:
+          $ref: '#/components/schemas/ChoosableLanguagesMetadata'
+
+        data:
+          nullable: true
+          description: Response payload.
+
+        message:
+          type: string
+          description: Human-readable response message.
+          example: languages found
+
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+
+      additionalProperties: false
+
+
+    ResponseEnvelope200:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 200
+              example: 200
+
+
+    ResponseEnvelope400:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 400
+              example: 400
+
+
+    ResponseEnvelope500:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 500
+              example: 500

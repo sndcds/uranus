@@ -1,0 +1,213 @@
+openapi: 3.0.3
+
+info:
+  title: Uranus API
+  description: API for the Uranus / kulturbytes platform.
+  version: '1.0'
+
+servers:
+  - url: https://api.kulturbytes.de
+  - url: http://localhost:9090
+
+paths:
+  /api/event/category-lookup:
+    get:
+      tags:
+        - Events
+      summary: Get event category lookup
+      description: >-
+        Returns event categories grouped by language and category ID. The
+        optional lang parameter can contain a comma-separated list of ISO 639-1
+        language codes.
+      operationId: getEventCategoryLookup
+
+      parameters:
+        - name: lang
+          in: query
+          required: false
+          description: >-
+            Comma-separated list of ISO 639-1 language codes used to filter the
+            returned categories, e.g. "de,en,da". If omitted or empty, all
+            available languages are returned.
+          schema:
+            type: string
+            example: de,en,da
+
+      responses:
+        '200':
+          description: Event category lookup successfully retrieved.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ResponseEnvelope200'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/EventCategoryLookup'
+                    required:
+                      - data
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-event-category-lookup
+                status: 200
+                timestamp: '2026-09-20T13:30:00Z'
+                data:
+                  da:
+                    '1':
+                      name: Kultur
+                    '2':
+                      name: Musik
+                    '3':
+                      name: Teater
+                  de:
+                    '1':
+                      name: Kultur
+                    '2':
+                      name: Musik
+                    '3':
+                      name: Theater
+                  en:
+                    '1':
+                      name: Culture
+                    '2':
+                      name: Music
+                    '3':
+                      name: Theatre
+
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseEnvelope500'
+
+components:
+  schemas:
+
+    ResponseEnvelope:
+      type: object
+      properties:
+        service:
+          type: string
+          description: Name of the API service.
+          example: Uranus API
+
+        api_version:
+          type: string
+          description: API version.
+          example: '1.0'
+
+        response_type:
+          type: string
+          description: Identifier of the response type.
+          example: get-event-category-lookup
+
+        status:
+          type: integer
+          description: HTTP status code of the response.
+          example: 200
+
+        timestamp:
+          type: string
+          format: date-time
+          description: Time at which the response was generated.
+          example: '2026-09-20T13:30:00Z'
+
+        metadata:
+          nullable: true
+          description: Optional response metadata.
+          type: object
+          additionalProperties: true
+
+        data:
+          nullable: true
+          description: Response payload.
+
+        message:
+          type: string
+          description: Human-readable response message.
+          example: database query failed
+
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+
+      additionalProperties: false
+
+    ResponseEnvelope200:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 200
+              example: 200
+
+    ResponseEnvelope500:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 500
+              example: 500
+
+    EventCategory:
+      type: object
+      description: Event category for a specific language.
+      properties:
+        name:
+          type: string
+          description: Localized name of the event category.
+          example: Kultur
+      required:
+        - name
+      additionalProperties: false
+
+    EventCategoryLanguage:
+      type: object
+      description: >-
+        Event categories keyed by their numeric category ID represented as a
+        string.
+      additionalProperties:
+        $ref: '#/components/schemas/EventCategory'
+      example:
+        '1':
+          name: Kultur
+        '2':
+          name: Musik
+        '3':
+          name: Theater
+
+    EventCategoryLookup:
+      type: object
+      description: >-
+        Event categories grouped first by ISO 639-1 language code and then by
+        category ID.
+      additionalProperties:
+        $ref: '#/components/schemas/EventCategoryLanguage'
+      example:
+        de:
+          '1':
+            name: Kultur
+          '2':
+            name: Musik
+          '3':
+            name: Theater
+        en:
+          '1':
+            name: Culture
+          '2':
+            name: Music
+          '3':
+            name: Theatre

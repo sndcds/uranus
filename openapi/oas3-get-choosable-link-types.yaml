@@ -1,0 +1,260 @@
+openapi: 3.0.3
+
+info:
+  title: Uranus API
+  description: API for the Uranus / kulturbytes platform.
+  version: '1.0'
+
+servers:
+  - url: https://api.kulturbytes.de
+  - url: http://localhost:9090
+
+paths:
+
+  /api/choosable-link-types:
+    get:
+      operationId: getChoosableLinkTypes
+      summary: Get choosable link types
+      description: |
+        Returns the link types that can be selected for an organization,
+        venue, event or other entity.
+
+        The returned names are localized according to the requested
+        ISO 639-1 language code.
+      parameters:
+        - name: lang
+          in: query
+          required: false
+          description: |
+            ISO 639-1 language code used for the localized link type names.
+            Defaults to English.
+          schema:
+            type: string
+            default: en
+            example: en
+            minLength: 2
+            maxLength: 2
+      responses:
+
+        '200':
+          description: Link types found.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ResponseEnvelope200'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/LinkType'
+                    required:
+                      - data
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-link-types
+                status: 200
+                timestamp: '2026-09-20T08:07:43Z'
+                metadata:
+                  language: en
+                  link_type_count: 15
+                  response_time_ms: 3
+                data:
+                  - key: bandcamp
+                    name: Bandcamp
+                  - key: facebook
+                    name: Facebook
+                  - key: instagram
+                    name: Instagram
+                  - key: artist_website
+                    name: Kunstnerens website
+                  - key: mastodon
+                    name: Mastodon
+                  - key: source_website
+                    name: Mere info hos arrangøren
+                  - key: other
+                    name: Other
+                  - key: pdf
+                    name: PDF
+                  - key: soundcloud
+                    name: SoundCloud
+                  - key: spotify
+                    name: Spotify
+                  - key: tickets
+                    name: Tickets
+                  - key: vimeo
+                    name: Vimeo
+                  - key: website
+                    name: Website
+                  - key: x
+                    name: X
+                  - key: youtube
+                    name: YouTube
+                message: Link types found
+
+        '404':
+          description: No link types were found for the requested language.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseEnvelope404'
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-link-types
+                status: 404
+                timestamp: '2026-09-20T08:07:43Z'
+                metadata:
+                  language: xx
+                  response_time_ms: 2
+                message: No link types found
+
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseEnvelope500'
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-link-types
+                status: 500
+                timestamp: '2026-09-20T08:07:43Z'
+                metadata:
+                  language: en
+                  response_time_ms: 3
+                message: Internal server error
+
+
+components:
+
+  schemas:
+
+    LinkType:
+      type: object
+      description: A selectable link type.
+      properties:
+        key:
+          type: string
+          nullable: true
+          description: Internal identifier of the link type.
+          example: facebook
+        name:
+          type: string
+          nullable: true
+          description: Localized display name of the link type.
+          example: Facebook
+      required:
+        - key
+        - name
+      additionalProperties: false
+
+
+    ResponseEnvelope:
+      type: object
+      properties:
+
+        service:
+          type: string
+          example: Uranus API
+
+        api_version:
+          type: string
+          example: '1.0'
+
+        response_type:
+          type: string
+          example: get-choosable-link-types
+
+        status:
+          type: integer
+          description: HTTP status code of the response.
+          example: 200
+
+        timestamp:
+          type: string
+          format: date-time
+          example: '2026-09-20T08:07:43Z'
+
+        metadata:
+          $ref: '#/components/schemas/ChoosableLinkTypesMetadata'
+
+        data:
+          description: Response payload.
+          nullable: true
+
+        message:
+          type: string
+          example: Link types found
+
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+
+      additionalProperties: false
+
+
+    ResponseEnvelope200:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 200
+              example: 200
+
+
+    ResponseEnvelope404:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 404
+              example: 404
+
+
+    ResponseEnvelope500:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 500
+              example: 500
+
+
+    ChoosableLinkTypesMetadata:
+      type: object
+      properties:
+
+        language:
+          type: string
+          description: ISO 639-1 language code used for localization.
+          example: en
+
+        link_type_count:
+          type: integer
+          minimum: 0
+          description: Number of returned link types.
+          example: 15
+
+        response_time_ms:
+          type: integer
+          minimum: 0
+          description: Server-side response time in milliseconds.
+          example: 3
+
+      additionalProperties: false

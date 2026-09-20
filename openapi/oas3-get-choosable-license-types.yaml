@@ -1,0 +1,290 @@
+openapi: 3.0.3
+
+info:
+  title: Uranus API
+  description: API for the Uranus / kulturbytes platform.
+  version: '1.0'
+
+servers:
+  - url: https://api.kulturbytes.de
+  - url: http://localhost:9090
+
+paths:
+
+  /api/choosable-license-types:
+    get:
+      operationId: getChoosableLicenseTypes
+      summary: Get choosable license types
+      description: |
+        Returns all license types that can be selected for content.
+
+        Names and descriptions are localized according to the requested
+        ISO 639-1 language code.
+
+      parameters:
+        - name: lang
+          in: query
+          required: false
+          description: ISO 639-1 language code. Defaults to English.
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 2
+            default: en
+            example: en
+
+      responses:
+
+        '200':
+          description: License types found.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ResponseEnvelope200'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        description: List of available license types.
+                        items:
+                          $ref: '#/components/schemas/LicenseType'
+                    required:
+                      - data
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-chooseable-license-types
+                status: 200
+                timestamp: '2026-09-20T09:45:16Z'
+                metadata:
+                  language: en
+                  license_count: 10
+                  response_time_ms: 3
+                data:
+                  - key: all-rights-reserved
+                    name: All Rights Reserved
+                    description: null
+                  - key: cc-by
+                    name: CC BY – Attribution
+                    description: null
+                  - key: cc-by-nc
+                    name: CC BY-NC – Attribution-NonCommercial
+                    description: null
+                  - key: cc-by-nc-nd
+                    name: CC BY-NC-ND – Attribution-NonCommercial-NoDerivatives
+                    description: null
+                  - key: cc-by-nc-sa
+                    name: CC BY-NC-SA – Attribution-NonCommercial-ShareAlike
+                    description: null
+                  - key: cc-by-nd
+                    name: CC BY-ND – Attribution-NoDerivatives
+                    description: null
+                  - key: cc-by-sa
+                    name: CC BY-SA – Attribution-ShareAlike
+                    description: null
+                  - key: cc0
+                    name: CC0 – Public Domain
+                    description: null
+                  - key: mit
+                    name: MIT License
+                    description: null
+                  - key: pd
+                    name: Public Domain
+                    description: null
+
+        '404':
+          description: No license types found.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ResponseEnvelope404'
+                  - type: object
+                    properties:
+                      data:
+                        nullable: true
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-chooseable-license-types
+                status: 404
+                timestamp: '2026-09-20T09:45:16Z'
+                metadata:
+                  language: xx
+                  response_time_ms: 1
+                data: null
+                message: No licenses found
+
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ResponseEnvelope500'
+                  - type: object
+                    properties:
+                      data:
+                        nullable: true
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-chooseable-license-types
+                status: 500
+                timestamp: '2026-09-20T09:45:16Z'
+                metadata:
+                  language: en
+                  response_time_ms: 3
+                data: null
+                message: Internal server error
+
+
+components:
+
+  schemas:
+
+    LicenseType:
+      type: object
+      description: A selectable license type.
+      properties:
+        key:
+          type: string
+          nullable: true
+          description: Internal identifier of the license type.
+          example: cc-by
+
+        name:
+          type: string
+          nullable: true
+          description: Localized name of the license type.
+          example: CC BY – Attribution
+
+        description:
+          type: string
+          nullable: true
+          description: Optional localized description of the license type.
+          example: null
+
+      required:
+        - key
+        - name
+        - description
+
+      additionalProperties: false
+
+
+    ChoosableLicenseTypesMetadata:
+      type: object
+      description: Metadata returned by the choosable license types endpoint.
+      properties:
+
+        language:
+          type: string
+          description: ISO 639-1 language code used for localization.
+          example: en
+
+        license_count:
+          type: integer
+          minimum: 0
+          description: Number of returned license types.
+          example: 10
+
+        response_time_ms:
+          type: integer
+          minimum: 0
+          description: Server-side response time in milliseconds.
+          example: 3
+
+      additionalProperties: false
+
+
+    ResponseEnvelope:
+      type: object
+      properties:
+
+        service:
+          type: string
+          description: Name of the API service.
+          example: Uranus API
+
+        api_version:
+          type: string
+          description: API version.
+          example: '1.0'
+
+        response_type:
+          type: string
+          description: Identifier of the response type.
+          example: get-chooseable-license-types
+
+        status:
+          type: integer
+          description: HTTP status code of the response.
+          example: 200
+
+        timestamp:
+          type: string
+          format: date-time
+          description: Time at which the response was generated.
+          example: '2026-09-20T09:45:16Z'
+
+        metadata:
+          $ref: '#/components/schemas/ChoosableLicenseTypesMetadata'
+
+        data:
+          nullable: true
+          description: Response payload.
+
+        message:
+          type: string
+          description: Human-readable response message.
+          example: license types found
+
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+
+      additionalProperties: false
+
+
+    ResponseEnvelope200:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 200
+              example: 200
+
+
+    ResponseEnvelope404:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 404
+              example: 404
+
+
+    ResponseEnvelope500:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 500
+              example: 500
