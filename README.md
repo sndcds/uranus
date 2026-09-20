@@ -43,6 +43,10 @@ Schemas with repeated names have endpoint-specific prefixes to keep their
 original definitions distinct. The individual specifications remain available
 in `openapi/`.
 
+A German [developer overview of event endpoints and lookups](docs/event-endpoints-und-lookups.md)
+maps event fields to their lookup endpoints and describes filters, pagination,
+and known documentation gaps.
+
 
 # Contributing
 
