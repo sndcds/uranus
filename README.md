@@ -33,6 +33,20 @@
 3.	Follow setup instructions in the documentation to run the API server and database.
 
 
+# API Documentation
+
+The combined OpenAPI 3.0.3 specification is available in
+[`openapi/oas3-combined.yaml`](openapi/oas3-combined.yaml). It includes all
+22 endpoints documented in the individual OpenAPI files and preserves their
+response definitions and examples, including endpoint-specific error responses.
+Schemas with repeated names have endpoint-specific prefixes to keep their
+original definitions distinct. The individual specifications remain available
+in `openapi/`.
+
+A German [developer overview of event endpoints and lookups](docs/event-endpoints-und-lookups.md)
+maps event fields to their lookup endpoints and describes filters, pagination,
+and known documentation gaps.
+
 
 # Contributing
 
