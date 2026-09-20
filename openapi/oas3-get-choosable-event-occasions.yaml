@@ -1,0 +1,206 @@
+openapi: 3.0.3
+
+info:
+  title: Uranus API
+  description: API for the Uranus / kulturbytes platform.
+  version: '1.0'
+
+servers:
+  - url: https://api.kulturbytes.de
+  - url: http://localhost:9090
+
+paths:
+  /api/choosable-event-occasions:
+    get:
+      summary: Get choosable event occasions
+      description: Returns the available event occasion types localized in the requested language.
+      operationId: getChoosableEventOccasions
+
+      parameters:
+        - name: lang
+          in: query
+          required: false
+          description: ISO 639-1 language code used for localized event occasion names.
+          schema:
+            type: string
+            default: en
+            minLength: 2
+            maxLength: 2
+            example: en
+
+      responses:
+        '200':
+          description: Event occasion types successfully retrieved.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ResponseEnvelope200'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        description: Available event occasion types.
+                        items:
+                          $ref: '#/components/schemas/EventOccasionType'
+                      metadata:
+                        $ref: '#/components/schemas/ChoosableEventOccasionsMetadata'
+                    required:
+                      - data
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-event-occasions
+                status: 200
+                timestamp: '2026-09-20T11:37:00Z'
+                metadata:
+                  language: en
+                  event_occasion_count: 5
+                  response_time_ms: 12
+                data:
+                  - id: '0'
+                    name: No specific occasion
+                  - id: '1'
+                    name: Anniversary
+                  - id: '2'
+                    name: Festival
+                  - id: '3'
+                    name: Opening
+                  - id: '4'
+                    name: Holiday
+
+        '500':
+          description: Internal server error while retrieving event occasion types.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ResponseEnvelope500'
+                  - type: object
+                    properties:
+                      data:
+                        nullable: true
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-event-occasions
+                status: 500
+                timestamp: '2026-09-20T11:37:00Z'
+                metadata:
+                  language: en
+                  response_time_ms: 8
+                data: null
+                message: Internal server error.
+
+components:
+  schemas:
+
+    EventOccasionType:
+      type: object
+      description: A selectable event occasion type.
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Identifier of the event occasion type.
+          example: '1'
+        name:
+          type: string
+          nullable: true
+          description: Localized name of the event occasion type.
+          example: Anniversary
+      required:
+        - id
+        - name
+      additionalProperties: false
+
+    ChoosableEventOccasionsMetadata:
+      type: object
+      description: Metadata returned with the list of event occasion types.
+      properties:
+        language:
+          type: string
+          description: ISO 639-1 language code used for localization.
+          minLength: 2
+          maxLength: 2
+          example: en
+        event_occasion_count:
+          type: integer
+          description: Number of available event occasion types.
+          minimum: 0
+          example: 5
+        response_time_ms:
+          type: integer
+          description: Time required to generate the response in milliseconds.
+          minimum: 0
+          example: 12
+      required:
+        - language
+        - event_occasion_count
+        - response_time_ms
+      additionalProperties: false
+
+    ResponseEnvelope:
+      type: object
+      description: Common response envelope used by the API.
+      properties:
+        service:
+          type: string
+          description: Name of the API service.
+          example: Uranus API
+        api_version:
+          type: string
+          description: API version.
+          example: '1.0'
+        response_type:
+          type: string
+          description: Identifier of the response type.
+          example: get-choosable-event-occasions
+        status:
+          type: integer
+          description: HTTP status code of the response.
+          example: 200
+        timestamp:
+          type: string
+          format: date-time
+          description: Time at which the response was generated.
+          example: '2026-09-20T11:37:00Z'
+        metadata:
+          type: object
+          description: Response metadata.
+        data:
+          nullable: true
+          description: Response payload.
+        message:
+          type: string
+          description: Human-readable response message.
+          example: Internal server error.
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+      additionalProperties: false
+
+    ResponseEnvelope200:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 200
+              example: 200
+
+    ResponseEnvelope500:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 500
+              example: 500

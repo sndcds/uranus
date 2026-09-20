@@ -11,7 +11,7 @@ import (
 )
 
 func (h *ApiHandler) GetChoosableOrgs(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "choosable-orgs")
+	apiRequest := grains_api.NewRequest(gc, "get-choosable-orgs")
 	ctx := gc.Request.Context()
 
 	nameStr, _ := GetContextParam(gc, "name")

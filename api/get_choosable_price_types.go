@@ -5,58 +5,68 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sndcds/grains/grains_api"
 )
 
-// TODO: Review code
-
 func (h *ApiHandler) GetChoosablePriceTypes(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "get-choosable-price-types")
 	ctx := gc.Request.Context()
 
-	oncePriceTypes.Do(func() {
-		priceTypesOptionsQuery = fmt.Sprintf(`
-			SELECT type_id AS id, name FROM %s.price_type WHERE iso_639_1 = $1
-			ORDER BY CASE WHEN type_id = 0 THEN 0 ELSE 1 END, name`,
-			h.DbSchema)
-	})
-
 	lang := gc.DefaultQuery("lang", "en")
+	apiRequest.SetMeta("language", lang)
 
-	rows, err := h.DbPool.Query(ctx, priceTypesOptionsQuery, lang)
+	query := fmt.Sprintf(
+		`SELECT type_id AS id, name
+		 FROM %s.price_type
+		 WHERE iso_639_1 = $1
+		 ORDER BY CASE WHEN type_id = 0 THEN 0 ELSE 1 END, name`,
+		h.DbSchema,
+	)
+
+	rows, err := h.DbPool.Query(ctx, query, lang)
 	if err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		debugf(err.Error())
+		apiRequest.InternalServerError()
 		return
 	}
 	defer rows.Close()
 
-	type OptionType struct {
+	type PriceType struct {
 		Id   *string `json:"id"`
 		Name *string `json:"name"`
 	}
 
-	var options []OptionType
+	var priceTypes []PriceType
 
 	for rows.Next() {
-		var option OptionType
-		if err := rows.Scan(
-			&option.Id,
-			&option.Name,
-		); err != nil {
-			fmt.Println(err.Error())
-			gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		var priceType PriceType
+
+		err := rows.Scan(
+			&priceType.Id,
+			&priceType.Name,
+		)
+		if err != nil {
+			debugf(err.Error())
+			apiRequest.InternalServerError()
 			return
 		}
-		options = append(options, option)
+
+		priceTypes = append(priceTypes, priceType)
 	}
 
-	if err := rows.Err(); err != nil {
-		gc.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	err = rows.Err()
+	if err != nil {
+		debugf(err.Error())
+		apiRequest.InternalServerError()
 		return
 	}
 
-	if len(options) == 0 {
-		gc.JSON(http.StatusOK, []OptionType{})
+	apiRequest.SetMeta("price_type_count", len(priceTypes))
+
+	if len(priceTypes) == 0 {
+		apiRequest.Success(http.StatusOK, []PriceType{})
 		return
 	}
 
-	gc.JSON(http.StatusOK, options)
+	apiRequest.Success(http.StatusOK, priceTypes)
 }

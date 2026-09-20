@@ -1,0 +1,345 @@
+openapi: 3.0.3
+
+info:
+  title: Uranus API
+  description: API for the Uranus / kulturbytes platform.
+  version: '1.0'
+
+servers:
+  - url: https://api.kulturbytes.de
+  - url: http://localhost:9090
+
+paths:
+
+  /api/choosable-venue-types:
+    get:
+      operationId: getChoosableVenueTypes
+      summary: Get choosable venue types
+      description: |
+        Returns all venue types that can be selected for a venue.
+
+        The venue type names and descriptions are localized according
+        to the requested ISO 639-1 language code.
+      parameters:
+        - name: lang
+          in: query
+          required: false
+          description: |
+            ISO 639-1 language code used for localized venue type names
+            and descriptions. Defaults to English.
+          schema:
+            type: string
+            default: en
+            minLength: 2
+            maxLength: 2
+            example: da
+
+      responses:
+
+        '200':
+          description: Venue types found.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ResponseEnvelope200'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/VenueType'
+                    required:
+                      - data
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-venue-types
+                status: 200
+                timestamp: '2026-09-20T09:03:41Z'
+                metadata:
+                  language: da
+                  response_time_ms: 1
+                  venue_type_count: 35
+                data:
+                  - key: arena
+                    name: Arena
+                    description: null
+                  - key: bar_or_pub
+                    name: Bar
+                    description: null
+                  - key: library
+                    name: Bibliotek
+                    description: null
+                  - key: movie_theater
+                    name: Biograf
+                    description: null
+                  - key: city_district
+                    name: Bydel
+                    description: Et afgrænset område i en by, såsom en bydel eller kvarter.
+                  - key: coworking_space
+                    name: Coworking Space
+                    description: null
+                  - key: event_house
+                    name: Eventhus
+                    description: null
+                  - key: club_house
+                    name: Foreningshus
+                    description: null
+                  - key: hall
+                    name: Hal
+                    description: null
+                  - key: hotel
+                    name: Hotel
+                    description: null
+                  - key: municipal_facility
+                    name: Kommunal institution
+                    description: null
+                  - key: concert_hall
+                    name: Koncertsal
+                    description: null
+                  - key: conference_center
+                    name: Konferencecenter
+                    description: null
+                  - key: cultural_center
+                    name: Kulturcenter
+                    description: null
+                  - key: art_gallery
+                    name: Kunstgalleri
+                    description: null
+                  - key: playground
+                    name: Legeplads
+                    description: Et offentligt eller privat sted med legeredskaber og områder til børns leg og aktivitet.
+                  - key: makerspace
+                    name: Makerspace/Fab Lab
+                    description: null
+                  - key: media_institution
+                    name: Medieinstitution
+                    description: null
+                  - key: exhibition_hall
+                    name: Messehal
+                    description: null
+                  - key: museum
+                    name: Museum/Udstilling
+                    description: null
+                  - key: music_school
+                    name: Musikskole
+                    description: null
+                  - key: night_club
+                    name: Natklub
+                    description: null
+                  - key: park
+                    name: Park
+                    description: En offentlig eller privat park til rekreation, fritid, natur eller udendørs arrangementer.
+                  - key: public_place
+                    name: Plads
+                    description: null
+                  - key: food_establishment
+                    name: Restaurant/Bar/Café
+                    description: null
+                  - key: sacred_space
+                    name: Sakralrum/Kirke
+                    description: null
+                  - key: school
+                    name: Skole
+                    description: null
+                  - key: castle
+                    name: Slot
+                    description: En historisk befæstet eller repræsentativ bygning, ofte brugt til kulturelle arrangementer
+                  - key: sports_hal
+                    name: Sportshal
+                    description: null
+                  - key: beach
+                    name: Strand
+                    description: null
+                  - key: theatre
+                    name: Teater
+                    description: null
+                  - key: educational_institution
+                    name: Uddannelsesinstitution
+                    description: null
+                  - key: outdoor_area
+                    name: Udendørsområde/Scene
+                    description: null
+                  - key: youth_center
+                    name: Ungdomshus
+                    description: null
+                  - key: workshop
+                    name: Værksted
+                    description: null
+
+        '404':
+          description: No venue types were found for the requested language.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseEnvelope404'
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-venue-types
+                status: 404
+                timestamp: '2026-09-20T09:03:41Z'
+                metadata:
+                  language: xx
+                  response_time_ms: 1
+                message: No venue types found
+
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseEnvelope500'
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-venue-types
+                status: 500
+                timestamp: '2026-09-20T09:03:41Z'
+                metadata:
+                  language: da
+                  response_time_ms: 1
+                message: Internal server error
+
+
+components:
+
+  schemas:
+
+    VenueType:
+      type: object
+      description: A selectable venue type.
+      properties:
+        key:
+          type: string
+          description: Internal identifier of the venue type.
+          example: cultural_center
+
+        name:
+          type: string
+          nullable: true
+          description: Localized name of the venue type.
+          example: Kulturcenter
+
+        description:
+          type: string
+          nullable: true
+          description: |
+            Optional localized description of the venue type.
+          example: Et sted for kulturelle aktiviteter og arrangementer.
+
+      required:
+        - key
+        - name
+        - description
+
+      additionalProperties: false
+
+
+    ChoosableVenueTypesMetadata:
+      type: object
+      properties:
+
+        language:
+          type: string
+          description: ISO 639-1 language code used for localization.
+          example: da
+
+        venue_type_count:
+          type: integer
+          minimum: 0
+          description: Number of returned venue types.
+          example: 35
+
+        response_time_ms:
+          type: integer
+          minimum: 0
+          description: Server-side response time in milliseconds.
+          example: 1
+
+      additionalProperties: false
+
+
+    ResponseEnvelope:
+      type: object
+      properties:
+
+        service:
+          type: string
+          example: Uranus API
+
+        api_version:
+          type: string
+          example: '1.0'
+
+        response_type:
+          type: string
+          example: get-choosable-venue-types
+
+        status:
+          type: integer
+          description: HTTP status code of the response.
+          example: 200
+
+        timestamp:
+          type: string
+          format: date-time
+          example: '2026-09-20T09:03:41Z'
+
+        metadata:
+          $ref: '#/components/schemas/ChoosableVenueTypesMetadata'
+
+        data:
+          nullable: true
+          description: Response payload.
+
+        message:
+          type: string
+          example: Venue types found
+
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+
+      additionalProperties: false
+
+
+    ResponseEnvelope200:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 200
+              example: 200
+
+
+    ResponseEnvelope404:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 404
+              example: 404
+
+
+    ResponseEnvelope500:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 500
+              example: 500

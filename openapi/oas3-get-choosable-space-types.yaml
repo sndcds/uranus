@@ -1,0 +1,343 @@
+openapi: 3.0.3
+
+info:
+  title: Uranus API
+  description: API for the Uranus / kulturbytes platform.
+  version: '1.0'
+
+servers:
+  - url: https://api.kulturbytes.de
+  - url: http://localhost:9090
+
+paths:
+
+  /api/choosable-space-types:
+    get:
+      operationId: getChoosableSpaceTypes
+      summary: Get choosable space types
+      description: |
+        Returns all space types that can be selected for a space.
+
+        Names and descriptions are localized according to the requested
+        ISO 639-1 language code.
+      parameters:
+        - name: lang
+          in: query
+          required: false
+          description: ISO 639-1 language code. Defaults to English.
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 2
+            default: en
+            example: da
+
+      responses:
+
+        '200':
+          description: Space types found.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ResponseEnvelope200'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/SpaceType'
+                    required:
+                      - data
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-space-types
+                status: 200
+                timestamp: '2026-09-20T09:15:55Z'
+                metadata:
+                  language: da
+                  response_time_ms: 2
+                  space_type_count: 30
+                data:
+                  - key: art_studio
+                    name: Atelier
+                    description: Et arbejdsrum hvor kunstnere skaber, maler eller producerer kunstværker
+                  - key: bar
+                    name: Bar
+                    description: Et lokale eller område i en større venue, hvor der serveres drikkevarer og gæster kan samles socialt
+                  - key: community_hall
+                    name: Borgerhal
+                    description: En offentlig sal til lokale arrangementer, møder samt sociale og kulturelle aktiviteter
+                  - key: shop_space
+                    name: Butiksrum
+                    description: Et butiksrum der også midlertidigt kan bruges til arrangementer, pop-ups eller udstillinger
+                  - key: cafe
+                    name: Café
+                    description: Et uformelt sted der serveres kaffe, lette måltider og drikkevarer, ofte brugt til socialt samvær eller uformelt arbejde
+                  - key: meadow
+                    name: Eng / Græsareal
+                    description: Et åbent græsområde i naturen eller nær naturen, ofte brugt til arrangementer und samlinger
+                  - key: lecture_hall
+                    name: Forelæsningssal
+                    description: Et stort lokale til forelæsninger eller præsentationer
+                  - key: foyer
+                    name: Foyer
+                    description: Et indgangs- eller lobbyområde til ankomst, fordeling og uformelt ophold før eller efter arrangementer
+                  - key: open_air_stage
+                    name: Friluftsscene
+                    description: En udendørs scene til koncerter, teater og livearrangementer
+                  - key: garage
+                    name: Garage
+                    description: Et omdannet eller fleksibelt eventlokale til arrangementer, samlinger, optrædener eller kulturelle aktiviteter
+                  - key: group_room
+                    name: Gruppelokale
+                    description: Et rum designet til gruppearbejde, samarbejde eller fælles læringsaktiviteter
+                  - key: courtyard
+                    name: Gård
+                    description: Et udendørs område omgivet helt eller delvist af bygninger, brugt til ophold, passage eller afslapning
+                  - key: garden
+                    name: Have
+                    description: Et udendørs grønt område til rekreation, afslapning eller dekorativ beplantning
+                  - key: playground
+                    name: Legeplads
+                    description: Et område med legeredskaber og åbne arealer, hvor børn kan lege og være aktive.
+                  - key: multifunctional_room
+                    name: Multifunktionsrum
+                    description: Et fleksibelt rum designet til forskellige formål såsom møder, arrangementer, workshops eller samlinger
+                  - key: meeting_room
+                    name: Mødelokale
+                    description: Et rum designet til møder, diskussioner og mindre gruppeaktiviteter
+                  - key: park
+                    name: Park
+                    description: Et offentligt grønt område i byen eller naturen, egnet til arrangementer og fritid
+                  - key: place
+                    name: Plads
+                    description: Et offentligt åbent område som en byplads, markedsplads eller samlingssted
+                  - key: production_hall
+                    name: Produktionshal
+                    description: En industribygning brugt til fremstilling, montage eller produktionsprocesser
+                  - key: restaurant
+                    name: Restaurant
+                    description: Et offentligt sted hvor mad og drikke tilberedes og serveres for gæster
+                  - key: hall
+                    name: Sal
+                    description: Et stort indendørs rum til samlinger, arrangementer eller generel brug uden fast funktion
+                  - key: sports_hall
+                    name: Sportshal
+                    description: En indendørs hal til sport, træning og sportslige arrangementer
+                  - key: sports_field
+                    name: Sportsplads
+                    description: Et udendørs område til sport og fysisk aktivitet såsom fodbold, atletik eller træning
+                  - key: studio
+                    name: Studie
+                    description: Et fleksibelt arbejdsrum til kreative, medie- eller produktionsaktiviteter såsom optagelse, film eller design
+                  - key: living_room
+                    name: Stue
+                    description: Et boligrum til afslapning, socialt samvær og daglige opholdsaktiviteter
+                  - key: theater_hall
+                    name: Teatersal
+                    description: Et scenelokale til teaterforestillinger, optrædener og scenekunst
+                  - key: tent
+                    name: Telt
+                    description: En midlertidig eller flytbar konstruktion af stof eller lignende materiale, brugt til beskyttelse, arrangementer eller udendørs aktiviteter
+                  - key: exhibition_room
+                    name: Udstillingsrum
+                    description: Et rum til fremvisning af kunstværker, genstande eller informative udstillinger for besøgende
+                  - key: workshop
+                    name: Værksted
+                    description: Et arbejdsrum hvor håndværk, reparationer eller teknisk arbejde udføres
+                  - key: rehearsal_room
+                    name: Øvelokale
+                    description: Et lokale hvor musikere, skuespillere eller grupper øver og forbereder sig til optrædener
+
+        '404':
+          description: No space types found.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ResponseEnvelope404'
+                  - type: object
+                    properties:
+                      data:
+                        nullable: true
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-space-types
+                status: 404
+                timestamp: '2026-09-20T09:15:55Z'
+                metadata:
+                  language: xx
+                  response_time_ms: 1
+                message: No space types found
+
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ResponseEnvelope500'
+                  - type: object
+                    properties:
+                      data:
+                        nullable: true
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-space-types
+                status: 500
+                timestamp: '2026-09-20T09:15:55Z'
+                metadata:
+                  language: da
+                  response_time_ms: 2
+                message: Internal server error
+
+
+components:
+
+  schemas:
+
+    SpaceType:
+      type: object
+      description: A selectable space type.
+      properties:
+        key:
+          type: string
+          description: Internal identifier of the space type.
+          example: art_studio
+
+        name:
+          type: string
+          nullable: true
+          description: Localized name of the space type.
+          example: Atelier
+
+        description:
+          type: string
+          nullable: true
+          description: Localized description of the space type.
+          example: Et arbejdsrum hvor kunstnere skaber, maler eller producerer kunstværker
+
+      required:
+        - key
+        - name
+        - description
+
+      additionalProperties: false
+
+
+    ChoosableSpaceTypesMetadata:
+      type: object
+      description: Metadata returned by the choosable space types endpoint.
+      properties:
+
+        language:
+          type: string
+          description: ISO 639-1 language code used for localization.
+          example: da
+
+        space_type_count:
+          type: integer
+          minimum: 0
+          description: Number of returned space types.
+          example: 30
+
+        response_time_ms:
+          type: integer
+          minimum: 0
+          description: Server-side response time in milliseconds.
+          example: 2
+
+      additionalProperties: false
+
+
+    ResponseEnvelope:
+      type: object
+      properties:
+
+        service:
+          type: string
+          description: Name of the API service.
+          example: Uranus API
+
+        api_version:
+          type: string
+          description: API version.
+          example: '1.0'
+
+        response_type:
+          type: string
+          description: Identifier of the response type.
+          example: get-choosable-space-types
+
+        status:
+          type: integer
+          description: HTTP status code of the response.
+          example: 200
+
+        timestamp:
+          type: string
+          format: date-time
+          description: Time at which the response was generated.
+          example: '2026-09-20T09:15:55Z'
+
+        metadata:
+          $ref: '#/components/schemas/ChoosableSpaceTypesMetadata'
+
+        data:
+          nullable: true
+          description: Response payload.
+
+        message:
+          type: string
+          description: Human-readable response message.
+          example: space types found
+
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+
+      additionalProperties: false
+
+
+    ResponseEnvelope200:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 200
+              example: 200
+
+
+    ResponseEnvelope404:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 404
+              example: 404
+
+
+    ResponseEnvelope500:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 500
+              example: 500

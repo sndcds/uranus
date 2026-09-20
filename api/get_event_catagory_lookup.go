@@ -11,7 +11,7 @@ import (
 )
 
 func (h *ApiHandler) GetEventCategoryLookup(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "event-category-lookup")
+	apiRequest := grains_api.NewRequest(gc, "get-event-category-lookup")
 
 	type category struct {
 		Name string `json:"name"`

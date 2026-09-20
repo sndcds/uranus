@@ -1,0 +1,232 @@
+openapi: 3.0.3
+
+info:
+  title: Uranus API
+  description: API for the Uranus / kulturbytes platform.
+  version: '1.0'
+
+servers:
+  - url: https://api.kulturbytes.de
+  - url: https://localhost:9090
+
+paths:
+
+  /api/choosable-countries:
+    get:
+      operationId: getChoosableCountries
+      summary: Get choosable countries
+      description: |
+        Returns all countries available for selection.
+
+        Country names are localized according to the requested
+        ISO 639-1 language code.
+
+        If no countries are found for the requested language, the endpoint
+        still returns HTTP 200 with an empty data array.
+
+      parameters:
+        - name: lang
+          in: query
+          required: false
+          description: ISO 639-1 language code. Defaults to English.
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 2
+            default: en
+            example: en
+
+      responses:
+
+        '200':
+          description: Countries found, or no countries available for the requested language.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ResponseEnvelope200'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        description: List of available countries.
+                        items:
+                          $ref: '#/components/schemas/Country'
+                    required:
+                      - data
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-countries
+                status: 200
+                timestamp: '2026-09-20T09:48:48Z'
+                metadata:
+                  country_count: 249
+                  language: en
+                  response_time_ms: 95
+                data:
+                  - country_code: AFG
+                    country_name: Afghanistan
+                  - country_code: ALB
+                    country_name: Albania
+                  - country_code: DZA
+                    country_name: Algeria
+                  - country_code: ASM
+                    country_name: American Samoa
+                  - country_code: AND
+                    country_name: Andorra
+
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ResponseEnvelope500'
+                  - type: object
+                    properties:
+                      data:
+                        nullable: true
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-countries
+                status: 500
+                timestamp: '2026-09-20T09:48:48Z'
+                metadata:
+                  language: en
+                  response_time_ms: 95
+                data: null
+                message: Internal server error
+
+
+components:
+
+  schemas:
+
+    Country:
+      type: object
+      description: A selectable country with a localized name.
+      properties:
+        country_code:
+          type: string
+          nullable: true
+          description: ISO 3166-1 alpha-3 country code.
+          minLength: 3
+          maxLength: 3
+          example: DEU
+
+        country_name:
+          type: string
+          nullable: true
+          description: Localized country name.
+          example: Germany
+
+      required:
+        - country_code
+        - country_name
+
+      additionalProperties: false
+
+
+    ChoosableCountriesMetadata:
+      type: object
+      description: Metadata returned by the choosable countries endpoint.
+      properties:
+
+        country_count:
+          type: integer
+          minimum: 0
+          description: Number of countries returned.
+          example: 249
+
+        language:
+          type: string
+          description: ISO 639-1 language code used for localization.
+          example: en
+
+        response_time_ms:
+          type: integer
+          minimum: 0
+          description: Server-side response time in milliseconds.
+          example: 95
+
+      additionalProperties: false
+
+
+    ResponseEnvelope:
+      type: object
+      properties:
+
+        service:
+          type: string
+          description: Name of the API service.
+          example: Uranus API
+
+        api_version:
+          type: string
+          description: API version.
+          example: '1.0'
+
+        response_type:
+          type: string
+          description: Identifier of the response type.
+          example: get-choosable-countries
+
+        status:
+          type: integer
+          description: HTTP status code of the response.
+          example: 200
+
+        timestamp:
+          type: string
+          format: date-time
+          description: Time at which the response was generated.
+          example: '2026-09-20T09:48:48Z'
+
+        metadata:
+          $ref: '#/components/schemas/ChoosableCountriesMetadata'
+
+        data:
+          nullable: true
+          description: Response payload.
+
+        message:
+          type: string
+          description: Human-readable response message.
+          example: countries found
+
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+
+      additionalProperties: false
+
+
+    ResponseEnvelope200:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 200
+              example: 200
+
+
+    ResponseEnvelope500:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 500
+              example: 500

@@ -10,7 +10,7 @@ import (
 )
 
 func (h *ApiHandler) GetChoosableLegalForms(gc *gin.Context) {
-	apiRequest := grains_api.NewRequest(gc, "get_choosable_legal_forms")
+	apiRequest := grains_api.NewRequest(gc, "get-choosable-legal-forms")
 	ctx := gc.Request.Context()
 
 	lang := gc.DefaultQuery("lang", "en")

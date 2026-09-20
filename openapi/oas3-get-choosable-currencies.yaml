@@ -1,0 +1,195 @@
+openapi: 3.0.3
+
+info:
+  title: Uranus API
+  description: API for the Uranus / kulturbytes platform.
+  version: '1.0'
+
+servers:
+  - url: https://api.kulturbytes.de
+  - url: http://localhost:9090
+
+paths:
+  /api/choosable-currencies:
+    get:
+      summary: Get choosable currencies
+      description: Returns the available currencies localized in the requested language.
+      operationId: getChoosableCurrencies
+
+      parameters:
+        - name: lang
+          in: query
+          required: false
+          description: ISO 639-1 language code used for localized currency names.
+          schema:
+            type: string
+            default: en
+            minLength: 2
+            maxLength: 2
+            example: en
+
+      responses:
+        '200':
+          description: Currencies successfully retrieved.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ResponseEnvelope200'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        description: Available currencies.
+                        items:
+                          $ref: '#/components/schemas/Currency'
+                      metadata:
+                        $ref: '#/components/schemas/ChoosableCurrenciesMetadata'
+                    required:
+                      - data
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-currencies
+                status: 200
+                timestamp: '2026-09-20T10:39:00Z'
+                metadata:
+                  language: en
+                  response_time_ms: 12
+                data:
+                  - id: EUR
+                    name: Euro
+                  - id: GBP
+                    name: Pound sterling
+                  - id: USD
+                    name: US Dollar
+
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ResponseEnvelope500'
+                  - type: object
+                    properties:
+                      data:
+                        nullable: true
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-currencies
+                status: 500
+                timestamp: '2026-09-20T10:39:00Z'
+                metadata:
+                  language: en
+                  response_time_ms: 8
+                data: null
+                message: Internal server error
+
+components:
+  schemas:
+
+    Currency:
+      type: object
+      description: A selectable currency.
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Currency code.
+          example: EUR
+        name:
+          type: string
+          nullable: true
+          description: Localized name of the currency.
+          example: Euro
+      required:
+        - id
+        - name
+      additionalProperties: false
+
+    ChoosableCurrenciesMetadata:
+      type: object
+      description: Metadata returned with the list of currencies.
+      properties:
+        language:
+          type: string
+          description: ISO 639-1 language code used for localization.
+          minLength: 2
+          maxLength: 2
+          example: en
+        response_time_ms:
+          type: integer
+          description: Time required to generate the response in milliseconds.
+          minimum: 0
+          example: 12
+      required:
+        - language
+        - response_time_ms
+      additionalProperties: false
+
+    ResponseEnvelope:
+      type: object
+      description: Common response envelope used by the API.
+      properties:
+        service:
+          type: string
+          description: Name of the API service.
+          example: Uranus API
+        api_version:
+          type: string
+          description: API version.
+          example: '1.0'
+        response_type:
+          type: string
+          description: Identifier of the response type.
+          example: get-choosable-currencies
+        status:
+          type: integer
+          description: HTTP status code of the response.
+          example: 200
+        timestamp:
+          type: string
+          format: date-time
+          description: Time at which the response was generated.
+          example: '2026-09-20T10:39:00Z'
+        metadata:
+          type: object
+          description: Response metadata.
+        data:
+          nullable: true
+          description: Response payload.
+        message:
+          type: string
+          description: Human-readable response message.
+          example: Database error.
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+      additionalProperties: false
+
+    ResponseEnvelope200:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 200
+              example: 200
+
+    ResponseEnvelope500:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 500
+              example: 500

@@ -9,8 +9,8 @@ import (
 )
 
 func (h *ApiHandler) GetChoosableCurrencies(gc *gin.Context) {
+	apiRequest := grains_api.NewRequest(gc, "get-choosable-currencies")
 	ctx := gc.Request.Context()
-	apiRequest := grains_api.NewRequest(gc, "choosable-currencies")
 
 	onceCurrencies.Do(func() {
 		currenciesOptionsQuery = fmt.Sprintf(`
@@ -19,11 +19,11 @@ func (h *ApiHandler) GetChoosableCurrencies(gc *gin.Context) {
 	})
 
 	lang := gc.DefaultQuery("lang", "en")
+	apiRequest.SetMeta("language", lang)
 
 	rows, err := h.DbPool.Query(ctx, currenciesOptionsQuery, lang)
 	if err != nil {
-		debugf("Error in GetChoosableCurrencies: %s", err.Error())
-		apiRequest.DatabaseError()
+		apiRequest.InternalServerError()
 		return
 	}
 	defer rows.Close()
@@ -41,16 +41,14 @@ func (h *ApiHandler) GetChoosableCurrencies(gc *gin.Context) {
 			&option.Id,
 			&option.Name,
 		); err != nil {
-			debugf("Error in GetChoosableCurrencies: %s", err.Error())
-			apiRequest.DatabaseError()
+			apiRequest.InternalServerError()
 			return
 		}
 		options = append(options, option)
 	}
 
 	if err := rows.Err(); err != nil {
-		debugf("Error in GetChoosableCurrencies: %s", err.Error())
-		apiRequest.DatabaseError()
+		apiRequest.InternalServerError()
 		return
 	}
 
@@ -59,5 +57,6 @@ func (h *ApiHandler) GetChoosableCurrencies(gc *gin.Context) {
 		return
 	}
 
+	apiRequest.SetMeta("currency_count", len(options))
 	apiRequest.Success(http.StatusOK, options)
 }

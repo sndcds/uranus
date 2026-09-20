@@ -10,7 +10,7 @@ import (
 
 func (h *ApiHandler) GetChoosableCountries(gc *gin.Context) {
 	ctx := gc.Request.Context()
-	apiRequest := grains_api.NewRequest(gc, "choosable-countries")
+	apiRequest := grains_api.NewRequest(gc, "get-choosable-countries")
 
 	lang := gc.DefaultQuery("lang", "en")
 	apiRequest.SetMeta("language", lang)
