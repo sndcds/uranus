@@ -1,0 +1,5019 @@
+openapi: 3.0.3
+
+info:
+  title: Uranus API
+  description: |
+    API for the Uranus / kulturbytes platform.
+
+    Public event API for Uranus.
+
+    The event endpoints are public and support filtering, pagination,
+    calendar views, summaries, and GeoJSON venue output.
+  version: '1.0'
+
+servers:
+  - url: https://api.kulturbytes.de
+  - url: http://localhost:9090
+
+tags:
+  - name: Events
+    description: Event search, filtering, calendar and geographic endpoints
+
+paths:
+  /api/event/category-lookup:
+    get:
+      tags:
+        - Events
+      summary: Get event category lookup
+      description: >-
+        Returns event categories grouped by language and category ID. The
+        optional lang parameter can contain a comma-separated list of ISO 639-1
+        language codes.
+      operationId: getEventCategoryLookup
+
+      parameters:
+        - name: lang
+          in: query
+          required: false
+          description: >-
+            Comma-separated list of ISO 639-1 language codes used to filter the
+            returned categories, e.g. "de,en,da". If omitted or empty, all
+            available languages are returned.
+          schema:
+            type: string
+            example: de,en,da
+
+      responses:
+        '200':
+          description: Event category lookup successfully retrieved.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/EventCategoryLookupResponseEnvelope200'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/EventCategoryLookup'
+                    required:
+                      - data
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-event-category-lookup
+                status: 200
+                timestamp: '2026-09-20T13:30:00Z'
+                data:
+                  da:
+                    '1':
+                      name: Kultur
+                    '2':
+                      name: Musik
+                    '3':
+                      name: Teater
+                  de:
+                    '1':
+                      name: Kultur
+                    '2':
+                      name: Musik
+                    '3':
+                      name: Theater
+                  en:
+                    '1':
+                      name: Culture
+                    '2':
+                      name: Music
+                    '3':
+                      name: Theatre
+
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventCategoryLookupResponseEnvelope500'
+
+  /api/event/type-genre-lookup:
+    get:
+      operationId: getEventTypeGenreLookup
+      summary: Get event type and genre lookup
+      description: Returns event types and their associated genres grouped by language.
+      responses:
+        '200':
+          description: Event type and genre lookup retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetEventTypeGenreLookupResponse200'
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-event-type-genre-lookup
+                status: 200
+                timestamp: '2026-09-20T13:02:31Z'
+                metadata:
+                  response_time_ms: 18
+                data:
+                  da:
+                    types:
+                      "1":
+                        name: Koncert
+                        genres:
+                          "1001": Elektronisk musik
+                          "1002": Rock
+                          "1003": Jazz
+                          "1004": Metal
+                          "1005": R&B
+                      "2":
+                        name: Teater & scene
+                        genres:
+                          "2001": Musical
+                          "2002": Musikteater
+                          "2003": Cirkusteater
+                          "2004": Drama
+                          "2005": Komedie
+                      "3":
+                        name: Party
+                        genres:
+                          "3001": Trance
+                          "3002": Edm
+                          "3003": Drum and bass
+                          "3004": Disco
+                          "3005": Dancehall
+                      "4":
+                        name: Comedy
+                        genres:
+                          "4001": Stand-up
+                          "4002": Kabaret
+                          "4003": Satire
+                          "4004": Sketch
+                          "4005": Parodi
+                      "5":
+                        name: Børneteater
+                        genres:
+                          "5001": Dukketeater
+                          "5002": Eventyr
+                          "5003": Fabel
+                          "5004": Klassiker
+                          "5005": Klovneteater
+                  de:
+                    types:
+                      "1":
+                        name: Konzert
+                        genres:
+                          "1001": Elektronische Musik
+                          "1002": Rock
+                          "1003": Jazz
+                          "1004": Metal
+                          "1005": R&B
+                      "2":
+                        name: Theater & Bühne
+                        genres:
+                          "2001": Musical
+                          "2002": Musiktheater
+                          "2003": Zirkus-Theater
+                          "2004": Drama
+                          "2005": Komödie
+                      "3":
+                        name: Party
+                        genres:
+                          "3001": Trance
+                          "3002": EDM
+                          "3003": Drum and Bass
+                          "3004": Disco
+                          "3005": Dancehall
+                      "4":
+                        name: Comedy
+                        genres:
+                          "4001": Stand-up
+                          "4002": Kabarett
+                          "4003": Satire
+                          "4004": Sketch
+                          "4005": Parodie
+                      "5":
+                        name: Kindertheater
+                        genres:
+                          "5001": Puppenspiel
+                          "5002": Märchen
+                          "5003": Fabel
+                          "5004": Klassiker
+                          "5005": Clownstheater
+                  en:
+                    types:
+                      "1":
+                        name: Concert
+                        genres:
+                          "1001": Electronic music
+                          "1002": Rock
+                          "1003": Jazz
+                          "1004": Metal
+                          "1005": R&B
+                      "2":
+                        name: Theater & Stage
+                        genres:
+                          "2001": Musical
+                          "2002": Musical theater
+                          "2003": Circus theatre
+                          "2004": Drama
+                          "2005": Comedy
+                      "3":
+                        name: Party
+                        genres:
+                          "3001": Trance
+                          "3002": Edm
+                          "3003": Drum and bass
+                          "3004": Disco
+                          "3005": Dancehall
+                      "4":
+                        name: Comedy
+                        genres:
+                          "4001": Stand-up
+                          "4002": Cabaret
+                          "4003": Satire
+                          "4004": Sketch
+                          "4005": Parody
+                      "5":
+                        name: Children’s Theater
+                        genres:
+                          "5001": Puppet show
+                          "5002": Fairy tale
+                          "5003": Fable
+                          "5004": Classic
+                          "5005": Clown theater
+                  fr:
+                    types:
+                      "1":
+                        name: Concert
+                        genres:
+                          "1001": Musique électronique
+                          "1002": Rock
+                          "1003": Jazz
+                          "1004": Metal
+                          "1005": R&B
+                      "2":
+                        name: Théâtre & scène
+                        genres:
+                          "2001": Comédie musicale
+                          "2002": Théâtre musical
+                          "2003": Théâtre de cirque
+                          "2004": Drame
+                          "2005": Comédie
+                      "3":
+                        name: Fête
+                        genres:
+                          "3001": Trance
+                          "3002": EDM
+                          "3003": Drum and bass
+                          "3004": Disco
+                          "3005": Dancehall
+                      "4":
+                        name: Comédie
+                        genres:
+                          "4001": Stand-up
+                          "4002": Cabaret
+                          "4003": Satire
+                          "4004": Sketch
+                          "4005": Parodie
+                      "5":
+                        name: Théâtre pour enfants
+                        genres:
+                          "5001": Marionnettes
+                          "5002": Conte de fées
+                          "5003": Fable
+                          "5004": Classique
+                          "5005": Théâtre de clowns
+                  sv:
+                    types:
+                      "1":
+                        name: Konsert
+                        genres:
+                          "1001": Elektronisk musik
+                          "1002": Rock
+                          "1003": Jazz
+                          "1004": Metal
+                          "1005": R&B
+                      "2":
+                        name: Teater & scen
+                        genres:
+                          "2001": Musikal
+                          "2002": Musikteater
+                          "2003": Cirkusteater
+                          "2004": Drama
+                          "2005": Komedi
+                      "3":
+                        name: Fest
+                        genres:
+                          "3001": Trance
+                          "3002": EDM
+                          "3003": Drum and bass
+                          "3004": Disco
+                          "3005": Dancehall
+                      "4":
+                        name: Komedi
+                        genres:
+                          "4001": Stand-up
+                          "4002": Kabarett
+                          "4003": Satir
+                          "4004": Sketch
+                          "4005": Parodi
+                      "5":
+                        name: Barnteater
+                        genres:
+                          "5001": Dockteater
+                          "5002": Saga
+                          "5003": Fabel
+                          "5004": Klassiker
+                          "5005": Clownteater
+
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventTypeGenreLookupResponseEnvelope500'
+
+  /api/choosable-countries:
+    get:
+      operationId: getChoosableCountries
+      summary: Get choosable countries
+      description: |
+        Returns all countries available for selection.
+
+        Country names are localized according to the requested
+        ISO 639-1 language code.
+
+        If no countries are found for the requested language, the endpoint
+        still returns HTTP 200 with an empty data array.
+
+      parameters:
+        - name: lang
+          in: query
+          required: false
+          description: ISO 639-1 language code. Defaults to English.
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 2
+            default: en
+            example: en
+
+      responses:
+
+        '200':
+          description: Countries found, or no countries available for the requested language.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ChoosableCountriesResponseEnvelope200'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        description: List of available countries.
+                        items:
+                          $ref: '#/components/schemas/Country'
+                    required:
+                      - data
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-countries
+                status: 200
+                timestamp: '2026-09-20T09:48:48Z'
+                metadata:
+                  country_count: 249
+                  language: en
+                  response_time_ms: 95
+                data:
+                  - country_code: AFG
+                    country_name: Afghanistan
+                  - country_code: ALB
+                    country_name: Albania
+                  - country_code: DZA
+                    country_name: Algeria
+                  - country_code: ASM
+                    country_name: American Samoa
+                  - country_code: AND
+                    country_name: Andorra
+
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ChoosableCountriesResponseEnvelope500'
+                  - type: object
+                    properties:
+                      data:
+                        nullable: true
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-countries
+                status: 500
+                timestamp: '2026-09-20T09:48:48Z'
+                metadata:
+                  language: en
+                  response_time_ms: 95
+                data: null
+                message: Internal server error
+    servers:
+    - url: https://api.kulturbytes.de
+    - url: https://localhost:9090
+
+  /api/choosable-currencies:
+    get:
+      summary: Get choosable currencies
+      description: Returns the available currencies localized in the requested language.
+      operationId: getChoosableCurrencies
+
+      parameters:
+        - name: lang
+          in: query
+          required: false
+          description: ISO 639-1 language code used for localized currency names.
+          schema:
+            type: string
+            default: en
+            minLength: 2
+            maxLength: 2
+            example: en
+
+      responses:
+        '200':
+          description: Currencies successfully retrieved.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ChoosableCurrenciesResponseEnvelope200'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        description: Available currencies.
+                        items:
+                          $ref: '#/components/schemas/Currency'
+                      metadata:
+                        $ref: '#/components/schemas/ChoosableCurrenciesMetadata'
+                    required:
+                      - data
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-currencies
+                status: 200
+                timestamp: '2026-09-20T10:39:00Z'
+                metadata:
+                  language: en
+                  response_time_ms: 12
+                data:
+                  - id: EUR
+                    name: Euro
+                  - id: GBP
+                    name: Pound sterling
+                  - id: USD
+                    name: US Dollar
+
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ChoosableCurrenciesResponseEnvelope500'
+                  - type: object
+                    properties:
+                      data:
+                        nullable: true
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-currencies
+                status: 500
+                timestamp: '2026-09-20T10:39:00Z'
+                metadata:
+                  language: en
+                  response_time_ms: 8
+                data: null
+                message: Internal server error
+
+  /api/choosable-event-occasions:
+    get:
+      summary: Get choosable event occasions
+      description: Returns the available event occasion types localized in the requested language.
+      operationId: getChoosableEventOccasions
+
+      parameters:
+        - name: lang
+          in: query
+          required: false
+          description: ISO 639-1 language code used for localized event occasion names.
+          schema:
+            type: string
+            default: en
+            minLength: 2
+            maxLength: 2
+            example: en
+
+      responses:
+        '200':
+          description: Event occasion types successfully retrieved.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ChoosableEventOccasionsResponseEnvelope200'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        description: Available event occasion types.
+                        items:
+                          $ref: '#/components/schemas/EventOccasionType'
+                      metadata:
+                        $ref: '#/components/schemas/ChoosableEventOccasionsMetadata'
+                    required:
+                      - data
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-event-occasions
+                status: 200
+                timestamp: '2026-09-20T11:37:00Z'
+                metadata:
+                  language: en
+                  event_occasion_count: 5
+                  response_time_ms: 12
+                data:
+                  - id: '0'
+                    name: No specific occasion
+                  - id: '1'
+                    name: Anniversary
+                  - id: '2'
+                    name: Festival
+                  - id: '3'
+                    name: Opening
+                  - id: '4'
+                    name: Holiday
+
+        '500':
+          description: Internal server error while retrieving event occasion types.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ChoosableEventOccasionsResponseEnvelope500'
+                  - type: object
+                    properties:
+                      data:
+                        nullable: true
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-event-occasions
+                status: 500
+                timestamp: '2026-09-20T11:37:00Z'
+                metadata:
+                  language: en
+                  response_time_ms: 8
+                data: null
+                message: Internal server error.
+
+  /api/choosable-languages:
+    get:
+      operationId: getChoosableLanguages
+      summary: Get choosable languages
+      description: |
+        Returns all languages that can be selected.
+
+        Language names are localized according to the requested
+        ISO 639-1 language code.
+
+        If no languages are found for the requested language, the endpoint
+        still returns HTTP 200 with an empty data array.
+
+      parameters:
+        - name: lang
+          in: query
+          required: false
+          description: ISO 639-1 language code used to localize language names.
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 2
+            default: en
+            example: en
+
+      responses:
+
+        '200':
+          description: Languages found, or no languages available for the requested language.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ChoosableLanguagesResponseEnvelope200'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        description: List of available languages.
+                        items:
+                          $ref: '#/components/schemas/Language'
+                    required:
+                      - data
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-languages
+                status: 200
+                timestamp: '2026-09-20T10:17:15Z'
+                metadata:
+                  language: en
+                  response_time_ms: 3
+                data:
+                  - id: da
+                    name: Danish
+                  - id: de
+                    name: German
+                  - id: en
+                    name: English
+                  - id: fr
+                    name: French
+                  - id: sv
+                    name: Swedish
+
+        '400':
+          description: Invalid JSON input.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ResponseEnvelope400'
+                  - type: object
+                    properties:
+                      data:
+                        nullable: true
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-languages
+                status: 400
+                timestamp: '2026-09-20T10:17:15Z'
+                metadata:
+                  language: en
+                  response_time_ms: 3
+                data: null
+                message: Invalid JSON input
+
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ChoosableLanguagesResponseEnvelope500'
+                  - type: object
+                    properties:
+                      data:
+                        nullable: true
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-languages
+                status: 500
+                timestamp: '2026-09-20T10:17:15Z'
+                metadata:
+                  language: en
+                  response_time_ms: 3
+                data: null
+                message: Internal server error
+
+  /api/choosable-legal-forms:
+    get:
+      operationId: getChoosableLegalForms
+      summary: Get choosable legal forms
+      description: |
+        Returns all legal forms that can be selected for an organization.
+
+        Names and descriptions are localized according to the requested
+        ISO 639-1 language code.
+
+      parameters:
+        - name: lang
+          in: query
+          required: false
+          description: ISO 639-1 language code. Defaults to English.
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 2
+            default: en
+            example: en
+
+      responses:
+
+        '200':
+          description: Legal forms found.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ChoosableLegalFormsResponseEnvelope200'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        description: List of available legal forms.
+                        items:
+                          $ref: '#/components/schemas/LegalForm'
+                    required:
+                      - data
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-legal-forms
+                status: 200
+                timestamp: '2026-09-20T09:29:04Z'
+                metadata:
+                  language: en
+                  legal_form_count: 15
+                  response_time_ms: 19
+                data:
+                  - key: civil_law_partnership
+                    name: Civil-law Partnership
+                    description: null
+                  - key: foundation
+                    name: Foundation
+                    description: null
+                  - key: general_partnership
+                    name: General Partnership
+                    description: null
+                  - key: independent_operator
+                    name: Independently operated
+                    description: null
+                  - key: initiative
+                    name: Initiative
+                    description: null
+                  - key: limited
+                    name: Limited
+                    description: null
+                  - key: limited_partnership
+                    name: Limited Partnership
+                    description: null
+                  - key: municipal_administration
+                    name: Municipal administration
+                    description: null
+                  - key: municipal_facility
+                    name: Municipal facility
+                    description: null
+                  - key: non_profit_limited_liability_company
+                    name: Non-profit Limited Liability Company
+                    description: null
+                  - key: not_specified
+                    name: Not specified
+                    description: null
+                  - key: public_law_institution
+                    name: Public-law Institution
+                    description: null
+                  - key: registered_association
+                    name: Registered association
+                    description: null
+                  - key: registered_cooperative
+                    name: Registered Cooperative
+                    description: null
+                  - key: stock_corporation
+                    name: Stock Corporation / Joint-stock Company
+                    description: null
+
+        '404':
+          description: No legal forms found.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ChoosableLegalFormsResponseEnvelope404'
+                  - type: object
+                    properties:
+                      data:
+                        nullable: true
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-legal-forms
+                status: 404
+                timestamp: '2026-09-20T09:29:04Z'
+                metadata:
+                  language: xx
+                  response_time_ms: 1
+                data: null
+                message: No legal forms found
+
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ChoosableLegalFormsResponseEnvelope500'
+                  - type: object
+                    properties:
+                      data:
+                        nullable: true
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-legal-forms
+                status: 500
+                timestamp: '2026-09-20T09:29:04Z'
+                metadata:
+                  language: en
+                  response_time_ms: 19
+                data: null
+                message: Internal server error
+
+  /api/choosable-license-types:
+    get:
+      operationId: getChoosableLicenseTypes
+      summary: Get choosable license types
+      description: |
+        Returns all license types that can be selected for content.
+
+        Names and descriptions are localized according to the requested
+        ISO 639-1 language code.
+
+      parameters:
+        - name: lang
+          in: query
+          required: false
+          description: ISO 639-1 language code. Defaults to English.
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 2
+            default: en
+            example: en
+
+      responses:
+
+        '200':
+          description: License types found.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ChoosableLicenseTypesResponseEnvelope200'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        description: List of available license types.
+                        items:
+                          $ref: '#/components/schemas/LicenseType'
+                    required:
+                      - data
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-chooseable-license-types
+                status: 200
+                timestamp: '2026-09-20T09:45:16Z'
+                metadata:
+                  language: en
+                  license_count: 10
+                  response_time_ms: 3
+                data:
+                  - key: all-rights-reserved
+                    name: All Rights Reserved
+                    description: null
+                  - key: cc-by
+                    name: CC BY – Attribution
+                    description: null
+                  - key: cc-by-nc
+                    name: CC BY-NC – Attribution-NonCommercial
+                    description: null
+                  - key: cc-by-nc-nd
+                    name: CC BY-NC-ND – Attribution-NonCommercial-NoDerivatives
+                    description: null
+                  - key: cc-by-nc-sa
+                    name: CC BY-NC-SA – Attribution-NonCommercial-ShareAlike
+                    description: null
+                  - key: cc-by-nd
+                    name: CC BY-ND – Attribution-NoDerivatives
+                    description: null
+                  - key: cc-by-sa
+                    name: CC BY-SA – Attribution-ShareAlike
+                    description: null
+                  - key: cc0
+                    name: CC0 – Public Domain
+                    description: null
+                  - key: mit
+                    name: MIT License
+                    description: null
+                  - key: pd
+                    name: Public Domain
+                    description: null
+
+        '404':
+          description: No license types found.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ChoosableLicenseTypesResponseEnvelope404'
+                  - type: object
+                    properties:
+                      data:
+                        nullable: true
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-chooseable-license-types
+                status: 404
+                timestamp: '2026-09-20T09:45:16Z'
+                metadata:
+                  language: xx
+                  response_time_ms: 1
+                data: null
+                message: No licenses found
+
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ChoosableLicenseTypesResponseEnvelope500'
+                  - type: object
+                    properties:
+                      data:
+                        nullable: true
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-chooseable-license-types
+                status: 500
+                timestamp: '2026-09-20T09:45:16Z'
+                metadata:
+                  language: en
+                  response_time_ms: 3
+                data: null
+                message: Internal server error
+
+  /api/choosable-link-types:
+    get:
+      operationId: getChoosableLinkTypes
+      summary: Get choosable link types
+      description: |
+        Returns the link types that can be selected for an organization,
+        venue, event or other entity.
+
+        The returned names are localized according to the requested
+        ISO 639-1 language code.
+      parameters:
+        - name: lang
+          in: query
+          required: false
+          description: |
+            ISO 639-1 language code used for the localized link type names.
+            Defaults to English.
+          schema:
+            type: string
+            default: en
+            example: en
+            minLength: 2
+            maxLength: 2
+      responses:
+
+        '200':
+          description: Link types found.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ChoosableLinkTypesResponseEnvelope200'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/LinkType'
+                    required:
+                      - data
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-link-types
+                status: 200
+                timestamp: '2026-09-20T08:07:43Z'
+                metadata:
+                  language: en
+                  link_type_count: 15
+                  response_time_ms: 3
+                data:
+                  - key: bandcamp
+                    name: Bandcamp
+                  - key: facebook
+                    name: Facebook
+                  - key: instagram
+                    name: Instagram
+                  - key: artist_website
+                    name: Kunstnerens website
+                  - key: mastodon
+                    name: Mastodon
+                  - key: source_website
+                    name: Mere info hos arrangøren
+                  - key: other
+                    name: Other
+                  - key: pdf
+                    name: PDF
+                  - key: soundcloud
+                    name: SoundCloud
+                  - key: spotify
+                    name: Spotify
+                  - key: tickets
+                    name: Tickets
+                  - key: vimeo
+                    name: Vimeo
+                  - key: website
+                    name: Website
+                  - key: x
+                    name: X
+                  - key: youtube
+                    name: YouTube
+                message: Link types found
+
+        '404':
+          description: No link types were found for the requested language.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChoosableLinkTypesResponseEnvelope404'
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-link-types
+                status: 404
+                timestamp: '2026-09-20T08:07:43Z'
+                metadata:
+                  language: xx
+                  response_time_ms: 2
+                message: No link types found
+
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChoosableLinkTypesResponseEnvelope500'
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-link-types
+                status: 500
+                timestamp: '2026-09-20T08:07:43Z'
+                metadata:
+                  language: en
+                  response_time_ms: 3
+                message: Internal server error
+
+  /api/choosable-orgs:
+    get:
+      summary: Get choosable organizations
+      description: Returns organizations matching the optional name and geographic filters.
+      operationId: getChoosableOrgs
+
+      parameters:
+        - name: name
+          in: query
+          required: false
+          description: >-
+            Case-insensitive name search. An asterisk (`*`) at the beginning and/or end
+            acts as a wildcard. Examples: `Kultur*` (starts with), `*haus` (ends with),
+            `*kultur*` (contains).
+          schema:
+            type: string
+            example: Kultur*
+
+        - name: lat
+          in: query
+          required: false
+          description: Latitude of the center point for the geographic search.
+          schema:
+            type: number
+            format: double
+            minimum: -90
+            maximum: 90
+            example: 54.7937
+
+        - name: lon
+          in: query
+          required: false
+          description: Longitude of the center point for the geographic search.
+          schema:
+            type: number
+            format: double
+            minimum: -180
+            maximum: 180
+            example: 9.4469
+
+        - name: radius
+          in: query
+          required: false
+          description: >-
+            Search radius around the specified latitude and longitude, in meters.
+          schema:
+            type: number
+            format: double
+            minimum: 0
+            example: 10000
+
+      responses:
+        '200':
+          description: Organizations successfully retrieved.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ChoosableOrgsResponseEnvelope200'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        description: List of matching organizations.
+                        items:
+                          $ref: '#/components/schemas/Organization'
+                      metadata:
+                        $ref: '#/components/schemas/ChoosableOrgsMetadata'
+                    required:
+                      - data
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-orgs
+                status: 200
+                timestamp: '2026-09-20T12:24:00Z'
+                metadata:
+                  venue_count: 3
+                  response_time_ms: 15
+                data:
+                  - uuid: 550e8400-e29b-41d4-a716-446655440000
+                    name: Kulturzentrum Flensburg
+                    city: Flensburg
+                    state: Schleswig-Holstein
+                    country: DE
+                  - uuid: 6ba7b810-9dad-11d1-80b4-00c04fd430c8
+                    name: Kulturverein
+                    city: Flensburg
+                    state: Schleswig-Holstein
+                    country: DE
+                  - uuid: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+                    name: Kulturhaus Glücksburg
+                    city: Glücksburg
+                    state: Schleswig-Holstein
+                    country: DE
+
+        '500':
+          description: Database or internal server error.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ChoosableOrgsResponseEnvelope500'
+                  - type: object
+                    properties:
+                      data:
+                        nullable: true
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-orgs
+                status: 500
+                timestamp: '2026-09-20T12:24:00Z'
+                metadata:
+                  response_time_ms: 8
+                data: null
+                message: Database error.
+
+  /api/choosable-space-types:
+    get:
+      operationId: getChoosableSpaceTypes
+      summary: Get choosable space types
+      description: |
+        Returns all space types that can be selected for a space.
+
+        Names and descriptions are localized according to the requested
+        ISO 639-1 language code.
+      parameters:
+        - name: lang
+          in: query
+          required: false
+          description: ISO 639-1 language code. Defaults to English.
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 2
+            default: en
+            example: da
+
+      responses:
+
+        '200':
+          description: Space types found.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ChoosableSpaceTypesResponseEnvelope200'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/SpaceType'
+                    required:
+                      - data
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-space-types
+                status: 200
+                timestamp: '2026-09-20T09:15:55Z'
+                metadata:
+                  language: da
+                  response_time_ms: 2
+                  space_type_count: 30
+                data:
+                  - key: art_studio
+                    name: Atelier
+                    description: Et arbejdsrum hvor kunstnere skaber, maler eller producerer kunstværker
+                  - key: bar
+                    name: Bar
+                    description: Et lokale eller område i en større venue, hvor der serveres drikkevarer og gæster kan samles socialt
+                  - key: community_hall
+                    name: Borgerhal
+                    description: En offentlig sal til lokale arrangementer, møder samt sociale og kulturelle aktiviteter
+                  - key: shop_space
+                    name: Butiksrum
+                    description: Et butiksrum der også midlertidigt kan bruges til arrangementer, pop-ups eller udstillinger
+                  - key: cafe
+                    name: Café
+                    description: Et uformelt sted der serveres kaffe, lette måltider og drikkevarer, ofte brugt til socialt samvær eller uformelt arbejde
+                  - key: meadow
+                    name: Eng / Græsareal
+                    description: Et åbent græsområde i naturen eller nær naturen, ofte brugt til arrangementer und samlinger
+                  - key: lecture_hall
+                    name: Forelæsningssal
+                    description: Et stort lokale til forelæsninger eller præsentationer
+                  - key: foyer
+                    name: Foyer
+                    description: Et indgangs- eller lobbyområde til ankomst, fordeling og uformelt ophold før eller efter arrangementer
+                  - key: open_air_stage
+                    name: Friluftsscene
+                    description: En udendørs scene til koncerter, teater og livearrangementer
+                  - key: garage
+                    name: Garage
+                    description: Et omdannet eller fleksibelt eventlokale til arrangementer, samlinger, optrædener eller kulturelle aktiviteter
+                  - key: group_room
+                    name: Gruppelokale
+                    description: Et rum designet til gruppearbejde, samarbejde eller fælles læringsaktiviteter
+                  - key: courtyard
+                    name: Gård
+                    description: Et udendørs område omgivet helt eller delvist af bygninger, brugt til ophold, passage eller afslapning
+                  - key: garden
+                    name: Have
+                    description: Et udendørs grønt område til rekreation, afslapning eller dekorativ beplantning
+                  - key: playground
+                    name: Legeplads
+                    description: Et område med legeredskaber og åbne arealer, hvor børn kan lege og være aktive.
+                  - key: multifunctional_room
+                    name: Multifunktionsrum
+                    description: Et fleksibelt rum designet til forskellige formål såsom møder, arrangementer, workshops eller samlinger
+                  - key: meeting_room
+                    name: Mødelokale
+                    description: Et rum designet til møder, diskussioner og mindre gruppeaktiviteter
+                  - key: park
+                    name: Park
+                    description: Et offentligt grønt område i byen eller naturen, egnet til arrangementer og fritid
+                  - key: place
+                    name: Plads
+                    description: Et offentligt åbent område som en byplads, markedsplads eller samlingssted
+                  - key: production_hall
+                    name: Produktionshal
+                    description: En industribygning brugt til fremstilling, montage eller produktionsprocesser
+                  - key: restaurant
+                    name: Restaurant
+                    description: Et offentligt sted hvor mad og drikke tilberedes og serveres for gæster
+                  - key: hall
+                    name: Sal
+                    description: Et stort indendørs rum til samlinger, arrangementer eller generel brug uden fast funktion
+                  - key: sports_hall
+                    name: Sportshal
+                    description: En indendørs hal til sport, træning og sportslige arrangementer
+                  - key: sports_field
+                    name: Sportsplads
+                    description: Et udendørs område til sport og fysisk aktivitet såsom fodbold, atletik eller træning
+                  - key: studio
+                    name: Studie
+                    description: Et fleksibelt arbejdsrum til kreative, medie- eller produktionsaktiviteter såsom optagelse, film eller design
+                  - key: living_room
+                    name: Stue
+                    description: Et boligrum til afslapning, socialt samvær og daglige opholdsaktiviteter
+                  - key: theater_hall
+                    name: Teatersal
+                    description: Et scenelokale til teaterforestillinger, optrædener og scenekunst
+                  - key: tent
+                    name: Telt
+                    description: En midlertidig eller flytbar konstruktion af stof eller lignende materiale, brugt til beskyttelse, arrangementer eller udendørs aktiviteter
+                  - key: exhibition_room
+                    name: Udstillingsrum
+                    description: Et rum til fremvisning af kunstværker, genstande eller informative udstillinger for besøgende
+                  - key: workshop
+                    name: Værksted
+                    description: Et arbejdsrum hvor håndværk, reparationer eller teknisk arbejde udføres
+                  - key: rehearsal_room
+                    name: Øvelokale
+                    description: Et lokale hvor musikere, skuespillere eller grupper øver og forbereder sig til optrædener
+
+        '404':
+          description: No space types found.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ChoosableSpaceTypesResponseEnvelope404'
+                  - type: object
+                    properties:
+                      data:
+                        nullable: true
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-space-types
+                status: 404
+                timestamp: '2026-09-20T09:15:55Z'
+                metadata:
+                  language: xx
+                  response_time_ms: 1
+                message: No space types found
+
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ChoosableSpaceTypesResponseEnvelope500'
+                  - type: object
+                    properties:
+                      data:
+                        nullable: true
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-space-types
+                status: 500
+                timestamp: '2026-09-20T09:15:55Z'
+                metadata:
+                  language: da
+                  response_time_ms: 2
+                message: Internal server error
+
+  /api/choosable-states:
+    get:
+      operationId: getChoosableStates
+      summary: Get choosable states
+      description: |
+        Returns all states or administrative regions for the specified country.
+
+        State names are returned according to the data stored for the country.
+        The country is selected using its country code.
+
+        If no states are found for the specified country, the endpoint
+        returns HTTP 200 with an empty data array.
+
+      parameters:
+        - name: country-code
+          in: query
+          required: false
+          description: |
+            Country code used to select the states or administrative regions.
+            Defaults to an empty string.
+          schema:
+            type: string
+            default: ''
+            example: DEU
+
+      responses:
+
+        '200':
+          description: States found, or no states available for the specified country.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ChoosableStatesResponseEnvelope200'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        description: List of states or administrative regions.
+                        items:
+                          $ref: '#/components/schemas/State'
+                    required:
+                      - data
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: choosable-states
+                status: 200
+                timestamp: '2026-09-20T10:09:03Z'
+                metadata:
+                  country_code: DEU
+                  state_count: 16
+                  response_time_ms: 3
+                data:
+                  - state_code: BW
+                    state_name: Baden-Württemberg
+                  - state_code: BY
+                    state_name: Bayern
+                  - state_code: BE
+                    state_name: Berlin
+                  - state_code: BB
+                    state_name: Brandenburg
+                  - state_code: HB
+                    state_name: Bremen
+
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ChoosableStatesResponseEnvelope500'
+                  - type: object
+                    properties:
+                      data:
+                        nullable: true
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: choosable-states
+                status: 500
+                timestamp: '2026-09-20T10:09:03Z'
+                metadata:
+                  country_code: DEU
+                  response_time_ms: 3
+                data: null
+                message: Internal server error
+
+  /api/choosable-venue-types:
+    get:
+      operationId: getChoosableVenueTypes
+      summary: Get choosable venue types
+      description: |
+        Returns all venue types that can be selected for a venue.
+
+        The venue type names and descriptions are localized according
+        to the requested ISO 639-1 language code.
+      parameters:
+        - name: lang
+          in: query
+          required: false
+          description: |
+            ISO 639-1 language code used for localized venue type names
+            and descriptions. Defaults to English.
+          schema:
+            type: string
+            default: en
+            minLength: 2
+            maxLength: 2
+            example: da
+
+      responses:
+
+        '200':
+          description: Venue types found.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ChoosableVenueTypesResponseEnvelope200'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/VenueType'
+                    required:
+                      - data
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-venue-types
+                status: 200
+                timestamp: '2026-09-20T09:03:41Z'
+                metadata:
+                  language: da
+                  response_time_ms: 1
+                  venue_type_count: 35
+                data:
+                  - key: arena
+                    name: Arena
+                    description: null
+                  - key: bar_or_pub
+                    name: Bar
+                    description: null
+                  - key: library
+                    name: Bibliotek
+                    description: null
+                  - key: movie_theater
+                    name: Biograf
+                    description: null
+                  - key: city_district
+                    name: Bydel
+                    description: Et afgrænset område i en by, såsom en bydel eller kvarter.
+                  - key: coworking_space
+                    name: Coworking Space
+                    description: null
+                  - key: event_house
+                    name: Eventhus
+                    description: null
+                  - key: club_house
+                    name: Foreningshus
+                    description: null
+                  - key: hall
+                    name: Hal
+                    description: null
+                  - key: hotel
+                    name: Hotel
+                    description: null
+                  - key: municipal_facility
+                    name: Kommunal institution
+                    description: null
+                  - key: concert_hall
+                    name: Koncertsal
+                    description: null
+                  - key: conference_center
+                    name: Konferencecenter
+                    description: null
+                  - key: cultural_center
+                    name: Kulturcenter
+                    description: null
+                  - key: art_gallery
+                    name: Kunstgalleri
+                    description: null
+                  - key: playground
+                    name: Legeplads
+                    description: Et offentligt eller privat sted med legeredskaber og områder til børns leg og aktivitet.
+                  - key: makerspace
+                    name: Makerspace/Fab Lab
+                    description: null
+                  - key: media_institution
+                    name: Medieinstitution
+                    description: null
+                  - key: exhibition_hall
+                    name: Messehal
+                    description: null
+                  - key: museum
+                    name: Museum/Udstilling
+                    description: null
+                  - key: music_school
+                    name: Musikskole
+                    description: null
+                  - key: night_club
+                    name: Natklub
+                    description: null
+                  - key: park
+                    name: Park
+                    description: En offentlig eller privat park til rekreation, fritid, natur eller udendørs arrangementer.
+                  - key: public_place
+                    name: Plads
+                    description: null
+                  - key: food_establishment
+                    name: Restaurant/Bar/Café
+                    description: null
+                  - key: sacred_space
+                    name: Sakralrum/Kirke
+                    description: null
+                  - key: school
+                    name: Skole
+                    description: null
+                  - key: castle
+                    name: Slot
+                    description: En historisk befæstet eller repræsentativ bygning, ofte brugt til kulturelle arrangementer
+                  - key: sports_hal
+                    name: Sportshal
+                    description: null
+                  - key: beach
+                    name: Strand
+                    description: null
+                  - key: theatre
+                    name: Teater
+                    description: null
+                  - key: educational_institution
+                    name: Uddannelsesinstitution
+                    description: null
+                  - key: outdoor_area
+                    name: Udendørsområde/Scene
+                    description: null
+                  - key: youth_center
+                    name: Ungdomshus
+                    description: null
+                  - key: workshop
+                    name: Værksted
+                    description: null
+
+        '404':
+          description: No venue types were found for the requested language.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChoosableVenueTypesResponseEnvelope404'
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-venue-types
+                status: 404
+                timestamp: '2026-09-20T09:03:41Z'
+                metadata:
+                  language: xx
+                  response_time_ms: 1
+                message: No venue types found
+
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChoosableVenueTypesResponseEnvelope500'
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-venue-types
+                status: 500
+                timestamp: '2026-09-20T09:03:41Z'
+                metadata:
+                  language: da
+                  response_time_ms: 1
+                message: Internal server error
+
+  /api/choosable-venues:
+    get:
+      summary: Get choosable venues
+      description: Returns venues matching the optional name and geographic filters.
+      operationId: getChoosableVenues
+
+      parameters:
+        - name: name
+          in: query
+          required: false
+          description: >-
+            Case-insensitive name search. An asterisk (`*`) at the beginning and/or end
+            acts as a wildcard, e.g. `Kultur*` (starts with), `*haus` (ends with), or
+            `*kultur*` (contains).
+          schema:
+            type: string
+            example: Kulturhaus
+
+        - name: lat
+          in: query
+          required: false
+          description: Latitude of the center point for the geographic search.
+          schema:
+            type: number
+            format: double
+            minimum: -90
+            maximum: 90
+            example: 54.7937
+
+        - name: lon
+          in: query
+          required: false
+          description: Longitude of the center point for the geographic search.
+          schema:
+            type: number
+            format: double
+            minimum: -180
+            maximum: 180
+            example: 9.4469
+
+        - name: radius
+          in: query
+          required: false
+          description: Search radius around the specified latitude and longitude, in meters.
+          schema:
+            type: number
+            format: double
+            minimum: 0
+            example: 10
+
+      responses:
+        '200':
+          description: Venues successfully retrieved.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ChoosableVenuesResponseEnvelope200'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        description: List of matching venues.
+                        items:
+                          $ref: '#/components/schemas/Venue'
+                      metadata:
+                        $ref: '#/components/schemas/ChoosableVenuesMetadata'
+                    required:
+                      - data
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-venues
+                status: 200
+                timestamp: '2026-09-20T12:00:00Z'
+                metadata:
+                  venue_count: 3
+                  response_time_ms: 15
+                data:
+                  - uuid: 550e8400-e29b-41d4-a716-446655440000
+                    scope: shared
+                    name: Kulturzentrum
+                    city: Flensburg
+                    state: Schleswig-Holstein
+                    country: DE
+                  - uuid: 6ba7b810-9dad-11d1-80b4-00c04fd430c8
+                    scope: shared
+                    name: Stadthalle
+                    city: Flensburg
+                    state: Schleswig-Holstein
+                    country: DE
+                  - uuid: 7c9e6679-7425-40de-944b-e07fc1f90ae7
+                    scope: organization
+                    name: Kulturhaus
+                    city: Glücksburg
+                    state: Schleswig-Holstein
+                    country: DE
+
+        '500':
+          description: Database or internal server error.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ChoosableVenuesResponseEnvelope500'
+                  - type: object
+                    properties:
+                      data:
+                        nullable: true
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-choosable-venues
+                status: 500
+                timestamp: '2026-09-20T12:00:00Z'
+                metadata:
+                  response_time_ms: 8
+                data: null
+                message: Database error.
+
+  /api/event/release-status-i18n:
+    get:
+      tags:
+        - Events
+      summary: Get event release status translations
+      description: |
+        Returns the localized names of all event release statuses for the
+        requested languages.
+
+        Multiple languages can be requested as a comma-separated list.
+        If no language is specified, English (`en`) is used.
+
+        The response contains:
+        - `i18n`: translations grouped by ISO 639-1 language code
+        - `order`: the ordered list of event release status keys
+      operationId: getEventReleaseStatusI18n
+
+      parameters:
+        - name: lang
+          in: query
+          required: false
+          description: |
+            Comma-separated list of ISO 639-1 language codes.
+            The default language is `en`.
+          schema:
+            type: string
+            default: en
+            example: de,da,en
+
+      responses:
+        '200':
+          description: |
+            HTTP 200 OK — event release status translations were retrieved
+            successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventReleaseStatusI18nResponse'
+
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: event-release-status-i18n
+                status: 200
+                timestamp: '2026-09-20T09:44:00+02:00'
+                metadata:
+                  languages: de,da,en
+                  response_time_ms: 8
+                message: ''
+                data:
+                  i18n:
+                    de:
+                      draft: Entwurf
+                      review: Prüfung
+                      released: Veröffentlicht
+                      cancelled: Abgesagt
+                      deferred: Verschoben
+                      rescheduled: Neu terminiert
+                    da:
+                      draft: Kladde
+                      review: Gennemgang
+                      released: Udgivet
+                      cancelled: Aflyst
+                      deferred: Udskudt
+                      rescheduled: Omlagt
+                    en:
+                      draft: Draft
+                      review: Review
+                      released: Released
+                      cancelled: Cancelled
+                      deferred: Deferred
+                      rescheduled: Rescheduled
+                  order:
+                    - draft
+                    - review
+                    - released
+                    - cancelled
+                    - deferred
+                    - rescheduled
+
+        '500':
+          description: |
+            HTTP 500 Internal Server Error — the event release status
+            translations could not be retrieved from the database.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventReleaseStatusI18nResponseEnvelope500'
+    servers:
+    - url: https://api.kulturbytes.de
+      description: Production
+    - url: http://localhost:9090
+      description: Local development
+
+  /api/events:
+    get:
+      tags: [Events]
+      summary: List events
+      description: |
+        Returns events matching the supplied filters.
+
+        GET query parameters are validated by the API.<br>
+        Unknown query parameters result in a bad-request response.<br>
+        Array-valued filters are supplied as comma-separated values.
+      operationId: getEvents
+      parameters:
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Start'
+        - $ref: '#/components/parameters/End'
+        - $ref: '#/components/parameters/Time'
+        - $ref: '#/components/parameters/Categories'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Venue'
+        - $ref: '#/components/parameters/SpaceTypes'
+        - $ref: '#/components/parameters/Countries'
+        - $ref: '#/components/parameters/PostalCode'
+        - $ref: '#/components/parameters/Title'
+        - $ref: '#/components/parameters/City'
+        - $ref: '#/components/parameters/EventTypes'
+        - $ref: '#/components/parameters/Genres'
+        - $ref: '#/components/parameters/Tags'
+        - $ref: '#/components/parameters/Accessibility'
+        - $ref: '#/components/parameters/VisitorInfos'
+        - $ref: '#/components/parameters/Age'
+        - $ref: '#/components/parameters/Price'
+        - $ref: '#/components/parameters/Lon'
+        - $ref: '#/components/parameters/Lat'
+        - $ref: '#/components/parameters/Radius'
+        - $ref: '#/components/parameters/LastEventStartAt'
+        - $ref: '#/components/parameters/LastEventDateUuid'
+        - $ref: '#/components/parameters/Lang'
+        - $ref: '#/components/parameters/WeekStart'
+        - $ref: '#/components/parameters/OrgUuids'
+        - $ref: '#/components/parameters/VenueUuids'
+        - $ref: '#/components/parameters/SpaceUuids'
+        - $ref: '#/components/parameters/EventUuids'
+        - $ref: '#/components/parameters/GeolistRegion'
+        - $ref: '#/components/parameters/Portal'
+      responses:
+        '200':
+          description: Events returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    servers:
+    - url: https://api.kulturbytes.de
+      description: Production API
+    - url: http://localhost:9090
+      description: Local API
+
+  /api/events/filter:
+    post:
+      tags: [Events]
+      summary: Filter events
+      description: |
+        Returns events matching the supplied JSON filter object.
+
+        Unknown JSON properties are ignored by the current implementation.
+        Array-valued properties are represented as JSON arrays.
+      operationId: filterEvents
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventFilterRequest'
+      responses:
+        '200':
+          description: Events returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    servers:
+    - url: https://api.kulturbytes.de
+      description: Production API
+    - url: http://localhost:9090
+      description: Local API
+
+  /api/events/week:
+    get:
+      tags: [Events]
+      summary: Get events for a week
+      description: |
+        Returns events grouped by day. week_start is required and must use
+        YYYY-MM-DD format. The endpoint computes the week end as week_start
+        plus six days.
+      operationId: getEventsWeek
+      parameters:
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Start'
+        - $ref: '#/components/parameters/End'
+        - $ref: '#/components/parameters/Time'
+        - $ref: '#/components/parameters/Categories'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Venue'
+        - $ref: '#/components/parameters/SpaceTypes'
+        - $ref: '#/components/parameters/Countries'
+        - $ref: '#/components/parameters/PostalCode'
+        - $ref: '#/components/parameters/Title'
+        - $ref: '#/components/parameters/City'
+        - $ref: '#/components/parameters/EventTypes'
+        - $ref: '#/components/parameters/Genres'
+        - $ref: '#/components/parameters/Tags'
+        - $ref: '#/components/parameters/Accessibility'
+        - $ref: '#/components/parameters/VisitorInfos'
+        - $ref: '#/components/parameters/Age'
+        - $ref: '#/components/parameters/Price'
+        - $ref: '#/components/parameters/Lon'
+        - $ref: '#/components/parameters/Lat'
+        - $ref: '#/components/parameters/Radius'
+        - $ref: '#/components/parameters/LastEventStartAt'
+        - $ref: '#/components/parameters/LastEventDateUuid'
+        - $ref: '#/components/parameters/Lang'
+        - $ref: '#/components/parameters/WeekStartRequired'
+        - $ref: '#/components/parameters/OrgUuids'
+        - $ref: '#/components/parameters/VenueUuids'
+        - $ref: '#/components/parameters/SpaceUuids'
+        - $ref: '#/components/parameters/EventUuids'
+        - $ref: '#/components/parameters/GeolistRegion'
+        - $ref: '#/components/parameters/Portal'
+      responses:
+        '200':
+          description: Week data returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventsWeekResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    servers:
+    - url: https://api.kulturbytes.de
+      description: Production API
+    - url: http://localhost:9090
+      description: Local API
+
+  /api/events/type-summary:
+    get:
+      tags: [Events]
+      summary: Get event type and genre summary
+      description: |
+        Returns aggregate counts for event types and genres matching the
+        supplied filters. The limit and offset parameters are accepted by
+        the filter parser but are ignored by this endpoint.
+      operationId: getEventTypeSummary
+      parameters:
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Start'
+        - $ref: '#/components/parameters/End'
+        - $ref: '#/components/parameters/Time'
+        - $ref: '#/components/parameters/Categories'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Venue'
+        - $ref: '#/components/parameters/SpaceTypes'
+        - $ref: '#/components/parameters/Countries'
+        - $ref: '#/components/parameters/PostalCode'
+        - $ref: '#/components/parameters/Title'
+        - $ref: '#/components/parameters/City'
+        - $ref: '#/components/parameters/EventTypes'
+        - $ref: '#/components/parameters/Genres'
+        - $ref: '#/components/parameters/Tags'
+        - $ref: '#/components/parameters/Accessibility'
+        - $ref: '#/components/parameters/VisitorInfos'
+        - $ref: '#/components/parameters/Age'
+        - $ref: '#/components/parameters/Price'
+        - $ref: '#/components/parameters/Lon'
+        - $ref: '#/components/parameters/Lat'
+        - $ref: '#/components/parameters/Radius'
+        - $ref: '#/components/parameters/LastEventStartAt'
+        - $ref: '#/components/parameters/LastEventDateUuid'
+        - $ref: '#/components/parameters/Lang'
+        - $ref: '#/components/parameters/WeekStart'
+        - $ref: '#/components/parameters/OrgUuids'
+        - $ref: '#/components/parameters/VenueUuids'
+        - $ref: '#/components/parameters/SpaceUuids'
+        - $ref: '#/components/parameters/EventUuids'
+        - $ref: '#/components/parameters/GeolistRegion'
+        - $ref: '#/components/parameters/Portal'
+      responses:
+        '200':
+          description: Summary returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventTypeSummaryResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    servers:
+    - url: https://api.kulturbytes.de
+      description: Production API
+    - url: http://localhost:9090
+      description: Local API
+
+  /api/events/venue-summary:
+    get:
+      tags: [Events]
+      summary: Get venue summary
+      description: |
+        Returns event-date counts grouped by venue. The limit and offset
+        parameters are accepted by the filter parser but are ignored by
+        this endpoint.
+      operationId: getEventVenueSummary
+      parameters:
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Start'
+        - $ref: '#/components/parameters/End'
+        - $ref: '#/components/parameters/Time'
+        - $ref: '#/components/parameters/Categories'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Venue'
+        - $ref: '#/components/parameters/SpaceTypes'
+        - $ref: '#/components/parameters/Countries'
+        - $ref: '#/components/parameters/PostalCode'
+        - $ref: '#/components/parameters/Title'
+        - $ref: '#/components/parameters/City'
+        - $ref: '#/components/parameters/EventTypes'
+        - $ref: '#/components/parameters/Genres'
+        - $ref: '#/components/parameters/Tags'
+        - $ref: '#/components/parameters/Accessibility'
+        - $ref: '#/components/parameters/VisitorInfos'
+        - $ref: '#/components/parameters/Age'
+        - $ref: '#/components/parameters/Price'
+        - $ref: '#/components/parameters/Lon'
+        - $ref: '#/components/parameters/Lat'
+        - $ref: '#/components/parameters/Radius'
+        - $ref: '#/components/parameters/LastEventStartAt'
+        - $ref: '#/components/parameters/LastEventDateUuid'
+        - $ref: '#/components/parameters/Lang'
+        - $ref: '#/components/parameters/WeekStart'
+        - $ref: '#/components/parameters/OrgUuids'
+        - $ref: '#/components/parameters/VenueUuids'
+        - $ref: '#/components/parameters/SpaceUuids'
+        - $ref: '#/components/parameters/EventUuids'
+        - $ref: '#/components/parameters/GeolistRegion'
+        - $ref: '#/components/parameters/Portal'
+      responses:
+        '200':
+          description: Summary returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventVenueSummaryResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    servers:
+    - url: https://api.kulturbytes.de
+      description: Production API
+    - url: http://localhost:9090
+      description: Local API
+
+  /api/events/geojson:
+    get:
+      tags: [Events]
+      summary: Get event venues as GeoJSON
+      description: |
+        Returns venues with matching events as a GeoJSON FeatureCollection.
+        Geometry coordinates are [longitude, latitude].
+
+        Venues for which valid point geometry cannot be produced are skipped.
+        If no venues are found, the API returns 204 No Content.
+      operationId: getEventsGeoJSON
+      parameters:
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Start'
+        - $ref: '#/components/parameters/End'
+        - $ref: '#/components/parameters/Time'
+        - $ref: '#/components/parameters/Categories'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Venue'
+        - $ref: '#/components/parameters/SpaceTypes'
+        - $ref: '#/components/parameters/Countries'
+        - $ref: '#/components/parameters/PostalCode'
+        - $ref: '#/components/parameters/Title'
+        - $ref: '#/components/parameters/City'
+        - $ref: '#/components/parameters/EventTypes'
+        - $ref: '#/components/parameters/Genres'
+        - $ref: '#/components/parameters/Tags'
+        - $ref: '#/components/parameters/Accessibility'
+        - $ref: '#/components/parameters/VisitorInfos'
+        - $ref: '#/components/parameters/Age'
+        - $ref: '#/components/parameters/Price'
+        - $ref: '#/components/parameters/Lon'
+        - $ref: '#/components/parameters/Lat'
+        - $ref: '#/components/parameters/Radius'
+        - $ref: '#/components/parameters/LastEventStartAt'
+        - $ref: '#/components/parameters/LastEventDateUuid'
+        - $ref: '#/components/parameters/Lang'
+        - $ref: '#/components/parameters/WeekStart'
+        - $ref: '#/components/parameters/OrgUuids'
+        - $ref: '#/components/parameters/VenueUuids'
+        - $ref: '#/components/parameters/SpaceUuids'
+        - $ref: '#/components/parameters/EventUuids'
+        - $ref: '#/components/parameters/GeolistRegion'
+        - $ref: '#/components/parameters/Portal'
+      responses:
+        '200':
+          description: GeoJSON FeatureCollection returned successfully.
+          content:
+            application/geo+json:
+              schema:
+                $ref: '#/components/schemas/GeoJSONFeatureCollection'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeoJSONFeatureCollection'
+        '204':
+          description: No venues found.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    servers:
+    - url: https://api.kulturbytes.de
+      description: Production API
+    - url: http://localhost:9090
+      description: Local API
+
+  /api/server/info:
+    get:
+      tags:
+        - Server
+      summary: Get server information
+      description: |
+        Returns the current server status, database status, and server uptime.
+
+        The database connection is checked with a timeout of 3 seconds.
+        If the database check fails, HTTP 503 Service Unavailable is returned.
+      operationId: getServerInfo
+
+      responses:
+        '200':
+          description: |
+            HTTP 200 OK — the server is operational and the database
+            connection check succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerInfoResponse'
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-server-info
+                status: 200
+                timestamp: '2026-09-20T09:26:00+02:00'
+                metadata:
+                  response_time_ms: 12
+                message: ''
+                data:
+                  status: ok
+                  database: ok
+                  uptime: 86400
+
+        '503':
+          description: |
+            HTTP 503 Service Unavailable — the server is running,
+            but the database connection check failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerInfoResponse'
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-server-info
+                status: 503
+                timestamp: '2026-09-20T09:26:00+02:00'
+                metadata:
+                  response_time_ms: 3010
+                message: ''
+                data:
+                  status: error
+                  database: error
+                  uptime: 86400
+
+        '500':
+          description: |
+            HTTP 500 Internal Server Error — server information
+            could not be retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerInfoResponseEnvelope'
+    servers:
+    - url: https://api.kulturbytes.de
+      description: Production
+    - url: https://localhost:9090
+
+components:
+
+  schemas:
+
+    EventCategoryLookupResponseEnvelope:
+      type: object
+      properties:
+        service:
+          type: string
+          description: Name of the API service.
+          example: Uranus API
+
+        api_version:
+          type: string
+          description: API version.
+          example: '1.0'
+
+        response_type:
+          type: string
+          description: Identifier of the response type.
+          example: get-event-category-lookup
+
+        status:
+          type: integer
+          description: HTTP status code of the response.
+          example: 200
+
+        timestamp:
+          type: string
+          format: date-time
+          description: Time at which the response was generated.
+          example: '2026-09-20T13:30:00Z'
+
+        metadata:
+          nullable: true
+          description: Optional response metadata.
+          type: object
+          additionalProperties: true
+
+        data:
+          nullable: true
+          description: Response payload.
+
+        message:
+          type: string
+          description: Human-readable response message.
+          example: database query failed
+
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+
+      additionalProperties: false
+
+    EventCategoryLookupResponseEnvelope200:
+      allOf:
+        - $ref: '#/components/schemas/EventCategoryLookupResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 200
+              example: 200
+
+    EventCategoryLookupResponseEnvelope500:
+      allOf:
+        - $ref: '#/components/schemas/EventCategoryLookupResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 500
+              example: 500
+
+    EventCategory:
+      type: object
+      description: Event category for a specific language.
+      properties:
+        name:
+          type: string
+          description: Localized name of the event category.
+          example: Kultur
+      required:
+        - name
+      additionalProperties: false
+
+    EventCategoryLanguage:
+      type: object
+      description: >-
+        Event categories keyed by their numeric category ID represented as a
+        string.
+      additionalProperties:
+        $ref: '#/components/schemas/EventCategory'
+      example:
+        '1':
+          name: Kultur
+        '2':
+          name: Musik
+        '3':
+          name: Theater
+
+    EventCategoryLookup:
+      type: object
+      description: >-
+        Event categories grouped first by ISO 639-1 language code and then by
+        category ID.
+      additionalProperties:
+        $ref: '#/components/schemas/EventCategoryLanguage'
+      example:
+        de:
+          '1':
+            name: Kultur
+          '2':
+            name: Musik
+          '3':
+            name: Theater
+        en:
+          '1':
+            name: Culture
+          '2':
+            name: Music
+          '3':
+            name: Theatre
+
+    GetEventTypeGenreLookupResponse200:
+      allOf:
+        - $ref: '#/components/schemas/EventTypeGenreLookupResponseEnvelope200'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/EventTypeGenreLookup'
+          required:
+            - data
+
+    EventTypeGenreLookup:
+      type: object
+      description: Event type and genre lookup grouped by ISO 639-1 language code.
+      additionalProperties:
+        $ref: '#/components/schemas/LanguageLookup'
+
+    LanguageLookup:
+      type: object
+      properties:
+        types:
+          $ref: '#/components/schemas/EventTypes'
+      required:
+        - types
+      additionalProperties: false
+
+    EventTypes:
+      type: object
+      description: Event types keyed by numeric event type ID.
+      additionalProperties:
+        $ref: '#/components/schemas/EventTypeGenreLookupEventType'
+
+    EventTypeGenreLookupEventType:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Localized name of the event type.
+        genres:
+          $ref: '#/components/schemas/Genres'
+      required:
+        - name
+        - genres
+      additionalProperties: false
+
+    Genres:
+      type: object
+      description: Genres keyed by numeric genre ID.
+      additionalProperties:
+        type: string
+      example:
+        "1001": Electronic music
+        "1002": Rock
+        "1003": Jazz
+
+    EventTypeGenreLookupResponseEnvelope:
+      type: object
+      properties:
+        service:
+          type: string
+          example: Uranus API
+        api_version:
+          type: string
+          example: '1.0'
+        response_type:
+          type: string
+          example: get-event-type-genre-lookup
+        status:
+          type: integer
+          example: 200
+        timestamp:
+          type: string
+          format: date-time
+          example: '2026-09-20T13:02:31Z'
+        metadata:
+          $ref: '#/components/schemas/ResponseMetadata'
+        data:
+          nullable: true
+        message:
+          type: string
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+      additionalProperties: false
+
+    EventTypeGenreLookupResponseEnvelope200:
+      allOf:
+        - $ref: '#/components/schemas/EventTypeGenreLookupResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 200
+              example: 200
+
+    EventTypeGenreLookupResponseEnvelope500:
+      allOf:
+        - $ref: '#/components/schemas/EventTypeGenreLookupResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 500
+              example: 500
+
+    ResponseMetadata:
+      type: object
+      properties:
+        response_time_ms:
+          type: integer
+          description: Response generation time in milliseconds.
+          example: 18
+      additionalProperties: true
+
+    Country:
+      type: object
+      description: A selectable country with a localized name.
+      properties:
+        country_code:
+          type: string
+          nullable: true
+          description: ISO 3166-1 alpha-3 country code.
+          minLength: 3
+          maxLength: 3
+          example: DEU
+
+        country_name:
+          type: string
+          nullable: true
+          description: Localized country name.
+          example: Germany
+
+      required:
+        - country_code
+        - country_name
+
+      additionalProperties: false
+
+    ChoosableCountriesMetadata:
+      type: object
+      description: Metadata returned by the choosable countries endpoint.
+      properties:
+
+        country_count:
+          type: integer
+          minimum: 0
+          description: Number of countries returned.
+          example: 249
+
+        language:
+          type: string
+          description: ISO 639-1 language code used for localization.
+          example: en
+
+        response_time_ms:
+          type: integer
+          minimum: 0
+          description: Server-side response time in milliseconds.
+          example: 95
+
+      additionalProperties: false
+
+    ChoosableCountriesResponseEnvelope:
+      type: object
+      properties:
+
+        service:
+          type: string
+          description: Name of the API service.
+          example: Uranus API
+
+        api_version:
+          type: string
+          description: API version.
+          example: '1.0'
+
+        response_type:
+          type: string
+          description: Identifier of the response type.
+          example: get-choosable-countries
+
+        status:
+          type: integer
+          description: HTTP status code of the response.
+          example: 200
+
+        timestamp:
+          type: string
+          format: date-time
+          description: Time at which the response was generated.
+          example: '2026-09-20T09:48:48Z'
+
+        metadata:
+          $ref: '#/components/schemas/ChoosableCountriesMetadata'
+
+        data:
+          nullable: true
+          description: Response payload.
+
+        message:
+          type: string
+          description: Human-readable response message.
+          example: countries found
+
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+
+      additionalProperties: false
+
+    ChoosableCountriesResponseEnvelope200:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableCountriesResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 200
+              example: 200
+
+    ChoosableCountriesResponseEnvelope500:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableCountriesResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 500
+              example: 500
+
+    Currency:
+      type: object
+      description: A selectable currency.
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Currency code.
+          example: EUR
+        name:
+          type: string
+          nullable: true
+          description: Localized name of the currency.
+          example: Euro
+      required:
+        - id
+        - name
+      additionalProperties: false
+
+    ChoosableCurrenciesMetadata:
+      type: object
+      description: Metadata returned with the list of currencies.
+      properties:
+        language:
+          type: string
+          description: ISO 639-1 language code used for localization.
+          minLength: 2
+          maxLength: 2
+          example: en
+        response_time_ms:
+          type: integer
+          description: Time required to generate the response in milliseconds.
+          minimum: 0
+          example: 12
+      required:
+        - language
+        - response_time_ms
+      additionalProperties: false
+
+    ChoosableCurrenciesResponseEnvelope:
+      type: object
+      description: Common response envelope used by the API.
+      properties:
+        service:
+          type: string
+          description: Name of the API service.
+          example: Uranus API
+        api_version:
+          type: string
+          description: API version.
+          example: '1.0'
+        response_type:
+          type: string
+          description: Identifier of the response type.
+          example: get-choosable-currencies
+        status:
+          type: integer
+          description: HTTP status code of the response.
+          example: 200
+        timestamp:
+          type: string
+          format: date-time
+          description: Time at which the response was generated.
+          example: '2026-09-20T10:39:00Z'
+        metadata:
+          type: object
+          description: Response metadata.
+        data:
+          nullable: true
+          description: Response payload.
+        message:
+          type: string
+          description: Human-readable response message.
+          example: Database error.
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+      additionalProperties: false
+
+    ChoosableCurrenciesResponseEnvelope200:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableCurrenciesResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 200
+              example: 200
+
+    ChoosableCurrenciesResponseEnvelope500:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableCurrenciesResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 500
+              example: 500
+
+    EventOccasionType:
+      type: object
+      description: A selectable event occasion type.
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Identifier of the event occasion type.
+          example: '1'
+        name:
+          type: string
+          nullable: true
+          description: Localized name of the event occasion type.
+          example: Anniversary
+      required:
+        - id
+        - name
+      additionalProperties: false
+
+    ChoosableEventOccasionsMetadata:
+      type: object
+      description: Metadata returned with the list of event occasion types.
+      properties:
+        language:
+          type: string
+          description: ISO 639-1 language code used for localization.
+          minLength: 2
+          maxLength: 2
+          example: en
+        event_occasion_count:
+          type: integer
+          description: Number of available event occasion types.
+          minimum: 0
+          example: 5
+        response_time_ms:
+          type: integer
+          description: Time required to generate the response in milliseconds.
+          minimum: 0
+          example: 12
+      required:
+        - language
+        - event_occasion_count
+        - response_time_ms
+      additionalProperties: false
+
+    ChoosableEventOccasionsResponseEnvelope:
+      type: object
+      description: Common response envelope used by the API.
+      properties:
+        service:
+          type: string
+          description: Name of the API service.
+          example: Uranus API
+        api_version:
+          type: string
+          description: API version.
+          example: '1.0'
+        response_type:
+          type: string
+          description: Identifier of the response type.
+          example: get-choosable-event-occasions
+        status:
+          type: integer
+          description: HTTP status code of the response.
+          example: 200
+        timestamp:
+          type: string
+          format: date-time
+          description: Time at which the response was generated.
+          example: '2026-09-20T11:37:00Z'
+        metadata:
+          type: object
+          description: Response metadata.
+        data:
+          nullable: true
+          description: Response payload.
+        message:
+          type: string
+          description: Human-readable response message.
+          example: Internal server error.
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+      additionalProperties: false
+
+    ChoosableEventOccasionsResponseEnvelope200:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableEventOccasionsResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 200
+              example: 200
+
+    ChoosableEventOccasionsResponseEnvelope500:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableEventOccasionsResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 500
+              example: 500
+
+    Language:
+      type: object
+      description: A selectable language.
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: ISO 639-1 language code.
+          minLength: 2
+          maxLength: 2
+          example: de
+
+        name:
+          type: string
+          nullable: true
+          description: Localized name of the language.
+          example: German
+
+      required:
+        - id
+        - name
+
+      additionalProperties: false
+
+    ChoosableLanguagesMetadata:
+      type: object
+      description: Metadata returned by the choosable languages endpoint.
+      properties:
+
+        language:
+          type: string
+          description: ISO 639-1 language code used for localization.
+          example: en
+
+        response_time_ms:
+          type: integer
+          minimum: 0
+          description: Server-side response time in milliseconds.
+          example: 3
+
+      additionalProperties: false
+
+    ChoosableLanguagesResponseEnvelope:
+      type: object
+      properties:
+
+        service:
+          type: string
+          description: Name of the API service.
+          example: Uranus API
+
+        api_version:
+          type: string
+          description: API version.
+          example: '1.0'
+
+        response_type:
+          type: string
+          description: Identifier of the response type.
+          example: get-choosable-languages
+
+        status:
+          type: integer
+          description: HTTP status code of the response.
+          example: 200
+
+        timestamp:
+          type: string
+          format: date-time
+          description: Time at which the response was generated.
+          example: '2026-09-20T10:17:15Z'
+
+        metadata:
+          $ref: '#/components/schemas/ChoosableLanguagesMetadata'
+
+        data:
+          nullable: true
+          description: Response payload.
+
+        message:
+          type: string
+          description: Human-readable response message.
+          example: languages found
+
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+
+      additionalProperties: false
+
+    ChoosableLanguagesResponseEnvelope200:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableLanguagesResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 200
+              example: 200
+
+    ResponseEnvelope400:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableLanguagesResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 400
+              example: 400
+
+    ChoosableLanguagesResponseEnvelope500:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableLanguagesResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 500
+              example: 500
+
+    LegalForm:
+      type: object
+      description: A selectable legal form for an organization.
+      properties:
+        key:
+          type: string
+          description: Internal identifier of the legal form.
+          example: registered_association
+
+        name:
+          type: string
+          nullable: true
+          description: Localized name of the legal form.
+          example: Registered association
+
+        description:
+          type: string
+          nullable: true
+          description: Optional localized description of the legal form.
+          example: A legally registered association.
+
+      required:
+        - key
+        - name
+        - description
+
+      additionalProperties: false
+
+    ChoosableLegalFormsMetadata:
+      type: object
+      description: Metadata returned by the choosable legal forms endpoint.
+      properties:
+
+        language:
+          type: string
+          description: ISO 639-1 language code used for localization.
+          example: en
+
+        legal_form_count:
+          type: integer
+          minimum: 0
+          description: Number of returned legal forms.
+          example: 15
+
+        response_time_ms:
+          type: integer
+          minimum: 0
+          description: Server-side response time in milliseconds.
+          example: 19
+
+      additionalProperties: false
+
+    ChoosableLegalFormsResponseEnvelope:
+      type: object
+      properties:
+
+        service:
+          type: string
+          description: Name of the API service.
+          example: Uranus API
+
+        api_version:
+          type: string
+          description: API version.
+          example: '1.0'
+
+        response_type:
+          type: string
+          description: Identifier of the response type.
+          example: get-choosable-legal-forms
+
+        status:
+          type: integer
+          description: HTTP status code of the response.
+          example: 200
+
+        timestamp:
+          type: string
+          format: date-time
+          description: Time at which the response was generated.
+          example: '2026-09-20T09:29:04Z'
+
+        metadata:
+          $ref: '#/components/schemas/ChoosableLegalFormsMetadata'
+
+        data:
+          nullable: true
+          description: Response payload.
+
+        message:
+          type: string
+          description: Human-readable response message.
+          example: legal forms found
+
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+
+      additionalProperties: false
+
+    ChoosableLegalFormsResponseEnvelope200:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableLegalFormsResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 200
+              example: 200
+
+    ChoosableLegalFormsResponseEnvelope404:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableLegalFormsResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 404
+              example: 404
+
+    ChoosableLegalFormsResponseEnvelope500:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableLegalFormsResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 500
+              example: 500
+
+    LicenseType:
+      type: object
+      description: A selectable license type.
+      properties:
+        key:
+          type: string
+          nullable: true
+          description: Internal identifier of the license type.
+          example: cc-by
+
+        name:
+          type: string
+          nullable: true
+          description: Localized name of the license type.
+          example: CC BY – Attribution
+
+        description:
+          type: string
+          nullable: true
+          description: Optional localized description of the license type.
+          example: null
+
+      required:
+        - key
+        - name
+        - description
+
+      additionalProperties: false
+
+    ChoosableLicenseTypesMetadata:
+      type: object
+      description: Metadata returned by the choosable license types endpoint.
+      properties:
+
+        language:
+          type: string
+          description: ISO 639-1 language code used for localization.
+          example: en
+
+        license_count:
+          type: integer
+          minimum: 0
+          description: Number of returned license types.
+          example: 10
+
+        response_time_ms:
+          type: integer
+          minimum: 0
+          description: Server-side response time in milliseconds.
+          example: 3
+
+      additionalProperties: false
+
+    ChoosableLicenseTypesResponseEnvelope:
+      type: object
+      properties:
+
+        service:
+          type: string
+          description: Name of the API service.
+          example: Uranus API
+
+        api_version:
+          type: string
+          description: API version.
+          example: '1.0'
+
+        response_type:
+          type: string
+          description: Identifier of the response type.
+          example: get-chooseable-license-types
+
+        status:
+          type: integer
+          description: HTTP status code of the response.
+          example: 200
+
+        timestamp:
+          type: string
+          format: date-time
+          description: Time at which the response was generated.
+          example: '2026-09-20T09:45:16Z'
+
+        metadata:
+          $ref: '#/components/schemas/ChoosableLicenseTypesMetadata'
+
+        data:
+          nullable: true
+          description: Response payload.
+
+        message:
+          type: string
+          description: Human-readable response message.
+          example: license types found
+
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+
+      additionalProperties: false
+
+    ChoosableLicenseTypesResponseEnvelope200:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableLicenseTypesResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 200
+              example: 200
+
+    ChoosableLicenseTypesResponseEnvelope404:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableLicenseTypesResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 404
+              example: 404
+
+    ChoosableLicenseTypesResponseEnvelope500:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableLicenseTypesResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 500
+              example: 500
+
+    LinkType:
+      type: object
+      description: A selectable link type.
+      properties:
+        key:
+          type: string
+          nullable: true
+          description: Internal identifier of the link type.
+          example: facebook
+        name:
+          type: string
+          nullable: true
+          description: Localized display name of the link type.
+          example: Facebook
+      required:
+        - key
+        - name
+      additionalProperties: false
+
+    ChoosableLinkTypesResponseEnvelope:
+      type: object
+      properties:
+
+        service:
+          type: string
+          example: Uranus API
+
+        api_version:
+          type: string
+          example: '1.0'
+
+        response_type:
+          type: string
+          example: get-choosable-link-types
+
+        status:
+          type: integer
+          description: HTTP status code of the response.
+          example: 200
+
+        timestamp:
+          type: string
+          format: date-time
+          example: '2026-09-20T08:07:43Z'
+
+        metadata:
+          $ref: '#/components/schemas/ChoosableLinkTypesMetadata'
+
+        data:
+          description: Response payload.
+          nullable: true
+
+        message:
+          type: string
+          example: Link types found
+
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+
+      additionalProperties: false
+
+    ChoosableLinkTypesResponseEnvelope200:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableLinkTypesResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 200
+              example: 200
+
+    ChoosableLinkTypesResponseEnvelope404:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableLinkTypesResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 404
+              example: 404
+
+    ChoosableLinkTypesResponseEnvelope500:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableLinkTypesResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 500
+              example: 500
+
+    ChoosableLinkTypesMetadata:
+      type: object
+      properties:
+
+        language:
+          type: string
+          description: ISO 639-1 language code used for localization.
+          example: en
+
+        link_type_count:
+          type: integer
+          minimum: 0
+          description: Number of returned link types.
+          example: 15
+
+        response_time_ms:
+          type: integer
+          minimum: 0
+          description: Server-side response time in milliseconds.
+          example: 3
+
+      additionalProperties: false
+
+    Organization:
+      type: object
+      description: A selectable organization.
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          description: Unique identifier of the organization.
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          nullable: true
+          description: Name of the organization.
+          example: Kulturzentrum Flensburg
+        city:
+          type: string
+          nullable: true
+          description: City in which the organization is located.
+          example: Flensburg
+        state:
+          type: string
+          nullable: true
+          description: State or administrative region in which the organization is located.
+          example: Schleswig-Holstein
+        country:
+          type: string
+          nullable: true
+          description: Country code of the organization.
+          example: DE
+      required:
+        - uuid
+        - name
+      additionalProperties: false
+
+    ChoosableOrgsMetadata:
+      type: object
+      description: Metadata returned with the list of organizations.
+      properties:
+        venue_count:
+          type: integer
+          description: Number of organizations matching the requested filters.
+          minimum: 0
+          example: 3
+        response_time_ms:
+          type: integer
+          description: Time required to generate the response in milliseconds.
+          minimum: 0
+          example: 15
+      required:
+        - venue_count
+        - response_time_ms
+      additionalProperties: false
+
+    ChoosableOrgsResponseEnvelope:
+      type: object
+      description: Common response envelope used by the API.
+      properties:
+        service:
+          type: string
+          description: Name of the API service.
+          example: Uranus API
+        api_version:
+          type: string
+          description: API version.
+          example: '1.0'
+        response_type:
+          type: string
+          description: Identifier of the response type.
+          example: get-choosable-orgs
+        status:
+          type: integer
+          description: HTTP status code of the response.
+          example: 200
+        timestamp:
+          type: string
+          format: date-time
+          description: Time at which the response was generated.
+          example: '2026-09-20T12:24:00Z'
+        metadata:
+          type: object
+          description: Response metadata.
+        data:
+          nullable: true
+          description: Response payload.
+        message:
+          type: string
+          description: Human-readable response message.
+          example: Database error.
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+      additionalProperties: false
+
+    ChoosableOrgsResponseEnvelope200:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableOrgsResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 200
+              example: 200
+
+    ChoosableOrgsResponseEnvelope500:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableOrgsResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 500
+              example: 500
+
+    SpaceType:
+      type: object
+      description: A selectable space type.
+      properties:
+        key:
+          type: string
+          description: Internal identifier of the space type.
+          example: art_studio
+
+        name:
+          type: string
+          nullable: true
+          description: Localized name of the space type.
+          example: Atelier
+
+        description:
+          type: string
+          nullable: true
+          description: Localized description of the space type.
+          example: Et arbejdsrum hvor kunstnere skaber, maler eller producerer kunstværker
+
+      required:
+        - key
+        - name
+        - description
+
+      additionalProperties: false
+
+    ChoosableSpaceTypesMetadata:
+      type: object
+      description: Metadata returned by the choosable space types endpoint.
+      properties:
+
+        language:
+          type: string
+          description: ISO 639-1 language code used for localization.
+          example: da
+
+        space_type_count:
+          type: integer
+          minimum: 0
+          description: Number of returned space types.
+          example: 30
+
+        response_time_ms:
+          type: integer
+          minimum: 0
+          description: Server-side response time in milliseconds.
+          example: 2
+
+      additionalProperties: false
+
+    ChoosableSpaceTypesResponseEnvelope:
+      type: object
+      properties:
+
+        service:
+          type: string
+          description: Name of the API service.
+          example: Uranus API
+
+        api_version:
+          type: string
+          description: API version.
+          example: '1.0'
+
+        response_type:
+          type: string
+          description: Identifier of the response type.
+          example: get-choosable-space-types
+
+        status:
+          type: integer
+          description: HTTP status code of the response.
+          example: 200
+
+        timestamp:
+          type: string
+          format: date-time
+          description: Time at which the response was generated.
+          example: '2026-09-20T09:15:55Z'
+
+        metadata:
+          $ref: '#/components/schemas/ChoosableSpaceTypesMetadata'
+
+        data:
+          nullable: true
+          description: Response payload.
+
+        message:
+          type: string
+          description: Human-readable response message.
+          example: space types found
+
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+
+      additionalProperties: false
+
+    ChoosableSpaceTypesResponseEnvelope200:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableSpaceTypesResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 200
+              example: 200
+
+    ChoosableSpaceTypesResponseEnvelope404:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableSpaceTypesResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 404
+              example: 404
+
+    ChoosableSpaceTypesResponseEnvelope500:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableSpaceTypesResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 500
+              example: 500
+
+    State:
+      type: object
+      description: A selectable state or administrative region.
+      properties:
+        state_code:
+          type: string
+          nullable: true
+          description: Code identifying the state or administrative region.
+          example: SH
+
+        state_name:
+          type: string
+          nullable: true
+          description: Name of the state or administrative region.
+          example: Schleswig-Holstein
+
+      required:
+        - state_code
+        - state_name
+
+      additionalProperties: false
+
+    ChoosableStatesMetadata:
+      type: object
+      description: Metadata returned by the choosable states endpoint.
+      properties:
+
+        country_code:
+          type: string
+          description: Country code used to select the states.
+          example: DEU
+
+        state_count:
+          type: integer
+          minimum: 0
+          description: Number of states or administrative regions returned.
+          example: 16
+
+        response_time_ms:
+          type: integer
+          minimum: 0
+          description: Server-side response time in milliseconds.
+          example: 3
+
+      additionalProperties: false
+
+    ChoosableStatesResponseEnvelope:
+      type: object
+      properties:
+
+        service:
+          type: string
+          description: Name of the API service.
+          example: Uranus API
+
+        api_version:
+          type: string
+          description: API version.
+          example: '1.0'
+
+        response_type:
+          type: string
+          description: Identifier of the response type.
+          example: choosable-states
+
+        status:
+          type: integer
+          description: HTTP status code of the response.
+          example: 200
+
+        timestamp:
+          type: string
+          format: date-time
+          description: Time at which the response was generated.
+          example: '2026-09-20T10:09:03Z'
+
+        metadata:
+          $ref: '#/components/schemas/ChoosableStatesMetadata'
+
+        data:
+          nullable: true
+          description: Response payload.
+
+        message:
+          type: string
+          description: Human-readable response message.
+          example: states found
+
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+
+      additionalProperties: false
+
+    ChoosableStatesResponseEnvelope200:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableStatesResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 200
+              example: 200
+
+    ChoosableStatesResponseEnvelope500:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableStatesResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 500
+              example: 500
+
+    VenueType:
+      type: object
+      description: A selectable venue type.
+      properties:
+        key:
+          type: string
+          description: Internal identifier of the venue type.
+          example: cultural_center
+
+        name:
+          type: string
+          nullable: true
+          description: Localized name of the venue type.
+          example: Kulturcenter
+
+        description:
+          type: string
+          nullable: true
+          description: |
+            Optional localized description of the venue type.
+          example: Et sted for kulturelle aktiviteter og arrangementer.
+
+      required:
+        - key
+        - name
+        - description
+
+      additionalProperties: false
+
+    ChoosableVenueTypesMetadata:
+      type: object
+      properties:
+
+        language:
+          type: string
+          description: ISO 639-1 language code used for localization.
+          example: da
+
+        venue_type_count:
+          type: integer
+          minimum: 0
+          description: Number of returned venue types.
+          example: 35
+
+        response_time_ms:
+          type: integer
+          minimum: 0
+          description: Server-side response time in milliseconds.
+          example: 1
+
+      additionalProperties: false
+
+    ChoosableVenueTypesResponseEnvelope:
+      type: object
+      properties:
+
+        service:
+          type: string
+          example: Uranus API
+
+        api_version:
+          type: string
+          example: '1.0'
+
+        response_type:
+          type: string
+          example: get-choosable-venue-types
+
+        status:
+          type: integer
+          description: HTTP status code of the response.
+          example: 200
+
+        timestamp:
+          type: string
+          format: date-time
+          example: '2026-09-20T09:03:41Z'
+
+        metadata:
+          $ref: '#/components/schemas/ChoosableVenueTypesMetadata'
+
+        data:
+          nullable: true
+          description: Response payload.
+
+        message:
+          type: string
+          example: Venue types found
+
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+
+      additionalProperties: false
+
+    ChoosableVenueTypesResponseEnvelope200:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableVenueTypesResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 200
+              example: 200
+
+    ChoosableVenueTypesResponseEnvelope404:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableVenueTypesResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 404
+              example: 404
+
+    ChoosableVenueTypesResponseEnvelope500:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableVenueTypesResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 500
+              example: 500
+
+    Venue:
+      type: object
+      description: A selectable venue.
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          description: Unique identifier of the venue.
+          example: 550e8400-e29b-41d4-a716-446655440000
+        scope:
+          type: string
+          description: Scope defining the ownership or visibility of the venue.
+          example: shared
+        name:
+          type: string
+          nullable: true
+          description: Name of the venue.
+          example: Kulturzentrum
+        city:
+          type: string
+          nullable: true
+          description: City in which the venue is located.
+          example: Flensburg
+        state:
+          type: string
+          nullable: true
+          description: State or administrative region in which the venue is located.
+          example: Schleswig-Holstein
+        country:
+          type: string
+          nullable: true
+          description: Country code of the venue.
+          example: DE
+      required:
+        - uuid
+        - scope
+        - name
+      additionalProperties: false
+
+    ChoosableVenuesMetadata:
+      type: object
+      description: Metadata returned with the list of venues.
+      properties:
+        venue_count:
+          type: integer
+          description: Number of venues matching the requested filters.
+          minimum: 0
+          example: 3
+        response_time_ms:
+          type: integer
+          description: Time required to generate the response in milliseconds.
+          minimum: 0
+          example: 15
+      required:
+        - venue_count
+        - response_time_ms
+      additionalProperties: false
+
+    ChoosableVenuesResponseEnvelope:
+      type: object
+      description: Common response envelope used by the API.
+      properties:
+        service:
+          type: string
+          description: Name of the API service.
+          example: Uranus API
+        api_version:
+          type: string
+          description: API version.
+          example: '1.0'
+        response_type:
+          type: string
+          description: Identifier of the response type.
+          example: get-choosable-venues
+        status:
+          type: integer
+          description: HTTP status code of the response.
+          example: 200
+        timestamp:
+          type: string
+          format: date-time
+          description: Time at which the response was generated.
+          example: '2026-09-20T12:00:00Z'
+        metadata:
+          type: object
+          description: Response metadata.
+        data:
+          nullable: true
+          description: Response payload.
+        message:
+          type: string
+          description: Human-readable response message.
+          example: Database error.
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+      additionalProperties: false
+
+    ChoosableVenuesResponseEnvelope200:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableVenuesResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 200
+              example: 200
+
+    ChoosableVenuesResponseEnvelope500:
+      allOf:
+        - $ref: '#/components/schemas/ChoosableVenuesResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 500
+              example: 500
+
+    EventReleaseStatusI18nResponseEnvelope:
+      type: object
+      properties:
+        service:
+          type: string
+          example: Uranus API
+
+        api_version:
+          type: string
+          example: '1.0'
+
+        response_type:
+          type: string
+          example: event-release-status-i18n
+
+        status:
+          type: integer
+          description: HTTP status code of the current response.
+          example: 200
+
+        timestamp:
+          type: string
+          format: date-time
+
+        metadata:
+          type: object
+          properties:
+            languages:
+              type: string
+              description: Comma-separated list of requested ISO 639-1 language codes.
+              example: de,da,en
+
+            response_time_ms:
+              type: integer
+              minimum: 0
+              example: 8
+
+          additionalProperties: false
+
+        message:
+          type: string
+
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+
+    EventReleaseStatusI18nResponse:
+      allOf:
+        - $ref: '#/components/schemas/EventReleaseStatusI18nResponseEnvelope'
+
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                i18n:
+                  type: object
+                  description: |
+                    Translations grouped by ISO 639-1 language code.
+                  additionalProperties:
+                    type: object
+                    additionalProperties:
+                      type: string
+                  example:
+                    de:
+                      draft: Entwurf
+                      review: Prüfung
+                      released: Veröffentlicht
+                      cancelled: Abgesagt
+                      deferred: Verschoben
+                      rescheduled: Neu terminiert
+                    en:
+                      draft: Draft
+                      review: Review
+                      released: Released
+                      cancelled: Cancelled
+                      deferred: Deferred
+                      rescheduled: Rescheduled
+
+                order:
+                  type: array
+                  description: |
+                    Event release status keys ordered by their configured
+                    database order.
+                  items:
+                    type: string
+                  example:
+                    - draft
+                    - review
+                    - released
+                    - cancelled
+                    - deferred
+                    - rescheduled
+
+              required:
+                - i18n
+                - order
+
+          required:
+            - data
+
+    EventReleaseStatusI18nResponseEnvelope500:
+      allOf:
+        - $ref: '#/components/schemas/EventReleaseStatusI18nResponseEnvelope'
+        - type: object
+          properties:
+            status:
+              type: integer
+              enum:
+                - 500
+              example: 500
+
+    EventFilterRequest:
+      type: object
+      description: |
+        Event filtering request used by POST /api/events/filter.
+        Array fields are represented as JSON arrays.
+      properties:
+        offset:
+          type: integer
+          format: int64
+          minimum: 0
+        limit:
+          type: integer
+          format: int64
+          minimum: 0
+        start:
+          type: string
+          pattern: '^\d{4}-\d{2}-\d{2}$'
+        end:
+          type: string
+          pattern: '^\d{4}-\d{2}-\d{2}$'
+        time:
+          type: string
+        categories:
+          type: array
+          items:
+            type: integer
+        search:
+          type: string
+        venue:
+          type: string
+        space_types:
+          type: array
+          items:
+            type: string
+        countries:
+          type: array
+          items:
+            type: string
+        postal_code:
+          type: string
+        title:
+          type: string
+        city:
+          type: string
+        event_types:
+          type: array
+          items:
+            type: integer
+        genres:
+          type: array
+          items:
+            type: integer
+        tags:
+          type: array
+          items:
+            type: string
+        accessibility:
+          type: string
+        visitor_infos:
+          type: string
+        age:
+          type: string
+        price:
+          type: string
+        lon:
+          type: number
+          format: double
+        lat:
+          type: number
+          format: double
+        radius:
+          type: number
+          format: double
+        last_event_start_at:
+          type: string
+        last_event_date_uuid:
+          type: string
+        lang:
+          type: string
+        portal:
+          type: string
+        week_start:
+          type: string
+          pattern: '^\d{4}-\d{2}-\d{2}$'
+        org_uuids:
+          type: array
+          items:
+            type: string
+        venue_uuids:
+          type: array
+          items:
+            type: string
+        space_uuids:
+          type: array
+          items:
+            type: string
+        event_uuids:
+          type: array
+          items:
+            type: string
+        geolist_region:
+          type: string
+
+    EventsEventType:
+      type: object
+      required: [type_id, genre_id]
+      properties:
+        type_id:
+          type: integer
+        genre_id:
+          type: integer
+
+    EventResponse:
+      type: object
+      required:
+        - search_rank
+        - uuid
+        - date_uuid
+        - date_slug
+        - title
+        - start_date
+        - org_uuid
+        - org_name
+        - languages
+        - tags
+        - min_age
+        - max_age
+      properties:
+        search_rank:
+          type: number
+          format: float
+        uuid:
+          type: string
+        date_uuid:
+          type: string
+        date_slug:
+          type: string
+        title:
+          type: string
+        subtitle:
+          type: string
+          nullable: true
+        summary:
+          type: string
+          nullable: true
+        start_date:
+          type: string
+        start_time:
+          type: string
+          nullable: true
+        end_date:
+          type: string
+          nullable: true
+        end_time:
+          type: string
+          nullable: true
+        entry_time:
+          type: string
+          nullable: true
+        duration:
+          type: integer
+          nullable: true
+        all_day:
+          type: boolean
+          nullable: true
+        ticket_link:
+          type: string
+          nullable: true
+        space_uuid:
+          type: string
+          nullable: true
+        space_name:
+          type: string
+          nullable: true
+        space_accessibility_flags:
+          type: string
+          nullable: true
+        venue_uuid:
+          type: string
+          nullable: true
+        venue_name:
+          type: string
+          nullable: true
+        venue_city:
+          type: string
+          nullable: true
+        venue_street:
+          type: string
+          nullable: true
+        venue_house_number:
+          type: string
+          nullable: true
+        venue_postal_code:
+          type: string
+          nullable: true
+        venue_state:
+          type: string
+          nullable: true
+        venue_country:
+          type: string
+          nullable: true
+        venue_lat:
+          type: number
+          format: double
+          nullable: true
+        venue_lon:
+          type: number
+          format: double
+          nullable: true
+        image_uuid:
+          type: string
+          nullable: true
+        image_path:
+          type: string
+          nullable: true
+        image_ai_label:
+          type: string
+          nullable: true
+        org_uuid:
+          type: string
+        org_name:
+          type: string
+        categories:
+          type: array
+          items:
+            type: integer
+        event_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventsEventType'
+        languages:
+          type: array
+          items:
+            type: string
+        tags:
+          type: array
+          items:
+            type: string
+        min_age:
+          type: integer
+          nullable: true
+        max_age:
+          type: integer
+          nullable: true
+        price_type:
+          type: string
+          nullable: true
+        min_price:
+          type: number
+          format: double
+          nullable: true
+        max_price:
+          type: number
+          format: double
+          nullable: true
+        currency:
+          type: string
+          nullable: true
+        visitor_info_flags:
+          type: string
+          nullable: true
+        release_status:
+          type: string
+          nullable: true
+
+    EventsResponse:
+      type: object
+      required: [events]
+      properties:
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventResponse'
+        last_event_date_uuid:
+          type: string
+          nullable: true
+        last_event_start_at:
+          type: string
+          nullable: true
+
+    CalendarDayResponse:
+      type: object
+      required: [event_day, events, more_count]
+      properties:
+        event_day:
+          type: string
+        events:
+          description: JSON-encoded event collection returned by the current implementation.
+          type: object
+          additionalProperties: true
+        more_count:
+          type: integer
+
+    EventsWeekResponse:
+      type: object
+      required: [days]
+      properties:
+        days:
+          type: array
+          items:
+            $ref: '#/components/schemas/CalendarDayResponse'
+
+    SummaryEntry:
+      type: object
+      required: [id, count]
+      properties:
+        id:
+          type: integer
+        count:
+          type: integer
+
+    EventTypeSummaryResponse:
+      type: object
+      required: [total_event_count, type_summary, genre_summary]
+      properties:
+        total_event_count:
+          type: integer
+        type_summary:
+          type: array
+          items:
+            $ref: '#/components/schemas/SummaryEntry'
+        genre_summary:
+          type: array
+          items:
+            $ref: '#/components/schemas/SummaryEntry'
+
+    VenueSummaryEntry:
+      type: object
+      required: [venue_uuid, venue_name, date_count]
+      properties:
+        venue_uuid:
+          type: string
+        venue_name:
+          type: string
+        date_count:
+          type: integer
+
+    EventVenueSummaryResponse:
+      type: object
+      required: [venue-summary]
+      properties:
+        venue-summary:
+          type: array
+          items:
+            $ref: '#/components/schemas/VenueSummaryEntry'
+
+    GeoJSONGeometry:
+      type: object
+      required: [type, coordinates]
+      properties:
+        type:
+          type: string
+          enum: [Point]
+        coordinates:
+          type: array
+          minItems: 2
+          maxItems: 2
+          items:
+            type: number
+            format: double
+          description: '[longitude, latitude]'
+
+    GeoJSONVenueProperties:
+      type: object
+      required: [uuid, name, event_count]
+      properties:
+        uuid:
+          type: string
+        name:
+          type: string
+        city:
+          type: string
+          nullable: true
+        country:
+          type: string
+          nullable: true
+        event_count:
+          type: integer
+
+    GeoJSONFeature:
+      type: object
+      required: [type, geometry, properties]
+      properties:
+        type:
+          type: string
+          enum: [Feature]
+        geometry:
+          $ref: '#/components/schemas/GeoJSONGeometry'
+        properties:
+          $ref: '#/components/schemas/GeoJSONVenueProperties'
+
+    GeoJSONFeatureCollection:
+      type: object
+      required: [type, features]
+      properties:
+        type:
+          type: string
+          enum: [FeatureCollection]
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/GeoJSONFeature'
+
+    ErrorResponse:
+      type: object
+      description: |
+        Error response envelope. The exact envelope is provided by
+        grains_api.ApiRequest and is intentionally not constrained here
+        until that package's implementation is documented.
+      additionalProperties: true
+
+    ServerInfoResponseEnvelope:
+      type: object
+      properties:
+        service:
+          type: string
+          example: Uranus API
+
+        api_version:
+          type: string
+          example: '1.0'
+
+        response_type:
+          type: string
+          example: get-server-info
+
+        status:
+          type: integer
+          description: HTTP status code of the current response.
+          example: 200
+
+        timestamp:
+          type: string
+          format: date-time
+
+        metadata:
+          type: object
+          properties:
+            response_time_ms:
+              type: integer
+              minimum: 0
+              example: 12
+
+        message:
+          type: string
+
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+
+    ServerInfoResponse:
+      allOf:
+        - $ref: '#/components/schemas/ServerInfoResponseEnvelope'
+
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - ok
+                    - error
+                  example: ok
+
+                database:
+                  type: string
+                  enum:
+                    - ok
+                    - error
+                  example: ok
+
+                uptime:
+                  type: integer
+                  format: int64
+                  minimum: 0
+                  description: Server uptime in seconds.
+                  example: 86400
+
+              required:
+                - status
+                - database
+                - uptime
+
+          required:
+            - data
+
+  parameters:
+
+    Offset:
+      name: offset
+      in: query
+      description: Legacy offset pagination. Integer value.
+      required: false
+      schema:
+        type: integer
+        format: int64
+        minimum: 0
+
+    Limit:
+      name: limit
+      in: query
+      description: Maximum number of results requested.
+      required: false
+      schema:
+        type: integer
+        format: int64
+        minimum: 0
+      example: 10
+
+    Start:
+      name: start
+      in: query
+      description: Start date in YYYY-MM-DD format. Defaults to the current date when omitted.
+      required: false
+      schema:
+        type: string
+        pattern: '^\d{4}-\d{2}-\d{2}$'
+
+    End:
+      name: end
+      in: query
+      description: Inclusive end date in YYYY-MM-DD format.
+      required: false
+      schema:
+        type: string
+        pattern: '^\d{4}-\d{2}-\d{2}$'
+
+    Time:
+      name: time
+      in: query
+      description: |
+        Event-time filter. The value must contain a start time and an end time,
+        separated by a comma.
+    
+        Supported time formats:
+          - `HH,HH` for hours in 24-hour format.
+          - `HHMM,HHMM` for hours and minutes in 24-hour format.
+    
+        Examples:
+          - `10,14` matches events from 10:00 to 14:00.
+          - `1030,1545` matches events from 10:30 to 15:45.
+    
+        The start time must be before the end time.
+      required: false
+      schema:
+        type: string
+      examples:
+        Hours:
+          summary: Hours only
+          value: "10,14"
+        HoursMinutes:
+          summary: Hours and minutes
+          value: "1030,1545"
+
+    Categories:
+      name: categories
+      in: query
+      description: |
+        Comma-separated list of one or more category IDs.
+
+        Available categories:
+          - `1` — Culture
+          - `2` — Education
+          - `3` — Sports
+          - `4` — Leisure
+          - `5` — Family
+          - `6` — Society
+
+        Multiple categories can be combined using commas.
+      required: false
+      schema:
+        type: string
+      examples:
+        Culture:
+          summary: Culture
+          value: "1"
+        Education:
+          summary: Education
+          value: "2"
+        Sports:
+          summary: Sports
+          value: "3"
+        Leisure:
+          summary: Leisure
+          value: "4"
+        Family:
+          summary: Family
+          value: "5"
+        Society:
+          summary: Society
+          value: "6"
+        Multiple:
+          summary: Multiple categories
+          value: "1,2,5"
+
+    Search:
+      name: search
+      in: query
+      description: Full-text search query.
+      required: false
+      schema:
+        type: string
+
+    Venue:
+      name: venue
+      in: query
+      description: Venue name/text filter.
+      required: false
+      schema:
+        type: string
+
+    SpaceTypes:
+      name: space_types
+      in: query
+      description: Comma-separated space type values.
+      required: false
+      schema:
+        type: string
+
+    Countries:
+      name: countries
+      in: query
+      description: Comma-separated country codes.
+      required: false
+      schema:
+        type: string
+
+    PostalCode:
+      name: postal_code
+      in: query
+      description: |
+        Comma-separated list of postal code patterns.
+    
+        Use `*` as a wildcard for partial matching:
+          - `249*` matches postal codes starting with `249`.
+          - `*509` matches postal codes ending with `509`.
+          - `*608*` matches postal codes containing `608`.
+          - `249*,2348*,*6000*` matches any of the specified patterns.
+
+        Without `*`, an exact match is performed.
+      required: false
+      schema:
+        type: string
+      examples:
+        Prefix:
+          summary: Postal code prefix
+          value: "249*"
+        Suffix:
+          summary: Postal code suffix
+          value: "*937"
+        Contains:
+          summary: Partial postal code
+          value: "*49*"
+        Multiple:
+          summary: Multiple patterns
+          value: "249*,2348*,*6000*"
+
+    Title:
+      name: title
+      in: query
+      description: Title text filter.
+      required: false
+      schema:
+        type: string
+
+    City:
+      name: city
+      in: query
+      description: Venue city filter.
+      required: false
+      schema:
+        type: string
+
+    EventTypes:
+      name: event_types
+      in: query
+      description: |
+        Comma-separated event type IDs. Cannot be used together with genres.
+      required: false
+      schema:
+        type: string
+
+    Genres:
+      name: genres
+      in: query
+      description: |
+        Comma-separated genre IDs. Cannot be used together with event_types.
+      required: false
+      schema:
+        type: string
+
+    Tags:
+      name: tags
+      in: query
+      description: Comma-separated tags.
+      required: false
+      schema:
+        type: string
+
+    Accessibility:
+      name: accessibility
+      in: query
+      description: Accessibility filter. Syntax is interpreted by the API filter parser.
+      required: false
+      schema:
+        type: string
+
+    VisitorInfos:
+      name: visitor_infos
+      in: query
+      description: Visitor-information filter. Syntax is interpreted by the API filter parser.
+      required: false
+      schema:
+        type: string
+
+    Age:
+      name: age
+      in: query
+      description: Age filter. Syntax is interpreted by the API filter parser.
+      required: false
+      schema:
+        type: string
+
+    Price:
+      name: price
+      in: query
+      description: Price filter. Syntax is interpreted by the API filter parser.
+      required: false
+      schema:
+        type: string
+
+    Lon:
+      name: lon
+      in: query
+      description: Longitude used for radius filtering.
+      required: false
+      schema:
+        type: number
+        format: double
+
+    Lat:
+      name: lat
+      in: query
+      description: Latitude used for radius filtering.
+      required: false
+      schema:
+        type: number
+        format: double
+
+    Radius:
+      name: radius
+      in: query
+      description: Radius used for geographic filtering.
+      required: false
+      schema:
+        type: number
+        format: double
+
+    LastEventStartAt:
+      name: last_event_start_at
+      in: query
+      description: Cursor timestamp used with last_event_date_uuid for stable pagination.
+      required: false
+      schema:
+        type: string
+
+    LastEventDateUuid:
+      name: last_event_date_uuid
+      in: query
+      description: Cursor event-date UUID used with last_event_start_at.
+      required: false
+      schema:
+        type: string
+
+    Lang:
+      name: lang
+      in: query
+      description: Language/locale value accepted by the event filter.
+      required: false
+      schema:
+        type: string
+
+    WeekStart:
+      name: week_start
+      in: query
+      description: Optional week start date in YYYY-MM-DD format.
+      required: false
+      schema:
+        type: string
+        pattern: '^\d{4}-\d{2}-\d{2}$'
+
+    WeekStartRequired:
+      name: week_start
+      in: query
+      description: Required week start date in YYYY-MM-DD format.
+      required: true
+      schema:
+        type: string
+        pattern: '^\d{4}-\d{2}-\d{2}$'
+
+    OrgUuids:
+      name: org_uuids
+      in: query
+      description: Comma-separated organization UUID values.
+      required: false
+      schema:
+        type: string
+
+    VenueUuids:
+      name: venue_uuids
+      in: query
+      description: Comma-separated venue UUID values.
+      required: false
+      schema:
+        type: string
+
+    SpaceUuids:
+      name: space_uuids
+      in: query
+      description: Comma-separated space UUID values.
+      required: false
+      schema:
+        type: string
+
+    EventUuids:
+      name: event_uuids
+      in: query
+      description: Comma-separated event UUID values.
+      required: false
+      schema:
+        type: string
+
+    GeolistRegion:
+      name: geolist_region
+      in: query
+      description: |
+        Geographic region filter. Must contain exactly three comma-separated
+        components (lon,lat,radius). Cannot be combined with portal.
+      required: false
+      schema:
+        type: string
+
+    Portal:
+      name: portal
+      in: query
+      description: Portal UUID filter. Cannot be combined with geolist_region.
+      required: false
+      schema:
+        type: string
+
+  responses:
+
+    BadRequest:
+      description: Invalid request or filter parameter.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    InternalServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
