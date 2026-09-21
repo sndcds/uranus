@@ -1,0 +1,462 @@
+openapi: 3.0.3
+
+info:
+  title: Uranus API
+  description: API for the Uranus / kulturbytes platform.
+  version: '1.0'
+
+servers:
+  - url: https://api.kulturbytes.de
+  - url: http://localhost:9090
+
+paths:
+  /api/event/{eventUuid}:
+    get:
+      tags:
+        - Events
+      summary: Get an event
+      description: >
+        Returns a single event. If no event date is explicitly requested,
+        the API selects the nearest upcoming date. If there is no upcoming
+        date, the latest past date is selected.
+        
+        Public users can access events with the statuses released, cancelled,
+        deferred and rescheduled. Users with appropriate event organizer
+        permissions may also access draft and review events.
+      operationId: getEvent
+      parameters:
+        - name: eventUuid
+          in: path
+          required: true
+          description: Event UUID.
+          schema:
+            type: string
+            format: uuid
+
+        - name: lang
+          in: query
+          required: false
+          description: Content language.
+          schema:
+            type: string
+            default: en
+            example: en
+
+      responses:
+        '200':
+          description: Event successfully retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventDetails'
+
+        '404':
+          description: Event not found.
+
+        '500':
+          description: Internal server error.
+
+
+  /api/event/{eventUuid}/date/{dateUuid}:
+    get:
+      tags:
+        - Events
+      summary: Get an event by date
+      description: >
+        Returns an event with a specific event date selected.
+        The selected date is returned in the date property and all other
+        event dates are returned in furtherDates.
+      operationId: getEventByDate
+      parameters:
+        - name: eventUuid
+          in: path
+          required: true
+          description: Event UUID.
+          schema:
+            type: string
+            format: uuid
+
+        - name: dateUuid
+          in: path
+          required: true
+          description: Event date UUID.
+          schema:
+            type: string
+            format: string
+
+        - name: lang
+          in: query
+          required: false
+          description: Content language.
+          schema:
+            type: string
+            default: en
+            example: en
+
+      responses:
+        '200':
+          description: Event successfully retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventDetails'
+
+        '404':
+          description: Event not found.
+
+        '500':
+          description: Internal server error.
+
+
+components:
+
+  schemas:
+
+    EventDetails:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+
+        releaseStatus:
+          type: string
+          enum:
+            - draft
+            - review
+            - released
+            - cancelled
+            - deferred
+            - rescheduled
+
+        contentLanguage:
+          type: string
+
+        title:
+          type: string
+
+        subtitle:
+          type: string
+          nullable: true
+
+        description:
+          type: string
+          nullable: true
+
+        summary:
+          type: string
+          nullable: true
+
+        sourceUrl:
+          type: string
+          format: uri
+          nullable: true
+
+        participationInfo:
+          type: string
+          nullable: true
+
+        onlineLink:
+          type: string
+          format: uri
+          nullable: true
+
+        registrationLink:
+          type: string
+          format: uri
+          nullable: true
+
+        registrationEmail:
+          type: string
+          format: email
+          nullable: true
+
+        registrationPhone:
+          type: string
+          nullable: true
+
+        registrationDeadline:
+          type: string
+          format: date-time
+          nullable: true
+
+        meetingPoint:
+          type: string
+          nullable: true
+
+        languages:
+          type: array
+          items:
+            type: string
+
+        tags:
+          type: array
+          items:
+            type: string
+
+        maxAttendees:
+          type: integer
+          nullable: true
+
+        minAge:
+          type: integer
+          nullable: true
+
+        maxAge:
+          type: integer
+          nullable: true
+
+        currency:
+          type: string
+          nullable: true
+
+        priceType:
+          type: string
+          nullable: true
+
+        minPrice:
+          type: number
+          format: double
+          nullable: true
+
+        maxPrice:
+          type: number
+          format: double
+          nullable: true
+
+        ticketFlags:
+          type: array
+          items:
+            type: string
+            enum:
+              - advance_ticket
+              - presale_fee_applies
+              - on_site_ticket_sales
+              - reduced_price_available
+
+        ticketLink:
+          type: string
+          format: uri
+          nullable: true
+
+        visitorInfoFlags:
+          type: array
+          items:
+            type: string
+
+        orgUuid:
+          type: string
+          format: uuid
+          nullable: true
+
+        orgName:
+          type: string
+          nullable: true
+
+        orgWebLink:
+          type: string
+          format: uri
+          nullable: true
+
+        orgLogos:
+          type: array
+          items:
+            $ref: '#/components/schemas/Image'
+
+        images:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Image'
+
+        eventTypes:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventType'
+
+        eventLinks:
+          type: array
+          items:
+            $ref: '#/components/schemas/WebLink'
+
+        logoMode:
+          type: integer
+
+        dateMatch:
+          type: boolean
+          description: >
+            Indicates whether the requested date matched the selected event date.
+
+        date:
+          allOf:
+            - $ref: '#/components/schemas/EventDate'
+          nullable: true
+
+        furtherDates:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventDate'
+
+
+    EventDate:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+
+        eventUuid:
+          type: string
+          format: uuid
+
+        eventReleaseStatus:
+          type: string
+          enum:
+            - draft
+            - review
+            - released
+            - cancelled
+            - deferred
+            - rescheduled
+
+        startDate:
+          type: string
+          format: date
+
+        startTime:
+          type: string
+          nullable: true
+          example: "19:30"
+
+        endDate:
+          type: string
+          format: date
+          nullable: true
+
+        endTime:
+          type: string
+          nullable: true
+          example: "22:00"
+
+        entryTime:
+          type: string
+          nullable: true
+          example: "19:00"
+
+        duration:
+          type: integer
+          nullable: true
+
+        slug:
+          type: string
+          description: Date slug generated from startDate and startTime.
+          example: "202609301900"
+
+        venueUuid:
+          type: string
+          format: uuid
+          nullable: true
+
+        venueName:
+          type: string
+          nullable: true
+
+        venueStreet:
+          type: string
+          nullable: true
+
+        venueHouseNumber:
+          type: string
+          nullable: true
+
+        venuePostalCode:
+          type: string
+          nullable: true
+
+        venueCity:
+          type: string
+          nullable: true
+
+        venueCountry:
+          type: string
+          nullable: true
+
+        venueState:
+          type: string
+          nullable: true
+
+        venueLon:
+          type: number
+          format: double
+          nullable: true
+
+        venueLat:
+          type: number
+          format: double
+          nullable: true
+
+        venueWebLink:
+          type: string
+          format: uri
+          nullable: true
+
+        venueSlug:
+          type: string
+          nullable: true
+
+        venueLogos:
+          type: array
+          items:
+            $ref: '#/components/schemas/Image'
+
+        spaceUuid:
+          type: string
+          format: uuid
+          nullable: true
+
+        spaceName:
+          type: string
+          nullable: true
+
+        totalCapacity:
+          type: integer
+          nullable: true
+
+        seatingCapacity:
+          type: integer
+          nullable: true
+
+        buildingLevel:
+          type: string
+          nullable: true
+
+        spaceWebLink:
+          type: string
+          format: uri
+          nullable: true
+
+        accessibilityFlags:
+          type: string
+          nullable: true
+
+        accessibilitySummary:
+          type: string
+          nullable: true
+
+        accessibilityInfo:
+          type: string
+          nullable: true
+
+
+    Image:
+      type: object
+      additionalProperties: true
+
+
+    EventType:
+      type: object
+      additionalProperties: true
+
+
+    WebLink:
+      type: object
+      additionalProperties: true
