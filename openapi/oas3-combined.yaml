@@ -21,6 +21,170 @@ tags:
     description: Event search, filtering, calendar and geographic endpoints
 
 paths:
+  /api/event/{eventUuid}:
+    get:
+      tags:
+        - Events
+      summary: Get an event
+      description: Returns a single event. Selects the earliest date on or after today in the
+        server local timezone (including dates earlier today). If no such date exists, selects
+        the latest past date. The selected date is returned in date and the remaining dates
+        in further_dates. If the event has no dates, both fields are omitted. Public access
+        is limited to released, cancelled, deferred and rescheduled events. If the request context
+        contains a user with edit, delete, release or insights permissions for the event organizer,
+        draft and review events are also allowed.
+      operationId: getEvent
+      parameters:
+        - name: eventUuid
+          in: path
+          required: true
+          description: Event UUID.
+          schema:
+            type: string
+            format: uuid
+        - name: lang
+          in: query
+          required: false
+          description: Language used for localized type, genre, license and accessibility labels.
+          schema:
+            type: string
+            default: en
+            example: en
+      responses:
+        '200':
+          description: Event successfully retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetEventResponse200'
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-event
+                status: 200
+                timestamp: '2026-09-21T10:00:00Z'
+                metadata:
+                  response_time_ms: 12
+                data:
+                  uuid: 01996f4a-7c00-7000-8000-000000000001
+                  release_status: released
+                  content_language: en
+                  title: Evening concert
+                  org_uuid: 01996f4a-7c00-7000-8000-000000000002
+                  org_name: Kulturbytes
+                  org_logos: {}
+                  date_match: false
+                  date:
+                    uuid: 01996f4a-7c00-7000-8000-000000000003
+                    slug: '202609301930'
+                    event_uuid: 01996f4a-7c00-7000-8000-000000000001
+                    release_status: released
+                    start_date: '2026-09-30'
+                    start_time: '19:30'
+                    venue_uuid: null
+                    venue_logos: {}
+        '500':
+          description: Internal server error. This handler also returns 500 when the event does
+            not exist or is not visible to the caller.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetEventResponse500'
+  /api/event/{eventUuid}/date/{dateIdentifier}:
+    get:
+      tags:
+        - Events
+      summary: Get an event by date
+      description: Returns an event with the requested date selected. If the identifier cannot
+        be resolved or the date does not belong to the event, uses the default date selection.
+        Selects the earliest date on or after today in the server local timezone (including
+        dates earlier today). If no such date exists, selects the latest past date. The selected
+        date is returned in date and the remaining dates in further_dates. If the event has
+        no dates, both fields are omitted. Public access is limited to released, cancelled,
+        deferred and rescheduled events. If the request context contains a user with edit, delete,
+        release or insights permissions for the event organizer, draft and review events are
+        also allowed.
+      operationId: getEventByDate
+      parameters:
+        - name: eventUuid
+          in: path
+          required: true
+          description: Event UUID.
+          schema:
+            type: string
+            format: uuid
+        - name: dateIdentifier
+          in: path
+          required: true
+          description: Event date UUIDv7 or a date slug in YYYYMMDDHHMM format. An unresolved
+            identifier falls back to the default date selection.
+          schema:
+            type: string
+            example: '202609301930'
+        - name: lang
+          in: query
+          required: false
+          description: Language used for localized type, genre, license and accessibility labels.
+          schema:
+            type: string
+            default: en
+            example: en
+      responses:
+        '200':
+          description: Event successfully retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetEventByDateResponse200'
+              example:
+                service: Uranus API
+                api_version: '1.0'
+                response_type: get-event-by-date
+                status: 200
+                timestamp: '2026-09-21T10:00:00Z'
+                metadata:
+                  response_time_ms: 12
+                  event_uuid: 01996f4a-7c00-7000-8000-000000000001
+                  date_identifier: '202609301930'
+                  lang: en
+                  event_date_count: 1
+                data:
+                  uuid: 01996f4a-7c00-7000-8000-000000000001
+                  release_status: released
+                  content_language: en
+                  title: Evening concert
+                  org_uuid: 01996f4a-7c00-7000-8000-000000000002
+                  org_name: Kulturbytes
+                  org_logos: {}
+                  date_match: true
+                  date:
+                    uuid: 01996f4a-7c00-7000-8000-000000000003
+                    slug: '202609301930'
+                    event_uuid: 01996f4a-7c00-7000-8000-000000000001
+                    release_status: released
+                    start_date: '2026-09-30'
+                    start_time: '19:30'
+                    venue_uuid: null
+                    venue_logos: {}
+        '400':
+          description: A required event or date identifier is missing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetEventByDateResponse400'
+        '404':
+          description: Event not found or not visible to the caller.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetEventByDateResponse404'
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetEventByDateResponse500'
+
   /api/event/category-lookup:
     get:
       tags:
@@ -2307,6 +2471,563 @@ paths:
 components:
 
   schemas:
+
+    EventDetailsMetadata:
+      type: object
+      properties:
+        response_time_ms:
+          type: integer
+          format: int64
+          minimum: 0
+      required:
+        - response_time_ms
+      additionalProperties: true
+    EventDetailsResponseEnvelope:
+      type: object
+      properties:
+        service:
+          type: string
+          example: Uranus API
+        api_version:
+          type: string
+          example: '1.0'
+        response_type:
+          type: string
+          enum:
+            - get-event
+            - get-event-by-date
+        status:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+        metadata:
+          $ref: '#/components/schemas/EventDetailsMetadata'
+        message:
+          type: string
+      required:
+        - service
+        - api_version
+        - response_type
+        - status
+        - timestamp
+        - metadata
+    GetEventResponse200:
+      allOf:
+        - $ref: '#/components/schemas/EventDetailsResponseEnvelope'
+        - type: object
+          properties:
+            response_type:
+              type: string
+              enum:
+                - get-event
+            status:
+              type: integer
+              enum:
+                - 200
+            data:
+              $ref: '#/components/schemas/EventDetails'
+          required:
+            - data
+    GetEventResponse500:
+      allOf:
+        - $ref: '#/components/schemas/EventDetailsResponseEnvelope'
+        - type: object
+          properties:
+            response_type:
+              type: string
+              enum:
+                - get-event
+            status:
+              type: integer
+              enum:
+                - 500
+          required:
+            - message
+    GetEventByDateResponse200:
+      allOf:
+        - $ref: '#/components/schemas/EventDetailsResponseEnvelope'
+        - type: object
+          properties:
+            response_type:
+              type: string
+              enum:
+                - get-event-by-date
+            status:
+              type: integer
+              enum:
+                - 200
+            data:
+              $ref: '#/components/schemas/EventDetails'
+            metadata:
+              allOf:
+                - $ref: '#/components/schemas/EventDetailsMetadata'
+                - type: object
+                  properties:
+                    event_uuid:
+                      type: string
+                      format: uuid
+                    date_identifier:
+                      type: string
+                    lang:
+                      type: string
+                      example: en
+                    event_date_count:
+                      type: integer
+                      minimum: 1
+                      description: Number of further dates plus one, including when no selected
+                        date exists.
+                  required:
+                    - event_uuid
+                    - date_identifier
+                    - lang
+                    - event_date_count
+          required:
+            - data
+    GetEventByDateResponse400:
+      allOf:
+        - $ref: '#/components/schemas/EventDetailsResponseEnvelope'
+        - type: object
+          properties:
+            response_type:
+              type: string
+              enum:
+                - get-event-by-date
+            status:
+              type: integer
+              enum:
+                - 400
+            metadata:
+              allOf:
+                - $ref: '#/components/schemas/EventDetailsMetadata'
+                - type: object
+                  properties:
+                    event_uuid:
+                      type: string
+                      format: uuid
+                    date_identifier:
+                      type: string
+                    lang:
+                      type: string
+                      example: en
+                    event_date_count:
+                      type: integer
+                      minimum: 1
+                      description: Number of further dates plus one, including when no selected
+                        date exists.
+          required:
+            - message
+    GetEventByDateResponse404:
+      allOf:
+        - $ref: '#/components/schemas/EventDetailsResponseEnvelope'
+        - type: object
+          properties:
+            response_type:
+              type: string
+              enum:
+                - get-event-by-date
+            status:
+              type: integer
+              enum:
+                - 404
+            metadata:
+              allOf:
+                - $ref: '#/components/schemas/EventDetailsMetadata'
+                - type: object
+                  properties:
+                    event_uuid:
+                      type: string
+                      format: uuid
+                    date_identifier:
+                      type: string
+                    lang:
+                      type: string
+                      example: en
+                    event_date_count:
+                      type: integer
+                      minimum: 1
+                      description: Number of further dates plus one, including when no selected
+                        date exists.
+                  required:
+                    - event_uuid
+                    - date_identifier
+                    - lang
+          required:
+            - message
+    GetEventByDateResponse500:
+      allOf:
+        - $ref: '#/components/schemas/EventDetailsResponseEnvelope'
+        - type: object
+          properties:
+            response_type:
+              type: string
+              enum:
+                - get-event-by-date
+            status:
+              type: integer
+              enum:
+                - 500
+            metadata:
+              allOf:
+                - $ref: '#/components/schemas/EventDetailsMetadata'
+                - type: object
+                  properties:
+                    event_uuid:
+                      type: string
+                      format: uuid
+                    date_identifier:
+                      type: string
+                    lang:
+                      type: string
+                      example: en
+                    event_date_count:
+                      type: integer
+                      minimum: 1
+                      description: Number of further dates plus one, including when no selected
+                        date exists.
+                  required:
+                    - event_uuid
+                    - date_identifier
+                    - lang
+          required:
+            - message
+    EventDetails:
+      type: object
+      description: Fields with omitempty in the Go model are omitted when empty or nil.
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        release_status:
+          type: string
+          enum:
+            - draft
+            - review
+            - released
+            - cancelled
+            - deferred
+            - rescheduled
+        content_language:
+          type: string
+        title:
+          type: string
+        subtitle:
+          type: string
+        description:
+          type: string
+        summary:
+          type: string
+        source_link:
+          type: string
+        languages:
+          type: array
+          items:
+            type: string
+        tags:
+          type: array
+          items:
+            type: string
+        org_uuid:
+          type: string
+          format: uuid
+        org_name:
+          type: string
+        org_web_link:
+          type: string
+        org_logos:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Logo'
+          nullable: true
+          description: Logos keyed by image identifier, such as main_logo, light_theme_logo
+            or dark_theme_logo.
+        images:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Image'
+          description: Images keyed by identifier, such as main, gallery1, gallery2 or gallery3.
+        event_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventType'
+        event_links:
+          type: array
+          items:
+            $ref: '#/components/schemas/WebLink'
+        date:
+          allOf:
+            - $ref: '#/components/schemas/EventDate'
+          description: Selected event date; omitted when the event has no dates.
+        further_dates:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventDate'
+          description: All remaining dates, ordered by start date and time; omitted when empty.
+        date_match:
+          type: boolean
+          description: False when a fallback date is selected. True when a requested date matches,
+            or when the event has no dates.
+        max_attendees:
+          type: integer
+        min_age:
+          type: integer
+        max_age:
+          type: integer
+        currency:
+          type: string
+        price_type:
+          type: string
+        min_price:
+          type: number
+          format: double
+        max_price:
+          type: number
+          format: double
+        ticket_flags:
+          type: array
+          items:
+            type: string
+            enum:
+              - advance_ticket
+              - presale_fee_applies
+              - on_site_ticket_sales
+              - reduced_price_available
+        ticket_link:
+          type: string
+        visitor_info_flags:
+          type: string
+          description: Visitor information flags serialized as a string.
+        participation_info:
+          type: string
+        meeting_point:
+          type: string
+        online_link:
+          type: string
+        registration_link:
+          type: string
+        registration_email:
+          type: string
+        registration_phone:
+          type: string
+        registration_deadline:
+          type: string
+          format: date
+          description: Registration deadline as YYYY-MM-DD.
+        logo_mode:
+          type: integer
+      required:
+        - uuid
+        - title
+        - org_uuid
+        - org_name
+        - org_logos
+        - date_match
+    EventDate:
+      type: object
+      description: Fields with omitempty in the Go model are omitted when empty or nil.
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        slug:
+          type: string
+          pattern: ^\d{12}$
+          example: '202609301930'
+          description: Date slug in YYYYMMDDHHMM format.
+        event_uuid:
+          type: string
+          format: uuid
+        release_status:
+          type: string
+          enum:
+            - draft
+            - review
+            - released
+            - cancelled
+            - deferred
+            - rescheduled
+        start_date:
+          type: string
+          format: date
+        start_time:
+          type: string
+          pattern: ^\d{2}:\d{2}$
+          example: '19:30'
+        end_date:
+          type: string
+          format: date
+        end_time:
+          type: string
+          pattern: ^\d{2}:\d{2}$
+          example: '19:30'
+        entry_time:
+          type: string
+          pattern: ^\d{2}:\d{2}$
+          example: '19:30'
+        duration:
+          type: integer
+        venue_uuid:
+          type: string
+          format: uuid
+          nullable: true
+        venue_name:
+          type: string
+        venue_street:
+          type: string
+        venue_house_number:
+          type: string
+        venue_postal_code:
+          type: string
+        venue_city:
+          type: string
+        venue_country:
+          type: string
+        venue_state:
+          type: string
+        venue_lon:
+          type: number
+          format: float
+        venue_lat:
+          type: number
+          format: float
+        venue_web_link:
+          type: string
+        venue_logos:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Logo'
+          nullable: true
+          description: Logos keyed by image identifier, such as main_logo, light_theme_logo
+            or dark_theme_logo.
+        venue_slug:
+          type: string
+        space_uuid:
+          type: string
+          format: uuid
+        space_name:
+          type: string
+        space_web_link:
+          type: string
+        total_capacity:
+          type: integer
+        seating_capacity:
+          type: integer
+        building_level:
+          type: integer
+        accessibility_flags:
+          type: string
+          description: Accessibility bit mask serialized as a decimal string.
+        accessibility_summary:
+          type: string
+        accessibility_info:
+          type: string
+        accessibility_labels:
+          type: array
+          items:
+            type: string
+          description: Localized labels for the accessibility flags.
+      required:
+        - uuid
+        - slug
+        - event_uuid
+        - release_status
+        - start_date
+        - start_time
+        - venue_uuid
+        - venue_logos
+    EventType:
+      type: object
+      description: Fields with omitempty in the Go model are omitted when empty or nil.
+      properties:
+        type_id:
+          type: integer
+        type_name:
+          type: string
+        genre_id:
+          type: integer
+        genre_name:
+          type: string
+      required:
+        - type_id
+        - genre_id
+    Image:
+      type: object
+      description: Fields with omitempty in the Go model are omitted when empty or nil.
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        identifier:
+          type: string
+        url:
+          type: string
+        alt:
+          type: string
+        width:
+          type: integer
+          format: int32
+        height:
+          type: integer
+          format: int32
+        creator:
+          type: string
+        copyright:
+          type: string
+        description:
+          type: string
+        license:
+          type: string
+        license_name:
+          type: string
+        license_descriptio:
+          type: string
+          description: License description. The field name follows the current Go JSON tag.
+        ai_label:
+          type: string
+          nullable: true
+        focus_x:
+          type: number
+          format: double
+        focus_y:
+          type: number
+          format: double
+      required:
+        - uuid
+        - identifier
+        - url
+        - ai_label
+    Logo:
+      type: object
+      description: Fields with omitempty in the Go model are omitted when empty or nil.
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        url:
+          type: string
+        alt:
+          type: string
+        width:
+          type: integer
+          format: int32
+        height:
+          type: integer
+          format: int32
+      required:
+        - uuid
+        - url
+    WebLink:
+      type: object
+      description: Fields with omitempty in the Go model are omitted when empty or nil.
+      properties:
+        label:
+          type: string
+        type:
+          type: string
+        url:
+          type: string
+      required:
+        - url
 
     EventCategoryLookupResponseEnvelope:
       type: object
