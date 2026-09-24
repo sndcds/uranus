@@ -1223,6 +1223,10 @@ func getEventFilterRequestFromJSON(
 		return request, err
 	}
 
+	if request.Start == "" {
+		request.Start = time.Now().Format("2006-01-02")
+	}
+
 	return request, nil
 }
 
