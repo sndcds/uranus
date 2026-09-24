@@ -6,4 +6,4 @@ SELECT
     o.name
 FROM {{schema}}.user u
 JOIN {{schema}}.organization o ON o.uuid = $1::uuid
-WHERE u.email = $2
+WHERE LOWER(u.email) = LOWER($2)

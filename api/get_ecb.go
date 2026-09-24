@@ -35,6 +35,15 @@ func (h *ApiHandler) ECBTest(gc *gin.Context) {
 			}
 		}
 
+		for _, rate := range rates {
+			fmt.Printf(
+				"ECB rate: date=%s currency=%s rate=%f\n",
+				rate.Date.Format("2006-01-02"),
+				rate.Currency,
+				rate.Rate,
+			)
+		}
+
 		// 2. Store the rates in PostgreSQL.
 
 		if err := exchange.StoreExchangeRates(ctx, tx, rates); err != nil {

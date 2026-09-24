@@ -1274,6 +1274,10 @@ func getEventFilterRequestFromQuery(
 	var request EventFilterRequest
 
 	request.Start, _ = GetContextParam(gc, "start")
+	if request.Start == "" {
+		request.Start = time.Now().Format("2006-01-02")
+	}
+
 	request.End, _ = GetContextParam(gc, "end")
 	request.Time, _ = GetContextParam(gc, "time")
 	request.Search, _ = GetContextParam(gc, "search")

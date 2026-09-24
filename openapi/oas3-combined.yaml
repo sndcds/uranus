@@ -15,6 +15,7 @@ servers:
   - url: https://api.kulturbytes.de
   - url: http://localhost:9090
 
+
 tags:
   - name: Events
     description: Event search, filtering, calendar and geographic endpoints
@@ -1894,7 +1895,7 @@ paths:
   /api/events:
     get:
       tags: [Events]
-      summary: List events
+      summary: Get events
       description: |
         Returns events matching the supplied filters.
 
@@ -1956,7 +1957,7 @@ paths:
   /api/events/filter:
     post:
       tags: [Events]
-      summary: Filter events
+      summary: Get events using JSON payload for filtering
       description: |
         Returns events matching the supplied JSON filter object.
 

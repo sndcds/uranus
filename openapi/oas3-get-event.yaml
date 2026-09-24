@@ -122,7 +122,7 @@ components:
         releaseStatus:
           type: string
           enum:
-            - draft
+            - "draft"
             - review
             - released
             - cancelled
@@ -446,16 +446,13 @@ components:
           type: string
           nullable: true
 
-
     Image:
       type: object
       additionalProperties: true
 
-
     EventType:
       type: object
       additionalProperties: true
-
 
     WebLink:
       type: object
