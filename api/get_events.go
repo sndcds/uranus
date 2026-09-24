@@ -147,20 +147,7 @@ func (h *ApiHandler) buildEventFilters(request EventFilterRequest, useTypeFilter
 	var conditions []string
 	var errBuild error
 
-	if len(request.Categories) > 0 {
-		filters.ArgIndex, errBuild = sql_utils.BuildColumnArrayOverlapCondition(
-			request.Categories,
-			"ep.categories",
-			filters.ArgIndex,
-			&conditions,
-			&filters.Args)
-
-		if errBuild != nil {
-			return filters, errBuild
-		}
-	}
-
-	// Date conditions
+	// Date conditions, must be the first argument!
 	dateConditionCount := 0
 	if app.IsValidDateStr(request.Start) {
 		filters.DateConditions += "COALESCE(edp.event_end_at, edp.event_start_at) >= $" + strconv.Itoa(filters.ArgIndex)
@@ -172,6 +159,19 @@ func (h *ApiHandler) buildEventFilters(request EventFilterRequest, useTypeFilter
 	} else {
 		filters.DateConditions += "COALESCE(edp.event_end_at, edp.event_start_at) >= CURRENT_DATE"
 		dateConditionCount++
+	}
+
+	if len(request.Categories) > 0 {
+		filters.ArgIndex, errBuild = sql_utils.BuildColumnArrayOverlapCondition(
+			request.Categories,
+			"ep.categories",
+			filters.ArgIndex,
+			&conditions,
+			&filters.Args)
+
+		if errBuild != nil {
+			return filters, errBuild
+		}
 	}
 
 	if app.IsValidDateStr(request.End) {
