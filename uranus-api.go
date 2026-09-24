@@ -293,7 +293,7 @@ func main() {
 
 	publicRoute.GET(
 		"/accessibility/flags",
-		apiHandler.GetAccessibilityFlags) // TODO: check!
+		apiHandler.GetAccessibilityFlags)
 
 	// Inject app middleware into Pluto's image routes
 	pluto.PlutoInstance.RegisterRoutes(
@@ -652,6 +652,8 @@ func main() {
 	internalRoute.GET(
 		"/migrate-venues",
 		apiHandler.InternalMigrateVenues) // TODO: Check!
+
+	publicRoute.GET("/ecb-test", apiHandler.ECBTest)
 
 	fmt.Println("Gin mode:", gin.Mode())
 	fmt.Println("Total routes:", len(router.Routes()))

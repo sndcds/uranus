@@ -404,7 +404,7 @@ components:
         release_status:
           type: string
           enum:
-            - draft
+            - "draft"
             - review
             - released
             - cancelled
@@ -688,6 +688,15 @@ components:
         ai_label:
           type: string
           nullable: true
+
+    Image:
+      type: object
+      additionalProperties: true
+
+    EventType:
+      type: object
+      additionalProperties: true
+
         focus_x:
           type: number
           format: double
