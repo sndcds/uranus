@@ -1,5 +1,9 @@
 # Social posts and publication targets (Part 2)
 
+[Manual publishing (Part 5)](social-publishing.md) adds the publish endpoint,
+the transient `publishing` state and protection for unresolved publication claims.
+The storage-only scope below describes Part 2; apply the Part 5 migration for publishing.
+
 A social post belongs to one organization and refers to an `event`, `venue`, or
 `organization` through `source_type` and `source_uuid`. The source UUID is
 validated as a UUID but intentionally has no foreign key or source lookup.

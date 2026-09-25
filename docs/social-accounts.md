@@ -1,5 +1,7 @@
 # Social accounts (Part 1)
 
+For internal credential use when sending posts, see [manual publishing (Part 5)](social-publishing.md).
+
 One row in `uranus.social_account` represents one independent connection owned
 by an organization. Supported `platform` values are `facebook`, `instagram`,
 `mastodon`, and `bluesky` (text with a CHECK constraint).

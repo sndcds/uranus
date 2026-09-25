@@ -1,5 +1,9 @@
 # Social rendering and preview (Part 4)
 
+[Manual publishing (Part 5)](social-publishing.md) uses the same rendering path.
+It additionally carries optional `image_alt` from the selected image; preview
+remains read-only and never loads credentials or calls remote services.
+
 ## Architecture and migration from kulturbytes-social
 
 `ContentItem → service.SocialRenderer → model.RenderedPost`
