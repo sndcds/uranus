@@ -23,6 +23,7 @@ func (h *ApiHandler) RegisterSocialPostRoutes(admin *gin.RouterGroup) {
 	admin.GET("/social/posts", h.AdminGetSocialPosts)
 	admin.POST("/social/posts", h.AdminCreateSocialPost)
 	admin.GET("/social/posts/:uuid", h.AdminGetSocialPost)
+	admin.POST("/social/posts/:uuid/preview", h.AdminPreviewSocialPost)
 	admin.PUT("/social/posts/:uuid", h.AdminUpdateSocialPost)
 	admin.DELETE("/social/posts/:uuid", h.AdminDeleteSocialPost)
 }

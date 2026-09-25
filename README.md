@@ -47,6 +47,9 @@ A German [developer overview of event endpoints and lookups](docs/event-endpoint
 maps event fields to their lookup endpoints and describes filters, pagination,
 and known documentation gaps.
 
+[Social rendering and preview (Part 4)](docs/social-preview.md) documents the
+admin preview endpoint, platform policies, architecture and tests.
+
 
 # Contributing
 
