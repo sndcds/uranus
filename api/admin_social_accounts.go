@@ -123,7 +123,10 @@ func socialAccountDBError(err error) *ApiTxError {
 		switch pgErr.Code {
 		case "23505":
 			return &ApiTxError{Code: http.StatusConflict, Message: "social account already exists"}
-		case "23503":
+		case "23001", "23503":
+			if pgErr.ConstraintName == "social_post_target_social_account_uuid_fkey" {
+				return &ApiTxError{Code: http.StatusConflict, Message: "social account is used by social post targets"}
+			}
 			return &ApiTxError{Code: http.StatusBadRequest, Message: "invalid organization"}
 		case "23502", "23514", "22001", "22007", "22008", "22021", "22P02":
 			return &ApiTxError{Code: http.StatusBadRequest, Message: "invalid social account data"}
