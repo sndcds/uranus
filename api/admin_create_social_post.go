@@ -43,7 +43,6 @@ func (h *ApiHandler) AdminCreateSocialPost(gc *gin.Context) {
 
 		_, err := tx.Exec(ctx, query, postUuid, payload.OrgUuid.Value, payload.SourceType.Value, payload.SourceUuid.Value, userUuid)
 		if err != nil {
-			fmt.Println("err", err.Error())
 			return socialPostDBError(err)
 		}
 		if payload.Targets.Set {
@@ -53,14 +52,12 @@ func (h *ApiHandler) AdminCreateSocialPost(gc *gin.Context) {
 		}
 		result, err = scanSocialPost(tx.QueryRow(ctx, h.socialPostQuery()+" WHERE p.uuid = $1", postUuid))
 		if err != nil {
-			fmt.Println("err", err.Error())
 			return socialPostDBError(err)
 		}
 		return nil
 	})
 
 	if txErr != nil {
-		fmt.Println("txErr", txErr.Error())
 		socialPostRespondError(apiRequest, txErr)
 		return
 	}
