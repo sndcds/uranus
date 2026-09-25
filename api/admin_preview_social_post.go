@@ -10,7 +10,6 @@ import (
 	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
 	"github.com/sndcds/uranus/model"
-	"github.com/sndcds/uranus/service"
 )
 
 // AdminPreviewSocialPost reads current content and account metadata only. All
@@ -31,7 +30,7 @@ func (h *ApiHandler) AdminPreviewSocialPost(gc *gin.Context) {
 		if _, err := tx.Exec(gc.Request.Context(), "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ"); err != nil {
 			return socialPostDBError(err)
 		}
-		orgUUID, err := h.socialPostPermission(gc, tx, postUUID)
+		_, err := h.socialPostPermission(gc, tx, postUUID)
 		if err != nil {
 			return err
 		}
@@ -42,14 +41,9 @@ func (h *ApiHandler) AdminPreviewSocialPost(gc *gin.Context) {
 		if len(post.Targets) == 0 {
 			return &ApiTxError{Code: http.StatusBadRequest, Message: "social post has no targets"}
 		}
-		item, err := h.loadContentItemTx(gc, tx, orgUUID, post.SourceType, post.SourceUuid, gc.Query("lang"))
+		item, err := h.socialRenderContent(gc, tx, post)
 		if err != nil {
 			return err
-		}
-		// Source text is not translated in Uranus. With no explicit label language,
-		// follow the content language and the existing supported-language fallback.
-		if _, explicit := gc.Request.URL.Query()["lang"]; !explicit && item.ContentLanguage != nil {
-			item.Language = app.NormalizeLocale(*item.ContentLanguage)
 		}
 		for _, target := range post.Targets {
 			// Deliberately omit credentials, token expiry and publication metadata.
@@ -66,14 +60,7 @@ func (h *ApiHandler) AdminPreviewSocialPost(gc *gin.Context) {
 			if dbErr != nil {
 				return socialPostDBError(dbErr)
 			}
-			renderer, renderErr := service.NewSocialRenderer(account.Platform, app.UranusInstance.Config.FrontendClient)
-			if renderErr != nil {
-				return fail(renderErr.Error())
-			}
-			if renderErr = service.ValidateSocialRenderAccount(account, orgUUID); renderErr != nil {
-				return fail(renderErr.Error())
-			}
-			rendered, renderErr := renderer.Render(*item)
+			rendered, renderErr := renderSocialTarget(account, *item)
 			if renderErr != nil {
 				return fail(renderErr.Error())
 			}

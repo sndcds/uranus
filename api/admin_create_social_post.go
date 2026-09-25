@@ -17,7 +17,6 @@ func (h *ApiHandler) AdminCreateSocialPost(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 
-	fmt.Println("userUuid", userUuid)
 	payload := decodeSocialPost(gc, apiRequest, true)
 	if payload == nil {
 		return
@@ -27,7 +26,6 @@ func (h *ApiHandler) AdminCreateSocialPost(gc *gin.Context) {
 		apiRequest.InternalServerError()
 		return
 	}
-	fmt.Println("postUuid", postUuid)
 
 	var result model.SocialPost
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
@@ -39,7 +37,6 @@ func (h *ApiHandler) AdminCreateSocialPost(gc *gin.Context) {
 			(uuid, org_uuid, source_type, source_uuid, created_by)
 			VALUES ($1, $2, $3, $4, $5)`,
 			h.DbSchema)
-		fmt.Println("query", query)
 
 		_, err := tx.Exec(ctx, query, postUuid, payload.OrgUuid.Value, payload.SourceType.Value, payload.SourceUuid.Value, userUuid)
 		if err != nil {
