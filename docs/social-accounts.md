@@ -77,7 +77,9 @@ PUT accepts any subset of these fields. Omitted fields, particularly credentials
 retain their current values. Explicit `null` or `""` clears an access/refresh
 token. Nullable metadata can be cleared with `null`; required fields and
 `enabled` cannot be null. Token timestamps use RFC3339. Organization transfers
-require permission in both organizations. Writes and permission checks use the
+require permission in both organizations. After the [Part 2 migration](social-posts.md),
+accounts referenced by post targets cannot be deleted or transferred (409); remove
+the targets first. Writes and permission checks use the
 existing `WithTransaction` / `ApiTxError` infrastructure; row locks serialize
 changes of account ownership with reads, updates, and deletes.
 
@@ -116,6 +118,7 @@ accounts, CRUD, identity constraints, organization isolation and transfers,
 secret storage/preservation/replacement/clearing, response/log secrecy,
 statement/commit rollback, cascading deletion, and migration roundtrips.
 
-Part 2 remains separate: OAuth, external platform requests, token refresh,
-connection checks, rendering, publishing, templates, content integration,
-publication history, scheduling, workers/retries, and dashboard UI.
+Post and target management is documented in [Part 2](social-posts.md). OAuth,
+external platform requests, token refresh, connection checks, rendering,
+publishing, templates, content integration, publication history, scheduling,
+workers/retries, and dashboard UI remain outside Parts 1 and 2.

@@ -342,6 +342,7 @@ func main() {
 	adminRoute := router.Group("/api/admin")
 	adminRoute.Use(app.JWTMiddleware)
 	apiHandler.RegisterSocialAccountRoutes(adminRoute)
+	apiHandler.RegisterSocialPostRoutes(adminRoute)
 
 	adminRoute.GET(
 		"/event/:eventUuid/date/:dateIdentifier",

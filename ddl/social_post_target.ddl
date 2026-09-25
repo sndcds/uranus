@@ -1,0 +1,19 @@
+CREATE TABLE uranus.social_post_target (
+    uuid uuid PRIMARY KEY,
+    social_post_uuid uuid NOT NULL REFERENCES uranus.social_post(uuid) ON DELETE CASCADE,
+    social_account_uuid uuid NOT NULL REFERENCES uranus.social_account(uuid) ON DELETE RESTRICT,
+    status text NOT NULL DEFAULT 'draft'
+        CHECK (status IN ('draft', 'scheduled', 'published', 'failed', 'cancelled')),
+    scheduled_at timestamptz,
+    published_at timestamptz,
+    remote_post_id text,
+    error text,
+    created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT social_post_target_account_key UNIQUE (social_post_uuid, social_account_uuid)
+);
+
+-- The unique index also covers lookups by social_post_uuid.
+CREATE INDEX social_post_target_account_idx ON uranus.social_post_target (social_account_uuid);
+CREATE INDEX social_post_target_status_idx ON uranus.social_post_target (status);
+CREATE INDEX social_post_target_scheduled_idx ON uranus.social_post_target (scheduled_at);
