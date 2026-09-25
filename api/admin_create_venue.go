@@ -11,6 +11,7 @@ import (
 	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/grains/grains_uuid"
 	"github.com/sndcds/uranus/app"
+	"github.com/sndcds/uranus/model"
 )
 
 func (h *ApiHandler) AdminCreateVenue(gc *gin.Context) {
@@ -19,9 +20,9 @@ func (h *ApiHandler) AdminCreateVenue(gc *gin.Context) {
 	userUuid := h.userUuid(gc)
 
 	type IncomingPayload struct {
-		OrgUuid   string `json:"org_uuid" binding:"required"`
-		VenueName string `json:"venue_name" binding:"required"`
-		Scope     string `json:"scope" binding:"required"`
+		OrgUuid   string           `json:"org_uuid" binding:"required"`
+		VenueName string           `json:"venue_name" binding:"required"`
+		Scope     model.VenueScope `json:"scope" binding:"required"`
 	}
 	payload, ok := grains_api.DecodeJSONBody[IncomingPayload](gc, apiRequest)
 	if !ok {
@@ -35,9 +36,9 @@ func (h *ApiHandler) AdminCreateVenue(gc *gin.Context) {
 		return
 	}
 
-	scope := strings.TrimSpace(payload.Scope)
-	if scope == "" {
-		apiRequest.Error(http.StatusBadRequest, "scope cannot be empty")
+	scope := model.VenueScope(strings.TrimSpace(string(payload.Scope)))
+	if !scope.IsValid() {
+		apiRequest.Error(http.StatusBadRequest, "scope must be organization or shared")
 		return
 	}
 
