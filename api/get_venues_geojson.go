@@ -38,24 +38,19 @@ func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 
 	// Venue Scopes
 
-	allowedScopes := map[string]bool{
-		"shared":       true,
-		"organization": true,
-	}
-
 	scopesStr := gc.Query("scopes")
 
 	scopes := make([]string, 0)
 	if scopesStr != "" {
 		for _, value := range strings.Split(scopesStr, ",") {
-			scope := strings.TrimSpace(value)
+			scope := model.VenueScope(strings.TrimSpace(value))
 
-			if scope == "" || !allowedScopes[scope] {
+			if !scope.IsValid() {
 				apiRequest.Error(http.StatusBadRequest, "Invalid scopes")
 				return
 			}
 
-			scopes = append(scopes, scope)
+			scopes = append(scopes, string(scope))
 		}
 	}
 

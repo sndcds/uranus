@@ -1,3 +1,7 @@
+-- Historical, not routed: only AdminUpsertVenue references this statement.
+-- Do not reactivate: the current schema requires UUIDs and an explicit,
+-- validated scope. No default or intended scope can be inferred here.
+-- See docs/venue-scope.md; AdminCreateVenue is the active creation path.
 INSERT INTO {{schema}}.venue (
     org_uuid,
     name,

@@ -144,7 +144,12 @@ components:
           example: 550e8400-e29b-41d4-a716-446655440000
         scope:
           type: string
-          description: Scope defining the ownership or visibility of the venue.
+          enum: [organization, shared]
+          description: >-
+            Authoritative venue classification. organization is local to its
+            organization ("Provisorischer Ort (nicht eigener Ort)"); shared is
+            a standalone / reusable venue ("Eigener Ort"). Required at creation,
+            without a database default; not editable through the current API.
           example: shared
         name:
           type: string
