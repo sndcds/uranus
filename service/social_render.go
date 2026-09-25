@@ -180,6 +180,9 @@ func (r socialRenderer) Render(item model.ContentItem) (model.RenderedPost, erro
 		return result, err
 	}
 	result.ImageURL, err = r.imageURL(item)
+	if selected := socialImage(item); selected != nil && err == nil {
+		result.ImageAlt = selected.Alt
+	}
 	return result, err
 }
 
@@ -276,7 +279,7 @@ func validateSocialText(platform, text string) error {
 }
 
 // Only canonical Pluto images are used; generating URLs performs no I/O.
-func (r socialRenderer) imageURL(item model.ContentItem) (string, error) {
+func socialImage(item model.ContentItem) *model.Image {
 	preferred := map[string]string{"event": "main", "venue": "main_photo", "organization": "main_logo"}[item.SourceType]
 	var selected *model.Image
 	for i := range item.Images {
@@ -288,6 +291,11 @@ func (r socialRenderer) imageURL(item model.ContentItem) (string, error) {
 	if selected == nil && len(item.Images) > 0 {
 		selected = &item.Images[0]
 	}
+	return selected
+}
+
+func (r socialRenderer) imageURL(item model.ContentItem) (string, error) {
+	selected := socialImage(item)
 	if selected == nil {
 		if r.platform == "instagram" {
 			return "", fmt.Errorf("an image is required")
