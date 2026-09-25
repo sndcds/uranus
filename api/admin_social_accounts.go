@@ -197,6 +197,7 @@ func (h *ApiHandler) AdminCreateSocialAccount(gc *gin.Context) {
 func (h *ApiHandler) AdminGetSocialAccounts(gc *gin.Context) {
 	req := grains_api.NewRequest(gc, "admin-get-social-accounts")
 	org, filtered := gc.GetQuery("org_uuid")
+
 	if filtered && !app.ValidUUID(org) {
 		req.Error(http.StatusBadRequest, "org_uuid must be a valid UUID")
 		return
@@ -208,6 +209,7 @@ func (h *ApiHandler) AdminGetSocialAccounts(gc *gin.Context) {
 				ON m.org_uuid = l.org_uuid AND m.user_uuid = l.user_uuid AND m.has_joined = true
 			WHERE l.org_uuid = a.org_uuid AND l.user_uuid = $1
 			AND (l.permissions & $2) = $2)`, socialAccountColumns, h.DbSchema, h.DbSchema, h.DbSchema)
+
 	args := []any{h.userUuid(gc), int64(app.UserPermEditOrg)}
 	if filtered {
 		query += " AND a.org_uuid = $3"
@@ -220,6 +222,7 @@ func (h *ApiHandler) AdminGetSocialAccounts(gc *gin.Context) {
 		return
 	}
 	defer rows.Close()
+
 	accounts := make([]model.SocialAccount, 0)
 	for rows.Next() {
 		account, err := scanSocialAccount(rows)

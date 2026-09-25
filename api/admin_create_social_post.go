@@ -16,6 +16,8 @@ func (h *ApiHandler) AdminCreateSocialPost(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-create-social-post")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
+
+	fmt.Println("userUuid", userUuid)
 	payload := decodeSocialPost(gc, apiRequest, true)
 	if payload == nil {
 		return
@@ -25,16 +27,23 @@ func (h *ApiHandler) AdminCreateSocialPost(gc *gin.Context) {
 		apiRequest.InternalServerError()
 		return
 	}
+	fmt.Println("postUuid", postUuid)
 
 	var result model.SocialPost
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		if txErr := h.CheckAllOrgPermissionsTx(gc, tx, userUuid, *payload.OrgUuid.Value, app.UserPermEditOrg); txErr != nil {
 			return txErr
 		}
-		query := fmt.Sprintf(`INSERT INTO %s.social_post
-			(uuid, org_uuid, source_type, source_uuid, created_by) VALUES ($1, $2, $3, $4, $5)`, h.DbSchema)
+		query := fmt.Sprintf(`
+			INSERT INTO %s.social_post
+			(uuid, org_uuid, source_type, source_uuid, created_by)
+			VALUES ($1, $2, $3, $4, $5)`,
+			h.DbSchema)
+		fmt.Println("query", query)
+
 		_, err := tx.Exec(ctx, query, postUuid, payload.OrgUuid.Value, payload.SourceType.Value, payload.SourceUuid.Value, userUuid)
 		if err != nil {
+			fmt.Println("err", err.Error())
 			return socialPostDBError(err)
 		}
 		if payload.Targets.Set {
@@ -44,13 +53,17 @@ func (h *ApiHandler) AdminCreateSocialPost(gc *gin.Context) {
 		}
 		result, err = scanSocialPost(tx.QueryRow(ctx, h.socialPostQuery()+" WHERE p.uuid = $1", postUuid))
 		if err != nil {
+			fmt.Println("err", err.Error())
 			return socialPostDBError(err)
 		}
 		return nil
 	})
+
 	if txErr != nil {
+		fmt.Println("txErr", txErr.Error())
 		socialPostRespondError(apiRequest, txErr)
 		return
 	}
+
 	apiRequest.Success(http.StatusCreated, result)
 }
