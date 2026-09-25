@@ -44,13 +44,13 @@ func socialRequest(r http.Handler, method, path, token, body string) *httptest.R
 
 func assertSocialStatus(t *testing.T, w *httptest.ResponseRecorder, want int) {
 	t.Helper()
-	if w.Code != want {
-		t.Fatalf("status = %d, want %d: %s", w.Code, want, w.Body)
-	}
 	for _, secret := range []string{`"access_token"`, `"refresh_token"`, "secret-access", "secret-refresh"} {
 		if strings.Contains(w.Body.String(), secret) {
 			t.Fatal("response exposed credentials")
 		}
+	}
+	if w.Code != want {
+		t.Fatalf("status = %d, want %d: %s", w.Code, want, w.Body)
 	}
 }
 

@@ -119,7 +119,13 @@ func TestSocialPreviewPostgresReadOnly(t *testing.T) {
 	dbExec(t, h, "DELETE FROM uranus.pluto_image")
 	w = socialRequest(r, "POST", path+"/preview", token, "")
 	assertSocialStatus(t, w, 400)
-	if !strings.Contains(w.Body.String(), post.Targets[1].Uuid) || !strings.Contains(w.Body.String(), "instagram") || !strings.Contains(w.Body.String(), "image is required") || strings.Contains(w.Body.String(), "previews") {
+	var instagramTarget string
+	for _, target := range post.Targets {
+		if target.SocialAccountUuid == accounts[1] {
+			instagramTarget = target.Uuid
+		}
+	}
+	if instagramTarget == "" || !strings.Contains(w.Body.String(), instagramTarget) || !strings.Contains(w.Body.String(), "instagram") || !strings.Contains(w.Body.String(), "image is required") || strings.Contains(w.Body.String(), "previews") {
 		t.Fatal(w.Body.String())
 	}
 	if !reflect.DeepEqual(before, socialPostData(t, socialRequest(r, "GET", path, token, ""))) {

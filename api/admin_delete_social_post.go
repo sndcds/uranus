@@ -21,6 +21,9 @@ func (h *ApiHandler) AdminDeleteSocialPost(gc *gin.Context) {
 		if _, txErr := h.socialPostPermission(gc, tx, postUuid); txErr != nil {
 			return txErr
 		}
+		if txErr := h.socialPostPublishingConflict(gc, tx, postUuid); txErr != nil {
+			return txErr
+		}
 		_, err := tx.Exec(ctx, fmt.Sprintf("DELETE FROM %s.social_post WHERE uuid = $1", h.DbSchema), postUuid)
 		if err != nil {
 			return socialPostDBError(err)

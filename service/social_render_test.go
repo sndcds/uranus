@@ -128,6 +128,8 @@ func TestSocialRenderMastodonURLs(t *testing.T) {
 func TestSocialRenderImages(t *testing.T) {
 	item := socialEvent()
 	item.Images = append([]model.Image{{Identifier: "gallery_image_1", Url: "https://wrong.test/image"}}, item.Images...)
+	item.Images[0].Alt = renderPtr("Unselected image")
+	item.Images[1].Alt = renderPtr("Selected main image")
 	item.Images[1].Url += "?width=50&height=50&fit=contain&ratio=1:1&type=png&focus=0.25,0.75"
 	for _, tc := range []struct{ platform, ratio, kind, edge, size string }{
 		{"instagram", "4:5", "jpg", "width", "1080"}, {"facebook", "1200:630", "webp", "width", "1920"},
@@ -137,6 +139,9 @@ func TestSocialRenderImages(t *testing.T) {
 		got, err := renderer.Render(item)
 		if err != nil {
 			t.Fatal(err)
+		}
+		if got.ImageAlt != item.Images[1].Alt {
+			t.Fatal("alternative text does not belong to the selected image")
 		}
 		u, _ := url.Parse(got.ImageURL)
 		q := u.Query()

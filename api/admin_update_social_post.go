@@ -41,6 +41,9 @@ func (h *ApiHandler) AdminUpdateSocialPost(gc *gin.Context) {
 		if payload.OrgUuid.Set && *payload.OrgUuid.Value != orgUuid {
 			return &ApiTxError{Code: http.StatusBadRequest, Message: "org_uuid cannot be changed"}
 		}
+		if txErr := h.socialPostPublishingConflict(gc, tx, postUuid); txErr != nil {
+			return txErr
+		}
 		if payload.Targets.Set {
 			if txErr := h.updateSocialPostTargets(gc, tx, postUuid, orgUuid, *payload.Targets.Value); txErr != nil {
 				return txErr

@@ -1,5 +1,8 @@
 # Content items (Part 3)
 
+ContentItems feed [rendering and preview](social-preview.md), followed by
+[manual publishing](social-publishing.md); loading remains independent of both.
+
 `model.ContentItem` is the runtime representation of an Uranus source for the
 social-content process. It is neither a social post nor rendered output.
 There is no content table, new source identity, migration, or HTTP endpoint.
