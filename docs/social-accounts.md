@@ -1,5 +1,8 @@
 # Social accounts (Part 1)
 
+[Publication history and recovery (Part 6)](social-publications.md) adds immutable
+rendered snapshots, content idempotency and local manual reconciliation.
+
 For internal credential use when sending posts, see [manual publishing (Part 5)](social-publishing.md).
 
 One row in `uranus.social_account` represents one independent connection owned
@@ -81,7 +84,8 @@ token. Nullable metadata can be cleared with `null`; required fields and
 `enabled` cannot be null. Token timestamps use RFC3339. Organization transfers
 require permission in both organizations. After the [Part 2 migration](social-posts.md),
 accounts referenced by post targets cannot be deleted or transferred (409); remove
-the targets first. Writes and permission checks use the
+the targets first. With Part 6, targets with publication history are retained and
+cannot be removed. Writes and permission checks use the
 existing `WithTransaction` / `ApiTxError` infrastructure; row locks serialize
 changes of account ownership with reads, updates, and deletes.
 

@@ -3,6 +3,9 @@
 Part 5 builds on [social accounts](social-accounts.md), [posts and targets](social-posts.md),
 [ContentItem loading](content-items.md) and [rendering/preview](social-preview.md).
 
+[Part 6](social-publications.md) extends this workflow with durable snapshots,
+fingerprints, publication history and manual reconciliation.
+
 ## Architecture
 
 `ContentItem → SocialRenderer → RenderedPost → SocialPublisher → remote platform`
@@ -19,8 +22,8 @@ An instance rejecting the exact rendered text produces a publication error.
 Mastodon supports text and one optional image. Facebook, Instagram and Bluesky
 are recognized and return `publishing is not implemented for platform <platform>`.
 Unknown names return `unsupported platform`. No other platform is marked published.
-The existing `remote_post_id` is sufficient: no remote URL column or publication
-history table is introduced. Mastodon's response URL is not returned or stored.
+Mastodon's response URL is not returned or stored. Part 6 adds publication
+history while retaining the current target's `remote_post_id`.
 
 ## Migration and endpoint
 
@@ -84,12 +87,12 @@ failed ─┘             ├── definite failure ──── failed
                       └── uncertain outcome ── publishing (blocked)
 ```
 
-`published`, `scheduled` and `cancelled` cannot be directly published.
-`failed` permits another explicit manual POST, after correcting the error.
-There is no automatic retry and no `/retry` endpoint. Published targets produce
-individual conflicts and no remote call; other draft/failed targets can still
-be processed. Thus a mixed-success response followed by another explicit request
-cannot send a published target again.
+`scheduled` and `cancelled` cannot be directly published. With Part 6, a
+`published` target permits a new rendered fingerprint; already successful content
+remains blocked, including when a source is changed back to an older revision.
+`failed` permits another explicit manual POST with a new history row. There is
+no automatic retry and no `/retry` endpoint. See [fingerprint and legacy
+semantics](social-publications.md#fingerprint-and-duplicate-protection).
 
 The API locks the post only in a short preparation transaction, checks the
 organization grant, reads source/account metadata and renders the eligible
@@ -98,12 +101,12 @@ It claims all eligible targets in that same transaction using:
 
 ```sql
 UPDATE social_post_target
-SET status = 'publishing', published_at = NULL, remote_post_id = NULL,
-    error = NULL, updated_at = CURRENT_TIMESTAMP
-WHERE uuid = $1 AND status IN ('draft', 'failed');
+SET status = 'publishing', error = NULL, updated_at = CURRENT_TIMESTAMP
+WHERE uuid = $1 AND status IN ('draft', 'failed', 'published');
 ```
 
-The transaction commits **before** any external HTTP request. Competing API
+Part 6 checks successful-content history and inserts the rendered attempt in
+this same transaction. It commits **before** any external HTTP request. Competing API
 claims/edits serialize on the existing post lock; the conditional target update
 is a second check. A post with any unresolved `publishing` target rejects the
 whole next publish request with per-target conflicts, including targets that
@@ -112,16 +115,15 @@ an overlapping request from retrying an earlier target in an active batch.
 The mechanism works across API processes, without an in-memory mutex, leases,
 long-running transactions or database connections held during network calls.
 
-Each result is persisted independently using a conditional update from
-`publishing`. Success sets `published_at`, `remote_post_id`, clears `error`, and
-updates `updated_at`. Definite failures set `failed`, clear `published_at` and
-`remote_post_id`, store a safe error and update `updated_at`. `scheduled_at`
-remains unchanged. A later failure cannot roll back earlier remote successes.
+Each result is persisted independently in a short transaction that updates both
+publication and target. Success sets `published_at` and `remote_post_id`, clears
+`error`, and updates `updated_at`. Definite failures set `failed` and a safe error,
+retaining any earlier successful target ID/time. `scheduled_at` remains unchanged.
+A later failure cannot roll back earlier remote successes.
 
-PUT and DELETE return 409 while the post has an unresolved claim. Existing CRUD
-behavior for other statuses remains compatible, including deliberate deletion
-of published targets/posts. Removing and recreating a target creates a new
-identity and is outside the same-target duplicate guard.
+PUT and DELETE return 409 while the post has an unresolved claim. Part 6 also
+rejects removing a target or deleting a post with any publication history. Existing
+target UUIDs and immutable attempts are preserved.
 
 ## Mastodon and credentials
 
@@ -187,7 +189,7 @@ Private-network Mastodon/Image API deployments are intentionally unsupported by
 the default transport. Client injection is a trusted Go dependency for tests,
 not a user-controlled request option or a configuration switch bypassing SSRF.
 
-## Errors, crashes and limits before Part 6
+## Errors, crashes and recovery
 
 Errors use fixed operation messages or HTTP status codes; raw remote bodies,
 HTML pages, URLs, headers and transport/database errors are never echoed.
@@ -203,21 +205,17 @@ republishing. A definite status rejection such as 401/403/404/422/429 becomes
 prefers duplicate prevention when remote success cannot be ruled out.
 
 A process can crash after remote success but before local persistence. A local
-final-update failure has the same limitation. The durable `publishing` claim
-then remains and must not be reset automatically, even if it is old. Stop any
-active publishers and manually inspect the Mastodon account before resolving
-the row: record an observed remote ID as `published`, or mark `cancelled` if the
-outcome cannot safely be recovered. Only return it to `failed` after confirming
-that no status was created. No recovery endpoint or automatic timeout reset is
-provided. Claims created before a crash can also include targets not yet sent.
+final-update failure has the same limitation. Part 6 leaves a durable `publishing`
+publication and target, recoverable via the local [reconciliation API](social-publications.md#uncertainty-and-manual-recovery).
+Stop all active publishers and inspect the remote account before confirming an
+abandoned `publishing` attempt. Completed uncertain outcomes are recorded as
+`social_publication.status = uncertain`. Neither state permits an automatic retry.
 
-Part 5 does not provide exactly-once remote publication, durable content snapshots
-or a publication journal. Source/account changes after preparation apply to later
-requests; the in-flight request uses the prepared values. An explicit manual
-retry renders current content again. Part 6/7 remain responsible for publication
-history/revisions/hashes, idempotency, scheduling, workers, cron/background jobs,
-automatic retries/queues, automation rules, webhooks, OAuth flows, token-refresh
-daemons and dashboard UI. No event-creation hook publishes automatically.
+Part 6 supplies durable content snapshots, fingerprints and attempt history;
+source/account changes after preparation still apply only to later requests.
+Exactly-once remote publication, scheduling, workers, cron/background jobs,
+automatic retries, automation rules, webhooks, OAuth/token-refresh daemons and
+dashboard UI remain outside this synchronous workflow.
 
 ## Verification and deliberate manual smoke test
 
@@ -251,7 +249,7 @@ A developer may deliberately run this real-world smoke test after deployment:
 5. Deliberately call `/publish?lang=de` once; expect 200 and a remote ID.
 6. GET the post: check `published`, non-null `published_at` and `remote_post_id`,
    and null `error`. Inspect the public Mastodon post, image and alternative text.
-7. Call `/publish` again: expect 409 and confirm that no second status exists.
+7. Call `/publish?lang=de` again with the same language: expect 409 and confirm that no second status exists.
 
 Also test one text-only event and one image event against the intended instance.
 Creating a real post is never part of automated verification.
