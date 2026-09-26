@@ -1,6 +1,8 @@
 package api
 
 import (
+	"context"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/uranus/app"
@@ -9,13 +11,24 @@ import (
 )
 
 func (h *ApiHandler) socialRenderContent(gc *gin.Context, tx pgx.Tx, post model.SocialPost) (*model.ContentItem, *ApiTxError) {
-	item, err := h.loadContentItemTx(gc, tx, post.OrgUuid, post.SourceType, post.SourceUuid, gc.Query("lang"))
+	_, explicit := gc.Request.URL.Query()["lang"]
+	return h.socialRenderContentTx(gc.Request.Context(), tx, post, gc.Query("lang"), explicit)
+}
+
+func (h *ApiHandler) socialRenderContentTx(
+	ctx context.Context,
+	tx pgx.Tx,
+	post model.SocialPost,
+	lang string,
+	explicit bool,
+) (*model.ContentItem, *ApiTxError) {
+	item, err := h.loadContentItemTx(ctx, tx, post.OrgUuid, post.SourceType, post.SourceUuid, lang)
 	if err != nil {
 		return nil, err
 	}
 	// Without an explicit label language, follow the source language. Both
 	// preview and publish use exactly the same normalization and rendering path.
-	if _, explicit := gc.Request.URL.Query()["lang"]; !explicit && item.ContentLanguage != nil {
+	if !explicit && item.ContentLanguage != nil {
 		item.Language = app.NormalizeLocale(*item.ContentLanguage)
 	}
 	return item, nil

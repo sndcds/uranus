@@ -6,8 +6,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
@@ -21,7 +24,12 @@ import (
 func main() {
 	configFileName := flag.String("config", "config.json", "Path to config file")
 	verbose := flag.Bool("verbose", false, "Enable verbose logging")
+	socialWorker := flag.Bool("social-worker", false, "Run the social publishing worker")
+	once := flag.Bool("once", false, "Process one social worker batch and exit")
 	flag.Parse()
+	if *once && !*socialWorker {
+		log.Fatal("--once requires --social-worker")
+	}
 
 	grains_api.Init(grains_api.Config{
 		ServiceName: "Uranus API",
@@ -35,6 +43,22 @@ func main() {
 	app.UranusInstance, err = app.Initialize(*configFileName)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if *socialWorker {
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		handler := &api.ApiHandler{
+			Config:   &app.UranusInstance.Config,
+			DbPool:   app.UranusInstance.MainDbPool,
+			DbSchema: app.UranusInstance.Config.DbSchema,
+		}
+		err := handler.RunSocialWorker(ctx, *once)
+		stop()
+		app.UranusInstance.CloseAllDBs()
+		if err != nil {
+			log.Fatal(err)
+		}
+		return
 	}
 
 	if app.UranusInstance.Config.ContactSecret == "" {
