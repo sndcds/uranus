@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/sndcds/uranus/model"
 )
 
 func publicationSQLFails(t *testing.T, h *ApiHandler, query, code string, args ...any) {
@@ -49,6 +48,7 @@ func TestSocialPublicationsPostgresMigrationLegacyAndRollback(t *testing.T) {
 	dbExec(t, h, "UPDATE uranus.social_post_target SET status='publishing' WHERE uuid=$1", post.Targets[0].Uuid)
 	before := socialPostData(t, socialRequest(r, "GET", socialPostsPath+"/"+post.Uuid, token, ""))
 	applySocialPublicationMigration(t, h, "up")
+	before.Targets[0].PublicationSource = "scheduled" // Part 7 adds the queue-source default.
 	after := socialPostData(t, socialRequest(r, "GET", socialPostsPath+"/"+post.Uuid, token, ""))
 	if !reflect.DeepEqual(before, after) {
 		t.Fatal("migration changed target state")
@@ -74,13 +74,13 @@ func TestSocialPublicationsPostgresMigrationLegacyAndRollback(t *testing.T) {
 	}
 	// Exercise persisted publishing rows and rollback protection, too.
 	dbExec(t, h, "UPDATE uranus.social_account SET base_url='https://social.test' WHERE uuid=$1", account)
-	gc := contentContext(authTestUser)
-	result := model.SocialPostPublish{PostUuid: post.Uuid}
-	if _, txErr := h.claimSocialPublish(gc, post.Uuid, &result); txErr != nil {
+	publishData(t, socialRequest(r, "POST", socialPostsPath+"/"+post.Uuid+"/publish", token, ""), 202)
+	_, result, txErr := h.claimScheduledSocialTarget(context.Background())
+	if txErr != nil {
 		t.Fatal(txErr)
 	}
 	publicationRollbackFails(t, h)
-	publicationData(t, socialRequest(r, "POST", socialPublicationsPath+"/"+result.Results[0].PublicationUuid+"/reconcile", token,
+	publicationData(t, socialRequest(r, "POST", socialPublicationsPath+"/"+result.PublicationUuid+"/reconcile", token,
 		`{"outcome":"failed","confirm_inactive":true}`))
 	applySocialPublicationMigration(t, h, "down")
 	// Canonical DDL must install the same constraints and indexes.
@@ -99,7 +99,7 @@ func TestSocialPublicationsPostgresConstraints(t *testing.T) {
 	h, r, token := publishDatabase(t)
 	account := createPostAccount(t, r, token, "facebook", socialOrg)
 	post := previewPost(t, r, token, account)
-	result := publishData(t, socialRequest(r, "POST", socialPostsPath+"/"+post.Uuid+"/publish", token, ""), 207).Results[0]
+	result := publishAndProcess(t, h, r, token, socialPostsPath+"/"+post.Uuid+"/publish").Results[0]
 	for _, query := range []string{
 		"DELETE FROM uranus.social_post WHERE uuid=$1",
 		"DELETE FROM uranus.social_post_target WHERE social_post_uuid=$1",
