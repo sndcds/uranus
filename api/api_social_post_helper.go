@@ -20,6 +20,7 @@ import (
 )
 
 func (h *ApiHandler) RegisterSocialPostRoutes(admin *gin.RouterGroup) {
+	h.RegisterSocialPublicationRoutes(admin)
 	admin.GET("/social/posts", h.AdminGetSocialPosts)
 	admin.POST("/social/posts", h.AdminCreateSocialPost)
 	admin.GET("/social/posts/:uuid", h.AdminGetSocialPost)
@@ -131,6 +132,9 @@ func socialPostDBError(err error) *ApiTxError {
 	}
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) {
+		if pgErr.ConstraintName == "social_publication_target_fkey" {
+			return &ApiTxError{Code: http.StatusConflict, Message: "social publication history prevents deletion"}
+		}
 		switch pgErr.Code {
 		case "23505":
 			return &ApiTxError{Code: http.StatusConflict, Message: "social post target already exists"}

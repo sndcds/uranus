@@ -26,6 +26,7 @@ func publishDatabase(t *testing.T) (*ApiHandler, *gin.Engine, string) {
 	t.Helper()
 	h, r, token := contentDatabase(t)
 	applySocialPublishMigration(t, h, "up")
+	applySocialPublicationMigration(t, h, "up")
 	captureSocialLogs(t)
 	return h, r, token
 }
@@ -136,13 +137,19 @@ func TestSocialPublishPostgresSuccess(t *testing.T) {
 			if got.PostUuid != post.Uuid || len(got.Results) != 1 || got.Results[0].Status != "published" || got.Results[0].Platform != "mastodon" {
 				t.Fatal("incorrect publish result")
 			}
+			publication := publicationData(t, socialRequest(r, "GET", socialPublicationsPath+"/"+got.Results[0].PublicationUuid, token, ""))
+			if publication.RenderedText == nil || *publication.RenderedText != expected.Text ||
+				publication.RenderedImageURL == nil || *publication.RenderedImageURL != expected.ImageURL ||
+				!reflect.DeepEqual(publication.RenderedImageAlt, expected.ImageAlt) || publication.Status != "published" {
+				t.Fatal("history snapshot differs from the actual publisher payload")
+			}
 			after := socialPostData(t, socialRequest(r, "GET", path, token, ""))
 			target := after.Targets[0]
 			if target.Status != "published" || target.PublishedAt == nil || target.RemotePostID == nil || *target.RemotePostID != "123" || target.Error != nil ||
 				!target.UpdatedAt.After(before.Targets[0].UpdatedAt) || !reflect.DeepEqual(target.ScheduledAt, before.Targets[0].ScheduledAt) {
 				t.Fatal("publication state was not persisted")
 			}
-			publishData(t, socialRequest(r, "POST", path+"/publish", token, ""), 409)
+			publishData(t, socialRequest(r, "POST", path+"/publish?lang=en", token, ""), 409)
 			if calls.Load() != 1 {
 				t.Fatal("published twice")
 			}
@@ -335,6 +342,10 @@ func TestSocialPublishPostgresConcurrent(t *testing.T) {
 	if calls.Load() != 1 {
 		t.Fatal("concurrent publish created duplicate status")
 	}
+	history := publicationList(t, socialRequest(r, "GET", socialPublicationsPath, token, ""))
+	if len(history) != 1 || history[0].Status != "published" {
+		t.Fatal("concurrent publish created duplicate attempts")
+	}
 }
 
 func TestSocialPublishPostgresUncertainAndDatabaseFailures(t *testing.T) {
@@ -373,6 +384,9 @@ func TestSocialPublishPostgresUncertainAndDatabaseFailures(t *testing.T) {
 				if calls.Load() != 0 || socialPostData(t, socialRequest(r, "GET", path, token, "")).Targets[0].Status != "draft" {
 					t.Fatal("failed claim reached remote or persisted")
 				}
+				if len(publicationList(t, socialRequest(r, "GET", socialPublicationsPath, token, ""))) != 0 {
+					t.Fatal("failed claim left publication history")
+				}
 				return
 			}
 			status := 207
@@ -382,6 +396,14 @@ func TestSocialPublishPostgresUncertainAndDatabaseFailures(t *testing.T) {
 			got := publishData(t, w, status)
 			if got.Results[0].Status != "publishing" {
 				t.Fatal("uncertain result did not retain claim")
+			}
+			publication := publicationData(t, socialRequest(r, "GET", socialPublicationsPath+"/"+got.Results[0].PublicationUuid, token, ""))
+			want := "uncertain"
+			if failure == "database" {
+				want = "publishing"
+			}
+			if publication.Status != want {
+				t.Fatal("uncertain or unfinalized publication was not retained")
 			}
 			publishData(t, socialRequest(r, "POST", path+"/publish", token, ""), 409)
 			if calls.Load() != 1 {
@@ -406,7 +428,10 @@ func TestSocialPublishPostgresMigrationAndRenderParity(t *testing.T) {
 		if err != nil || len(work) != 1 || work[0].err != nil || !reflect.DeepEqual(work[0].rendered, expected) {
 			t.Fatal("preview and publishing render differently")
 		}
-		dbExec(t, h, "UPDATE uranus.social_post_target SET status='draft' WHERE uuid=$1", post.Targets[0].Uuid)
+		result.Results[0].Status = "failed"
+		if !h.finishSocialPublish(gc.Request.Context(), result.Results[0]) {
+			t.Fatal("could not finalize render-parity attempt")
+		}
 	}
 	dbExec(t, h, "UPDATE uranus.social_post_target SET status='publishing' WHERE uuid=$1", post.Targets[0].Uuid)
 	for _, query := range []string{"DELETE FROM " + h.DbSchema + ".social_post WHERE uuid=$1", "DELETE FROM " + h.DbSchema + ".social_post_target WHERE social_post_uuid=$1"} {
@@ -472,5 +497,9 @@ func TestSocialPublishPostgresCancellation(t *testing.T) {
 	target := socialPostData(t, socialRequest(r, "GET", path, token, "")).Targets[0]
 	if target.Status != "publishing" || target.Error == nil {
 		t.Fatal("cancelled outcome was not recorded")
+	}
+	history := publicationList(t, socialRequest(r, "GET", socialPublicationsPath, token, ""))
+	if len(history) != 1 || history[0].Status != "uncertain" {
+		t.Fatal("cancelled request did not record uncertain publication")
 	}
 }
