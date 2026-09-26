@@ -17,6 +17,8 @@ type SocialPostTarget struct {
 	Uuid              string     `json:"uuid"`
 	SocialAccountUuid string     `json:"social_account_uuid"`
 	Status            string     `json:"status"`
+	PublicationSource string     `json:"publication_source"`
+	PublishLanguage   *string    `json:"publish_language"`
 	ScheduledAt       *time.Time `json:"scheduled_at"`
 	PublishedAt       *time.Time `json:"published_at"`
 	RemotePostID      *string    `json:"remote_post_id"`

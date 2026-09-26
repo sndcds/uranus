@@ -8,6 +8,7 @@ type SocialPublication struct {
 	SocialPostTargetUuid string     `json:"social_post_target_uuid"`
 	SocialAccountUuid    string     `json:"social_account_uuid"`
 	Platform             string     `json:"platform"`
+	PublicationSource    string     `json:"publication_source"`
 	ContentFingerprint   *string    `json:"content_fingerprint"`
 	RenderedText         *string    `json:"rendered_text"`
 	RenderedImageURL     *string    `json:"rendered_image_url"`
