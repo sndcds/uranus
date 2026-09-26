@@ -1,5 +1,8 @@
 # Social posts and publication targets (Part 2)
 
+[Part 7: scheduling and worker](social-scheduling.md) runs manual and planned publication
+in a separate process using the shared publishing and history pipeline.
+
 [Publication history and recovery (Part 6)](social-publications.md) adds immutable
 rendered snapshots, content idempotency and local manual reconciliation.
 

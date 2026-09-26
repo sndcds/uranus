@@ -1,5 +1,8 @@
 # Manual social publishing (Part 5)
 
+[Part 7: scheduling and worker](social-scheduling.md) adds planned execution using
+the shared publishing and publication-history pipeline.
+
 Part 5 builds on [social accounts](social-accounts.md), [posts and targets](social-posts.md),
 [ContentItem loading](content-items.md) and [rendering/preview](social-preview.md).
 
@@ -27,23 +30,22 @@ history while retaining the current target's `remote_post_id`.
 
 ## Migration and endpoint
 
-Apply `migrations/202609250003_social_publish.up.sql` after Parts 1 and 2 using
-the existing manual SQL deployment step. The canonical target DDL also includes
-`publishing` and a trigger protecting deletion of unresolved claims, including
-post/organization cascades. Stop publishers before rollback. The down migration
-locks the target table and refuses to run while any target is `publishing`;
-it never resets an uncertain publication to a publishable state.
+Apply the Part-5, Part-6 and [Part-7 migrations](social-scheduling.md#migration-and-query-index)
+in order. Part 7 changes manual publishing to asynchronous execution in a separate
+worker process. The API never renders, reads credentials or contacts the platform
+in response to a publish request. Deploy the worker alongside the updated API.
 
 `POST /api/admin/social/posts/:uuid/publish[?lang=de|da|en]`
 
-No body is required. The existing admin JWT middleware and cookie-origin
-protection apply. The user needs accepted membership and `UserPermEditOrg` in
-the post's organization, exactly as for preview and post editing. No new global
-permission bit is introduced. The endpoint is synchronous and processes only
-the stored targets, in their existing created-at/UUID order.
+No body is required. Existing JWT/cookie-origin protection and accepted membership
+with `UserPermEditOrg` apply. The handler locks the post and queues its eligible
+stored targets in one transaction. A queued target has `status = scheduled`,
+`scheduled_at = CURRENT_TIMESTAMP` and `publication_source = manual`. The optional
+normalized language preference is stored as `publish_language`; without it the
+worker follows the current source language. No content snapshot is created here.
 
-Responses retain the Grains envelope (`response_type: admin-publish-social-post`).
-The `data` property contains, for example:
+HTTP 202 means accepted for processing, not published. The Grains envelope retains
+`response_type: admin-publish-social-post` and its existing post/results structure:
 
 ```json
 {
@@ -53,77 +55,68 @@ The `data` property contains, for example:
       "target_uuid": "01994126-6680-7000-8000-000000000031",
       "social_account_uuid": "01994126-6680-7000-8000-000000000020",
       "platform": "mastodon",
-      "status": "published",
-      "remote_post_id": "123456789"
+      "status": "scheduled",
+      "publication_source": "manual"
     }
   ]
 }
 ```
 
-An unsuccessful target has `error`; an absent remote ID is omitted. Conflict
-results retain the target's existing status and remote ID. Response errors for
-conflicts do not replace previously stored publication errors.
+When some targets are ineligible, their results retain their current status and
+contain an error; the request still returns 202 if at least one target was queued.
+An unresolved `publishing` target blocks the entire post. Queued targets have no
+new publication UUID, fingerprint or remote result yet. Poll the existing post
+GET and publication-list endpoints to observe execution; failures are persisted
+there, rather than returned later through the original HTTP request.
 
 | HTTP status | Meaning |
 | --- | --- |
-| 200 | Every target was published successfully |
-| 207 | At least one target was attempted, with failures, unresolved outcomes or other target conflicts; inspect every result |
-| 409 | No target can be claimed; each target result explains the conflict |
+| 202 | At least one target queued; inspect individual acceptance results |
+| 409 | No target eligible, or unresolved publishing work in the post |
 | 400 | Invalid UUID or no targets |
-| 401 / 403 | Missing authentication / organization permission or accepted membership, or cookie-origin rejection |
-| 404 | Missing post, or source missing from the post's organization |
-| 500 | Database failure; if publication has started, results include earlier outcomes and local persistence failures |
+| 401 / 403 | Missing authentication / membership / permission or cookie-origin rejection |
+| 404 | Missing post |
+| 500 | Enqueue transaction failed; no new work committed |
 
-Shared source/permission/claim errors occur before any remote call and use the
-existing error envelope without results. Invalid accounts or rendering failures
-are isolated per target, recorded as `failed`, and included in a 207 response.
+Missing sources, invalid accounts, rendering errors and remote failures are
+execution outcomes in publication history. `200` and `207` synchronous publishing
+responses are replaced by `202`; clients must migrate accordingly. An identical
+successful fingerprint is also checked later by the worker, without a new remote
+post or duplicate attempt. Legacy published targets without a snapshot or any
+success metadata remain conservatively rejected instead of losing their guard.
 
 ## State and concurrency
 
 ```text
-draft  ─┐
-        ├── publishing ── success ────────────── published
-failed ─┘             ├── definite failure ──── failed
-                      └── uncertain outcome ── publishing (blocked)
+draft / failed / published
+          │ explicit manual POST
+          ▼
+scheduled (manual, available now)
+          │ worker claim and snapshot, COMMIT
+          ▼
+publishing ── success ──────────── published
+          ├── definite failure ── failed
+          └── uncertain ───────── publishing (reconciliation required)
 ```
 
-`scheduled` and `cancelled` cannot be directly published. With Part 6, a
-`published` target permits a new rendered fingerprint; already successful content
-remains blocked, including when a source is changed back to an older revision.
-`failed` permits another explicit manual POST with a new history row. There is
-no automatic retry and no `/retry` endpoint. See [fingerprint and legacy
-semantics](social-publications.md#fingerprint-and-duplicate-protection).
+An already queued/scheduled target cannot be queued again. Cancel can remove a
+pending manual request before the worker claims it; an explicit schedule can move
+it into the future and replaces its source with `scheduled`. Cancelled targets are
+terminal in this part. No automatic retry or `/retry` endpoint exists.
 
-The API locks the post only in a short preparation transaction, checks the
-organization grant, reads source/account metadata and renders the eligible
-targets. The access token is loaded only for a valid renderable account.
-It claims all eligible targets in that same transaction using:
+The [worker](social-scheduling.md) handles both manual and timed requests through
+the same render/fingerprint/claim/publish/finalize path. It loads current content,
+account metadata and credentials at execution time. A claim takes one target at a
+time under the existing post lock. Its publication snapshot and `publishing` state
+commit before any external call; no database lock or transaction spans remote HTTP.
+A post with unresolved publishing work waits for reconciliation, while other posts
+continue. Multiple processes coordinate entirely through PostgreSQL.
 
-```sql
-UPDATE social_post_target
-SET status = 'publishing', error = NULL, updated_at = CURRENT_TIMESTAMP
-WHERE uuid = $1 AND status IN ('draft', 'failed', 'published');
-```
-
-Part 6 checks successful-content history and inserts the rendered attempt in
-this same transaction. It commits **before** any external HTTP request. Competing API
-claims/edits serialize on the existing post lock; the conditional target update
-is a second check. A post with any unresolved `publishing` target rejects the
-whole next publish request with per-target conflicts, including targets that
-have already failed while another target is still in progress. This prevents
-an overlapping request from retrying an earlier target in an active batch.
-The mechanism works across API processes, without an in-memory mutex, leases,
-long-running transactions or database connections held during network calls.
-
-Each result is persisted independently in a short transaction that updates both
-publication and target. Success sets `published_at` and `remote_post_id`, clears
-`error`, and updates `updated_at`. Definite failures set `failed` and a safe error,
-retaining any earlier successful target ID/time. `scheduled_at` remains unchanged.
-A later failure cannot roll back earlier remote successes.
-
-PUT and DELETE return 409 while the post has an unresolved claim. Part 6 also
-rejects removing a target or deleting a post with any publication history. Existing
-target UUIDs and immutable attempts are preserved.
+Success stores the remote ID and publication time; failures retain any earlier
+success metadata. The request time in `scheduled_at` remains available for auditing.
+A duplicate completion restores the matching successful publication's ID/time,
+including an older snapshot if source content reverted. PUT/DELETE cannot remove
+unresolved claims or protected publication history.
 
 ## Mastodon and credentials
 
@@ -213,9 +206,9 @@ abandoned `publishing` attempt. Completed uncertain outcomes are recorded as
 
 Part 6 supplies durable content snapshots, fingerprints and attempt history;
 source/account changes after preparation still apply only to later requests.
-Exactly-once remote publication, scheduling, workers, cron/background jobs,
+Part 7 adds the shared manual/scheduled worker. Exactly-once remote publication,
 automatic retries, automation rules, webhooks, OAuth/token-refresh daemons and
-dashboard UI remain outside this synchronous workflow.
+dashboard UI remain outside this workflow.
 
 ## Verification and deliberate manual smoke test
 
@@ -246,10 +239,12 @@ A developer may deliberately run this real-world smoke test after deployment:
    credential input, without shell tracing or logged request bodies.
 3. Create a social post referencing that event and the existing account target.
 4. Call `/preview?lang=de`; inspect exact text, selected image and alt text.
-5. Deliberately call `/publish?lang=de` once; expect 200 and a remote ID.
+5. Deliberately call `/publish?lang=de` once; expect 202. Run the worker or wait
+   for its next poll, then inspect publication history.
 6. GET the post: check `published`, non-null `published_at` and `remote_post_id`,
    and null `error`. Inspect the public Mastodon post, image and alternative text.
-7. Call `/publish?lang=de` again with the same language: expect 409 and confirm that no second status exists.
+7. Call `/publish?lang=de` again after completion: expect 202. After the worker
+   processes it, confirm no second remote status or duplicate attempt exists.
 
 Also test one text-only event and one image event against the intended instance.
 Creating a real post is never part of automated verification.

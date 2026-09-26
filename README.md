@@ -55,6 +55,10 @@ admin preview endpoint, platform policies, architecture and tests.
 rendered snapshots, fingerprint idempotency, immutable attempt history and manual
 reconciliation of uncertain outcomes.
 
+[Social scheduling and worker (Part 7)](docs/social-scheduling.md) documents
+asynchronous manual publishing, schedule/cancel actions, multi-worker claims,
+execution-time rendering and systemd resource controls.
+
 # Contributing
 
 We welcome contributions, feedback, and feature requests! You can:
