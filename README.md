@@ -51,6 +51,10 @@ and known documentation gaps.
 admin preview endpoint, platform policies, architecture and tests.
 
 
+[Social publication history and recovery (Part 6)](docs/social-publications.md) documents
+rendered snapshots, fingerprint idempotency, immutable attempt history and manual
+reconciliation of uncertain outcomes.
+
 # Contributing
 
 We welcome contributions, feedback, and feature requests! You can:

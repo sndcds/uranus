@@ -1,8 +1,13 @@
 # Social posts and publication targets (Part 2)
 
+[Publication history and recovery (Part 6)](social-publications.md) adds immutable
+rendered snapshots, content idempotency and local manual reconciliation.
+
 [Manual publishing (Part 5)](social-publishing.md) adds the publish endpoint,
 the transient `publishing` state and protection for unresolved publication claims.
-The storage-only scope below describes Part 2; apply the Part 5 migration for publishing.
+The storage-only scope below describes Part 2; apply the Part 5 and Part 6
+migrations for the current publishing workflow. With Part 6, deleting a post or
+removing a target with history returns 409; its audit records remain intact.
 
 A social post belongs to one organization and refers to an `event`, `venue`, or
 `organization` through `source_type` and `source_uuid`. The source UUID is

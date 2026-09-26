@@ -1,5 +1,8 @@
 # Content items (Part 3)
 
+[Publication history and recovery (Part 6)](social-publications.md) adds immutable
+rendered snapshots, content idempotency and local manual reconciliation.
+
 ContentItems feed [rendering and preview](social-preview.md), followed by
 [manual publishing](social-publishing.md); loading remains independent of both.
 
