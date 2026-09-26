@@ -7,6 +7,7 @@ CREATE TABLE uranus.social_publication (
     social_post_uuid uuid NOT NULL,
     social_post_target_uuid uuid NOT NULL,
     social_account_uuid uuid NOT NULL,
+    publication_source text NOT NULL DEFAULT 'manual' CHECK (publication_source IN ('manual', 'scheduled')),
     platform text NOT NULL CHECK (platform IN ('facebook', 'instagram', 'mastodon', 'bluesky')),
     content_fingerprint text CHECK (content_fingerprint ~ '^[0-9a-f]{64}$'),
     rendered_text text,

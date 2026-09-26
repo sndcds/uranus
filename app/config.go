@@ -9,6 +9,8 @@ import (
 
 // Config holds database configuration details
 type Config struct {
+	SocialWorkerInterval        int      `json:"social_worker_interval"`
+	SocialWorkerBatchSize       int      `json:"social_worker_batch_size"`
 	Verbose                     bool     `json:"verbose"`
 	DevMode                     bool     `json:"dev_mode"`
 	DebugLevel                  int      `json:"debug_level"`
@@ -70,6 +72,8 @@ func (config Config) Print() {
 
 func DefaultConfig() Config {
 	return Config{
+		SocialWorkerInterval:        30,
+		SocialWorkerBatchSize:       20,
 		Verbose:                     false,
 		PlutoVerbose:                false,
 		DevMode:                     false,

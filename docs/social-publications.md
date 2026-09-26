@@ -1,5 +1,8 @@
 # Social publication history and recovery (Part 6)
 
+[Part 7: scheduling and worker](social-scheduling.md) moves both manual and planned
+execution into a separate process using this publication-history pipeline.
+
 Part 6 extends [social accounts](social-accounts.md), [posts and targets](social-posts.md),
 [ContentItems](content-items.md), [preview](social-preview.md) and
 [manual publishing](social-publishing.md). The Social admin API continues to use
@@ -17,9 +20,9 @@ ContentItem → RenderedPost → fingerprint + persisted snapshot
 ```
 
 The existing claim / publish / finish functions remain responsible for publishing.
-The claim transaction checks permissions, locks the post, loads the current source,
-renders each eligible target once, checks its history, claims the target and inserts
-an attempt. Every attempt is committed before any remote mutation. The same
+The API checks permissions when queuing or scheduling. The worker claim transaction
+locks the post, loads current source data, renders one eligible target, checks its
+history, claims the target and inserts an attempt. Every attempt is committed before any remote mutation. The same
 `RenderedPost` supplies the fingerprint, snapshot and publisher input. Changing an
 event after claim does not change that attempt's payload.
 
@@ -97,7 +100,8 @@ extend this definition deliberately before publishing them.
 Idempotency is **social_post_target_uuid + content_fingerprint**, not global text
 deduplication and not account-wide deduplication:
 
-- A successful A blocks another A with 409 (or an individual conflict in 207).
+- A successful A prevents another remote A. Part 7 accepts the request with 202;
+  the worker then completes it as published without a new attempt.
 - Changed content B can be published through the same target, including from
   `published`. An explicit language change can also change the rendered content.
 - A definitive failure permits a manual retry of A with a new history row.
@@ -107,7 +111,7 @@ deduplication and not account-wide deduplication:
 - A target with history cannot be deleted and recreated to bypass its guard.
 - Different organizations never share a deduplication key.
 
-The post row lock and conditional target claim serialize competing API requests.
+The post row lock and conditional target claim serialize API mutations and workers.
 The partial unique indexes provide additional database protection. As in Part 5,
 one unresolved target blocks the entire post's next publish request, preventing
 an overlapping request from retrying targets in an active batch.
@@ -166,22 +170,12 @@ Publication errors are fixed safe messages and have a database limit of 1,024
 characters. Existing publisher transport, SSRF and response-sanitization protections
 are unchanged.
 
-The existing `POST /api/admin/social/posts/:uuid/publish` keeps its fields and
-200/207/409 semantics. Attempt results add `publication_uuid` and, when rendering
-succeeded, `content_fingerprint`. A duplicate conflict includes the newly computed
-fingerprint but creates no attempt and makes no remote request.
-
-```json
-{
-  "target_uuid": "01994126-6680-7000-8000-000000000031",
-  "social_account_uuid": "01994126-6680-7000-8000-000000000020",
-  "platform": "mastodon",
-  "status": "published",
-  "remote_post_id": "123456789",
-  "publication_uuid": "01994126-6680-7000-8000-000000000040",
-  "content_fingerprint": "<64 lowercase hex characters>"
-}
-```
+As of Part 7, `POST /api/admin/social/posts/:uuid/publish` returns `202 Accepted`
+with queued target results. It no longer returns synchronous 200/207 outcomes,
+publication UUIDs or fingerprints. Read the target's current state and publication
+list/detail endpoints after worker execution. Those history entries include the
+snapshot, fingerprint, remote outcome and immutable `publication_source`
+(`manual` or `scheduled`). Duplicate completions create no new history row.
 
 ## Uncertainty and manual recovery
 
@@ -215,7 +209,7 @@ Content-Type: application/json
 
 `remote_post_id` must be omitted, including no explicit null. The persisted error
 is `operator confirmed no remote post was created`. A subsequent explicit call
-to the existing publish route creates a new attempt. There is no retry endpoint.
+to the publish route queues a new worker attempt. There is no retry endpoint.
 Resolved `published`/`failed` rows cannot be reconciled again. Row locks and the
 same transaction ensure that only one of two concurrent resolutions wins.
 
@@ -226,8 +220,7 @@ work never starts, or PostgreSQL becomes unavailable after a remote mutation.
 It is unresolved and recoverable, even though a database outage makes persisting
 `uncertain` impossible. Listing `status=publishing` exposes those rows.
 
-**Stop/drain all active publish requests across every API replica before recovering
-such a row.** A durable claim alone cannot tell whether a publisher is still
+**Stop/drain all publishing workers before recovering such a row.** A durable claim alone cannot tell whether a publisher is still
 running; age is not proof. Reconciliation of `publishing` requires the additional
 explicit operator assertion:
 
@@ -281,8 +274,9 @@ binary contents; changing bytes behind the same URL is outside this definition.
 Snapshots can contain published personal data and have no retention/deletion API
 in this part. Direct administrative database maintenance remains privileged.
 
-No scheduling, worker, cron, automatic retry, queue, automation rule, event-created
-trigger, remote reconciliation verification or dashboard UI is introduced.
+Part 7 adds manual queuing and scheduled execution through PostgreSQL and a worker.
+Automatic retry, automation rules, event-created triggers, remote reconciliation
+verification and dashboard UI remain outside the implemented scope.
 Facebook, Instagram and Bluesky still return their existing not-implemented
 publishing error. All automated publishing tests use local TLS mocks.
 

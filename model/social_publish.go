@@ -10,6 +10,7 @@ type SocialPostPublish struct {
 }
 
 type SocialTargetPublish struct {
+	PublicationSource  string  `json:"publication_source,omitempty"`
 	PublicationUuid    string  `json:"publication_uuid,omitempty"`
 	ContentFingerprint *string `json:"content_fingerprint,omitempty"`
 	TargetUuid         string  `json:"target_uuid"`

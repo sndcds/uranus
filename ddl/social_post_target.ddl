@@ -4,6 +4,8 @@ CREATE TABLE uranus.social_post_target (
     social_account_uuid uuid NOT NULL REFERENCES uranus.social_account(uuid) ON DELETE RESTRICT,
     status text NOT NULL DEFAULT 'draft'
         CHECK (status IN ('draft', 'scheduled', 'publishing', 'published', 'failed', 'cancelled')),
+    publication_source text NOT NULL DEFAULT 'scheduled' CHECK (publication_source IN ('manual', 'scheduled')),
+    publish_language text,
     scheduled_at timestamptz,
     published_at timestamptz,
     remote_post_id text,
@@ -17,6 +19,9 @@ CREATE TABLE uranus.social_post_target (
 CREATE INDEX social_post_target_account_idx ON uranus.social_post_target (social_account_uuid);
 CREATE INDEX social_post_target_status_idx ON uranus.social_post_target (status);
 CREATE INDEX social_post_target_scheduled_idx ON uranus.social_post_target (scheduled_at);
+
+CREATE INDEX social_post_target_due_idx
+    ON uranus.social_post_target (scheduled_at, created_at, uuid) WHERE status = 'scheduled';
 
 CREATE FUNCTION uranus.protect_social_publish_claim() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN

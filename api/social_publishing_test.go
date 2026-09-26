@@ -1,7 +1,6 @@
 package api
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -59,6 +58,32 @@ func publishData(t *testing.T, w *httptest.ResponseRecorder, status int) model.S
 		t.Fatal("invalid publish response")
 	}
 	return envelope.Data
+}
+
+// Exercise the asynchronous HTTP contract, then run the actual worker and read
+// persisted outcomes through the API. No publisher runs inside the HTTP handler.
+func publishAndProcess(t *testing.T, h *ApiHandler, r *gin.Engine, token, path string) model.SocialPostPublish {
+	t.Helper()
+	result := publishData(t, socialRequest(r, "POST", path, token, ""), http.StatusAccepted)
+	if _, err := h.ProcessDueSocialTargets(context.Background(), 20); err != nil {
+		t.Fatal(err)
+	}
+	post := socialPostData(t, socialRequest(r, "GET", socialPostsPath+"/"+result.PostUuid, token, ""))
+	history := publicationList(t, socialRequest(r, "GET", socialPublicationsPath+"?social_post_uuid="+result.PostUuid, token, ""))
+	for i := range result.Results {
+		response := &result.Results[i]
+		for _, target := range post.Targets {
+			if target.Uuid == response.TargetUuid {
+				response.Status, response.RemotePostID, response.Error = target.Status, target.RemotePostID, target.Error
+			}
+		}
+		for _, publication := range history {
+			if publication.SocialPostTargetUuid == response.TargetUuid {
+				response.PublicationUuid, response.ContentFingerprint = publication.Uuid, publication.ContentFingerprint
+			}
+		}
+	}
+	return result
 }
 
 func TestSocialPublishAuthenticationAndUUID(t *testing.T) {
@@ -133,7 +158,7 @@ func TestSocialPublishPostgresSuccess(t *testing.T) {
 			dbExec(t, h, "UPDATE uranus.social_post_target SET error='old error',scheduled_at='2026-09-23T12:00:00Z' WHERE uuid=$1", post.Targets[0].Uuid)
 			expected = previewData(t, socialRequest(r, "POST", path+"/preview?lang=en", token, "")).Previews[0].RenderedPost
 			before := socialPostData(t, socialRequest(r, "GET", path, token, ""))
-			got := publishData(t, socialRequest(r, "POST", path+"/publish?lang=en", token, ""), 200)
+			got := publishAndProcess(t, h, r, token, path+"/publish?lang=en")
 			if got.PostUuid != post.Uuid || len(got.Results) != 1 || got.Results[0].Status != "published" || got.Results[0].Platform != "mastodon" {
 				t.Fatal("incorrect publish result")
 			}
@@ -146,10 +171,10 @@ func TestSocialPublishPostgresSuccess(t *testing.T) {
 			after := socialPostData(t, socialRequest(r, "GET", path, token, ""))
 			target := after.Targets[0]
 			if target.Status != "published" || target.PublishedAt == nil || target.RemotePostID == nil || *target.RemotePostID != "123" || target.Error != nil ||
-				!target.UpdatedAt.After(before.Targets[0].UpdatedAt) || !reflect.DeepEqual(target.ScheduledAt, before.Targets[0].ScheduledAt) {
+				!target.UpdatedAt.After(before.Targets[0].UpdatedAt) || (target.ScheduledAt == nil || !target.ScheduledAt.After(*before.Targets[0].ScheduledAt)) {
 				t.Fatal("publication state was not persisted")
 			}
-			publishData(t, socialRequest(r, "POST", path+"/publish?lang=en", token, ""), 409)
+			publishAndProcess(t, h, r, token, path+"/publish?lang=en")
 			if calls.Load() != 1 {
 				t.Fatal("published twice")
 			}
@@ -177,12 +202,12 @@ func TestSocialPublishPostgresFailuresAndManualRepublish(t *testing.T) {
 	account := publishAccountForTest(t, h, r, token, server)
 	post := previewPost(t, r, token, account)
 	path := socialPostsPath + "/" + post.Uuid
-	got := publishData(t, socialRequest(r, "POST", path+"/publish", token, ""), 207)
+	got := publishAndProcess(t, h, r, token, path+"/publish")
 	target := socialPostData(t, socialRequest(r, "GET", path, token, "")).Targets[0]
 	if got.Results[0].Status != "failed" || target.Status != "failed" || target.PublishedAt != nil || target.RemotePostID != nil || target.Error == nil || *target.Error != "Mastodon returned HTTP 422" {
 		t.Fatal("remote failure not persisted safely")
 	}
-	publishData(t, socialRequest(r, "POST", path+"/publish", token, ""), 200)
+	publishAndProcess(t, h, r, token, path+"/publish")
 	if calls.Load() != 2 {
 		t.Fatal("manual failed-target publishing did not run once")
 	}
@@ -215,7 +240,7 @@ func TestSocialPublishPostgresInvalidAccounts(t *testing.T) {
 				dbExec(t, h, "ALTER TABLE uranus.social_account DROP CONSTRAINT social_account_remote_account_id_check")
 			}
 			dbExec(t, h, tc.query, account)
-			got := publishData(t, socialRequest(r, "POST", socialPostsPath+"/"+post.Uuid+"/publish", token, ""), 207)
+			got := publishAndProcess(t, h, r, token, socialPostsPath+"/"+post.Uuid+"/publish")
 			if got.Results[0].Status != "failed" || got.Results[0].Error == nil || !strings.Contains(*got.Results[0].Error, tc.reason) {
 				t.Fatal("incorrect invalid-account failure")
 			}
@@ -239,7 +264,10 @@ func TestSocialPublishPostgresPermissionsAndSources(t *testing.T) {
 	assertSocialStatus(t, socialRequest(r, "POST", socialPostsPath+"/"+socialOtherUser+"/publish", token, ""), 404)
 	for _, source := range []string{socialOtherUser, contentOtherVenue} {
 		dbExec(t, h, "UPDATE uranus.social_post SET source_type='venue',source_uuid=$1 WHERE uuid=$2", source, post.Uuid)
-		assertSocialStatus(t, socialRequest(r, "POST", path, token, ""), 404)
+		got := publishAndProcess(t, h, r, token, path)
+		if got.Results[0].Status != "failed" || got.Results[0].Error == nil {
+			t.Fatal("invalid source did not create failed worker outcome")
+		}
 	}
 	post = previewPost(t, r, token)
 	assertSocialStatus(t, socialRequest(r, "POST", socialPostsPath+"/"+post.Uuid+"/publish", token, ""), 400)
@@ -255,7 +283,7 @@ func TestSocialPublishPostgresStatesAndPartialSuccess(t *testing.T) {
 	facebook := createPostAccount(t, r, token, "facebook", socialOrg)
 	post := previewPost(t, r, token, mastodon, facebook)
 	path := socialPostsPath + "/" + post.Uuid
-	got := publishData(t, socialRequest(r, "POST", path+"/publish", token, ""), 207)
+	got := publishAndProcess(t, h, r, token, path+"/publish")
 	if len(got.Results) != 2 {
 		t.Fatal("missing target result")
 	}
@@ -265,10 +293,10 @@ func TestSocialPublishPostgresStatesAndPartialSuccess(t *testing.T) {
 			t.Fatal("partial success not represented")
 		}
 	}
-	got = publishData(t, socialRequest(r, "POST", path+"/publish", token, ""), 207)
+	got = publishAndProcess(t, h, r, token, path+"/publish")
 	for _, result := range got.Results {
-		if result.Platform == "mastodon" && (result.Error == nil || result.Status != "published") {
-			t.Fatal("published target was not rejected individually")
+		if result.Platform == "mastodon" && (result.Error != nil || result.Status != "published") {
+			t.Fatal("duplicate target was not completed without a new publication")
 		}
 	}
 	if calls.Load() != 1 {
@@ -285,7 +313,7 @@ func TestSocialPublishPostgresStatesAndPartialSuccess(t *testing.T) {
 	// A published target does not block a newly added draft target.
 	post = previewPost(t, r, token, mastodon, facebook)
 	dbExec(t, h, "UPDATE uranus.social_post_target SET status='published' WHERE social_account_uuid=$1 AND social_post_uuid=$2", facebook, post.Uuid)
-	publishData(t, socialRequest(r, "POST", socialPostsPath+"/"+post.Uuid+"/publish", token, ""), 207)
+	publishAndProcess(t, h, r, token, socialPostsPath+"/"+post.Uuid+"/publish")
 	if calls.Load() != 2 {
 		t.Fatal("draft target was not processed alongside conflict")
 	}
@@ -310,41 +338,41 @@ func TestSocialPublishPostgresConcurrent(t *testing.T) {
 	account := publishAccountForTest(t, h, r, token, server)
 	post := previewPost(t, r, token, account)
 	path := socialPostsPath + "/" + post.Uuid
-	first := make(chan *httptest.ResponseRecorder, 1)
-	go func() { first <- socialRequest(r, "POST", path+"/publish", token, "") }()
+	other := *h
+	otherRouter := socialPostRouter(&other)
+	responses := make(chan *httptest.ResponseRecorder, 2)
+	go func() { responses <- socialRequest(r, "POST", path+"/publish", token, "") }()
+	go func() { responses <- socialRequest(otherRouter, "POST", path+"/publish", token, "") }()
+	codes := map[int]int{}
+	for range 2 {
+		select {
+		case response := <-responses:
+			codes[response.Code]++
+		case <-time.After(5 * time.Second):
+			t.Fatal("enqueue request waited for publishing")
+		}
+	}
+	if codes[202] != 1 || codes[409] != 1 || calls.Load() != 0 {
+		t.Fatal("concurrent enqueue did not accept exactly one request without remote calls")
+	}
+	done := make(chan error, 1)
+	go func() { _, err := other.ProcessDueSocialTargets(context.Background(), 20); done <- err }()
 	select {
 	case <-entered:
 	case <-time.After(5 * time.Second):
-		t.Fatal("first publish did not reach remote")
+		t.Fatal("worker did not reach remote")
 	}
-	// A separate handler instance proves the claim is in PostgreSQL, not an
-	// in-process mutex. CRUD and preview must return while HTTP is still blocked.
-	other := *h
-	secondRouter := socialPostRouter(&other)
-	second := make(chan *httptest.ResponseRecorder, 1)
-	go func() { second <- socialRequest(secondRouter, "POST", path+"/publish", token, "") }()
-	select {
-	case w := <-second:
-		publishData(t, w, 409)
-	case <-time.After(5 * time.Second):
-		t.Fatal("concurrent publish waited for external HTTP")
-	}
+	publishData(t, socialRequest(r, "POST", path+"/publish", token, ""), 409)
 	assertSocialStatus(t, socialRequest(r, "PUT", path, token, `{"targets":[]}`), 409)
 	assertSocialStatus(t, socialRequest(r, "DELETE", path, token, ""), 409)
 	previewData(t, socialRequest(r, "POST", path+"/preview", token, ""))
 	release <- struct{}{}
-	select {
-	case w := <-first:
-		publishData(t, w, 200)
-	case <-time.After(5 * time.Second):
-		t.Fatal("first publish did not complete")
-	}
-	if calls.Load() != 1 {
-		t.Fatal("concurrent publish created duplicate status")
+	if err := <-done; err != nil {
+		t.Fatal(err)
 	}
 	history := publicationList(t, socialRequest(r, "GET", socialPublicationsPath, token, ""))
-	if len(history) != 1 || history[0].Status != "published" {
-		t.Fatal("concurrent publish created duplicate attempts")
+	if calls.Load() != 1 || len(history) != 1 || history[0].Status != "published" || history[0].PublicationSource != "manual" {
+		t.Fatal("concurrent enqueue created duplicate attempts")
 	}
 }
 
@@ -378,10 +406,10 @@ func TestSocialPublishPostgresUncertainAndDatabaseFailures(t *testing.T) {
 				}
 				dbExec(t, h, trigger+" FOR EACH ROW EXECUTE FUNCTION uranus.fail_publish()")
 			}
-			w := socialRequest(r, "POST", path+"/publish", token, "")
+			publishData(t, socialRequest(r, "POST", path+"/publish", token, ""), 202)
+			_, workerErr := h.ProcessDueSocialTargets(context.Background(), 20)
 			if strings.HasPrefix(failure, "claim") {
-				assertSocialStatus(t, w, 500)
-				if calls.Load() != 0 || socialPostData(t, socialRequest(r, "GET", path, token, "")).Targets[0].Status != "draft" {
+				if workerErr == nil || calls.Load() != 0 || socialPostData(t, socialRequest(r, "GET", path, token, "")).Targets[0].Status != "scheduled" {
 					t.Fatal("failed claim reached remote or persisted")
 				}
 				if len(publicationList(t, socialRequest(r, "GET", socialPublicationsPath, token, ""))) != 0 {
@@ -389,15 +417,14 @@ func TestSocialPublishPostgresUncertainAndDatabaseFailures(t *testing.T) {
 				}
 				return
 			}
-			status := 207
-			if failure == "database" {
-				status = 500
+			if workerErr != nil {
+				t.Fatal(workerErr)
 			}
-			got := publishData(t, w, status)
-			if got.Results[0].Status != "publishing" {
+			got := publicationList(t, socialRequest(r, "GET", socialPublicationsPath, token, ""))
+			if len(got) != 1 || socialPostData(t, socialRequest(r, "GET", path, token, "")).Targets[0].Status != "publishing" {
 				t.Fatal("uncertain result did not retain claim")
 			}
-			publication := publicationData(t, socialRequest(r, "GET", socialPublicationsPath+"/"+got.Results[0].PublicationUuid, token, ""))
+			publication := publicationData(t, socialRequest(r, "GET", socialPublicationsPath+"/"+got[0].Uuid, token, ""))
 			want := "uncertain"
 			if failure == "database" {
 				want = "publishing"
@@ -421,15 +448,13 @@ func TestSocialPublishPostgresMigrationAndRenderParity(t *testing.T) {
 	path := socialPostsPath + "/" + post.Uuid
 	for _, lang := range []string{"", "?lang=en", "?lang=unknown"} {
 		expected := previewData(t, socialRequest(r, "POST", path+"/preview"+lang, token, "")).Previews[0].RenderedPost
-		gc := contentContext(authTestUser)
-		gc.Request = httptest.NewRequest("POST", path+"/publish"+lang, nil)
-		result := model.SocialPostPublish{PostUuid: post.Uuid}
-		work, err := h.claimSocialPublish(gc, post.Uuid, &result)
-		if err != nil || len(work) != 1 || work[0].err != nil || !reflect.DeepEqual(work[0].rendered, expected) {
-			t.Fatal("preview and publishing render differently")
+		publishData(t, socialRequest(r, "POST", path+"/publish"+lang, token, ""), 202)
+		work, result, err := h.claimScheduledSocialTarget(context.Background())
+		if err != nil || !work.claimed || work.err != nil || !reflect.DeepEqual(work.rendered, expected) {
+			t.Fatal("preview and worker render differently")
 		}
-		result.Results[0].Status = "failed"
-		if !h.finishSocialPublish(gc.Request.Context(), result.Results[0]) {
+		result.Status = "failed"
+		if !h.finishSocialPublish(context.Background(), result) {
 			t.Fatal("could not finalize render-parity attempt")
 		}
 	}
@@ -477,11 +502,9 @@ func TestSocialPublishPostgresCancellation(t *testing.T) {
 	path := socialPostsPath + "/" + post.Uuid
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	req := httptest.NewRequest("POST", path+"/publish", bytes.NewReader(nil)).WithContext(ctx)
-	req.Header.Set("Authorization", "Bearer "+token)
-	w := httptest.NewRecorder()
-	done := make(chan struct{})
-	go func() { r.ServeHTTP(w, req); close(done) }()
+	publishData(t, socialRequest(r, "POST", path+"/publish", token, ""), 202)
+	done := make(chan error, 1)
+	go func() { _, err := h.ProcessDueSocialTargets(ctx, 20); done <- err }()
 	select {
 	case <-entered:
 	case <-time.After(5 * time.Second):
@@ -493,7 +516,6 @@ func TestSocialPublishPostgresCancellation(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("remote request ignored cancellation")
 	}
-	publishData(t, w, 207)
 	target := socialPostData(t, socialRequest(r, "GET", path, token, "")).Targets[0]
 	if target.Status != "publishing" || target.Error == nil {
 		t.Fatal("cancelled outcome was not recorded")

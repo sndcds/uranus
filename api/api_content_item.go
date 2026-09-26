@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -39,7 +40,7 @@ func (h *ApiHandler) LoadContentItem(
 		}
 
 		var txErr *ApiTxError
-		item, txErr = h.loadContentItemTx(gc, tx, orgUuid, sourceType, sourceUuid, lang)
+		item, txErr = h.loadContentItemTx(gc.Request.Context(), tx, orgUuid, sourceType, sourceUuid, lang)
 		return txErr
 	})
 	if txErr != nil {
@@ -80,7 +81,7 @@ func (h *ApiHandler) LoadSocialPostContentItem(
 			return contentItemDBError(err)
 		}
 
-		item, txErr = h.loadContentItemTx(gc, tx, orgUuid, sourceType, sourceUuid, lang)
+		item, txErr = h.loadContentItemTx(gc.Request.Context(), tx, orgUuid, sourceType, sourceUuid, lang)
 		return txErr
 	})
 	if txErr != nil {
@@ -112,14 +113,13 @@ const contentLocationSQL = `CASE WHEN v.uuid IS NULL THEN NULL ELSE jsonb_build_
 	'country', v.country, 'url', v.web_link) END`
 
 func (h *ApiHandler) loadContentItemTx(
-	gc *gin.Context,
+	ctx context.Context,
 	tx pgx.Tx,
 	orgUuid string,
 	sourceType string,
 	sourceUuid string,
 	lang string,
 ) (*model.ContentItem, *ApiTxError) {
-	ctx := gc.Request.Context()
 	var query string
 
 	// Load current source tables, as the detail handlers do. Projections are for
@@ -178,18 +178,18 @@ func (h *ApiHandler) loadContentItemTx(
 	}
 
 	if sourceType == "event" {
-		if txErr := h.loadContentDatesTx(gc, tx, item); txErr != nil {
+		if txErr := h.loadContentDatesTx(ctx, tx, item); txErr != nil {
 			return nil, txErr
 		}
 	}
-	if txErr := h.loadContentImagesTx(gc, tx, item); txErr != nil {
+	if txErr := h.loadContentImagesTx(ctx, tx, item); txErr != nil {
 		return nil, txErr
 	}
 
 	return item, nil
 }
 
-func (h *ApiHandler) loadContentDatesTx(gc *gin.Context, tx pgx.Tx, item *model.ContentItem) *ApiTxError {
+func (h *ApiHandler) loadContentDatesTx(ctx context.Context, tx pgx.Tx, item *model.ContentItem) *ApiTxError {
 	// Match get-event-dates.sql: date venue overrides event venue; an explicit
 	// date venue also controls space selection. Keep every occurrence.
 	query := fmt.Sprintf(`
@@ -206,7 +206,7 @@ func (h *ApiHandler) loadContentDatesTx(gc *gin.Context, tx pgx.Tx, item *model.
 		ORDER BY ed.start_date, ed.start_time, ed.uuid`,
 		contentLocationSQL, h.DbSchema, h.DbSchema, h.DbSchema, h.DbSchema)
 
-	rows, err := tx.Query(gc.Request.Context(), query, item.SourceUuid)
+	rows, err := tx.Query(ctx, query, item.SourceUuid)
 	if err != nil {
 		return contentItemDBError(err)
 	}
@@ -231,7 +231,7 @@ func (h *ApiHandler) loadContentDatesTx(gc *gin.Context, tx pgx.Tx, item *model.
 	return nil
 }
 
-func (h *ApiHandler) loadContentImagesTx(gc *gin.Context, tx pgx.Tx, item *model.ContentItem) *ApiTxError {
+func (h *ApiHandler) loadContentImagesTx(ctx context.Context, tx pgx.Tx, item *model.ContentItem) *ApiTxError {
 	// Use the existing image links and requested-language license lookup,
 	// including the all-rights-reserved fallback from the public detail queries.
 	query := fmt.Sprintf(`
@@ -248,7 +248,7 @@ func (h *ApiHandler) loadContentImagesTx(gc *gin.Context, tx pgx.Tx, item *model
 		ORDER BY pil.identifier, pi.uuid`,
 		h.DbSchema, h.DbSchema, h.DbSchema, h.DbSchema)
 
-	rows, err := tx.Query(gc.Request.Context(), query, item.SourceType, item.SourceUuid, item.Language)
+	rows, err := tx.Query(ctx, query, item.SourceType, item.SourceUuid, item.Language)
 	if err != nil {
 		return contentItemDBError(err)
 	}
