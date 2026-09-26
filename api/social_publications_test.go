@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/sndcds/uranus/app"
 	"github.com/sndcds/uranus/model"
 	"github.com/sndcds/uranus/service"
 )
@@ -254,6 +255,26 @@ func TestSocialPublicationsPostgresFiltersAndPermissions(t *testing.T) {
 	}
 	path := socialPublicationsPath + "/" + first.PublicationUuid
 	otherToken := socialToken(t, socialOtherUser)
+	dbExec(t, h, "INSERT INTO uranus.user_organization_link (user_uuid,org_uuid,permissions) VALUES ($1,$2,$3)",
+		socialOtherUser, socialOtherOrg, int64(app.UserPermEditOrg))
+	dbExec(t, h, "INSERT INTO uranus.organization_member_link (user_uuid,org_uuid,has_joined) VALUES ($1,$2,true)",
+		socialOtherUser, socialOtherOrg)
+	otherAccount := createPostAccount(t, r, otherToken, "facebook", socialOtherOrg)
+	body, err := json.Marshal(map[string]any{
+		"org_uuid": socialOtherOrg, "source_type": "organization", "source_uuid": socialOtherOrg,
+		"targets": []socialPostTargetInput{{SocialAccountUuid: otherAccount}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	created := socialRequest(r, "POST", socialPostsPath, otherToken, string(body))
+	assertSocialStatus(t, created, 201)
+	otherPost := socialPostData(t, created)
+	otherPublication := publishData(t, socialRequest(r, "POST", socialPostsPath+"/"+otherPost.Uuid+"/publish", otherToken, ""), 207).Results[0]
+	ownHistory := publicationList(t, socialRequest(r, "GET", socialPublicationsPath, otherToken, ""))
+	if len(ownHistory) != 1 || ownHistory[0].Uuid != otherPublication.PublicationUuid {
+		t.Fatal("history did not isolate organizations for an authorized member")
+	}
 	assertSocialStatus(t, socialRequest(r, "GET", path, otherToken, ""), 403)
 	assertSocialStatus(t, socialRequest(r, "POST", path+"/reconcile", otherToken, `{"outcome":"failed"}`), 403)
 	if len(publicationList(t, socialRequest(r, "GET", socialPublicationsPath+"?org_uuid="+socialOrg, otherToken, ""))) != 0 {
