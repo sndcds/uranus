@@ -25,7 +25,7 @@ func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 	dateUuid := eventDateRequest.DateUuid
 
 	type EventDateICS struct {
-		EventDateUUID    string
+		EventDateUuid    string
 		VenueName        *string
 		VenueStreet      *string
 		VenueHouseNumber *string
@@ -48,7 +48,7 @@ func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 		app.UranusInstance.SqlGetEventDateICS,
 		dateUuid,
 	).Scan(
-		&event.EventDateUUID,
+		&event.EventDateUuid,
 		&event.VenueName,
 		&event.VenueStreet,
 		&event.VenueHouseNumber,
@@ -152,7 +152,7 @@ func (h *ApiHandler) GetEventDateICS(gc *gin.Context) {
 
 	uid := fmt.Sprintf(
 		"%s@%s",
-		event.EventDateUUID,
+		event.EventDateUuid,
 		h.Config.IcsDomain,
 	)
 

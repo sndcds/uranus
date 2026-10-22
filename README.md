@@ -47,6 +47,17 @@ A German [developer overview of event endpoints and lookups](docs/event-endpoint
 maps event fields to their lookup endpoints and describes filters, pagination,
 and known documentation gaps.
 
+[Social rendering and preview (Part 4)](docs/social-preview.md) documents the
+admin preview endpoint, platform policies, architecture and tests.
+
+
+[Social publication history and recovery (Part 6)](docs/social-publications.md) documents
+rendered snapshots, fingerprint idempotency, immutable attempt history and manual
+reconciliation of uncertain outcomes.
+
+[Social scheduling and worker (Part 7)](docs/social-scheduling.md) documents
+asynchronous manual publishing, schedule/cancel actions, multi-worker claims,
+execution-time rendering and systemd resource controls.
 
 # Contributing
 

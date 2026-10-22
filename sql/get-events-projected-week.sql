@@ -1,8 +1,8 @@
 WITH week_days AS (
     SELECT generate_series(
-       '{{week_start}}'::date,
-       '{{week_end}}'::date,
-       interval '1 day'
+        '{{week_start}}'::date,
+        '{{week_end}}'::date,
+        interval '1 day'
    )::date AS day
 ),
 

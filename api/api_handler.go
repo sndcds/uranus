@@ -14,10 +14,11 @@ import (
 // TODO: Review code
 
 type ApiHandler struct {
-	Config        *app.Config
-	DbPool        *pgxpool.Pool
-	DbSchema      string
-	Accessibility *service.AccessibilityLookup
+	Config           *app.Config
+	DbPool           *pgxpool.Pool
+	DbSchema         string
+	Accessibility    *service.AccessibilityLookup
+	SocialHTTPClient *http.Client // nil uses the publishing service's secure transport
 }
 
 type ApiTxError struct {

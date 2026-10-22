@@ -53,7 +53,6 @@ type EventFilterRequest struct {
 
 	Lang       string `json:"lang,omitempty"`
 	PortalUuid string `json:"portal,omitempty"`
-	WeekStart  string `json:"week_start,omitempty"`
 
 	OrgUuids   []string `json:"org_uuids,omitempty"`
 	VenueUuids []string `json:"venue_uuids,omitempty"`
@@ -125,8 +124,17 @@ type eventsResponse struct {
 	LastEventStartAt  *string         `json:"last_event_start_at"`
 }
 
+type EventFilterMode uint8
+
+const (
+	EventFilterModeStandard EventFilterMode = iota
+	EventFilterModeWeek
+	EventFilterModeVenueSummary
+	EventFilterModeGeoJSON
+	EventFilterModeTypeSummary
+)
+
 type eventFilters struct {
-	WeekStart        string
 	DateConditions   string
 	ConditionsStr    string
 	LimitClause      string
@@ -137,7 +145,7 @@ type eventFilters struct {
 	ArgIndex         int
 }
 
-func (h *ApiHandler) buildEventFilters(request EventFilterRequest, useTypeFilter bool) (eventFilters, error) {
+func (h *ApiHandler) buildEventFilters(request EventFilterRequest, useTypeFilter bool, mode EventFilterMode) (eventFilters, error) {
 
 	filters := eventFilters{
 		Args:     []interface{}{},
@@ -149,16 +157,18 @@ func (h *ApiHandler) buildEventFilters(request EventFilterRequest, useTypeFilter
 
 	// Date conditions, must be the first argument!
 	dateConditionCount := 0
-	if app.IsValidDateStr(request.Start) {
-		filters.DateConditions += "COALESCE(edp.event_end_at, edp.event_start_at) >= $" + strconv.Itoa(filters.ArgIndex)
-		filters.Args = append(filters.Args, request.Start)
-		filters.ArgIndex++
-		dateConditionCount++
-	} else if request.Start != "" {
-		return filters, fmt.Errorf("start has invalid format: %s (expected YYYY-MM-DD)", request.Start)
-	} else {
-		filters.DateConditions += "COALESCE(edp.event_end_at, edp.event_start_at) >= CURRENT_DATE"
-		dateConditionCount++
+	if mode != EventFilterModeWeek {
+		if app.IsValidDateStr(request.Start) {
+			filters.DateConditions += "COALESCE(edp.event_end_at, edp.event_start_at) >= $" + strconv.Itoa(filters.ArgIndex)
+			filters.Args = append(filters.Args, request.Start)
+			filters.ArgIndex++
+			dateConditionCount++
+		} else if request.Start != "" {
+			return filters, fmt.Errorf("start has invalid format: %s (expected YYYY-MM-DD)", request.Start)
+		} else {
+			filters.DateConditions += "COALESCE(edp.event_end_at, edp.event_start_at) >= CURRENT_DATE"
+			dateConditionCount++
+		}
 	}
 
 	if len(request.Categories) > 0 {
@@ -412,10 +422,6 @@ func (h *ApiHandler) buildEventFilters(request EventFilterRequest, useTypeFilter
 		}
 	}
 
-	if app.IsValidDateStr(request.WeekStart) {
-		filters.WeekStart = request.WeekStart
-	}
-
 	if len(request.OrgUuids) > 0 {
 		filters.ArgIndex, errBuild = sql_utils.BuildColumnInUuidCondition(
 			request.OrgUuids,
@@ -538,7 +544,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 
 	filters := eventFilters{}
 
-	filters, err = h.buildEventFilters(request, true)
+	filters, err = h.buildEventFilters(request, true, EventFilterModeStandard)
 	if err != nil {
 		apiRequest.Error(http.StatusBadRequest, err.Error())
 		return
@@ -686,40 +692,43 @@ func (h *ApiHandler) GetEventsWeek(gc *gin.Context) {
 
 	filters := eventFilters{}
 
-	filters, err = h.buildEventFilters(request, true)
+	filters, err = h.buildEventFilters(request, true, EventFilterModeWeek)
 	if err != nil {
 		apiRequest.Error(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	if filters.WeekStart == "" {
-		apiRequest.Error(http.StatusBadRequest, "week_start is required")
+	weekStart := request.Start
+	if weekStart == "" {
+		apiRequest.Error(http.StatusBadRequest, "start is required")
 		return
 	}
+	apiRequest.SetMeta("week_start", weekStart)
+
+	weekEnd, err := computeWeekEnd(weekStart)
+	if err != nil {
+		apiRequest.InternalServerError()
+		return
+	}
+	apiRequest.SetMeta("week_end", weekEnd)
 
 	query := app.UranusInstance.SqlGetEventsProjectedWeek
 
-	weekEnd, err := computeWeekEnd(filters.WeekStart)
-	if err != nil {
-		apiRequest.Error(http.StatusBadRequest, "invalid week_start")
-		return
-	}
-
-	query = strings.Replace(query, "{{week_start}}", filters.WeekStart, -1)
+	query = strings.Replace(query, "{{week_start}}", weekStart, -1)
 	query = strings.Replace(query, "{{week_end}}", weekEnd, -1)
 	query = strings.Replace(query, "{{conditions}}", filters.ConditionsStr, 1)
 	query = strings.Replace(query, "{{portal_join}}", filters.PortalJoin, 1)
 	query = strings.Replace(query, "{{portal_conditions}}", filters.PortalConditions, 1)
 
 	/*
-		debugf("filters.ConditionsStr: %v", filters.ConditionsStr)
-		debugf("filters.PortalJoin: %v", filters.PortalJoin)
-		debugf("filters.PortalConditions: %v", filters.PortalConditions)
-		debugf(query)
-		debugf("ARGS (%d):\n", len(filters.Args))
-		for i, arg := range filters.Args {
-			debugf("ARGS[%d]: %#v", i, arg)
-		}
+	debugf("filters.ConditionsStr: %v", filters.ConditionsStr)
+	debugf("filters.PortalJoin: %v", filters.PortalJoin)
+	debugf("filters.PortalConditions: %v", filters.PortalConditions)
+	debugf(query)
+	debugf("ARGS (%d):\n", len(filters.Args))
+	for i, arg := range filters.Args {
+		debugf("ARGS[%d]: %#v", i, arg)
+	}
 	*/
 
 	rows, err := h.DbPool.Query(ctx, query, filters.Args...)
@@ -758,7 +767,7 @@ func (h *ApiHandler) GetEventsWeek(gc *gin.Context) {
 
 		// Validate JSON (prevents corrupt upstream SQL)
 		if !json.Valid(eventsRaw) {
-			apiRequest.InternalServerError()
+			apiRequest.Error(http.StatusInternalServerError, "Invalid JSON")
 			return
 		}
 
@@ -798,7 +807,7 @@ func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 
 	filters := eventFilters{}
 
-	filters, err = h.buildEventFilters(request, true)
+	filters, err = h.buildEventFilters(request, true, EventFilterModeStandard)
 	if err != nil {
 		apiRequest.Error(http.StatusBadRequest, err.Error())
 		return
@@ -806,14 +815,12 @@ func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 
 	typeSummary, err := h.loadSummary(gc.Request.Context(), filters, 0)
 	if err != nil {
-		debugf("1: %s", err.Error())
 		apiRequest.InternalServerError()
 		return
 	}
 
 	genreSummary, err := h.loadSummary(gc.Request.Context(), filters, 1)
 	if err != nil {
-		debugf("2: %s", err.Error())
 		apiRequest.InternalServerError()
 		return
 	}
@@ -839,7 +846,6 @@ func (h *ApiHandler) GetEventTypeSummary(gc *gin.Context) {
 	var totalCount int64
 	err = h.DbPool.QueryRow(gc.Request.Context(), totalQuery, filters.Args...).Scan(&totalCount)
 	if err != nil {
-		debugf("3: %s", err.Error())
 		apiRequest.InternalServerError()
 		return
 	}
@@ -865,7 +871,7 @@ func (h *ApiHandler) GetEventVenueSummary(gc *gin.Context) {
 
 	filters := eventFilters{}
 
-	filters, err = h.buildEventFilters(request, true)
+	filters, err = h.buildEventFilters(request, true, EventFilterModeVenueSummary)
 	if err != nil {
 		apiRequest.Error(http.StatusBadRequest, err.Error())
 		return
@@ -932,7 +938,7 @@ func (h *ApiHandler) GetEventsGeoJSON(gc *gin.Context) {
 
 	filters := eventFilters{}
 
-	filters, err = h.buildEventFilters(request, true)
+	filters, err = h.buildEventFilters(request, true, EventFilterModeGeoJSON)
 	if err != nil {
 		apiRequest.Error(http.StatusBadRequest, "")
 		return
@@ -1262,7 +1268,6 @@ func getEventFilterRequestFromQuery(
 		"last_event_start_at":  {},
 		"last_event_date_uuid": {},
 		"lang":                 {},
-		"week_start":           {},
 		"org_uuids":            {},
 		"venue_uuids":          {},
 		"space_uuids":          {},
@@ -1281,8 +1286,8 @@ func getEventFilterRequestFromQuery(
 	if request.Start == "" {
 		request.Start = time.Now().Format("2006-01-02")
 	}
-
 	request.End, _ = GetContextParam(gc, "end")
+
 	request.Time, _ = GetContextParam(gc, "time")
 	request.Search, _ = GetContextParam(gc, "search")
 	request.Venue, _ = GetContextParam(gc, "venue")
@@ -1303,7 +1308,6 @@ func getEventFilterRequestFromQuery(
 
 	request.Lang, _ = GetContextParam(gc, "lang")
 	request.PortalUuid, _ = GetContextParam(gc, "portal")
-	request.WeekStart, _ = GetContextParam(gc, "week_start")
 
 	request.GeolistRegion, _ =
 		GetContextParam(gc, "geolist_region")
@@ -1372,6 +1376,8 @@ func getEventFilterRequestFromQuery(
 		return request,
 			fmt.Errorf("only one of 'event_types' or 'genres' may be specified")
 	}
+
+	fmt.Printf("Request %+v\n", request)
 
 	return request, nil
 }

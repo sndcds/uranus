@@ -25,7 +25,7 @@ func (h *ApiHandler) AdminGetUserProfile(gc *gin.Context) {
 		h.DbSchema)
 
 	var profile model.UserProfileResponse
-	profile.UserUUID = userUuid
+	profile.UserUuid = userUuid
 	row := h.DbPool.QueryRow(ctx, query, userUuid)
 	err := row.Scan(
 		&profile.Email,

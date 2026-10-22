@@ -6,8 +6,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
@@ -21,7 +24,12 @@ import (
 func main() {
 	configFileName := flag.String("config", "config.json", "Path to config file")
 	verbose := flag.Bool("verbose", false, "Enable verbose logging")
+	socialWorker := flag.Bool("social-worker", false, "Run the social publishing worker")
+	once := flag.Bool("once", false, "Process one social worker batch and exit")
 	flag.Parse()
+	if *once && !*socialWorker {
+		log.Fatal("--once requires --social-worker")
+	}
 
 	grains_api.Init(grains_api.Config{
 		ServiceName: "Uranus API",
@@ -35,6 +43,22 @@ func main() {
 	app.UranusInstance, err = app.Initialize(*configFileName)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if *socialWorker {
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		handler := &api.ApiHandler{
+			Config:   &app.UranusInstance.Config,
+			DbPool:   app.UranusInstance.MainDbPool,
+			DbSchema: app.UranusInstance.Config.DbSchema,
+		}
+		err := handler.RunSocialWorker(ctx, *once)
+		stop()
+		app.UranusInstance.CloseAllDBs()
+		if err != nil {
+			log.Fatal(err)
+		}
+		return
 	}
 
 	if app.UranusInstance.Config.ContactSecret == "" {
@@ -54,7 +78,7 @@ func main() {
 	}
 
 	//--------------------------------------------------------------------------
-	// Accessibility Lookup
+	// 	Accessibility Lookup.
 	//--------------------------------------------------------------------------
 
 	accessibilityLookup := service.NewAccessibilityLookup()
@@ -86,7 +110,7 @@ func main() {
 	}
 
 	//--------------------------------------------------------------------------
-	// Create a Gin router
+	// 	Create a Gin router.
 	//--------------------------------------------------------------------------
 
 	gin.SetMode(gin.ReleaseMode)
@@ -133,7 +157,7 @@ func main() {
 	router.Static("/api/info", "./static")
 
 	//--------------------------------------------------------------------------
-	// Public endpoints
+	// 	Public endpoints.
 	//--------------------------------------------------------------------------
 
 	publicRoute := router.Group("/api")
@@ -160,7 +184,7 @@ func main() {
 		apiHandler.GetEvents)
 	publicRoute.GET(
 		"/events/week",
-		apiHandler.GetEventsWeek) // TODO: check!
+		apiHandler.GetEventsWeek)
 	publicRoute.GET(
 		"/events/type-summary",
 		apiHandler.GetEventTypeSummary)
@@ -333,7 +357,7 @@ func main() {
 		apiHandler.GetGeoRegion)
 
 	//--------------------------------------------------------------------------
-	// Authorized endpoints, user must be logged in
+	// 	Authorized endpoints, user must be logged in.
 	//--------------------------------------------------------------------------
 
 	// Refresh and logout authenticate refresh tokens directly, never via JWTMiddleware.
@@ -341,6 +365,8 @@ func main() {
 
 	adminRoute := router.Group("/api/admin")
 	adminRoute.Use(app.JWTMiddleware)
+	apiHandler.RegisterSocialAccountRoutes(adminRoute)
+	apiHandler.RegisterSocialPostRoutes(adminRoute)
 
 	adminRoute.GET(
 		"/event/:eventUuid/date/:dateIdentifier",
@@ -350,7 +376,7 @@ func main() {
 		apiHandler.AdminGetPermissionsList) // TODO: Permission check
 
 	//--------------------------------------------------------------------------
-	// User
+	// 	User.
 	//--------------------------------------------------------------------------
 
 	adminRoute.GET(
@@ -400,7 +426,7 @@ func main() {
 		apiHandler.AdminGetChoosableUserEventVenues) // TODO: Unused, can be removed!
 
 	//--------------------------------------------------------------------------
-	// Organization
+	// 	Organization.
 	//--------------------------------------------------------------------------
 
 	adminRoute.GET(
@@ -453,7 +479,7 @@ func main() {
 		apiHandler.AdminGetOrgChoosableVenues)
 
 	//--------------------------------------------------------------------------
-	// Partner
+	// 	Partner.
 	//--------------------------------------------------------------------------
 
 	adminRoute.GET(
@@ -482,7 +508,7 @@ func main() {
 		apiHandler.AdminOrgPartnerReject) // TODO: Permission check
 
 	//--------------------------------------------------------------------------
-	// Venue
+	// 	Venue.
 	//--------------------------------------------------------------------------
 
 	adminRoute.GET(
@@ -504,7 +530,7 @@ func main() {
 		apiHandler.AdminDeleteVenue) // TODO: Permission check
 
 	//--------------------------------------------------------------------------
-	// Space
+	// 	Space.
 	//--------------------------------------------------------------------------
 
 	adminRoute.GET(
@@ -526,7 +552,7 @@ func main() {
 		apiHandler.AdminDeleteSpace) // Permission check ok
 
 	//--------------------------------------------------------------------------
-	// Event
+	//	Event.
 	//--------------------------------------------------------------------------
 
 	adminRoute.GET(
@@ -584,7 +610,7 @@ func main() {
 		apiHandler.AdminUpdateEventParticipationInfos) // TODO: Permission check
 
 	//--------------------------------------------------------------------------
-	// Portal
+	// 	Portal.
 	//--------------------------------------------------------------------------
 
 	adminRoute.GET(
@@ -610,7 +636,7 @@ func main() {
 		apiHandler.AdminUpdatePortalFooter) // TODO: Permission check
 
 	//--------------------------------------------------------------------------
-	// Favorites
+	//	Favorites.
 	//--------------------------------------------------------------------------
 
 	adminRoute.GET(
@@ -627,7 +653,7 @@ func main() {
 		apiHandler.AdminCheckFavoriteListEventDate) // TODO: Permission check
 
 	//--------------------------------------------------------------------------
-	// Pluto Image
+	// 	Pluto Image.
 	//--------------------------------------------------------------------------
 
 	adminRoute.PUT(
@@ -638,9 +664,10 @@ func main() {
 		apiHandler.AdminDeletePlutoImage) // TODO: Permission check
 
 	//--------------------------------------------------------------------------
-	// Internal endpoints, callable only from localhost
+	// 	Internal endpoints, callable only from localhost.
 	//--------------------------------------------------------------------------
 
+	router.Run("127.0.0.1:9090")
 	internalRoute := router.Group("/api/internal", app.LocalhostOnlyMiddleware)
 
 	internalRoute.POST(

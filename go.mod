@@ -12,6 +12,7 @@ require (
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/lib/pq v1.12.3
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
+	github.com/rivo/uniseg v0.4.7
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/sndcds/grains v0.1.0
 	golang.org/x/crypto v0.52.0

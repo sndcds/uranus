@@ -38,7 +38,7 @@ func JWTMiddleware(gc *gin.Context) {
 	}
 
 	claims, err := ParseJWT(tokenStr)
-	if err != nil || claims.TokenType != AccessTokenType || !ValidUUID(claims.UserUuid) {
+	if err != nil || claims.TokenType != AccessTokenType || !ValidUuid(claims.UserUuid) {
 		gc.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
 		return
 	}

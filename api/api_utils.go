@@ -217,7 +217,7 @@ func UseUuidFromAccessToken(gc *gin.Context) string {
 	accessToken := parts[1]
 
 	claims, err := app.ParseJWT(accessToken)
-	if err != nil || claims.TokenType != app.AccessTokenType || !app.ValidUUID(claims.UserUuid) {
+	if err != nil || claims.TokenType != app.AccessTokenType || !app.ValidUuid(claims.UserUuid) {
 		return ""
 	}
 

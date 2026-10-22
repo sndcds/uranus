@@ -78,7 +78,7 @@ LEFT JOIN LATERAL(
     WHERE pil.context = 'event'
         AND pil.context_uuid = e.uuid
         AND pil.identifier = ANY(
-            ARRAY['main', 'gallery1', 'gallery2', 'gallery3']
+            ARRAY['main', 'gallery_image_1', 'gallery_image_2', 'gallery_image_3']
         )
 ) images ON TRUE
 

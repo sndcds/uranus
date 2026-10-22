@@ -1,0 +1,76 @@
+package api
+
+import (
+	"errors"
+	"fmt"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
+	"github.com/sndcds/grains/grains_api"
+	"github.com/sndcds/uranus/app"
+	"github.com/sndcds/uranus/model"
+)
+
+// AdminPreviewSocialPost reads current content and account metadata only. All
+// results are buffered until the transaction succeeds; no partial preview is sent.
+func (h *ApiHandler) AdminPreviewSocialPost(gc *gin.Context) {
+	request := grains_api.NewRequest(gc, "admin-preview-social-post")
+	if !app.ValidUuid(h.userUuid(gc)) {
+		request.Error(http.StatusUnauthorized, "authentication required")
+		return
+	}
+	postUuid, ok := socialPostUuid(gc, request)
+	if !ok {
+		return
+	}
+	result := model.SocialPostPreview{PostUuid: postUuid, Previews: []model.SocialTargetPreview{}}
+	txErr := WithTransaction(gc.Request.Context(), h.DbPool, func(tx pgx.Tx) *ApiTxError {
+		// Include the source relations and account metadata in one consistent snapshot.
+		if _, err := tx.Exec(gc.Request.Context(), "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ"); err != nil {
+			return socialPostDBError(err)
+		}
+		_, err := h.socialPostPermission(gc, tx, postUuid)
+		if err != nil {
+			return err
+		}
+		post, dbErr := scanSocialPost(tx.QueryRow(gc.Request.Context(), h.socialPostQuery()+" WHERE p.uuid = $1", postUuid))
+		if dbErr != nil {
+			return socialPostDBError(dbErr)
+		}
+		if len(post.Targets) == 0 {
+			return &ApiTxError{Code: http.StatusBadRequest, Message: "social post has no targets"}
+		}
+		item, err := h.socialRenderContent(gc, tx, post)
+		if err != nil {
+			return err
+		}
+		for _, target := range post.Targets {
+			// Deliberately omit credentials, token expiry and publication metadata.
+			var account model.SocialAccount
+			dbErr := tx.QueryRow(gc.Request.Context(), fmt.Sprintf(`SELECT uuid, org_uuid, platform, remote_account_id, base_url, enabled
+    FROM %s.social_account WHERE uuid = $1`, h.DbSchema), target.SocialAccountUuid).Scan(
+				&account.Uuid, &account.OrgUuid, &account.Platform, &account.RemoteAccountID, &account.BaseURL, &account.Enabled)
+			fail := func(reason string) *ApiTxError {
+				return &ApiTxError{Code: http.StatusBadRequest, Message: fmt.Sprintf("target %s (platform %s): %s", target.Uuid, account.Platform, reason)}
+			}
+			if errors.Is(dbErr, pgx.ErrNoRows) {
+				return fail("social account not found")
+			}
+			if dbErr != nil {
+				return socialPostDBError(dbErr)
+			}
+			rendered, renderErr := renderSocialTarget(account, *item)
+			if renderErr != nil {
+				return fail(renderErr.Error())
+			}
+			result.Previews = append(result.Previews, model.SocialTargetPreview{TargetUuid: target.Uuid, RenderedPost: rendered})
+		}
+		return nil
+	})
+	if txErr != nil {
+		socialPostRespondError(request, txErr)
+		return
+	}
+	request.Success(http.StatusOK, result)
+}
