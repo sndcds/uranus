@@ -15,7 +15,7 @@ func (h *ApiHandler) AdminGetSocialPosts(gc *gin.Context) {
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
 	orgUuid, filtered := gc.GetQuery("org_uuid")
-	if filtered && !app.ValidUUID(orgUuid) {
+	if filtered && !app.ValidUuid(orgUuid) {
 		apiRequest.Error(http.StatusBadRequest, "org_uuid must be a valid UUID")
 		return
 	}

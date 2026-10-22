@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -27,7 +28,7 @@ type socialPublishWork struct {
 func (h *ApiHandler) prepareSocialPublishTx(
 	ctx context.Context,
 	tx pgx.Tx,
-	postUUID string,
+	postUuid string,
 	target model.SocialPostTarget,
 	item *model.ContentItem,
 	sourceErr error,
@@ -121,7 +122,7 @@ func (h *ApiHandler) prepareSocialPublishTx(
 			(uuid, social_post_uuid, social_post_target_uuid, social_account_uuid, platform,
 			 content_fingerprint, rendered_text, rendered_image_url, rendered_image_alt, status, publication_source)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'publishing', $10)`, h.DbSchema),
-			publicationUuid, postUUID, target.Uuid, account.Uuid, account.Platform,
+			publicationUuid, postUuid, target.Uuid, account.Uuid, account.Platform,
 			response.ContentFingerprint, text, imageURL, imageAlt, source)
 		if err != nil {
 			return task, response, socialPostDBError(err)
@@ -185,9 +186,9 @@ func (h *ApiHandler) finishSocialPublish(ctx context.Context, result model.Socia
 	return txErr == nil
 }
 
-func (h *ApiHandler) socialPostPublishingConflict(gc *gin.Context, tx pgx.Tx, postUUID string) *ApiTxError {
+func (h *ApiHandler) socialPostPublishingConflict(gc *gin.Context, tx pgx.Tx, postUuid string) *ApiTxError {
 	var busy bool
-	err := tx.QueryRow(gc.Request.Context(), fmt.Sprintf("SELECT EXISTS (SELECT 1 FROM %s.social_post_target WHERE social_post_uuid = $1 AND status = 'publishing')", h.DbSchema), postUUID).Scan(&busy)
+	err := tx.QueryRow(gc.Request.Context(), fmt.Sprintf("SELECT EXISTS (SELECT 1 FROM %s.social_post_target WHERE social_post_uuid = $1 AND status = 'publishing')", h.DbSchema), postUuid).Scan(&busy)
 	if err != nil {
 		return socialPostDBError(err)
 	}
@@ -199,6 +200,11 @@ func (h *ApiHandler) socialPostPublishingConflict(gc *gin.Context, tx pgx.Tx, po
 
 func (h *ApiHandler) executeSocialPublish(ctx context.Context, task socialPublishWork, target *model.SocialTargetPublish) bool {
 	published, err := h.publishSocialTarget(ctx, task)
+
+	if err != nil {
+		log.Printf("Uranus: social publish failed: %v", err)
+	}
+
 	target.Status = "published"
 	if err == nil {
 		target.RemotePostID = &published.RemotePostID

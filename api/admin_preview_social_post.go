@@ -16,25 +16,25 @@ import (
 // results are buffered until the transaction succeeds; no partial preview is sent.
 func (h *ApiHandler) AdminPreviewSocialPost(gc *gin.Context) {
 	request := grains_api.NewRequest(gc, "admin-preview-social-post")
-	if !app.ValidUUID(h.userUuid(gc)) {
+	if !app.ValidUuid(h.userUuid(gc)) {
 		request.Error(http.StatusUnauthorized, "authentication required")
 		return
 	}
-	postUUID, ok := socialPostUUID(gc, request)
+	postUuid, ok := socialPostUuid(gc, request)
 	if !ok {
 		return
 	}
-	result := model.SocialPostPreview{PostUuid: postUUID, Previews: []model.SocialTargetPreview{}}
+	result := model.SocialPostPreview{PostUuid: postUuid, Previews: []model.SocialTargetPreview{}}
 	txErr := WithTransaction(gc.Request.Context(), h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		// Include the source relations and account metadata in one consistent snapshot.
 		if _, err := tx.Exec(gc.Request.Context(), "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ"); err != nil {
 			return socialPostDBError(err)
 		}
-		_, err := h.socialPostPermission(gc, tx, postUUID)
+		_, err := h.socialPostPermission(gc, tx, postUuid)
 		if err != nil {
 			return err
 		}
-		post, dbErr := scanSocialPost(tx.QueryRow(gc.Request.Context(), h.socialPostQuery()+" WHERE p.uuid = $1", postUUID))
+		post, dbErr := scanSocialPost(tx.QueryRow(gc.Request.Context(), h.socialPostQuery()+" WHERE p.uuid = $1", postUuid))
 		if dbErr != nil {
 			return socialPostDBError(dbErr)
 		}

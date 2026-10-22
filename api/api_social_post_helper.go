@@ -69,7 +69,7 @@ func (p *socialPostInput) validate(create bool) string {
 			return field.name + " is required"
 		}
 		if field.name != "source_type" && field.value.Set {
-			if !app.ValidUUID(*field.value.Value) {
+			if !app.ValidUuid(*field.value.Value) {
 				return field.name + " must be a valid UUID"
 			}
 			id, _ := uuid.Parse(*field.value.Value)
@@ -91,7 +91,7 @@ func (p *socialPostInput) validate(create bool) string {
 		for i := range *p.Targets.Value {
 			target := &(*p.Targets.Value)[i]
 			target.SocialAccountUuid = strings.TrimSpace(target.SocialAccountUuid)
-			if !app.ValidUUID(target.SocialAccountUuid) {
+			if !app.ValidUuid(target.SocialAccountUuid) {
 				return "social_account_uuid must be a valid UUID"
 			}
 			id, _ := uuid.Parse(target.SocialAccountUuid)
@@ -118,9 +118,9 @@ func decodeSocialPost(gc *gin.Context, apiRequest *grains_api.Request, create bo
 	return payload
 }
 
-func socialPostUUID(gc *gin.Context, apiRequest *grains_api.Request) (string, bool) {
+func socialPostUuid(gc *gin.Context, apiRequest *grains_api.Request) (string, bool) {
 	postUuid := gc.Param("uuid")
-	if !app.ValidUUID(postUuid) {
+	if !app.ValidUuid(postUuid) {
 		apiRequest.Error(http.StatusBadRequest, "uuid must be a valid UUID")
 		return "", false
 	}

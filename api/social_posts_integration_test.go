@@ -91,12 +91,12 @@ func TestSocialPostsPostgresCRUD(t *testing.T) {
 		w := socialRequest(r, "POST", socialPostsPath, token, socialPostBody(socialOrg, source, facebook, instagram))
 		assertSocialStatus(t, w, 201)
 		post := socialPostData(t, w)
-		if !app.ValidUUID(post.Uuid) || post.OrgUuid != socialOrg || post.SourceType != source || post.SourceUuid != authTestUser ||
+		if !app.ValidUuid(post.Uuid) || post.OrgUuid != socialOrg || post.SourceType != source || post.SourceUuid != authTestUser ||
 			post.CreatedBy == nil || *post.CreatedBy != authTestUser || post.CreatedAt.IsZero() || post.UpdatedAt.IsZero() || len(post.Targets) != 2 {
 			t.Fatalf("unexpected post: %+v", post)
 		}
 		for _, target := range post.Targets {
-			if !app.ValidUUID(target.Uuid) || target.Status != "draft" || target.ScheduledAt != nil || target.PublishedAt != nil ||
+			if !app.ValidUuid(target.Uuid) || target.Status != "draft" || target.ScheduledAt != nil || target.PublishedAt != nil ||
 				target.RemotePostID != nil || target.Error != nil || target.CreatedAt.IsZero() || target.UpdatedAt.IsZero() {
 				t.Fatalf("unexpected target: %+v", target)
 			}

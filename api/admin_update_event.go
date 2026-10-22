@@ -71,9 +71,9 @@ func (h *ApiHandler) AdminUpdateEvent(gc *gin.Context) {
 
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 
-		// ------------------------------------------------------------
-		// Get organization belonging to the event
-		// ------------------------------------------------------------
+		//----------------------------------------------------------------------
+		// 	Get organization belonging to the event.
+		//----------------------------------------------------------------------
 
 		orgUuid, err := h.GetOrgUuidByEventUuidTx(gc, tx, eventUuid)
 		if err != nil {
@@ -84,9 +84,9 @@ func (h *ApiHandler) AdminUpdateEvent(gc *gin.Context) {
 			return ApiErrInternal("internal orgUuid failed")
 		}
 
-		// ------------------------------------------------------------
-		// Permission
-		// ------------------------------------------------------------
+		//----------------------------------------------------------------------
+		//  Permission.
+		//----------------------------------------------------------------------
 
 		permissions, err := h.GetUserOrgPermissionsTx(
 			gc,
@@ -113,9 +113,9 @@ func (h *ApiHandler) AdminUpdateEvent(gc *gin.Context) {
 			}
 		}
 
-		// ------------------------------------------------------------
-		// Build UPDATE
-		// ------------------------------------------------------------
+		//----------------------------------------------------------------------
+		// 	Build UPDATE.
+		//----------------------------------------------------------------------
 
 		var setClauses []string
 		var args []interface{}
@@ -291,9 +291,9 @@ func (h *ApiHandler) AdminUpdateEvent(gc *gin.Context) {
 			argPos,
 		)
 
-		// ------------------------------------------------------------
-		// Registration / location fields
-		// ------------------------------------------------------------
+		//----------------------------------------------------------------------
+		// 	Registration/Location fields.
+		//----------------------------------------------------------------------
 
 		argPos = addUpdateClauseNullable(
 			"meeting_point",
@@ -347,12 +347,12 @@ func (h *ApiHandler) AdminUpdateEvent(gc *gin.Context) {
 			fmt.Printf("  $%d = (%T) %#v\n", i+1, arg, debugArg(arg))
 		}
 
-		// ------------------------------------------------------------
-		// Venue / space
+		//----------------------------------------------------------------------
+		// 	Venue/Space.
 		//
-		// These two fields need special handling because a space
-		// belongs to a specific venue.
-		// ------------------------------------------------------------
+		//	These two fields need special handling because a space
+		//	belongs to a specific venue.
+		//----------------------------------------------------------------------
 
 		if payload.VenueUuid.Set || payload.SpaceUuid.Set {
 
@@ -527,17 +527,17 @@ func (h *ApiHandler) AdminUpdateEvent(gc *gin.Context) {
 
 		fieldCount = len(setClauses)
 
-		// ------------------------------------------------------------
-		// Nothing to update
-		// ------------------------------------------------------------
+		//----------------------------------------------------------------------
+		// 	Nothing to update.
+		//----------------------------------------------------------------------
 
 		if fieldCount == 0 {
 			return nil
 		}
 
-		// ------------------------------------------------------------
-		// Execute UPDATE
-		// ------------------------------------------------------------
+		//----------------------------------------------------------------------
+		// 	Execute UPDATE.
+		//----------------------------------------------------------------------
 
 		query := fmt.Sprintf(
 			`UPDATE %s.event
@@ -570,9 +570,9 @@ func (h *ApiHandler) AdminUpdateEvent(gc *gin.Context) {
 			}
 		}
 
-		// ------------------------------------------------------------
-		// Refresh projections
-		// ------------------------------------------------------------
+		//----------------------------------------------------------------------
+		// 	Refresh projections.
+		//----------------------------------------------------------------------
 
 		if err := RefreshEventProjections(
 			ctx,
@@ -589,9 +589,9 @@ func (h *ApiHandler) AdminUpdateEvent(gc *gin.Context) {
 		return nil
 	})
 
-	// ------------------------------------------------------------
-	// Response
-	// ------------------------------------------------------------
+	//--------------------------------------------------------------------------
+	// 	Response.
+	//--------------------------------------------------------------------------
 
 	if txErr != nil {
 		debugf(txErr.Error())

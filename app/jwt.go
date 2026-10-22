@@ -31,8 +31,8 @@ func ParseJWT(tokenString string) (*Claims, error) {
 	return claims, nil
 }
 
-// ValidUUID accepts existing UUID versions, but rejects empty and nil identities.
-func ValidUUID(value string) bool {
+// ValidUuid accepts existing UUID versions, but rejects empty and nil identities.
+func ValidUuid(value string) bool {
 	id, err := uuid.Parse(value)
 	return err == nil && id != uuid.Nil && len(value) == 36
 }

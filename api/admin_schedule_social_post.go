@@ -14,11 +14,11 @@ import (
 
 func (h *ApiHandler) AdminScheduleSocialPost(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-schedule-social-post")
-	if !app.ValidUUID(h.userUuid(gc)) {
+	if !app.ValidUuid(h.userUuid(gc)) {
 		apiRequest.Error(http.StatusUnauthorized, "authentication required")
 		return
 	}
-	postUuid, ok := socialPostUUID(gc, apiRequest)
+	postUuid, ok := socialPostUuid(gc, apiRequest)
 	if !ok {
 		return
 	}
@@ -44,11 +44,11 @@ func (h *ApiHandler) AdminScheduleSocialPost(gc *gin.Context) {
 
 func (h *ApiHandler) AdminCancelSocialPost(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-cancel-social-post")
-	if !app.ValidUUID(h.userUuid(gc)) {
+	if !app.ValidUuid(h.userUuid(gc)) {
 		apiRequest.Error(http.StatusUnauthorized, "authentication required")
 		return
 	}
-	postUuid, ok := socialPostUUID(gc, apiRequest)
+	postUuid, ok := socialPostUuid(gc, apiRequest)
 	if !ok {
 		return
 	}

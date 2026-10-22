@@ -61,7 +61,7 @@ func (p *socialAccountInput) validate(create bool) string {
 			return field.name + " is required"
 		}
 	}
-	if p.OrgUuid.Set && !app.ValidUUID(*p.OrgUuid.Value) {
+	if p.OrgUuid.Set && !app.ValidUuid(*p.OrgUuid.Value) {
 		return "org_uuid must be a valid UUID"
 	}
 	if p.Platform.Set {
@@ -144,9 +144,9 @@ func socialAccountRespondError(req *grains_api.Request, err *ApiTxError) {
 	}
 }
 
-func socialAccountUUID(gc *gin.Context, req *grains_api.Request) (string, bool) {
+func socialAccountUuid(gc *gin.Context, req *grains_api.Request) (string, bool) {
 	id := gc.Param("uuid")
-	if !app.ValidUUID(id) {
+	if !app.ValidUuid(id) {
 		req.Error(http.StatusBadRequest, "uuid must be a valid UUID")
 		return "", false
 	}
@@ -198,7 +198,7 @@ func (h *ApiHandler) AdminGetSocialAccounts(gc *gin.Context) {
 	req := grains_api.NewRequest(gc, "admin-get-social-accounts")
 	org, filtered := gc.GetQuery("org_uuid")
 
-	if filtered && !app.ValidUUID(org) {
+	if filtered && !app.ValidUuid(org) {
 		req.Error(http.StatusBadRequest, "org_uuid must be a valid UUID")
 		return
 	}
@@ -253,7 +253,7 @@ func (h *ApiHandler) socialAccountPermission(gc *gin.Context, tx pgx.Tx, id stri
 
 func (h *ApiHandler) AdminGetSocialAccount(gc *gin.Context) {
 	req := grains_api.NewRequest(gc, "admin-get-social-account")
-	id, ok := socialAccountUUID(gc, req)
+	id, ok := socialAccountUuid(gc, req)
 	if !ok {
 		return
 	}
@@ -280,7 +280,7 @@ func (h *ApiHandler) AdminGetSocialAccount(gc *gin.Context) {
 
 func (h *ApiHandler) AdminUpdateSocialAccount(gc *gin.Context) {
 	req := grains_api.NewRequest(gc, "admin-update-social-account")
-	id, ok := socialAccountUUID(gc, req)
+	id, ok := socialAccountUuid(gc, req)
 	if !ok {
 		return
 	}
@@ -331,7 +331,7 @@ func (h *ApiHandler) AdminUpdateSocialAccount(gc *gin.Context) {
 
 func (h *ApiHandler) AdminDeleteSocialAccount(gc *gin.Context) {
 	req := grains_api.NewRequest(gc, "admin-delete-social-account")
-	id, ok := socialAccountUUID(gc, req)
+	id, ok := socialAccountUuid(gc, req)
 	if !ok {
 		return
 	}

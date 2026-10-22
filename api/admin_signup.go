@@ -252,7 +252,7 @@ func (h *ApiHandler) Activate(gc *gin.Context) {
 	}
 
 	claims, err := app.ParseJWT(requestData.Token)
-	if err != nil || !app.ValidUUID(claims.UserUuid) {
+	if err != nil || !app.ValidUuid(claims.UserUuid) {
 		apiRequest.Error(http.StatusUnauthorized, "invalid or expired token")
 		return
 	}

@@ -376,8 +376,8 @@ func (app *Uranus) PrepareSql() error {
 		{"sql/insert-pluto-image.sql", &app.SqlInsertPlutoImage, nil},
 		{"sql/update-pluto-image-meta.sql", &app.SqlUpdatePlutoImageMeta, nil},
 
-		{"sql/update_event_search_vector.sql", &app.SqlUpdateEventSearchVector, nil},
-		{"sql/update_event_date_search_vector.sql", &app.SqlUpdateEventDateSearchVector, nil},
+		{"sql/update-event-search-vector.sql", &app.SqlUpdateEventSearchVector, nil},
+		{"sql/update-event-date-search-vector.sql", &app.SqlUpdateEventDateSearchVector, nil},
 
 		// Helper
 

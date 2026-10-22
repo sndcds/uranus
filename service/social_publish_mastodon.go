@@ -97,10 +97,27 @@ func (p mastodonPublisher) request(ctx context.Context, method, endpoint, token,
 	if method == "GET" && resp.StatusCode == http.StatusPartialContent {
 		return result, resp.StatusCode, nil
 	}
+
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		// No raw response body, URL, header or transport error is retained.
-		return fail(fmt.Sprintf("Mastodon returned HTTP %d", resp.StatusCode), resp.StatusCode >= 500)
+		data, readErr := io.ReadAll(io.LimitReader(resp.Body, socialResponseMaxBytes+1))
+		if readErr != nil {
+			return fail(
+				fmt.Sprintf("Mastodon returned HTTP %d; failed to read response body", resp.StatusCode),
+				resp.StatusCode >= 500,
+			)
+		}
+
+		body := strings.TrimSpace(string(data))
+		if len(data) > socialResponseMaxBytes {
+			body = body[:socialResponseMaxBytes] + "..."
+		}
+
+		return fail(
+			fmt.Sprintf("Mastodon returned HTTP %d: %s", resp.StatusCode, body),
+			resp.StatusCode >= 500,
+		)
 	}
+
 	data, err := io.ReadAll(io.LimitReader(resp.Body, socialResponseMaxBytes+1))
 	if err != nil || len(data) > socialResponseMaxBytes || json.Unmarshal(data, &result) != nil {
 		return fail("Mastodon returned an invalid response", true)

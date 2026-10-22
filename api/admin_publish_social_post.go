@@ -15,11 +15,11 @@ import (
 func (h *ApiHandler) AdminPublishSocialPost(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-publish-social-post")
 	ctx := gc.Request.Context()
-	if !app.ValidUUID(h.userUuid(gc)) {
+	if !app.ValidUuid(h.userUuid(gc)) {
 		apiRequest.Error(http.StatusUnauthorized, "authentication required")
 		return
 	}
-	postUuid, ok := socialPostUUID(gc, apiRequest)
+	postUuid, ok := socialPostUuid(gc, apiRequest)
 	if !ok {
 		return
 	}

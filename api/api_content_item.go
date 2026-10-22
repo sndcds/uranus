@@ -21,10 +21,10 @@ func (h *ApiHandler) LoadContentItem(
 	sourceUuid string,
 	lang string,
 ) (*model.ContentItem, *ApiTxError) {
-	if !app.ValidUUID(h.userUuid(gc)) {
+	if !app.ValidUuid(h.userUuid(gc)) {
 		return nil, &ApiTxError{Code: http.StatusUnauthorized, Message: "authentication required"}
 	}
-	if !app.ValidUUID(orgUuid) || !app.ValidUUID(sourceUuid) {
+	if !app.ValidUuid(orgUuid) || !app.ValidUuid(sourceUuid) {
 		return nil, &ApiTxError{Code: http.StatusBadRequest, Message: "org_uuid and source_uuid must be valid UUIDs"}
 	}
 	switch sourceType {
@@ -57,10 +57,10 @@ func (h *ApiHandler) LoadSocialPostContentItem(
 	postUuid string,
 	lang string,
 ) (*model.ContentItem, *ApiTxError) {
-	if !app.ValidUUID(h.userUuid(gc)) {
+	if !app.ValidUuid(h.userUuid(gc)) {
 		return nil, &ApiTxError{Code: http.StatusUnauthorized, Message: "authentication required"}
 	}
-	if !app.ValidUUID(postUuid) {
+	if !app.ValidUuid(postUuid) {
 		return nil, &ApiTxError{Code: http.StatusBadRequest, Message: "post uuid must be a valid UUID"}
 	}
 

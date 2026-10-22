@@ -14,7 +14,7 @@ func (h *ApiHandler) AdminGetSocialPublications(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-get-social-publications")
 	ctx := gc.Request.Context()
 	userUuid := h.userUuid(gc)
-	if !app.ValidUUID(userUuid) {
+	if !app.ValidUuid(userUuid) {
 		apiRequest.Error(http.StatusUnauthorized, "authentication required")
 		return
 	}
@@ -33,7 +33,7 @@ func (h *ApiHandler) AdminGetSocialPublications(gc *gin.Context) {
 		{"social_post_target_uuid", "p.social_post_target_uuid"},
 	} {
 		if value, exists := gc.GetQuery(field.name); exists {
-			if !app.ValidUUID(value) {
+			if !app.ValidUuid(value) {
 				apiRequest.Error(http.StatusBadRequest, field.name+" must be a valid UUID")
 				return
 			}

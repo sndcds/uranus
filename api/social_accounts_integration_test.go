@@ -139,7 +139,7 @@ func TestSocialAccountsPostgresCRUD(t *testing.T) {
 			w := socialRequest(r, "POST", socialAccountsPath, token, body)
 			assertSocialStatus(t, w, 201)
 			a := socialAccountData(t, w)
-			if !app.ValidUUID(a.Uuid) || a.Platform != platform || a.OrgUuid != socialOrg ||
+			if !app.ValidUuid(a.Uuid) || a.Platform != platform || a.OrgUuid != socialOrg ||
 				!a.Enabled || !a.HasAccessToken || !a.HasRefreshToken || a.TokenExpiresAt == nil ||
 				a.CreatedAt.IsZero() || a.UpdatedAt.IsZero() ||
 				(platform != "mastodon" && a.BaseURL != nil) {

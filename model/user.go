@@ -20,7 +20,7 @@ type UserCredentials struct {
 }
 
 type UserProfileResponse struct {
-	UserUUID    string  `json:"user_uuid"`
+	UserUuid    string  `json:"user_uuid"`
 	Email       string  `json:"email"`
 	Username    *string `json:"username"`
 	DisplayName *string `json:"display_name"`

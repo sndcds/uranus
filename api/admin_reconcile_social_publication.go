@@ -14,11 +14,11 @@ import (
 
 func (h *ApiHandler) AdminReconcileSocialPublication(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-reconcile-social-publication")
-	if !app.ValidUUID(h.userUuid(gc)) {
+	if !app.ValidUuid(h.userUuid(gc)) {
 		apiRequest.Error(http.StatusUnauthorized, "authentication required")
 		return
 	}
-	publicationUuid, ok := socialPostUUID(gc, apiRequest)
+	publicationUuid, ok := socialPostUuid(gc, apiRequest)
 	if !ok {
 		return
 	}

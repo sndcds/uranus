@@ -12,7 +12,7 @@ import (
 func (h *ApiHandler) AdminDeleteSocialPost(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-delete-social-post")
 	ctx := gc.Request.Context()
-	postUuid, ok := socialPostUUID(gc, apiRequest)
+	postUuid, ok := socialPostUuid(gc, apiRequest)
 	if !ok {
 		return
 	}

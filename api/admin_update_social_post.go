@@ -14,7 +14,7 @@ import (
 func (h *ApiHandler) AdminUpdateSocialPost(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-update-social-post")
 	ctx := gc.Request.Context()
-	postUuid, ok := socialPostUUID(gc, apiRequest)
+	postUuid, ok := socialPostUuid(gc, apiRequest)
 	if !ok {
 		return
 	}

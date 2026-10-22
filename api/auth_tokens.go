@@ -23,18 +23,18 @@ type authTokenPair struct {
 	refreshClaims *app.Claims
 }
 
-func signAuthToken(userUUID, tokenType, id string, now time.Time, lifetime int) (string, *app.Claims, error) {
+func signAuthToken(userUuid, tokenType, id string, now time.Time, lifetime int) (string, *app.Claims, error) {
 	if app.UranusInstance == nil || len(app.UranusInstance.JwtKey) == 0 {
 		return "", nil, errors.New("JWT signing key is not configured")
 	}
-	claims := &app.Claims{UserUuid: userUUID, TokenType: tokenType, RegisteredClaims: jwt.RegisteredClaims{
+	claims := &app.Claims{UserUuid: userUuid, TokenType: tokenType, RegisteredClaims: jwt.RegisteredClaims{
 		ID: id, IssuedAt: jwt.NewNumericDate(now), ExpiresAt: jwt.NewNumericDate(now.Add(time.Duration(lifetime) * time.Second)),
 	}}
 	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(app.UranusInstance.JwtKey)
 	return token, claims, err
 }
 
-func (h *ApiHandler) newAuthTokenPair(userUUID string) (*authTokenPair, error) {
+func (h *ApiHandler) newAuthTokenPair(userUuid string) (*authTokenPair, error) {
 	// Bound old configurations as well as the default to a short access lifetime.
 	accessLifetime := min(h.Config.AuthTokenExpirationTime, 900)
 	refreshLifetime := h.Config.RefreshTokenExpirationTime
@@ -47,11 +47,11 @@ func (h *ApiHandler) newAuthTokenPair(userUUID string) (*authTokenPair, error) {
 	}
 	now := time.Now()
 	pair := &authTokenPair{}
-	pair.accessToken, pair.accessClaims, err = signAuthToken(userUUID, app.AccessTokenType, "", now, accessLifetime)
+	pair.accessToken, pair.accessClaims, err = signAuthToken(userUuid, app.AccessTokenType, "", now, accessLifetime)
 	if err != nil {
 		return nil, err
 	}
-	pair.refreshToken, pair.refreshClaims, err = signAuthToken(userUUID, app.RefreshTokenType, id, now, refreshLifetime)
+	pair.refreshToken, pair.refreshClaims, err = signAuthToken(userUuid, app.RefreshTokenType, id, now, refreshLifetime)
 	if err != nil {
 		return nil, err
 	}
@@ -69,20 +69,20 @@ func authDatabaseError(err error) *ApiTxError {
 	return TxInternalError(err)
 }
 
-func (h *ApiHandler) insertRefreshToken(ctx context.Context, tx pgx.Tx, pair *authTokenPair, familyUUID string) *ApiTxError {
+func (h *ApiHandler) insertRefreshToken(ctx context.Context, tx pgx.Tx, pair *authTokenPair, familyUuid string) *ApiTxError {
 	c := pair.refreshClaims
 	_, err := tx.Exec(ctx, fmt.Sprintf(`INSERT INTO %s.refresh_token
   (jti, user_uuid, family_uuid, created_at, expires_at) VALUES ($1, $2, $3, $4, $5)`, h.DbSchema),
-		c.ID, c.UserUuid, familyUUID, c.IssuedAt.Time, c.ExpiresAt.Time)
+		c.ID, c.UserUuid, familyUuid, c.IssuedAt.Time, c.ExpiresAt.Time)
 	if err != nil {
 		return TxInternalError(err)
 	}
 	return nil
 }
 
-func (h *ApiHandler) revokeRefreshFamily(ctx context.Context, tx pgx.Tx, userUUID, familyUUID string) *ApiTxError {
+func (h *ApiHandler) revokeRefreshFamily(ctx context.Context, tx pgx.Tx, userUuid, familyUuid string) *ApiTxError {
 	_, err := tx.Exec(ctx, fmt.Sprintf(`UPDATE %s.refresh_token SET revoked_at = CURRENT_TIMESTAMP
-  WHERE user_uuid = $1 AND family_uuid = $2 AND revoked_at IS NULL`, h.DbSchema), userUUID, familyUUID)
+  WHERE user_uuid = $1 AND family_uuid = $2 AND revoked_at IS NULL`, h.DbSchema), userUuid, familyUuid)
 	if err != nil {
 		return TxInternalError(err)
 	}
@@ -125,7 +125,7 @@ func refreshClaims(gc *gin.Context) (*app.Claims, bool) {
 		}
 	}
 	claims, err := app.ParseJWT(token)
-	if err != nil || claims.TokenType != app.RefreshTokenType || !app.ValidUUID(claims.UserUuid) || !app.ValidUUID(claims.ID) {
+	if err != nil || claims.TokenType != app.RefreshTokenType || !app.ValidUuid(claims.UserUuid) || !app.ValidUuid(claims.ID) {
 		return nil, true
 	}
 	return claims, true
@@ -161,17 +161,17 @@ func (h *ApiHandler) Refresh(gc *gin.Context) {
 		if !active {
 			return invalidRefreshError()
 		}
-		var familyUUID string
+		var familyUuid string
 		var revoked, unexpired bool
 		err = tx.QueryRow(ctx, fmt.Sprintf(`SELECT family_uuid, revoked_at IS NOT NULL, expires_at > clock_timestamp()
-   FROM %s.refresh_token WHERE jti = $1 AND user_uuid = $2`, h.DbSchema), claims.ID, claims.UserUuid).Scan(&familyUUID, &revoked, &unexpired)
+   FROM %s.refresh_token WHERE jti = $1 AND user_uuid = $2`, h.DbSchema), claims.ID, claims.UserUuid).Scan(&familyUuid, &revoked, &unexpired)
 		if err != nil {
 			return authDatabaseError(err)
 		}
 		if revoked {
 			reused = true
 			// Commit revocation before returning HTTP 401; an error here would roll it back.
-			return h.revokeRefreshFamily(ctx, tx, claims.UserUuid, familyUUID)
+			return h.revokeRefreshFamily(ctx, tx, claims.UserUuid, familyUuid)
 		}
 		if !unexpired || !claims.ExpiresAt.Time.After(time.Now()) {
 			return invalidRefreshError()
@@ -184,7 +184,7 @@ func (h *ApiHandler) Refresh(gc *gin.Context) {
 		if err != nil {
 			return TxInternalError(err)
 		}
-		return h.insertRefreshToken(ctx, tx, pair, familyUUID)
+		return h.insertRefreshToken(ctx, tx, pair, familyUuid)
 	})
 	if txErr != nil {
 		debugf("refresh transaction failed: %v", txErr)
@@ -221,17 +221,17 @@ func (h *ApiHandler) Logout(gc *gin.Context) {
 	}
 	ctx := gc.Request.Context()
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
-		var userUUID string
-		err := tx.QueryRow(ctx, fmt.Sprintf(`SELECT uuid FROM %s."user" WHERE uuid = $1 FOR UPDATE`, h.DbSchema), claims.UserUuid).Scan(&userUUID)
+		var userUuid string
+		err := tx.QueryRow(ctx, fmt.Sprintf(`SELECT uuid FROM %s."user" WHERE uuid = $1 FOR UPDATE`, h.DbSchema), claims.UserUuid).Scan(&userUuid)
 		if err != nil {
 			return authDatabaseError(err)
 		}
-		var familyUUID string
-		err = tx.QueryRow(ctx, fmt.Sprintf(`SELECT family_uuid FROM %s.refresh_token WHERE jti = $1 AND user_uuid = $2`, h.DbSchema), claims.ID, claims.UserUuid).Scan(&familyUUID)
+		var familyUuid string
+		err = tx.QueryRow(ctx, fmt.Sprintf(`SELECT family_uuid FROM %s.refresh_token WHERE jti = $1 AND user_uuid = $2`, h.DbSchema), claims.ID, claims.UserUuid).Scan(&familyUuid)
 		if err != nil {
 			return authDatabaseError(err)
 		}
-		return h.revokeRefreshFamily(ctx, tx, userUUID, familyUUID)
+		return h.revokeRefreshFamily(ctx, tx, userUuid, familyUuid)
 	})
 	if txErr != nil {
 		debugf("logout transaction failed: %v", txErr)
