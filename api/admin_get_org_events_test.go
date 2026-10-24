@@ -75,4 +75,45 @@ func TestAdminEventListMetadataPostgres(t *testing.T) {
 			t.Fatalf("zero/false field %s omitted", key)
 		}
 	}
+
+	// A past occurrence is available only when explicitly requested. Its series
+	// metadata must still include both occurrences, and undated drafts remain.
+	dbExec(t, h, `UPDATE uranus.event_date SET start_date=CURRENT_DATE-2,end_date=CURRENT_DATE-1 WHERE uuid=$1`, contentDate)
+	for _, test := range []struct {
+		name  string
+		query string
+		count int
+	}{
+		{"default excludes past", "", 2},
+		{"include historical dates", "?include_past=true", 3},
+		{"explicit false", "?include_past=false", 2},
+		{"invalid flag retains default", "?include_past=invalid", 2},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			response := socialRequest(router, "GET", "/api/admin/org/"+socialOrg+"/events"+test.query, token, "")
+			assertSocialStatus(t, response, 200)
+			var result struct {
+				Data []model.AdminListEvent `json:"data"`
+			}
+			if err := json.Unmarshal(response.Body.Bytes(), &result); err != nil {
+				t.Fatal(err)
+			}
+			if len(result.Data) != test.count || result.Data[0].Uuid != blank {
+				t.Fatalf("expected %d rows including the undated draft: %s", test.count, response.Body.String())
+			}
+			if test.query == "?include_past=true" && (result.Data[1].SeriesTotal != 2 || result.Data[1].SeriesIndex != 1) {
+				t.Fatalf("historical series metadata lost: %+v", result.Data[1])
+			}
+		})
+	}
+	// A date that started in the past but ends in the future is still ongoing.
+	dbExec(t, h, `UPDATE uranus.event_date SET end_date=CURRENT_DATE+1 WHERE uuid=$1`, contentDate)
+	response = socialRequest(router, "GET", "/api/admin/org/"+socialOrg+"/events", token, "")
+	assertSocialStatus(t, response, 200)
+	if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatal(err)
+	}
+	if len(payload.Data) != 3 {
+		t.Fatalf("ongoing occurrence excluded: %s", response.Body.String())
+	}
 }
