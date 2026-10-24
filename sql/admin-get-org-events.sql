@@ -54,7 +54,26 @@ SELECT
             WHERE ed.start_date >= NOW()
         ) OVER (PARTITION BY e.uuid),
         'YYYY-MM-DD'
-    ) AS next_date
+    ) AS next_date,
+
+    e.content_iso_639_1 AS content_language,
+    COALESCE(e.languages, '{}') AS languages,
+    CHAR_LENGTH(BTRIM(COALESCE(e.description, ''), E' \t\n\r\f')) AS description_length,
+    CHAR_LENGTH(BTRIM(COALESCE(e.summary, ''), E' \t\n\r\f')) AS summary_length,
+    (SELECT COUNT(DISTINCT pi.uuid)
+     FROM {{schema}}.pluto_image_link pil
+     JOIN {{schema}}.pluto_image pi ON pi.uuid = pil.pluto_image_uuid
+     WHERE pil.context = 'event' AND pil.context_uuid = e.uuid) AS image_count,
+    COALESCE(CARDINALITY(e.tags), 0) AS tag_count,
+    (SELECT COUNT(*) FROM {{schema}}.event_link el
+     WHERE el.event_uuid = e.uuid AND NULLIF(BTRIM(el.url), '') IS NOT NULL) AS link_count,
+    COALESCE(NULLIF(BTRIM(e.registration_link), ''), NULLIF(BTRIM(e.registration_email), ''),
+             NULLIF(BTRIM(e.registration_phone), '')) IS NOT NULL
+        OR e.registration_deadline IS NOT NULL AS has_registration,
+    COALESCE(NULLIF(BTRIM(ed.ticket_link), ''), NULLIF(BTRIM(e.ticket_link), '')) IS NOT NULL AS has_ticket,
+    COALESCE(e.ticket_flags::text[], '{}') AS ticket_flags,
+    e.price_type, e.min_price, e.max_price, e.currency,
+    COALESCE(ed.all_day, FALSE) AS all_day
 
 FROM {{schema}}.event e
 
