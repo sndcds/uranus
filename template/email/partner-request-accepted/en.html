@@ -1,0 +1,43 @@
+{{define "subject"}}kulturbytes – Your partnership request has been accepted{{end}}
+
+{{define "content"}}
+
+<h1 class="heading">
+    Hello {{.DisplayName}},
+</h1>
+
+<p class="text">
+    <strong>{{.ToOrgName}}</strong> has accepted your partnership request for
+    <strong>{{.FromOrgName}}</strong>.
+</p>
+
+<p class="text">
+    You can now view the partnership in the dashboard.
+</p>
+
+<p class="button-container">
+    <a href="{{.RedirectLink}}"
+       class="button"
+       target="_blank"
+       rel="noopener noreferrer">
+        View partnership
+    </a>
+</p>
+
+<p class="muted">
+    If the button does not work, copy this link into your browser:<br/>
+    <a href="{{.RedirectLink}}" class="link" style="word-break:break-all;">
+        {{.RedirectLink}}
+    </a>
+</p>
+
+<p class="footer">
+    Best regards,<br/>
+    <strong>Your kulturbytes team</strong><br/><br/>
+
+    <a href="https://kulturbytes.de" class="link">
+        kulturbytes.de
+    </a>
+</p>
+
+{{end}}

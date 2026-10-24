@@ -1,0 +1,52 @@
+{{define "subject"}}kulturbytes – Ny partnerskabsanmodning{{end}}
+
+{{define "content"}}
+
+<h1 class="heading">
+    Hej {{.DisplayName}},
+</h1>
+
+<p class="text">
+    <strong>{{.FromOrgName}}</strong> ønsker at indgå et partnerskab med
+    <strong>{{.ToOrgName}}</strong>.
+</p>
+
+{{if .Message}}
+<p class="text">
+    Besked til anmodningen:<br/>
+    <span style="white-space:pre-wrap;">{{.Message}}</span>
+</p>
+{{end}}
+
+<p class="text">
+    Du modtager denne e-mail, fordi du har rettighed til at besvare
+    partnerskabsanmodninger for {{.ToOrgName}}. Du kan acceptere eller afvise
+    anmodningen i dashboardet.
+</p>
+
+<p class="button-container">
+    <a href="{{.RedirectLink}}"
+       class="button"
+       target="_blank"
+       rel="noopener noreferrer">
+        Se partnerskabsanmodning
+    </a>
+</p>
+
+<p class="muted">
+    Hvis knappen ikke virker, kan du kopiere dette link til din browser:<br/>
+    <a href="{{.RedirectLink}}" class="link" style="word-break:break-all;">
+        {{.RedirectLink}}
+    </a>
+</p>
+
+<p class="footer">
+    Mange hilsner,<br/>
+    <strong>Dit kulturbytes-team</strong><br/><br/>
+
+    <a href="https://kulturbytes.de" class="link">
+        kulturbytes.de
+    </a>
+</p>
+
+{{end}}

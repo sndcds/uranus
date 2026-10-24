@@ -128,6 +128,14 @@ func (h *ApiHandler) AdminInsertOrgPartnerRequest(gc *gin.Context) {
 		return
 	}
 
+	if apiStatus == http.StatusCreated {
+		go func() {
+			if err := h.sendOrgPartnerRequestEmails(fromOrgUuid, body.ToOrgUuid); err != nil {
+				debugf("partner request emails failed: %v", err)
+			}
+		}()
+	}
+
 	apiRequest.SuccessNoData(apiStatus, apiMessage)
 }
 
@@ -166,18 +174,18 @@ func (h *ApiHandler) AdminInsertOrgPartnerAccept(gc *gin.Context) {
 		WHERE from_org_uuid = $1::uuid
 		  AND to_org_uuid = $2::uuid
 		  AND status = 'pending'
+		RETURNING from_user_uuid::text
 	`, h.DbSchema)
 
-	res, err := tx.Exec(ctx, updateQuery, partnerUuid, orgUuid)
+	var requestingUserUuid string
+	err = tx.QueryRow(ctx, updateQuery, partnerUuid, orgUuid).Scan(&requestingUserUuid)
+	if errors.Is(err, pgx.ErrNoRows) {
+		apiRequest.Error(http.StatusConflict, "(#1) request is not pending or already processed")
+		return
+	}
 	if err != nil {
 		debugf(err.Error())
 		apiRequest.InternalServerError()
-		return
-	}
-
-	rowsAffected := res.RowsAffected()
-	if rowsAffected == 0 {
-		apiRequest.Error(http.StatusConflict, "(#1) request is not pending or already processed")
 		return
 	}
 
@@ -205,6 +213,12 @@ func (h *ApiHandler) AdminInsertOrgPartnerAccept(gc *gin.Context) {
 		apiRequest.InternalServerError()
 		return
 	}
+
+	go func() {
+		if err := h.sendOrgPartnerRequestAcceptedEmail(requestingUserUuid, partnerUuid, orgUuid); err != nil {
+			debugf("partner request acceptance email failed: %v", err)
+		}
+	}()
 
 	apiRequest.SuccessNoData(http.StatusOK, "OK")
 }
