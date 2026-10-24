@@ -41,7 +41,7 @@ func (h *ApiHandler) loadOrgPartnerRequestEmailData(ctx context.Context, fromOrg
 	err := h.DbPool.QueryRow(ctx, query, fromOrgUuid, toOrgUuid).Scan(
 		&data.FromOrgName, &data.ToOrgName, &data.Message,
 	)
-	data.RedirectLink = strings.TrimRight(h.Config.FrontendDashboard, "/") + "/admin/org/partners"
+	data.RedirectLink = strings.TrimRight(h.Config.FrontendDashboard, "/") + "/admin/dashboard"
 	return data, err
 }
 

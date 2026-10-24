@@ -26,7 +26,7 @@ func TestOrgPartnerRequestEmailTemplates(t *testing.T) {
 				data := orgPartnerRequestEmailData{
 					Language: locale, DisplayName: "Alex <script>", FromOrgName: "From & Co",
 					ToOrgName: "To <b>Org</b>", Message: "Hello\n<script>alert(1)</script>",
-					RedirectLink: "https://dashboard.example.test/admin/org/partners",
+					RedirectLink: "https://dashboard.example.test/admin/dashboard",
 				}
 				subject, body, err := app.RenderEmailTemplate(
 					"template/email/layout/"+locale+".html", "template/email/"+templateName+"/"+locale+".html", data,
