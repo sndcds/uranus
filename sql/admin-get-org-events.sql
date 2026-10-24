@@ -128,7 +128,8 @@ LEFT JOIN LATERAL(
 
 WHERE e.org_uuid = $2::uuid
     AND (
-        ed.start_date IS NULL
+        $3::boolean
+        OR ed.start_date IS NULL
         OR ed.start_date >= CURRENT_DATE
         OR ed.end_date >= CURRENT_DATE
     )
