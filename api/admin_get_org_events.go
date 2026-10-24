@@ -37,20 +37,10 @@ func (h *ApiHandler) AdminGetOrgEvents(gc *gin.Context) {
 	txErr := WithTransaction(ctx, h.DbPool, func(tx pgx.Tx) *ApiTxError {
 		var err error
 
-		/*
-			startStr := gc.Query("start")
-			var startDate time.Time
-			if startStr != "" {
-				startDate, err = time.Parse("2006-01-02", startStr)
-				if err != nil {
-					startDate = time.Now()
-				}
-			} else {
-				startDate = time.Now()
-			}
-		*/
-
-		rows, err := tx.Query(ctx, app.UranusInstance.SqlAdminGetOrgEvents, userUuid, orgUuid)
+		// The dashboard can opt in to historical occurrences for its date filters.
+		// Keep the upcoming/ongoing default for existing clients.
+		includePast := gc.Query("include_past") == "true"
+		rows, err := tx.Query(ctx, app.UranusInstance.SqlAdminGetOrgEvents, userUuid, orgUuid, includePast)
 		if err != nil {
 			debugf(err.Error())
 			return &ApiTxError{
