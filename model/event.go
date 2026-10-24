@@ -235,8 +235,8 @@ type AdminListEvent struct {
 	DateUuid             *string     `json:"date_uuid"`
 	ReleaseStatus        *string     `json:"release_status"`
 	ReleaseDate          *string     `json:"release_date,omitempty"`
-	Categories           *[]int      `json:"categories,omitempty"`
-	EventTypes           []EventType `json:"event_types,omitempty"`
+	Categories           *[]int      `json:"categories"`
+	EventTypes           []EventType `json:"event_types"`
 	CanEditEvent         bool        `json:"can_edit_event"`
 	CanDeleteEvent       bool        `json:"can_delete_event"`
 	CanReleaseEvent      bool        `json:"can_release_event"`
@@ -253,15 +253,31 @@ type AdminListEvent struct {
 	ImageUuid            *string     `json:"image_uuid,omitempty"`
 	ImageUrl             *string     `json:"image_url,omitempty"`
 	SeriesIndex          int         `json:"series_index,omitempty"`
-	SeriesTotal          int         `json:"series_total,omitempty"`
+	SeriesTotal          int         `json:"series_total"`
 	StartDate            *string     `json:"start_date"`
 	StartTime            *string     `json:"start_time"`
 	EndDate              *string     `json:"end_date,omitempty"`
 	EndTime              *string     `json:"end_time,omitempty"`
 	Title                string      `json:"title"`
-	Subtitle             *string     `json:"subtitle,omitempty"`
+	Subtitle             *string     `json:"subtitle"`
 	UpcomingDatesCount   int         `json:"upcoming_dates_count,omitempty"`
 	NextDate             *string     `json:"next_date,omitempty"`
+	// Compact metadata for the admin list; no per-event detail requests required.
+	ContentLanguage   *string  `json:"content_language"`
+	Languages         []string `json:"languages"`
+	DescriptionLength int      `json:"description_length"`
+	SummaryLength     int      `json:"summary_length"`
+	ImageCount        int      `json:"image_count"`
+	TagCount          int      `json:"tag_count"`
+	LinkCount         int      `json:"link_count"`
+	HasRegistration   bool     `json:"has_registration"`
+	HasTicket         bool     `json:"has_ticket"`
+	TicketFlags       []string `json:"ticket_flags"`
+	PriceType         *string  `json:"price_type"`
+	MinPrice          *float64 `json:"min_price"`
+	MaxPrice          *float64 `json:"max_price"`
+	Currency          *string  `json:"currency"`
+	AllDay            bool     `json:"all_day"`
 }
 
 // UserEventNotification contains a single event notification

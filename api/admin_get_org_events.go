@@ -98,6 +98,21 @@ func (h *ApiHandler) AdminGetOrgEvents(gc *gin.Context) {
 				&e.SeriesIndex,
 				&e.UpcomingDatesCount,
 				&e.NextDate,
+				&e.ContentLanguage,
+				&e.Languages,
+				&e.DescriptionLength,
+				&e.SummaryLength,
+				&e.ImageCount,
+				&e.TagCount,
+				&e.LinkCount,
+				&e.HasRegistration,
+				&e.HasTicket,
+				&e.TicketFlags,
+				&e.PriceType,
+				&e.MinPrice,
+				&e.MaxPrice,
+				&e.Currency,
+				&e.AllDay,
 			)
 			if err != nil {
 				return &ApiTxError{
@@ -109,6 +124,10 @@ func (h *ApiHandler) AdminGetOrgEvents(gc *gin.Context) {
 				_ = json.Unmarshal(eventTypesData, &e.EventTypes)
 			}
 			events = append(events, e)
+		}
+
+		if err := rows.Err(); err != nil {
+			return &ApiTxError{Code: http.StatusInternalServerError, Err: fmt.Errorf("read admin event list: %w", err)}
 		}
 
 		orgPermissions, err = h.GetUserOrgPermissionsTx(gc, tx, userUuid, orgUuid)
