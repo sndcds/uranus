@@ -1,0 +1,47 @@
+{{define "subject"}}kulturbytes – An update on your partnership request{{end}}
+
+{{define "content"}}
+
+<h1 class="heading">
+    Hello {{.DisplayName}},
+</h1>
+
+<p class="text">
+    Thank you for your interest in a partnership. Your request on behalf of
+    <strong>{{.FromOrgName}}</strong> to <strong>{{.ToOrgName}}</strong>
+    has not been accepted on this occasion.
+</p>
+
+<p class="text">
+    If you would like to learn more about the decision or discuss opportunities
+    to work together, it may be helpful to contact <strong>{{.ToOrgName}}</strong>
+    directly. A personal conversation can often help clarify open questions
+    and explore shared possibilities.
+</p>
+
+<p class="button-container">
+    <a href="{{.RedirectLink}}"
+       class="button"
+       target="_blank"
+       rel="noopener noreferrer">
+        Go to dashboard
+    </a>
+</p>
+
+<p class="muted">
+    If the button does not work, copy this link into your browser:<br/>
+    <a href="{{.RedirectLink}}" class="link" style="word-break:break-all;">
+        {{.RedirectLink}}
+    </a>
+</p>
+
+<p class="footer">
+    Best regards,<br/>
+    <strong>Your kulturbytes team</strong><br/><br/>
+
+    <a href="https://kulturbytes.de" class="link">
+        kulturbytes.de
+    </a>
+</p>
+
+{{end}}

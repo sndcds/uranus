@@ -100,13 +100,37 @@ func (h *ApiHandler) sendOrgPartnerRequestAcceptedEmail(requestingUserUuid, from
 		return err
 	}
 
+	return h.sendOrgPartnerRequestResultEmail(ctx, "partner-request-accepted", requestingUserUuid, data)
+}
+
+func (h *ApiHandler) sendOrgPartnerRequestRejectedEmail(requestingUserUuid, fromOrgUuid, toOrgUuid string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	// The request has been deleted, so load the organization names independently.
+	query := fmt.Sprintf(`
+		SELECT from_org.name, to_org.name
+		FROM %[1]s.organization from_org, %[1]s.organization to_org
+		WHERE from_org.uuid = $1::uuid AND to_org.uuid = $2::uuid
+	`, h.DbSchema)
+	var data orgPartnerRequestEmailData
+	if err := h.DbPool.QueryRow(ctx, query, fromOrgUuid, toOrgUuid).Scan(&data.FromOrgName, &data.ToOrgName); err != nil {
+		return err
+	}
+	data.RedirectLink = strings.TrimRight(h.Config.FrontendDashboard, "/") + "/admin/dashboard"
+
+	return h.sendOrgPartnerRequestResultEmail(ctx, "partner-request-rejected", requestingUserUuid, data)
+}
+
+// Notify the original requester returned by the successful UPDATE or DELETE.
+func (h *ApiHandler) sendOrgPartnerRequestResultEmail(ctx context.Context, templateName, requestingUserUuid string, data orgPartnerRequestEmailData) error {
 	query := fmt.Sprintf(`
 		SELECT email, COALESCE(locale, ''), display_name, first_name, last_name
 		FROM %s."user"
 		WHERE uuid = $1::uuid
 	`, h.DbSchema)
 	var recipient orgPartnerRequestEmailRecipient
-	err = h.DbPool.QueryRow(ctx, query, requestingUserUuid).Scan(
+	err := h.DbPool.QueryRow(ctx, query, requestingUserUuid).Scan(
 		&recipient.Email, &recipient.Locale, &recipient.DisplayName, &recipient.FirstName, &recipient.LastName,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -117,7 +141,7 @@ func (h *ApiHandler) sendOrgPartnerRequestAcceptedEmail(requestingUserUuid, from
 		return err
 	}
 
-	return sendOrgPartnerRequestEmail("partner-request-accepted", recipient, data)
+	return sendOrgPartnerRequestEmail(templateName, recipient, data)
 }
 
 func sendOrgPartnerRequestEmail(templateName string, recipient orgPartnerRequestEmailRecipient, data orgPartnerRequestEmailData) error {

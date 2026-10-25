@@ -246,15 +246,28 @@ func (h *ApiHandler) AdminOrgPartnerReject(gc *gin.Context) {
 	query := fmt.Sprintf(`
 		DELETE FROM %s.organization_partner_request
 		WHERE from_org_uuid = $1::uuid
-		AND to_org_uuid = $2::uuid
+		  AND to_org_uuid = $2::uuid
+		  AND status = 'pending'
+		RETURNING from_user_uuid::text
 		`, h.DbSchema)
 
-	_, err := h.DbPool.Query(ctx, query, partnerUuid, orgUuid)
+	var requestingUserUuid string
+	err := h.DbPool.QueryRow(ctx, query, partnerUuid, orgUuid).Scan(&requestingUserUuid)
+	if errors.Is(err, pgx.ErrNoRows) {
+		apiRequest.SuccessNoData(http.StatusOK, "OK")
+		return
+	}
 	if err != nil {
 		debugf(err.Error())
 		apiRequest.InternalServerError()
 		return
 	}
+
+	go func() {
+		if err := h.sendOrgPartnerRequestRejectedEmail(requestingUserUuid, partnerUuid, orgUuid); err != nil {
+			debugf("partner request rejection email failed: %v", err)
+		}
+	}()
 
 	apiRequest.SuccessNoData(http.StatusOK, "OK")
 }

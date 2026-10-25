@@ -2,6 +2,7 @@ package api
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"mime"
@@ -20,7 +21,7 @@ import (
 
 func TestOrgPartnerRequestEmailTemplates(t *testing.T) {
 	t.Chdir("..")
-	for _, templateName := range []string{"partner-request", "partner-request-accepted"} {
+	for _, templateName := range []string{"partner-request", "partner-request-accepted", "partner-request-rejected"} {
 		for _, locale := range []string{"de", "en", "da"} {
 			t.Run(templateName+"/"+locale, func(t *testing.T) {
 				data := orgPartnerRequestEmailData{
@@ -44,6 +45,17 @@ func TestOrgPartnerRequestEmailTemplates(t *testing.T) {
 				}
 				if templateName == "partner-request" && !strings.Contains(body, "Hello\n&lt;script&gt;alert(1)&lt;/script&gt;") {
 					t.Fatal("request message missing or not escaped")
+				}
+				if templateName == "partner-request-rejected" {
+					for _, expected := range map[string][]string{
+						"de": {"nicht angenommen", "direkt zu kontaktieren"},
+						"en": {"not been accepted", "helpful to contact", "directly"},
+						"da": {"ikke blevet accepteret", "en hjælp at kontakte", "direkte"},
+					}[locale] {
+						if !strings.Contains(body, expected) {
+							t.Errorf("rejection email is missing %q", expected)
+						}
+					}
 				}
 				data.Message = ""
 				_, body, err = app.RenderEmailTemplate("template/email/layout/"+locale+".html", "template/email/"+templateName+"/"+locale+".html", data)
@@ -153,6 +165,7 @@ func partnerRequestDatabase(t *testing.T) (*ApiHandler, *gin.Engine, <-chan part
 	r.Use(func(gc *gin.Context) { gc.Set("user-uuid", authTestUser) })
 	r.POST("/org/:orgUuid/request", h.AdminInsertOrgPartnerRequest)
 	r.POST("/org/:orgUuid/accept/:partnerUuid", h.AdminInsertOrgPartnerAccept)
+	r.POST("/org/:orgUuid/reject/:partnerUuid", h.AdminOrgPartnerReject)
 	t.Chdir("..")
 	return h, r, emails
 }
@@ -210,7 +223,7 @@ func TestOrgPartnerRequestPostgresNotifications(t *testing.T) {
 		locale := map[string]string{"recipient0@example.test": "en", "recipient1@example.test": "da", "recipient2@example.test": "de", "recipient3@example.test": "de"}[email.To]
 		if locale == "" || seen[email.To] || !strings.Contains(email.Body, `lang="`+locale+`"`) ||
 			!strings.Contains(email.Body, "Hello &lt;script&gt;\nPartner") ||
-			!strings.Contains(email.Body, "https://dashboard.example.test/admin/org/partners") {
+			!strings.Contains(email.Body, "https://dashboard.example.test/admin/dashboard") {
 			t.Fatalf("wrong recipient, locale or content: %+v", email)
 		}
 		seen[email.To] = true
@@ -249,6 +262,45 @@ func TestOrgPartnerRequestPostgresRollbackNotifications(t *testing.T) {
 		DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION uranus.fail_partner_commit()`)
 	assertSocialStatus(t, socialRequest(r, "POST", "/org/"+socialOtherOrg+"/accept/"+socialOrg, "", ""), 500)
 	noPartnerEmail(t, emails)
+	dbExec(t, h, "DROP TRIGGER fail_partner_commit ON uranus.organization_partner_request")
+	dbExec(t, h, `CREATE CONSTRAINT TRIGGER fail_partner_commit AFTER DELETE ON uranus.organization_partner_request
+		DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION uranus.fail_partner_commit()`)
+	assertSocialStatus(t, socialRequest(r, "POST", "/org/"+socialOtherOrg+"/reject/"+socialOrg, "", ""), 500)
+	noPartnerEmail(t, emails)
+}
+
+func TestOrgPartnerRequestPostgresRejectionNotifications(t *testing.T) {
+	h, r, emails := partnerRequestDatabase(t)
+	dbExec(t, h, `UPDATE uranus."user" SET locale='en',first_name='Original',last_name='Requester' WHERE uuid=$1`, authTestUser)
+	dbExec(t, h, `INSERT INTO uranus.organization_partner_request (from_user_uuid,from_org_uuid,to_org_uuid) VALUES ($1,$2,$3)`, authTestUser, socialOrg, socialOtherOrg)
+	// A different user rejects the request; only the original requester is notified.
+	r.Use(func(gc *gin.Context) { gc.Set("user-uuid", socialOtherUser) })
+	r.POST("/other/:orgUuid/reject/:partnerUuid", h.AdminOrgPartnerReject)
+	path := "/other/" + socialOtherOrg + "/reject/" + socialOrg
+	assertSocialStatus(t, socialRequest(r, "POST", path, "", ""), 200)
+	email := receivePartnerEmail(t, emails)
+	for _, expected := range []string{"Hello Original Requester,", "Requested Org", "Requesting Org", "not been accepted", "helpful to contact", "directly", "https://dashboard.example.test/admin/dashboard"} {
+		if !strings.Contains(email.Body, expected) {
+			t.Errorf("rejection notification is missing %q", expected)
+		}
+	}
+	if email.To != "auth@example.test" || email.Subject != "kulturbytes – An update on your partnership request" {
+		t.Fatalf("wrong rejection notification: %+v", email)
+	}
+	var count int
+	if err := h.DbPool.QueryRow(context.Background(), "SELECT count(*) FROM "+h.DbSchema+".organization_partner_request").Scan(&count); err != nil || count != 0 {
+		t.Fatalf("request was not deleted: count=%d, err=%v", count, err)
+	}
+	// Repeating a rejection must not produce another email.
+	assertSocialStatus(t, socialRequest(r, "POST", path, "", ""), 200)
+	noPartnerEmail(t, emails)
+	// An accepted request must not be deleted or reported as rejected.
+	dbExec(t, h, `INSERT INTO uranus.organization_partner_request (from_user_uuid,from_org_uuid,to_org_uuid,status) VALUES ($1,$2,$3,'accepted')`, authTestUser, socialOrg, socialOtherOrg)
+	assertSocialStatus(t, socialRequest(r, "POST", path, "", ""), 200)
+	noPartnerEmail(t, emails)
+	if err := h.DbPool.QueryRow(context.Background(), "SELECT count(*) FROM "+h.DbSchema+".organization_partner_request WHERE status='accepted'").Scan(&count); err != nil || count != 1 {
+		t.Fatalf("accepted request was deleted: count=%d, err=%v", count, err)
+	}
 }
 
 func TestOrgPartnerRequestPostgresDeliveryFailure(t *testing.T) {
