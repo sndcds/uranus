@@ -1,0 +1,47 @@
+{{define "subject"}}kulturbytes – Svar på din partnerskabsanmodning{{end}}
+
+{{define "content"}}
+
+<h1 class="heading">
+    Hej {{.DisplayName}},
+</h1>
+
+<p class="text">
+    Tak for din interesse i et partnerskab. Din anmodning på vegne af
+    <strong>{{.FromOrgName}}</strong> til <strong>{{.ToOrgName}}</strong>
+    er ikke blevet accepteret denne gang.
+</p>
+
+<p class="text">
+    Hvis du gerne vil vide mere om beslutningen eller drøfte mulighederne for
+    et samarbejde, kan det være en hjælp at kontakte <strong>{{.ToOrgName}}</strong>
+    direkte. En personlig samtale kan ofte afklare åbne spørgsmål
+    og fælles muligheder.
+</p>
+
+<p class="button-container">
+    <a href="{{.RedirectLink}}"
+       class="button"
+       target="_blank"
+       rel="noopener noreferrer">
+        Gå til dashboardet
+    </a>
+</p>
+
+<p class="muted">
+    Hvis knappen ikke virker, kan du kopiere dette link til din browser:<br/>
+    <a href="{{.RedirectLink}}" class="link" style="word-break:break-all;">
+        {{.RedirectLink}}
+    </a>
+</p>
+
+<p class="footer">
+    Mange hilsner,<br/>
+    <strong>Dit kulturbytes-team</strong><br/><br/>
+
+    <a href="https://kulturbytes.de" class="link">
+        kulturbytes.de
+    </a>
+</p>
+
+{{end}}
