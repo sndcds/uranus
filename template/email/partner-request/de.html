@@ -1,0 +1,52 @@
+{{define "subject"}}kulturbytes – Neue Partneranfrage{{end}}
+
+{{define "content"}}
+
+<h1 class="heading">
+    Hallo {{.DisplayName}},
+</h1>
+
+<p class="text">
+    <strong>{{.FromOrgName}}</strong> möchte eine Partnerschaft mit
+    <strong>{{.ToOrgName}}</strong> eingehen.
+</p>
+
+{{if .Message}}
+<p class="text">
+    Nachricht zur Anfrage:<br/>
+    <span style="white-space:pre-wrap;">{{.Message}}</span>
+</p>
+{{end}}
+
+<p class="text">
+    Du erhältst diese E-Mail, weil du für {{.ToOrgName}} die Berechtigung
+    hast, Partneranfragen zu beantworten. Du kannst die Anfrage im Dashboard
+    annehmen oder ablehnen.
+</p>
+
+<p class="button-container">
+    <a href="{{.RedirectLink}}"
+       class="button"
+       target="_blank"
+       rel="noopener noreferrer">
+        Partneranfrage ansehen
+    </a>
+</p>
+
+<p class="muted">
+    Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br/>
+    <a href="{{.RedirectLink}}" class="link" style="word-break:break-all;">
+        {{.RedirectLink}}
+    </a>
+</p>
+
+<p class="footer">
+    Viele Grüße,<br/>
+    <strong>Dein kulturbytes-Team</strong><br/><br/>
+
+    <a href="https://kulturbytes.de" class="link">
+        kulturbytes.de
+    </a>
+</p>
+
+{{end}}

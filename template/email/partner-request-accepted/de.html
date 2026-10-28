@@ -1,0 +1,43 @@
+{{define "subject"}}kulturbytes – Deine Partneranfrage wurde angenommen{{end}}
+
+{{define "content"}}
+
+<h1 class="heading">
+    Hallo {{.DisplayName}},
+</h1>
+
+<p class="text">
+    <strong>{{.ToOrgName}}</strong> hat deine Partneranfrage für
+    <strong>{{.FromOrgName}}</strong> angenommen.
+</p>
+
+<p class="text">
+    Du kannst die Partnerschaft jetzt im Dashboard ansehen.
+</p>
+
+<p class="button-container">
+    <a href="{{.RedirectLink}}"
+       class="button"
+       target="_blank"
+       rel="noopener noreferrer">
+        Partnerschaft ansehen
+    </a>
+</p>
+
+<p class="muted">
+    Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br/>
+    <a href="{{.RedirectLink}}" class="link" style="word-break:break-all;">
+        {{.RedirectLink}}
+    </a>
+</p>
+
+<p class="footer">
+    Viele Grüße,<br/>
+    <strong>Dein kulturbytes-Team</strong><br/><br/>
+
+    <a href="https://kulturbytes.de" class="link">
+        kulturbytes.de
+    </a>
+</p>
+
+{{end}}

@@ -1,0 +1,52 @@
+{{define "subject"}}kulturbytes – New partnership request{{end}}
+
+{{define "content"}}
+
+<h1 class="heading">
+    Hello {{.DisplayName}},
+</h1>
+
+<p class="text">
+    <strong>{{.FromOrgName}}</strong> would like to establish a partnership with
+    <strong>{{.ToOrgName}}</strong>.
+</p>
+
+{{if .Message}}
+<p class="text">
+    Message included with the request:<br/>
+    <span style="white-space:pre-wrap;">{{.Message}}</span>
+</p>
+{{end}}
+
+<p class="text">
+    You are receiving this email because you have permission to answer
+    partnership requests for {{.ToOrgName}}. You can accept or decline
+    the request in the dashboard.
+</p>
+
+<p class="button-container">
+    <a href="{{.RedirectLink}}"
+       class="button"
+       target="_blank"
+       rel="noopener noreferrer">
+        View partnership request
+    </a>
+</p>
+
+<p class="muted">
+    If the button does not work, copy this link into your browser:<br/>
+    <a href="{{.RedirectLink}}" class="link" style="word-break:break-all;">
+        {{.RedirectLink}}
+    </a>
+</p>
+
+<p class="footer">
+    Best regards,<br/>
+    <strong>Your kulturbytes team</strong><br/><br/>
+
+    <a href="https://kulturbytes.de" class="link">
+        kulturbytes.de
+    </a>
+</p>
+
+{{end}}

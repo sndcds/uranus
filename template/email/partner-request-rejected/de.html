@@ -1,0 +1,47 @@
+{{define "subject"}}kulturbytes – Rückmeldung zu deiner Partneranfrage{{end}}
+
+{{define "content"}}
+
+<h1 class="heading">
+    Hallo {{.DisplayName}},
+</h1>
+
+<p class="text">
+    Vielen Dank für dein Interesse an einer Partnerschaft. Deine Anfrage für
+    <strong>{{.FromOrgName}}</strong> bei <strong>{{.ToOrgName}}</strong>
+    wurde diesmal nicht angenommen.
+</p>
+
+<p class="text">
+    Wenn du mehr über die Entscheidung erfahren oder Möglichkeiten einer
+    Zusammenarbeit besprechen möchtest, kann es hilfreich sein,
+    <strong>{{.ToOrgName}}</strong> direkt zu kontaktieren. In einem persönlichen
+    Austausch lassen sich offene Fragen und gemeinsame Möglichkeiten oft leichter klären.
+</p>
+
+<p class="button-container">
+    <a href="{{.RedirectLink}}"
+       class="button"
+       target="_blank"
+       rel="noopener noreferrer">
+        Zum Dashboard
+    </a>
+</p>
+
+<p class="muted">
+    Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br/>
+    <a href="{{.RedirectLink}}" class="link" style="word-break:break-all;">
+        {{.RedirectLink}}
+    </a>
+</p>
+
+<p class="footer">
+    Viele Grüße,<br/>
+    <strong>Dein kulturbytes-Team</strong><br/><br/>
+
+    <a href="https://kulturbytes.de" class="link">
+        kulturbytes.de
+    </a>
+</p>
+
+{{end}}
