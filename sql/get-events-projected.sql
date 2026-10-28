@@ -40,7 +40,12 @@ SELECT
     ep.types,
     ep.languages,
     ep.tags,
+
     ep.org_name,
+    ep.org_postal_code,
+    ep.org_city,
+    ep.org_country,
+
     ep.image_uuid,
     COALESCE(ep.image_ai_label, 'none') AS image_ai_label,
 

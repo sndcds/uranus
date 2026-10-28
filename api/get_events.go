@@ -103,6 +103,9 @@ type eventResponse struct {
 	ImageAiLabel            *string     `json:"image_ai_label,omitempty"`
 	OrgUuid                 string      `json:"org_uuid"`
 	OrgName                 string      `json:"org_name"`
+	OrgPostalCode           *string     `json:"org_postal_code"`
+	OrgCity                 *string     `json:"org_city"`
+	OrgCountry              *string     `json:"org_country"`
 	Categories              []int       `json:"categories,omitempty"`
 	EventTypes              []eventType `json:"event_types,omitempty"`
 	Languages               []string    `json:"languages"`
@@ -602,6 +605,9 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			&e.Languages,
 			&e.Tags,
 			&e.OrgName,
+			&e.OrgPostalCode,
+			&e.OrgCity,
+			&e.OrgCountry,
 			&e.ImageUuid,
 			&e.ImageAiLabel,
 			&e.VenueName,
@@ -721,14 +727,14 @@ func (h *ApiHandler) GetEventsWeek(gc *gin.Context) {
 	query = strings.Replace(query, "{{portal_conditions}}", filters.PortalConditions, 1)
 
 	/*
-	debugf("filters.ConditionsStr: %v", filters.ConditionsStr)
-	debugf("filters.PortalJoin: %v", filters.PortalJoin)
-	debugf("filters.PortalConditions: %v", filters.PortalConditions)
-	debugf(query)
-	debugf("ARGS (%d):\n", len(filters.Args))
-	for i, arg := range filters.Args {
-		debugf("ARGS[%d]: %#v", i, arg)
-	}
+		debugf("filters.ConditionsStr: %v", filters.ConditionsStr)
+		debugf("filters.PortalJoin: %v", filters.PortalJoin)
+		debugf("filters.PortalConditions: %v", filters.PortalConditions)
+		debugf(query)
+		debugf("ARGS (%d):\n", len(filters.Args))
+		for i, arg := range filters.Args {
+			debugf("ARGS[%d]: %#v", i, arg)
+		}
 	*/
 
 	rows, err := h.DbPool.Query(ctx, query, filters.Args...)
