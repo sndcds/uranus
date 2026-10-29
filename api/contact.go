@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"html"
 	"net/http"
 	"net/mail"
 	"strings"
@@ -182,13 +183,17 @@ func (h *ApiHandler) Contact(gc *gin.Context) {
 	subject := "New contact message – kulturbytes"
 
 	body := fmt.Sprintf(
-		"A new contact message was received.\n\n"+
-			"Received at: %s\n"+
-			"Sender: %s\n\n"+
-			"Message:\n%s\n",
-		createdAt.Format(time.RFC3339),
-		email,
-		message,
+		"<p>A new contact message was received.</p>"+
+			"<p>Received at: %s<br>"+
+			"Sender: %s</p>"+
+			"<p>Message:<br>%s</p>",
+		html.EscapeString(createdAt.Format(time.RFC3339)),
+		html.EscapeString(email),
+		strings.ReplaceAll(
+			html.EscapeString(message),
+			"\n",
+			"<br>",
+		),
 	)
 
 	go func() {
