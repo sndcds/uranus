@@ -76,7 +76,7 @@ type eventResponse struct {
 	DateSlug                string      `json:"date_slug"`
 	Title                   string      `json:"title"`
 	Subtitle                *string     `json:"subtitle"`
-	Summary                 *string     `json:"summary"`
+	Summary                 *string     `json:"summary,omitempty"`
 	StartDate               string      `json:"start_date"`
 	StartTime               string      `json:"start_time,omitempty"`
 	EndDate                 *string     `json:"end_date,omitempty"`
@@ -103,15 +103,15 @@ type eventResponse struct {
 	ImageAiLabel            *string     `json:"image_ai_label,omitempty"`
 	OrgUuid                 string      `json:"org_uuid"`
 	OrgName                 string      `json:"org_name"`
-	OrgPostalCode           *string     `json:"org_postal_code"`
-	OrgCity                 *string     `json:"org_city"`
-	OrgCountry              *string     `json:"org_country"`
+	OrgPostalCode           *string     `json:"org_postal_code,omitempty"`
+	OrgCity                 *string     `json:"org_citymomitempty"`
+	OrgCountry              *string     `json:"org_country,omitempty"`
 	Categories              []int       `json:"categories,omitempty"`
 	EventTypes              []eventType `json:"event_types,omitempty"`
-	Languages               []string    `json:"languages"`
-	Tags                    []string    `json:"tags"`
-	MinAge                  *int        `json:"min_age"`
-	MaxAge                  *int        `json:"max_age"`
+	Languages               []string    `json:"languages,omitempty"`
+	Tags                    []string    `json:"tags,omitempty"`
+	MinAge                  *int        `json:"min_age,omitempty"`
+	MaxAge                  *int        `json:"max_age,omitempty"`
 	PriceType               *string     `json:"price_type,omitempty"`
 	MinPrice                *float64    `json:"min_price,omitempty"`
 	MaxPrice                *float64    `json:"max_price,omitempty"`

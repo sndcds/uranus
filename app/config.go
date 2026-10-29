@@ -5,9 +5,6 @@ import (
 	"fmt"
 )
 
-// TODO: Review code
-
-// Config holds database configuration details
 type Config struct {
 	SocialWorkerInterval        int      `json:"social_worker_interval"`
 	SocialWorkerBatchSize       int      `json:"social_worker_batch_size"`
@@ -48,12 +45,13 @@ type Config struct {
 	AuthResetPasswordUrl        string   `json:"auth_reset_password_url"`
 	SignupTokenExpirationTime   int      `json:"signup_token_expiration_time"`
 	InvitationExpirationMinutes int      `json:"invitation_expiration_minutes"`
+	ContactEmail                string   `json:"contact_email"`
 	ContactRateLimit            int64    `json:"contact_rate_limit"`
 	ContactRatePeriodMinutes    int      `json:"contact_rate_period_minutes"`
 	ContactEmailRateLimit       int64    `json:"contact_email_rate_limit"`
 	ContactSecret               string   `json:"contact_secret"`
-	ContactMassageMinLength     int      `json:"contact_message_min_length"`
-	ContactMassageMaxLength     int      `json:"contact_message_max_length"`
+	ContactMessageMinLength     int      `json:"contact_message_min_length"`
+	ContactMessageMaxLength     int      `json:"contact_message_max_length"`
 }
 
 func (config Config) Print() {
@@ -95,7 +93,7 @@ func DefaultConfig() Config {
 		ContactRateLimit:            5,
 		ContactEmailRateLimit:       3,
 		ContactRatePeriodMinutes:    60,
-		ContactMassageMinLength:     10,
-		ContactMassageMaxLength:     1000,
+		ContactMessageMinLength:     10,
+		ContactMessageMaxLength:     1000,
 	}
 }

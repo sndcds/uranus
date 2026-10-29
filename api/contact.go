@@ -58,7 +58,7 @@ func (h *ApiHandler) Contact(gc *gin.Context) {
 		return
 	}
 
-	if len(message) < app.UranusInstance.Config.ContactMassageMinLength {
+	if len(message) < app.UranusInstance.Config.ContactMessageMinLength {
 		apiRequest.Error(
 			http.StatusBadRequest,
 			"message needs to be at least 10 characters",
@@ -66,7 +66,7 @@ func (h *ApiHandler) Contact(gc *gin.Context) {
 		return
 	}
 
-	if len(message) > app.UranusInstance.Config.ContactMassageMaxLength {
+	if len(message) > app.UranusInstance.Config.ContactMessageMaxLength {
 		apiRequest.Error(
 			http.StatusBadRequest,
 			"message is too long",
@@ -175,6 +175,32 @@ func (h *ApiHandler) Contact(gc *gin.Context) {
 		apiRequest.Error(txErr.Code, txErr.Error())
 		return
 	}
+
+	// Send contact notification after the transaction committed.
+	createdAt := time.Now()
+
+	subject := "New contact message – kulturbytes"
+
+	body := fmt.Sprintf(
+		"A new contact message was received.\n\n"+
+			"Received at: %s\n"+
+			"Sender: %s\n\n"+
+			"Message:\n%s\n",
+		createdAt.Format(time.RFC3339),
+		email,
+		message,
+	)
+
+	go func() {
+		if err := app.SendEmailWithTimeout(
+			app.UranusInstance.Config.ContactEmail,
+			subject,
+			body,
+			20*time.Second,
+		); err != nil {
+			debugf("failed to send contact notification: %v", err)
+		}
+	}()
 
 	apiRequest.SuccessNoData(
 		http.StatusCreated,
