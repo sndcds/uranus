@@ -606,7 +606,12 @@ components:
     LastEventStartAt:
       name: last_event_start_at
       in: query
-      description: Cursor timestamp used with last_event_date_uuid for stable pagination.
+      description: >-
+        Minute-precision sort cursor (YYYY-MM-DDTHH:mm, without a timezone).
+        Pass the returned value unchanged with last_event_date_uuid and reuse
+        pagination_reference_date as start, keeping all other filters unchanged.
+        For events spanning more than five days and active on the reference date,
+        this is calculated as that date at 23:59; original event dates are preserved.
       required: false
       schema:
         type: string
@@ -975,6 +980,11 @@ components:
         last_event_start_at:
           type: string
           nullable: true
+          description: Sort cursor in YYYY-MM-DDTHH:mm format; may differ from the original event start.
+        pagination_reference_date:
+          type: string
+          format: date
+          description: Fixed reference date; pass it as start for all subsequent pages.
 
     CalendarDayResponse:
       type: object

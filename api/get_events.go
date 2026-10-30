@@ -120,7 +120,7 @@ type eventResponse struct {
 	VisitorInfoFlags *string `json:"visitor_info_flags,omitempty"`
 	ReleaseStatus    *string `json:"release_status,omitempty"`
 
-	PaginationSortAt string `json:"pagination_sort_at,omitempty"`
+	PaginationSortAt string `json:"-"`
 }
 
 type eventsResponse struct {
@@ -138,6 +138,7 @@ const (
 	EventFilterModeVenueSummary
 	EventFilterModeGeoJSON
 	EventFilterModeTypeSummary
+	EventFilterModeList
 )
 
 type eventFilters struct {
@@ -222,8 +223,15 @@ func (h *ApiHandler) buildEventFilters(request EventFilterRequest, useTypeFilter
 			filters.DateConditions += " AND "
 		}
 
+		// Only the event list query defines the calculated sort key. Other
+		// queries retain their existing filter on the original event start.
+		cursorStartColumn := "edp.event_start_at"
+		if mode == EventFilterModeList {
+			cursorStartColumn = "event_sort.pagination_sort_at"
+		}
+
 		filters.DateConditions +=
-			"(event_sort.pagination_sort_at, edp.event_date_uuid) > ($" +
+			"(" + cursorStartColumn + ", edp.event_date_uuid) > ($" +
 				strconv.Itoa(filters.ArgIndex) +
 				"::timestamp, $" +
 				strconv.Itoa(filters.ArgIndex+1) +
@@ -569,7 +577,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 
 	filters := eventFilters{}
 
-	filters, err = h.buildEventFilters(request, true, EventFilterModeStandard)
+	filters, err = h.buildEventFilters(request, true, EventFilterModeList)
 	if err != nil {
 		apiRequest.Error(http.StatusBadRequest, err.Error())
 		return
@@ -658,7 +666,12 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			return
 		}
 
-		e.DateSlug = BuildDateSlug(e.StartDate, e.StartTime)
+		if e.StartTime == "" {
+			// Dates without a time can be addressed by UUID instead of a slug.
+			e.DateSlug = e.DateUuid
+		} else {
+			e.DateSlug = BuildDateSlug(e.StartDate, e.StartTime)
+		}
 
 		// Convert types JSON
 		var rawTypes [][]int
@@ -685,6 +698,12 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 		}
 
 		events = append(events, e)
+	}
+
+	if err := rows.Err(); err != nil {
+		debugf("Error reading events: %v", err)
+		apiRequest.InternalServerError()
+		return
 	}
 
 	if len(events) == 0 {
