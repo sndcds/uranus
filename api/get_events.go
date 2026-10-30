@@ -75,7 +75,7 @@ type eventResponse struct {
 	DateUuid                string      `json:"date_uuid"`
 	DateSlug                string      `json:"date_slug"`
 	Title                   string      `json:"title"`
-	Subtitle                *string     `json:"subtitle"`
+	Subtitle                *string     `json:"subtitle,omitempty"`
 	Summary                 *string     `json:"summary,omitempty"`
 	StartDate               string      `json:"start_date"`
 	StartTime               string      `json:"start_time,omitempty"`
@@ -104,7 +104,7 @@ type eventResponse struct {
 	OrgUuid                 string      `json:"org_uuid"`
 	OrgName                 string      `json:"org_name"`
 	OrgPostalCode           *string     `json:"org_postal_code,omitempty"`
-	OrgCity                 *string     `json:"org_citymomitempty"`
+	OrgCity                 *string     `json:"org_city,omitempty"`
 	OrgCountry              *string     `json:"org_country,omitempty"`
 	Categories              []int       `json:"categories,omitempty"`
 	EventTypes              []eventType `json:"event_types,omitempty"`
@@ -119,12 +119,15 @@ type eventResponse struct {
 
 	VisitorInfoFlags *string `json:"visitor_info_flags,omitempty"`
 	ReleaseStatus    *string `json:"release_status,omitempty"`
+
+	PaginationSortAt string `json:"pagination_sort_at,omitempty"`
 }
 
 type eventsResponse struct {
-	Events            []eventResponse `json:"events"`
-	LastEventDateUuid *string         `json:"last_event_date_uuid"`
-	LastEventStartAt  *string         `json:"last_event_start_at"`
+	Events                  []eventResponse `json:"events"`
+	LastEventDateUuid       *string         `json:"last_event_date_uuid"`
+	LastEventStartAt        *string         `json:"last_event_start_at"`
+	PaginationReferenceDate string          `json:"pagination_reference_date"`
 }
 
 type EventFilterMode uint8
@@ -207,12 +210,31 @@ func (h *ApiHandler) buildEventFilters(request EventFilterRequest, useTypeFilter
 		return filters, fmt.Errorf("end has invalid format: %s (expected YYYY-MM-DD)", request.End)
 	}
 
-	if request.LastEventStartAt != "" {
+	if request.LastEventStartAt != "" || request.LastEventDateUuid != "" {
+
+		if request.LastEventStartAt == "" || request.LastEventDateUuid == "" {
+			return filters, errors.New(
+				"last_event_start_at and last_event_date_uuid must be provided together",
+			)
+		}
+
 		if dateConditionCount > 0 {
 			filters.DateConditions += " AND "
 		}
-		filters.DateConditions += "(edp.event_start_at, edp.event_date_uuid) > ($" + strconv.Itoa(filters.ArgIndex) + "::timestamptz, $" + strconv.Itoa(filters.ArgIndex+1) + "::uuid)"
-		filters.Args = append(filters.Args, request.LastEventStartAt, request.LastEventDateUuid)
+
+		filters.DateConditions +=
+			"(event_sort.pagination_sort_at, edp.event_date_uuid) > ($" +
+				strconv.Itoa(filters.ArgIndex) +
+				"::timestamp, $" +
+				strconv.Itoa(filters.ArgIndex+1) +
+				"::uuid)"
+
+		filters.Args = append(
+			filters.Args,
+			request.LastEventStartAt,
+			request.LastEventDateUuid,
+		)
+
 		filters.ArgIndex += 2
 	}
 
@@ -628,6 +650,7 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 			&e.MaxPrice,
 			&e.Currency,
 			&e.VisitorInfoFlags,
+			&e.PaginationSortAt,
 		)
 		if err != nil {
 			debugf("Error scanning events: %v", err)
@@ -666,21 +689,26 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 
 	if len(events) == 0 {
 		response := eventsResponse{
-			Events:            events,
-			LastEventDateUuid: nil,
-			LastEventStartAt:  nil,
+			Events:                  events,
+			LastEventDateUuid:       nil,
+			LastEventStartAt:        nil,
+			PaginationReferenceDate: request.Start,
 		}
+
 		apiRequest.Success(http.StatusOK, response)
 		return
 	}
 
 	lastEvent := events[len(events)-1]
-	lastEventStartAt := lastEvent.StartDate + "T" + lastEvent.StartTime
+
+	lastEventStartAt := lastEvent.PaginationSortAt
 	lastEventDateUuid := lastEvent.DateUuid
+
 	response := eventsResponse{
-		Events:            events,
-		LastEventDateUuid: &lastEventDateUuid,
-		LastEventStartAt:  &lastEventStartAt,
+		Events:                  events,
+		LastEventDateUuid:       &lastEventDateUuid,
+		LastEventStartAt:        &lastEventStartAt,
+		PaginationReferenceDate: request.Start,
 	}
 
 	apiRequest.Success(http.StatusOK, response)

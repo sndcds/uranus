@@ -9,12 +9,12 @@ SELECT
     TO_CHAR(
         CASE
             WHEN edp.end_date IS NOT NULL
-            AND edp.end_date - edp.start_date > 5
-            AND edp.start_date <= $1::date
-            AND edp.end_date >= $1::date
+                AND edp.end_date - edp.start_date > 5
+                AND edp.start_date <= $1::date
+                AND edp.end_date >= $1::date
             THEN $1::date
             ELSE edp.start_date
-        END,
+            END,
         'YYYY-MM-DD'
     ) AS start_date,
 
@@ -30,7 +30,8 @@ SELECT
         OR edp.release_status = 'inherited'
         THEN ep.release_status
         ELSE edp.release_status
-    END AS release_status,
+        END
+    AS release_status,
 
     edp.ticket_link,
     ep.title,
@@ -73,7 +74,13 @@ SELECT
     ep.min_price,
     ep.max_price,
     ep.currency,
-    ep.visitor_info_flags
+    ep.visitor_info_flags,
+
+    -- Internal pagination value; consumed by the API, not exposed to clients.
+    TO_CHAR(
+        event_sort.pagination_sort_at,
+        'YYYY-MM-DD"T"HH24:MI'
+    ) AS pagination_sort_at
 
 FROM {{schema}}.event_date_projection edp
 
@@ -81,6 +88,20 @@ JOIN {{schema}}.event_projection ep
     ON ep.event_uuid = edp.event_uuid
 
 {{portal_join}}
+
+CROSS JOIN LATERAL (
+    SELECT
+        CASE
+            WHEN edp.end_date IS NOT NULL
+                AND edp.end_date - edp.start_date > 5
+                AND edp.start_date <= $1::date
+                AND edp.end_date >= $1::date
+            THEN $1::date + TIME '23:59:59'
+            ELSE
+                edp.start_date
+                    + COALESCE(edp.start_time, TIME '00:00:00')
+        END AS pagination_sort_at
+) AS event_sort
 
 WHERE ep.release_status IN (
         'released',
@@ -95,18 +116,7 @@ WHERE ep.release_status IN (
 {{portal_conditions}}
 
 ORDER BY
-    CASE
-        WHEN edp.end_date IS NOT NULL
-             AND edp.end_date - edp.start_date > 5
-             AND edp.start_date <= $1::date
-             AND edp.end_date >= $1::date
-            THEN $1::date + TIME '23:59:59'
-
-        ELSE
-            edp.start_date
-            + COALESCE(edp.start_time, TIME '00:00:00')
-END ASC,
-
+    event_sort.pagination_sort_at ASC,
     edp.event_date_uuid ASC
 
 {{limit}}
