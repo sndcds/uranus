@@ -71,7 +71,7 @@ Weitere Unstimmigkeiten in der Spezifikation:
 1. Die benötigten Lookups parallel zur Eventliste laden und pro Sprache zwischenspeichern. Es ist kein Lookup-Aufruf pro Event nötig.
 2. Type und Genre gemeinsam über das jeweilige Paar `type_id`/`genre_id` auflösen. Fehlende Übersetzungen und unbekannte IDs im Frontend abfangen.
 3. Bei `GET /api/events` Listenfilter kommasepariert übergeben. `event_types` und `genres` dürfen nicht gleichzeitig als Filter verwendet werden. Unbekannte Query-Parameter führen zu HTTP 400.
-4. Für weitere Ergebnisse die beiden Cursorwerte `last_event_start_at` und `last_event_date_uuid` gemeinsam übergeben.
+4. Für weitere Ergebnisse die beiden zurückgegebenen Cursorwerte `last_event_start_at` und `last_event_date_uuid` gemeinsam und unverändert übergeben. Zusätzlich `pagination_reference_date` als `start` für alle Folgeseiten übernehmen und die übrigen Filter beibehalten. `last_event_start_at` hat das Format `YYYY-MM-DDTHH:mm` ohne Zeitzone und enthält den Sortierwert, der vom ursprünglichen Terminbeginn abweichen kann: Events mit einer Datumsdifferenz von mehr als fünf Tagen, die am Referenzdatum laufen, werden dort um `23:59` einsortiert. `start_date`, `start_time` und `date_slug` bleiben auf dem ursprünglichen Termin. Termine ohne Uhrzeit verwenden ihre `date_uuid` als `date_slug`. Bei einer leeren Seite sind beide Cursorwerte `null`.
 5. Ohne `start` beginnt die Eventabfrage laut Spezifikation am aktuellen Datum; für andere Zeiträume `start` und gegebenenfalls `end` explizit setzen.
 
 ## Offene Prüfpunkte

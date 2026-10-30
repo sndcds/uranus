@@ -6,19 +6,8 @@ SELECT
     COALESCE(edp.venue_uuid, ep.venue_uuid) AS venue_uuid,
     COALESCE(edp.space_uuid, ep.space_uuid) AS space_uuid,
 
-    TO_CHAR(
-        CASE
-            WHEN edp.end_date IS NOT NULL
-                AND edp.end_date - edp.start_date > 5
-                AND edp.start_date <= $1::date
-                AND edp.end_date >= $1::date
-            THEN $1::date
-            ELSE edp.start_date
-            END,
-        'YYYY-MM-DD'
-    ) AS start_date,
-
-    TO_CHAR(edp.start_time, 'HH24:MI') AS start_time,
+    TO_CHAR(edp.start_date, 'YYYY-MM-DD') AS start_date,
+    COALESCE(TO_CHAR(edp.start_time, 'HH24:MI'), '') AS start_time,
     TO_CHAR(edp.end_date, 'YYYY-MM-DD') AS end_date,
     TO_CHAR(edp.end_time, 'HH24:MI') AS end_time,
     TO_CHAR(edp.entry_time, 'HH24:MI') AS entry_time,
@@ -76,7 +65,7 @@ SELECT
     ep.currency,
     ep.visitor_info_flags,
 
-    -- Internal pagination value; consumed by the API, not exposed to clients.
+    -- Same minute-precision value for ordering, cursor filtering and response.
     TO_CHAR(
         event_sort.pagination_sort_at,
         'YYYY-MM-DD"T"HH24:MI'
@@ -91,16 +80,16 @@ JOIN {{schema}}.event_projection ep
 
 CROSS JOIN LATERAL (
     SELECT
-        CASE
+        DATE_TRUNC('minute', CASE
             WHEN edp.end_date IS NOT NULL
                 AND edp.end_date - edp.start_date > 5
                 AND edp.start_date <= $1::date
                 AND edp.end_date >= $1::date
-            THEN $1::date + TIME '23:59:59'
+            THEN $1::date + TIME '23:59'
             ELSE
                 edp.start_date
-                    + COALESCE(edp.start_time, TIME '00:00:00')
-        END AS pagination_sort_at
+                    + COALESCE(edp.start_time, TIME '00:00')
+        END) AS pagination_sort_at
 ) AS event_sort
 
 WHERE ep.release_status IN (
