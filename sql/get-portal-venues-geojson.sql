@@ -33,6 +33,20 @@ LEFT JOIN {{schema}}.venue_type vt
 JOIN {{schema}}.portal2 p
     ON p.uuid = $5::uuid
 
+LEFT JOIN {{schema}}.portal_geometry pg
+    ON (
+        (
+            $7::uuid IS NULL
+                AND pg.portal_uuid = p.uuid
+                AND pg.parent_uuid IS NULL
+        )
+        OR
+        (
+            $7::uuid IS NOT NULL
+                AND pg.uuid = $7::uuid
+        )
+    )
+
 WHERE
     -- API bounding box
     v.point IS NOT NULL
@@ -41,64 +55,37 @@ WHERE
         v.point
     )
 
-    -- Portal filter
+    -- Geographic portal filter
     AND (
-        CASE p.filter_type
-            WHEN 'geometry' THEN
-                p.geometry IS NOT NULL
-                AND ST_Covers(p.geometry, v.point)
+        p.geographic_filter = 'none'
+        OR (
+            p.geographic_filter = 'geometry'
+            AND pg.uuid IS NOT NULL
+            AND ST_Covers(pg.geometry, v.point)
+        )
+    )
 
-            WHEN 'allowlist' THEN
-                EXISTS (
-                    SELECT 1
-                    FROM {{schema}}.portal_org_allowlist a
-                    WHERE a.portal_uuid = p.uuid
-                        AND a.org_uuid = v.org_uuid
-                )
-
-            WHEN 'blocklist' THEN
-                NOT EXISTS (
-                    SELECT 1
-                    FROM {{schema}}.portal_org_blocklist b
-                    WHERE b.portal_uuid = p.uuid
-                    AND b.org_uuid = v.org_uuid
-                )
-
-            WHEN 'geometry_and_allowlist' THEN
-                (
-                    (
-                        p.geometry IS NOT NULL
-                            AND ST_Covers(p.geometry, v.point)
-                    )
-                    OR EXISTS (
-                        SELECT 1
-                        FROM {{schema}}.portal_org_allowlist a
-                        WHERE a.portal_uuid = p.uuid
-                        AND a.org_uuid = v.org_uuid
-                    )
-                )
-
-            WHEN 'geometry_and_allowlist' THEN
-                p.geometry IS NOT NULL
-                AND ST_Covers(p.geometry, v.point)
-                AND EXISTS (
-                    SELECT 1
-                    FROM {{schema}}.portal_org_allowlist a
-                    WHERE a.portal_uuid = p.uuid
+    -- Organization portal filter
+    AND (
+        p.org_filter = 'all'
+        OR (
+            p.org_filter = 'allowlist'
+            AND EXISTS (
+                SELECT 1
+                FROM {{schema}}.portal_org_allowlist a
+                WHERE a.portal_uuid = p.uuid
                     AND a.org_uuid = v.org_uuid
-                )
-
-            WHEN 'geometry_and_blocklist' THEN
-                p.geometry IS NOT NULL
-                AND ST_Covers(p.geometry, v.point)
-                AND NOT EXISTS (
-                    SELECT 1
-                    FROM {{schema}}.portal_org_blocklist b
-                    WHERE b.portal_uuid = p.uuid
-                        AND b.org_uuid = v.org_uuid
-                )
-            ELSE FALSE
-        END
+            )
+        )
+        OR (
+            p.org_filter = 'blocklist'
+            AND NOT EXISTS (
+                SELECT 1
+                FROM {{schema}}.portal_org_blocklist b
+                WHERE b.portal_uuid = p.uuid
+                    AND b.org_uuid = v.org_uuid
+            )
+        )
     )
 
     -- Scope
