@@ -51,8 +51,9 @@ type EventFilterRequest struct {
 	LastEventStartAt  string `json:"last_event_start_at,omitempty"`
 	LastEventDateUuid string `json:"last_event_date_uuid,omitempty"`
 
-	Lang       string `json:"lang,omitempty"`
-	PortalUuid string `json:"portal,omitempty"`
+	Lang               string `json:"lang,omitempty"`
+	PortalUuid         string `json:"portal,omitempty"`
+	PortalGeometryUuid string `json:"portal_geometry_uuid,omitempty"`
 
 	OrgUuids   []string `json:"org_uuids,omitempty"`
 	VenueUuids []string `json:"venue_uuids,omitempty"`
@@ -555,9 +556,33 @@ func (h *ApiHandler) buildEventFilters(request EventFilterRequest, useTypeFilter
 			return filters, errors.New("portal and geolist_region filters cannot be used together")
 		}
 
+		// Portal UUID
 		filters.Args = append(filters.Args, request.PortalUuid)
-		filters.PortalJoin = fmt.Sprintf("JOIN %s.portal2 p ON p.uuid = $%d::uuid", h.DbSchema, filters.ArgIndex)
+		portalArgIndex := filters.ArgIndex
 		filters.ArgIndex++
+
+		filters.PortalJoin = fmt.Sprintf(`
+			JOIN %s.portal2 p
+				ON p.uuid = $%d::uuid
+		`, h.DbSchema, portalArgIndex)
+
+		// Optional geometry UUID
+		if request.PortalGeometryUuid != "" {
+			filters.Args = append(filters.Args, request.PortalGeometryUuid)
+			geometryArgIndex := filters.ArgIndex
+			filters.ArgIndex++
+
+			filters.PortalJoin += fmt.Sprintf(`
+	            LEFT JOIN %s.portal_geometry pg
+    	            ON pg.uuid = $%d::uuid
+				`, h.DbSchema, geometryArgIndex)
+		} else {
+			filters.PortalJoin += fmt.Sprintf(`
+	            LEFT JOIN %s.portal_geometry pg
+					ON pg.portal_uuid = p.uuid
+						AND pg.parent_uuid IS NULL
+        		`, h.DbSchema)
+		}
 
 		filters.PortalConditions = app.UranusInstance.SqlPortalCondition
 	}
@@ -591,12 +616,12 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	query = strings.Replace(query, "{{portal_join}}", filters.PortalJoin, 1)
 	query = strings.Replace(query, "{{portal_conditions}}", filters.PortalConditions, 1)
 
-	/*
-		debugf("query: %s", query)
-		for i, a := range filters.Args {
-			fmt.Printf("args[%d] = %#v\n", i, a)
-		}
-	*/
+	/**/
+	debugf("query: %s", query)
+	for i, a := range filters.Args {
+		fmt.Printf("args[%d] = %#v\n", i, a)
+	}
+	/**/
 
 	rows, err := h.DbPool.Query(ctx, query, filters.Args...)
 	if err != nil {
@@ -1327,6 +1352,7 @@ func getEventFilterRequestFromQuery(
 		"event_uuids":          {},
 		"geolist_region":       {},
 		"portal":               {},
+		"geometry":             {},
 	}
 
 	if err := validateAllowedQueryParams(gc, allowed); err != nil {
@@ -1361,6 +1387,7 @@ func getEventFilterRequestFromQuery(
 
 	request.Lang, _ = GetContextParam(gc, "lang")
 	request.PortalUuid, _ = GetContextParam(gc, "portal")
+	request.PortalGeometryUuid, _ = GetContextParam(gc, "geometry")
 
 	request.GeolistRegion, _ =
 		GetContextParam(gc, "geolist_region")

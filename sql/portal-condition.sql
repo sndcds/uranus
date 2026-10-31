@@ -1,32 +1,25 @@
 AND (
-    -- geometry is not required
-    p.filter_type IN ('allowlist', 'blocklist')
+    -- No geographic restriction
+    p.geographic_filter = 'none'
 
-    OR
-    -- geometry is required and matches
-    (
-        p.filter_type IN (
-            'geometry',
-            'geometry_and_allowlist',
-            'geometry_and_blocklist'
-        )
-        AND (
-            p.geometry IS NULL
-            OR ST_Covers(
-                p.geometry,
-                COALESCE(edp.venue_point, ep.venue_point)
-            )
+    OR (
+        -- Geometry restriction
+        p.geographic_filter = 'geometry'
+        AND pg.uuid IS NOT NULL
+        AND ST_Covers(
+            pg.geometry,
+            COALESCE(edp.venue_point, ep.venue_point)
         )
     )
 )
-AND (
-    -- no organization filter
-    p.filter_type = 'geometry'
 
-    OR
-    -- allowlist
-    (
-        p.filter_type IN ('allowlist', 'geometry_and_allowlist')
+AND (
+    -- No organization filter
+    p.org_filter = 'all'
+
+    OR (
+        -- Allowlist
+        p.org_filter = 'allowlist'
         AND EXISTS (
             SELECT 1
             FROM {{schema}}.portal_org_allowlist a
@@ -35,10 +28,9 @@ AND (
         )
     )
 
-    OR
-    -- blocklist
-    (
-        p.filter_type IN ('blocklist', 'geometry_and_blocklist')
+    OR (
+        -- Blocklist
+        p.org_filter = 'blocklist'
         AND NOT EXISTS (
             SELECT 1
             FROM {{schema}}.portal_org_blocklist b

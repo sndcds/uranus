@@ -102,6 +102,8 @@ type Uranus struct {
 	SqlGetGeoRegion                            string
 	SqlGetGeoNamesBySlugs                      string
 	SqlJoinGeoRegion                           string
+	SqlEventProjectionUpsert                   string
+	SqlEventDateProjectionUpsert               string
 	SqlUpdateEventSearchVector                 string
 	SqlUpdateEventDateSearchVector             string
 }
@@ -376,6 +378,8 @@ func (app *Uranus) PrepareSql() error {
 		{"sql/insert-pluto-image.sql", &app.SqlInsertPlutoImage, nil},
 		{"sql/update-pluto-image-meta.sql", &app.SqlUpdatePlutoImageMeta, nil},
 
+		{"sql/event_projection_upsert.sql", &app.SqlEventProjectionUpsert, nil},
+		{"sql/event_date_projection_upsert.sql", &app.SqlEventDateProjectionUpsert, nil},
 		{"sql/update-event-search-vector.sql", &app.SqlUpdateEventSearchVector, nil},
 		{"sql/update-event-date-search-vector.sql", &app.SqlUpdateEventDateSearchVector, nil},
 

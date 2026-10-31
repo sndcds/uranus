@@ -16,22 +16,28 @@ func (h *ApiHandler) GetPortalGeoJSON(gc *gin.Context) {
 	apiRequest.SetMeta("api_url", h.Config.BaseApiUrl)
 
 	portalUuid := gc.Param("uuid")
-
 	if portalUuid == "" {
 		apiRequest.Error(http.StatusBadRequest, "portal uuid is required")
 		return
 	}
 
-	apiRequest.SetMeta("portal", portalUuid)
+	portalGeometryUuid := gc.Query("geometry")
 
-	query := app.UranusInstance.SqlGetPortalGeoJSON
+	apiRequest.SetMeta("portal", portalUuid)
+	apiRequest.SetMeta("geometry", portalGeometryUuid)
 
 	var geojson map[string]interface{}
 
+	var geometryParam any
+	if portalGeometryUuid != "" {
+		geometryParam = portalGeometryUuid
+	}
+
 	err := h.DbPool.QueryRow(
 		ctx,
-		query,
+		app.UranusInstance.SqlGetPortalGeoJSON,
 		portalUuid,
+		geometryParam,
 	).Scan(&geojson)
 
 	if err != nil {

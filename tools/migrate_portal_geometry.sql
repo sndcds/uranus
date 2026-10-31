@@ -90,9 +90,9 @@ END;
 $$;
 
 -- Der bisherige GiST-Index auf portal2.geometry wird dabei ebenfalls entfernt.
-ALTER TABLE uranus.portal2
-    DROP COLUMN geometry,
-    DROP COLUMN geometry_mode;
+--ALTER TABLE uranus.portal2
+--    DROP COLUMN geometry,
+--    DROP COLUMN geometry_mode;
 
 COMMIT;
 
