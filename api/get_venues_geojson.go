@@ -28,6 +28,13 @@ func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 		apiRequest.SetMeta("portal", portalUuid)
 	}
 
+	portalGeometryUuid := gc.Query("geometry")
+	var geometryParam any
+	if portalGeometryUuid != "" {
+		geometryParam = portalGeometryUuid
+		apiRequest.SetMeta("geometry", portalGeometryUuid)
+	}
+
 	bboxStr := gc.Query("bbox")
 	bbox, err := model.ParseBBox(bboxStr)
 	if err != nil {
@@ -78,6 +85,7 @@ func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 			bbox.MaxLat,
 			portalUuid,
 			scopes,
+			geometryParam,
 		)
 	} else {
 		query = app.UranusInstance.SqlGetVenuesGeoJSON
