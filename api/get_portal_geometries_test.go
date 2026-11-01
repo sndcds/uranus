@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -47,10 +48,13 @@ func TestGetPortalGeometriesPostgres(t *testing.T) {
 	t.Cleanup(pool.Close)
 	h.DbPool = pool
 	h.DbSchema = "portal_test_" + strings.ReplaceAll(uuid.NewString(), "-", "")
+	if _, err := pool.Exec(context.Background(), "CREATE EXTENSION IF NOT EXISTS postgis"); err != nil {
+		t.Fatal(err)
+	}
 	dbExec(t, h, "CREATE SCHEMA "+h.DbSchema)
 	t.Cleanup(func() { dbExec(t, h, "DROP SCHEMA "+h.DbSchema+" CASCADE") })
-	// Only the columns used by the endpoint are needed; no PostGIS operations
-	// or polygon coordinates are involved in the selection hierarchy.
+	// Only the columns used by the endpoint are needed; polygon coordinates
+	// are not needed to test the selection hierarchy and child type counts.
 	dbExec(t, h, `
 		CREATE TABLE uranus.portal2 (uuid uuid PRIMARY KEY);
 		CREATE TABLE uranus.portal_geometry (
@@ -61,7 +65,8 @@ func TestGetPortalGeometriesPostgres(t *testing.T) {
 			description text NOT NULL,
 			"order" integer DEFAULT 0,
 			admin_level integer,
-			type text
+			type text,
+			geometry geometry(MultiPolygon, 4326)
 		);
 	`)
 	query, err := os.ReadFile("../sql/get-portal-geometries.sql")
@@ -86,14 +91,15 @@ func TestGetPortalGeometriesPostgres(t *testing.T) {
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, id, portalID, parentID, name, name+" description", order, level, typ)
 	}
 	rootOrder, firstOrder, childOrder, level, typ := 100, -1, 2, 8, "city"
+	districtType, villageType := "city-district", "village"
 	insertGeometry(root, portal, nil, "City", &rootOrder, &level, &typ)
 	// Insert out of display order, including rows sorted before their parents.
-	insertGeometry(child, portal, &root, "District", &childOrder, nil, nil)
-	insertGeometry(grandchild, portal, &child, "Quarter", nil, nil, nil)
+	insertGeometry(child, portal, &root, "District", &childOrder, nil, &districtType)
+	insertGeometry(grandchild, portal, &child, "Quarter", nil, nil, &districtType)
 	insertGeometry(tieB, portal, &root, "Same name", nil, nil, nil)
-	insertGeometry(first, portal, &root, "First", &firstOrder, nil, nil)
-	insertGeometry(tieA, portal, &root, "Same name", nil, nil, nil)
-	insertGeometry(uuid.NewString(), otherPortal, nil, "Other portal", nil, nil, nil)
+	insertGeometry(first, portal, &root, "First", &firstOrder, nil, &villageType)
+	insertGeometry(tieA, portal, &root, "Same name", nil, nil, &districtType)
+	insertGeometry(uuid.NewString(), otherPortal, nil, "Other portal", nil, nil, &districtType)
 
 	request := func(id string, wantStatus int) map[string]json.RawMessage {
 		t.Helper()
@@ -142,9 +148,30 @@ func TestGetPortalGeometriesPostgres(t *testing.T) {
 		if len(quarter) != 1 || quarter[0].Uuid != grandchild || quarter[0].Childs == nil || len(quarter[0].Childs) != 0 {
 			t.Fatalf("unexpected nested geometry: %s", data["geometry"])
 		}
-		if geometry.Childs[1].Order != 0 || geometry.Childs[1].Type != nil || geometry.Childs[1].AdminLevel != nil ||
+		if geometry.Childs[2].Order != 0 || geometry.Childs[2].Type != nil || geometry.Childs[2].AdminLevel != nil ||
 			strings.Contains(string(data["geometry"]), "parent_uuid") {
 			t.Fatalf("unexpected nullable fields or internal fields: %s", data["geometry"])
+		}
+	})
+	t.Run("child type counts", func(t *testing.T) {
+		data := request(portal, http.StatusOK)
+		var geometry portalGeometry
+		if err := json.Unmarshal(data["geometry"], &geometry); err != nil {
+			t.Fatal(err)
+		}
+		want := []portalGeometryChildType{{Type: districtType, Count: 2}, {Type: villageType, Count: 1}}
+		if !reflect.DeepEqual(geometry.ChildTypes, want) {
+			t.Fatalf("main geometry child types: got %+v, want %+v", geometry.ChildTypes, want)
+		}
+		district := geometry.Childs[3]
+		want = []portalGeometryChildType{{Type: districtType, Count: 1}}
+		if !reflect.DeepEqual(district.ChildTypes, want) {
+			t.Fatalf("nested geometry child types: got %+v, want %+v", district.ChildTypes, want)
+		}
+		for _, leaf := range []*portalGeometry{geometry.Childs[0], geometry.Childs[1], geometry.Childs[2], district.Childs[0]} {
+			if leaf.ChildTypes == nil || len(leaf.ChildTypes) != 0 {
+				t.Fatalf("leaf %s: expected child_types: [], got %+v", leaf.Uuid, leaf.ChildTypes)
+			}
 		}
 	})
 	t.Run("no geometries", func(t *testing.T) {
@@ -163,8 +190,16 @@ func TestGetPortalGeometriesPostgres(t *testing.T) {
 	})
 	t.Run("parent belongs to another portal", func(t *testing.T) {
 		id := uuid.NewString()
-		insertGeometry(id, otherPortal, &root, "Foreign child", nil, nil, nil)
-		request(portal, http.StatusOK)
+		insertGeometry(id, otherPortal, &root, "Foreign child", nil, nil, &districtType)
+		data := request(portal, http.StatusOK)
+		var geometry portalGeometry
+		if err := json.Unmarshal(data["geometry"], &geometry); err != nil {
+			t.Fatal(err)
+		}
+		want := []portalGeometryChildType{{Type: districtType, Count: 2}, {Type: villageType, Count: 1}}
+		if !reflect.DeepEqual(geometry.ChildTypes, want) {
+			t.Fatalf("child types include another portal: got %+v, want %+v", geometry.ChildTypes, want)
+		}
 		request(otherPortal, http.StatusInternalServerError)
 		dbExec(t, h, "DELETE FROM uranus.portal_geometry WHERE uuid=$1", id)
 	})

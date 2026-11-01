@@ -18,6 +18,9 @@ Der `data`-Bereich sieht beispielsweise so aus:
     "order": 0,
     "admin_level": 8,
     "type": "city",
+    "child_types": [
+      { "type": "city-district", "count": 1 }
+    ],
     "childs": [
       {
         "uuid": "09202887-6f7e-4da8-8471-7549cd151b51",
@@ -26,6 +29,7 @@ Der `data`-Bereich sieht beispielsweise so aus:
         "order": 0,
         "admin_level": 10,
         "type": "city-district",
+        "child_types": [],
         "childs": []
       }
     ]
@@ -40,6 +44,11 @@ und können beliebig viele weitere Ebenen enthalten. Geschwister sind nach
 `order`, dann `name`, dann `uuid` aufsteigend sortiert. Ein SQL-`NULL` in
 `order` wird als `0` behandelt; fehlende Werte für `admin_level` und `type`
 bleiben JSON-`null`. `childs` ist immer ein Array, auch bei Blattknoten.
+`child_types` zählt pro Knoten die direkten Kinder desselben Portals nach
+`type`, alphabetisch nach Typ sortiert. Kinder mit `type: null` werden dabei
+nicht gezählt. Gibt es keine Kinder mit gesetztem Typ, ist `child_types` ein
+leeres Array (`[]`). Enkel und weitere Nachfahren zählen jeweils nur bei
+ihrem direkten Elternknoten.
 Polygonkoordinaten sind nicht Teil dieser Antwort; sie können über den
 bestehenden Endpunkt `/api/portal/:uuid/geojson?geometry=<geometry_uuid>`
 abgerufen werden.

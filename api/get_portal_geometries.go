@@ -11,15 +11,21 @@ import (
 )
 
 type portalGeometry struct {
-	Uuid        string            `json:"uuid"`
-	Name        string            `json:"name"`
-	Description string            `json:"description"`
-	Order       int               `json:"order"`
-	AdminLevel  *int              `json:"admin_level"`
-	Type        *string           `json:"type"`
-	Geometry    json.RawMessage   `json:"geometry"`
-	Childs      []*portalGeometry `json:"childs"`
-	ParentUuid  *string           `json:"-"`
+	Uuid        string                    `json:"uuid"`
+	Name        string                    `json:"name"`
+	Description string                    `json:"description"`
+	Order       int                       `json:"order"`
+	AdminLevel  *int                      `json:"admin_level"`
+	Type        *string                   `json:"type"`
+	Geometry    json.RawMessage           `json:"geometry"`
+	ChildTypes  []portalGeometryChildType `json:"child_types"`
+	Childs      []*portalGeometry         `json:"childs"`
+	ParentUuid  *string                   `json:"-"`
+}
+
+type portalGeometryChildType struct {
+	Type  string `json:"type"`
+	Count int64  `json:"count"`
 }
 
 func (h *ApiHandler) GetPortalGeometries(gc *gin.Context) {
@@ -58,6 +64,7 @@ func (h *ApiHandler) GetPortalGeometries(gc *gin.Context) {
 			&geometry.AdminLevel,
 			&geometry.Type,
 			&geometry.Geometry,
+			&geometry.ChildTypes,
 		); err != nil {
 			debugf("scan portal geometry: %v", err)
 			apiRequest.InternalServerError()
