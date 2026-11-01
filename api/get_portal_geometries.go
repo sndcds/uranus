@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -16,6 +17,7 @@ type portalGeometry struct {
 	Order       int               `json:"order"`
 	AdminLevel  *int              `json:"admin_level"`
 	Type        *string           `json:"type"`
+	Geometry    json.RawMessage   `json:"geometry"`
 	Childs      []*portalGeometry `json:"childs"`
 	ParentUuid  *string           `json:"-"`
 }
@@ -55,6 +57,7 @@ func (h *ApiHandler) GetPortalGeometries(gc *gin.Context) {
 			&geometry.Order,
 			&geometry.AdminLevel,
 			&geometry.Type,
+			&geometry.Geometry,
 		); err != nil {
 			debugf("scan portal geometry: %v", err)
 			apiRequest.InternalServerError()

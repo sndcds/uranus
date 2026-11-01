@@ -5,7 +5,8 @@ SELECT
     COALESCE(g.description, ''),
     COALESCE(g."order", 0),
     g.admin_level,
-    g.type
+    g.type,
+    ST_AsGeoJSON(g.geometry)::jsonb AS geometry
 FROM {{schema}}.portal2 p
 LEFT JOIN {{schema}}.portal_geometry g
     ON g.portal_uuid = p.uuid
