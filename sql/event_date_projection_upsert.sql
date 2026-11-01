@@ -1,0 +1,97 @@
+INSERT INTO {{schema}}.event_date_projection (
+    event_date_uuid, event_uuid, venue_uuid, space_uuid,
+    venue_name, venue_street, venue_house_number,
+    venue_postal_code, venue_city, venue_country,
+    venue_state, venue_point, venue_link,
+    space_name, space_total_capacity, space_seating_capacity,
+    space_type, space_building_level, space_link,
+    space_accessibility_summary, space_accessibility_flags,
+    space_description,
+    start_date, start_time,
+    end_date, end_time,
+    entry_time, duration, all_day, release_status,
+    ticket_link, availability_status_id,
+    accessibility_info, custom, created_at, modified_at
+)
+SELECT DISTINCT ON (ed.uuid)
+    ed.uuid,
+    ed.event_uuid,
+    ed.venue_uuid,
+    ed.space_uuid,
+    v.name,
+    v.street,
+    v.house_number,
+    v.postal_code,
+    v.city,
+    v.country,
+    v.state,
+    v.point,
+    v.web_link,
+    s.name,
+    s.total_capacity,
+    s.seating_capacity,
+    s.space_type,
+    s.building_level,
+    s.web_link,
+    s.accessibility_summary,
+    s.accessibility_flags,
+    s.description,
+    ed.start_date,
+    ed.start_time,
+    ed.end_date,
+    ed.end_time,
+    ed.entry_time,
+    ed.duration,
+    ed.all_day,
+    ed.release_status,
+    ed.ticket_link,
+    ed.availability_status_id,
+    ed.accessibility_info,
+    ed.custom,
+    NOW(),
+    NOW()
+
+FROM {{schema}}.event_date ed
+
+LEFT JOIN {{schema}}.venue v
+    ON v.uuid = ed.venue_uuid
+
+LEFT JOIN {{schema}}.space s
+    ON s.uuid = ed.space_uuid
+
+WHERE ed.uuid = ANY($1::uuid[])
+
+ON CONFLICT (event_date_uuid) DO UPDATE SET
+    venue_uuid = EXCLUDED.venue_uuid,
+    space_uuid = EXCLUDED.space_uuid,
+    venue_name = EXCLUDED.venue_name,
+    venue_street = EXCLUDED.venue_street,
+    venue_house_number = EXCLUDED.venue_house_number,
+    venue_postal_code = EXCLUDED.venue_postal_code,
+    venue_city = EXCLUDED.venue_city,
+    venue_country = EXCLUDED.venue_country,
+    venue_state = EXCLUDED.venue_state,
+    venue_point = EXCLUDED.venue_point,
+    venue_link = EXCLUDED.venue_link,
+    space_name = EXCLUDED.space_name,
+    space_total_capacity = EXCLUDED.space_total_capacity,
+    space_seating_capacity = EXCLUDED.space_seating_capacity,
+    space_type = EXCLUDED.space_type,
+    space_building_level = EXCLUDED.space_building_level,
+    space_link = EXCLUDED.space_link,
+    space_accessibility_summary = EXCLUDED.space_accessibility_summary,
+    space_accessibility_flags = EXCLUDED.space_accessibility_flags,
+    space_description = EXCLUDED.space_description,
+    start_date = EXCLUDED.start_date,
+    start_time = EXCLUDED.start_time,
+    end_date = EXCLUDED.end_date,
+    end_time = EXCLUDED.end_time,
+    entry_time = EXCLUDED.entry_time,
+    duration = EXCLUDED.duration,
+    all_day = EXCLUDED.all_day,
+    release_status = EXCLUDED.release_status,
+    ticket_link = EXCLUDED.ticket_link,
+    availability_status_id = EXCLUDED.availability_status_id,
+    accessibility_info = EXCLUDED.accessibility_info,
+    custom = EXCLUDED.custom,
+    modified_at = NOW()
