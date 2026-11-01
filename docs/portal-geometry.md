@@ -1,5 +1,63 @@
 # Portal-Geometrien auslagern
 
+## Öffentlicher Endpunkt für die Auswahlhierarchie
+
+`GET /api/portal/:uuid/geometries` liefert die Geometriehierarchie eines Portals
+ohne Authentifizierung. `:uuid` ist die UUID aus `portal2`.
+Die Antwort verwendet den üblichen `apiRequest`-Rahmen mit `service`,
+`api_version`, `response_type: "get-portal-geometries"`, `status`, `timestamp`
+und `metadata` (einschließlich `portal_uuid` und `response_time_ms`).
+Der `data`-Bereich sieht beispielsweise so aus:
+
+```json
+{
+  "geometry": {
+    "uuid": "73a57380-a4c0-4eb9-a4e3-5b4428b85dc9",
+    "name": "Stadt",
+    "description": "Gesamtes Stadtgebiet",
+    "order": 0,
+    "admin_level": 8,
+    "type": "city",
+    "childs": [
+      {
+        "uuid": "09202887-6f7e-4da8-8471-7549cd151b51",
+        "name": "Stadtteil",
+        "description": "Gebiet des Stadtteils",
+        "order": 0,
+        "admin_level": 10,
+        "type": "city-district",
+        "childs": []
+      }
+    ]
+  }
+}
+```
+
+Die Zuordnung erfolgt bei allen Knoten über `portal_geometry.portal_uuid`.
+Die Hauptgeometrie hat `parent_uuid IS NULL`; `portal2.geometry_uuid` wird für
+diesen Endpunkt nicht verwendet. Kinder werden über `parent_uuid` zugeordnet
+und können beliebig viele weitere Ebenen enthalten. Geschwister sind nach
+`order`, dann `name`, dann `uuid` aufsteigend sortiert. Ein SQL-`NULL` in
+`order` wird als `0` behandelt; fehlende Werte für `admin_level` und `type`
+bleiben JSON-`null`. `childs` ist immer ein Array, auch bei Blattknoten.
+Polygonkoordinaten sind nicht Teil dieser Antwort; sie können über den
+bestehenden Endpunkt `/api/portal/:uuid/geojson?geometry=<geometry_uuid>`
+abgerufen werden.
+
+Ein vorhandenes Portal ohne Geometrien liefert HTTP 200 mit
+`data: {"geometry": null}`. Eine ungültige UUID liefert HTTP 400, ein
+unbekanntes Portal HTTP 404. Fehlerhafte Hierarchien (mehrere oder keine
+Hauptgeometrie trotz vorhandener Knoten, portalübergreifende Eltern oder
+Zyklen) sowie Datenbankfehler liefern HTTP 500.
+
+Der PostgreSQL-Integrationstest verwendet ein eigenes temporäres Schema:
+
+```sh
+URANUS_PORTAL_TEST_DATABASE_URL="postgres://..." go test ./api -run TestGetPortalGeometries -v
+```
+
+## Manuelle Migration
+
 Das manuell auszuführende Skript
 [`tools/migrate_portal_geometry.sql`](../tools/migrate_portal_geometry.sql)
 verschiebt die Geometrien aus `uranus.portal2` nach `uranus.portal_geometry`.

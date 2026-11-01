@@ -213,6 +213,9 @@ func main() {
 	publicRoute.GET(
 		"/portal/:uuid/geojson",
 		apiHandler.GetPortalGeoJSON)
+	publicRoute.GET(
+		"/portal/:uuid/geometries",
+		apiHandler.GetPortalGeometries)
 
 	publicRoute.GET(
 		"/display-preset/:uuid",
