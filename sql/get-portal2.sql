@@ -4,10 +4,9 @@ SELECT
     org_uuid,
     name,
     description,
-    geometry_mode,
-    ST_AsGeoJSON(geometry)::json AS geometry,
+    geographic_filter,
+    org_filter,
     filter,
-    filter_type,
 
     CASE
         WHEN pil_web_logo.pluto_image_uuid IS NOT NULL

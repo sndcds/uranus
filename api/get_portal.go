@@ -91,10 +91,9 @@ func (h *ApiHandler) GetPortal2(gc *gin.Context) {
 		OrgUuid            string           `json:"org_uuid"`
 		Name               string           `json:"name"`
 		Description        *string          `json:"description,omitempty"`
-		GeometryMode       *string          `json:"geometry_mode,omitempty"`
-		Geometry           json.RawMessage  `json:"geometry,omitempty"`
+		GeographicFilter   *string          `json:"geographic_filter,omitempty"`
+		OrgFilter          *string          `json:"org_filter,omitempty"`
 		Filter             json.RawMessage  `json:"filter,omitempty"`
-		FilterType         string           `json:"filter_type"`
 		WebLogoUrl         *string          `json:"web_logo_url,omitempty"`
 		MainImageUrl       *string          `json:"main_image_url,omitempty"`
 		BackgroundImageUrl *string          `json:"background_image_url,omitempty"`
@@ -112,10 +111,9 @@ func (h *ApiHandler) GetPortal2(gc *gin.Context) {
 		&portal.OrgUuid,
 		&portal.Name,
 		&portal.Description,
-		&portal.GeometryMode,
-		&portal.Geometry,
+		&portal.GeographicFilter,
+		&portal.OrgFilter,
 		&portal.Filter,
-		&portal.FilterType,
 		&portal.WebLogoUrl,
 		&portal.MainImageUrl,
 		&portal.BackgroundImageUrl,

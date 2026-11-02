@@ -1,5 +1,122 @@
 # Portal-Geometrien auslagern
 
+## Öffentlicher Endpunkt für ein SELECT-Menü
+
+`GET /api/portal/:uuid/geometries/select` liefert ohne Authentifizierung alle
+Geometrien eines Portals als flache Auswahlliste. `:uuid` ist die UUID aus
+`portal2`; die Zuordnung erfolgt über `portal_geometry.portal_uuid`.
+Der optionale Query-Parameter `group` filtert auf `portal_geometry.group_id`,
+zum Beispiel `/api/portal/:uuid/geometries/select?group=2`. Ohne `group`
+werden alle Einträge des Portals einschließlich derer mit `group_id: null`
+zurückgegeben. `group=0` filtert ausdrücklich auf die Gruppe `0`.
+Die Antwort verwendet den üblichen `apiRequest`-Rahmen mit
+`response_type: "get-portal-geometry-select"` und `metadata.portal_uuid`.
+Der `data`-Bereich enthält:
+
+```json
+{
+  "select": [
+    {
+      "name": "Landkreis Beispiel",
+      "order": 1,
+      "group_id": 2,
+      "admin_level": 6,
+      "geometry_uuid": "09202887-6f7e-4da8-8471-7549cd151b51"
+    }
+  ]
+}
+```
+
+Die Einträge sind aufsteigend nach `order`, dann alphabetisch nach `name`
+sortiert. Bei gleichen Werten entscheidet die UUID für eine stabile
+Reihenfolge. Ein SQL-`NULL` in `order` wird wie beim Hierarchie-Endpunkt als
+`0` behandelt. Fehlende Werte für `group_id` und `admin_level` bleiben
+JSON-`null`. Die Liste enthält Hauptgeometrie und Untergeometrien unabhängig
+von ihrer Hierarchie, ohne Polygonkoordinaten.
+
+Ein vorhandenes Portal ohne Geometrien liefert HTTP 200 mit
+`data: {"select": []}`. Eine fehlende oder ungültige UUID liefert HTTP 400,
+ein unbekanntes Portal HTTP 404 und ein Datenbankfehler HTTP 500.
+Findet der Gruppenfilter keine passenden Einträge, liefert ein vorhandenes
+Portal ebenfalls HTTP 200 mit `data: {"select": []}`. Ein vorhandener, aber
+leerer oder ungültiger `group`-Wert liefert HTTP 400; zulässig sind Ganzzahlen
+im Wertebereich der PostgreSQL-Spalte `integer`.
+Die Datenbank muss die bereits ergänzte Spalte `portal_geometry.group_id`
+enthalten.
+
+Der PostgreSQL-Integrationstest verwendet ein eigenes temporäres Schema:
+
+```sh
+URANUS_PORTAL_TEST_DATABASE_URL="postgres://..." go test ./api -run TestGetPortalGeometrySelect -v
+```
+
+## Öffentlicher Endpunkt für die Auswahlhierarchie
+
+`GET /api/portal/:uuid/geometries` liefert die Geometriehierarchie eines Portals
+ohne Authentifizierung. `:uuid` ist die UUID aus `portal2`.
+Die Antwort verwendet den üblichen `apiRequest`-Rahmen mit `service`,
+`api_version`, `response_type: "get-portal-geometries"`, `status`, `timestamp`
+und `metadata` (einschließlich `portal_uuid` und `response_time_ms`).
+Der `data`-Bereich sieht beispielsweise so aus:
+
+```json
+{
+  "geometry": {
+    "uuid": "73a57380-a4c0-4eb9-a4e3-5b4428b85dc9",
+    "name": "Stadt",
+    "description": "Gesamtes Stadtgebiet",
+    "order": 0,
+    "admin_level": 8,
+    "type": "city",
+    "child_types": [
+      { "type": "city-district", "count": 1 }
+    ],
+    "childs": [
+      {
+        "uuid": "09202887-6f7e-4da8-8471-7549cd151b51",
+        "name": "Stadtteil",
+        "description": "Gebiet des Stadtteils",
+        "order": 0,
+        "admin_level": 10,
+        "type": "city-district",
+        "child_types": [],
+        "childs": []
+      }
+    ]
+  }
+}
+```
+
+Die Zuordnung erfolgt bei allen Knoten über `portal_geometry.portal_uuid`.
+Die Hauptgeometrie hat `parent_uuid IS NULL`; `portal2.geometry_uuid` wird für
+diesen Endpunkt nicht verwendet. Kinder werden über `parent_uuid` zugeordnet
+und können beliebig viele weitere Ebenen enthalten. Geschwister sind nach
+`order`, dann `name`, dann `uuid` aufsteigend sortiert. Ein SQL-`NULL` in
+`order` wird als `0` behandelt; fehlende Werte für `admin_level` und `type`
+bleiben JSON-`null`. `childs` ist immer ein Array, auch bei Blattknoten.
+`child_types` zählt pro Knoten die direkten Kinder desselben Portals nach
+`type`, alphabetisch nach Typ sortiert. Kinder mit `type: null` werden dabei
+nicht gezählt. Gibt es keine Kinder mit gesetztem Typ, ist `child_types` ein
+leeres Array (`[]`). Enkel und weitere Nachfahren zählen jeweils nur bei
+ihrem direkten Elternknoten.
+Polygonkoordinaten sind nicht Teil dieser Antwort; sie können über den
+bestehenden Endpunkt `/api/portal/:uuid/geojson?geometry=<geometry_uuid>`
+abgerufen werden.
+
+Ein vorhandenes Portal ohne Geometrien liefert HTTP 200 mit
+`data: {"geometry": null}`. Eine ungültige UUID liefert HTTP 400, ein
+unbekanntes Portal HTTP 404. Fehlerhafte Hierarchien (mehrere oder keine
+Hauptgeometrie trotz vorhandener Knoten, portalübergreifende Eltern oder
+Zyklen) sowie Datenbankfehler liefern HTTP 500.
+
+Der PostgreSQL-Integrationstest verwendet ein eigenes temporäres Schema:
+
+```sh
+URANUS_PORTAL_TEST_DATABASE_URL="postgres://..." go test ./api -run TestGetPortalGeometries -v
+```
+
+## Manuelle Migration
+
 Das manuell auszuführende Skript
 [`tools/migrate_portal_geometry.sql`](../tools/migrate_portal_geometry.sql)
 verschiebt die Geometrien aus `uranus.portal2` nach `uranus.portal_geometry`.
