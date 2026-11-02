@@ -167,7 +167,7 @@ func (h *ApiHandler) buildEventFilters(request EventFilterRequest, useTypeFilter
 	dateConditionCount := 0
 	if mode != EventFilterModeWeek {
 		if app.IsValidDateStr(request.Start) {
-			filters.DateConditions += "COALESCE(edp.event_end_at, edp.event_start_at) >= $" + strconv.Itoa(filters.ArgIndex)
+			filters.DateConditions += "COALESCE(edp.event_end_at, edp.event_start_at) >= $" + strconv.Itoa(filters.ArgIndex) + "::date"
 			filters.Args = append(filters.Args, request.Start)
 			filters.ArgIndex++
 			dateConditionCount++
