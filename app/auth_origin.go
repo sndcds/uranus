@@ -9,7 +9,7 @@ import (
 
 // Keep CORS and cookie CSRF checks on the same explicit frontend allowlist.
 func AllowedAuthOrigin(origin string) bool {
-	return origin == "https://app.kulturbytes.de" || origin == "http://localhost:5173"
+	return origin == "https://app.kulturbytes.de" || origin == "https://app.dev.kulturbytes.de" || origin == "http://localhost:5173"
 }
 
 func SafeMethod(method string) bool {
