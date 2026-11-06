@@ -12,8 +12,6 @@ import (
 	"github.com/sndcds/uranus/model"
 )
 
-// TODO: Add query parameters for filtering
-
 func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-venues-geojson")
 	ctx := gc.Request.Context()
@@ -43,7 +41,9 @@ func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 	}
 	apiRequest.SetMeta("bbox", bboxStr)
 
-	// Venue Scopes
+	//--------------------------------------------------------------------------
+	//  Venue Scopes.
+	//--------------------------------------------------------------------------
 
 	allowedScopes := map[string]bool{
 		"shared":       true,
@@ -68,7 +68,9 @@ func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 
 	apiRequest.SetMeta("scopes", scopes)
 
-	// Query
+	//--------------------------------------------------------------------------
+	//  Query.
+	//--------------------------------------------------------------------------
 
 	var query string
 	var rows pgx.Rows
