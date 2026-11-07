@@ -27,11 +27,23 @@ LEFT JOIN {{schema}}.pluto_image_link pil
         AND pil.context_uuid = v.uuid
         AND pil.identifier = 'main_logo'
 
-LEFT JOIN {{schema}}.venue_type vt ON vt.key = v.type
+LEFT JOIN {{schema}}.venue_type vt
+    ON vt.key = v.type
+
+LEFT JOIN {{schema}}.portal_geometry pg
+    ON $6::uuid IS NOT NULL
+        AND pg.uuid = $6::uuid
 
 WHERE v.point IS NOT NULL
-    AND ST_Within(v.point, ST_MakeEnvelope($1, $2, $3, $4, 4326))
+    AND ST_Within(
+        v.point,
+        ST_MakeEnvelope($1, $2, $3, $4, 4326)
+    )
     AND (
         cardinality($5::text[]) = 0
-        OR v.scope = ANY($5::text[])
+            OR v.scope = ANY($5::text[])
+    )
+    AND (
+        pg.uuid IS NULL
+            OR ST_Covers(pg.geometry, v.point)
     )

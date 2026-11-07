@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
@@ -26,11 +27,15 @@ func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 		apiRequest.SetMeta("portal", portalUuid)
 	}
 
-	portalGeometryUuid := gc.Query("geometry")
 	var geometryParam any
-	if portalGeometryUuid != "" {
-		geometryParam = portalGeometryUuid
-		apiRequest.SetMeta("geometry", portalGeometryUuid)
+	if geometryUuid := gc.Query("geometry"); geometryUuid != "" {
+		if _, err := uuid.Parse(geometryUuid); err != nil {
+			apiRequest.Error(http.StatusBadRequest, "invalid geometry UUID")
+			return
+		}
+
+		geometryParam = geometryUuid
+		apiRequest.SetMeta("geometry", geometryUuid)
 	}
 
 	bboxStr := gc.Query("bbox")
@@ -100,6 +105,7 @@ func (h *ApiHandler) GetVenuesGeoJSON(gc *gin.Context) {
 			bbox.MaxLon,
 			bbox.MaxLat,
 			scopes,
+			geometryParam,
 		)
 	}
 
