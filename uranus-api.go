@@ -65,7 +65,7 @@ func main() {
 		panic(fmt.Errorf("config, contact_secret missing"))
 	}
 
-	/*
+	// Todo: Check, could be simplified!
 	err = app.UranusInstance.CheckAllDatabaseConsistency(context.Background())
 	if err != nil {
 		fmt.Println("Uranus database not consistent")
@@ -73,7 +73,6 @@ func main() {
 		panic(err)
 	}
 	app.UranusInstance.Log("CheckAllDatabaseConsistency succeeded")
-	*/
 
 	if *verbose {
 		app.UranusInstance.Config.Verbose = true
