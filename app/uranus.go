@@ -196,7 +196,7 @@ func (uranus *Uranus) CheckAllDatabaseConsistency(ctx context.Context) error {
 		return fmt.Errorf("database consistency errors:\n%s", strings.Join(allErrors, "\n\n"))
 	}
 
-	fmt.Println("🎉 All tables are consistent")
+	fmt.Println("All tables are consistent")
 	return nil
 }
 
