@@ -115,7 +115,7 @@ func (h *ApiHandler) clearAuthCookies(gc *gin.Context) {
 func refreshClaims(gc *gin.Context) (*app.Claims, bool) {
 	token, err := gc.Cookie("refresh_token")
 	if err == nil && token != "" {
-		if !app.RequireAuthOrigin(gc) {
+		if !app.UranusInstance.RequireAuthOrigin(gc) {
 			return nil, false
 		}
 	} else {

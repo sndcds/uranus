@@ -42,7 +42,8 @@ func JWTMiddleware(gc *gin.Context) {
 		gc.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
 		return
 	}
-	if fromCookie && !SafeMethod(gc.Request.Method) && !RequireAuthOrigin(gc) {
+	if fromCookie && !SafeMethod(gc.Request.Method) &&
+		!UranusInstance.RequireAuthOrigin(gc) {
 		return
 	}
 

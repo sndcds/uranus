@@ -43,6 +43,7 @@ type Config struct {
 	AuthSmtpPassword            string   `json:"auth_smtp_password"`
 	AuthReplyEmail              string   `json:"auth_reply_email"`
 	AuthResetPasswordUrl        string   `json:"auth_reset_password_url"`
+	AuthAllowedOrigins          []string `json:"auth_allowed_origins"`
 	SignupTokenExpirationTime   int      `json:"signup_token_expiration_time"`
 	InvitationExpirationMinutes int      `json:"invitation_expiration_minutes"`
 	ContactEmail                string   `json:"contact_email"`

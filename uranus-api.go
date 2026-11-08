@@ -45,6 +45,14 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if *verbose {
+		app.UranusInstance.Config.Verbose = true
+	}
+
+	//--------------------------------------------------------------------------
+	//	Worker.
+	//--------------------------------------------------------------------------
+
 	if *socialWorker {
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		handler := &api.ApiHandler{
@@ -73,10 +81,6 @@ func main() {
 		panic(err)
 	}
 	app.UranusInstance.Log("CheckAllDatabaseConsistency succeeded")
-
-	if *verbose {
-		app.UranusInstance.Config.Verbose = true
-	}
 
 	//--------------------------------------------------------------------------
 	// 	Accessibility Lookup.
@@ -713,7 +717,7 @@ func CORSMiddleware() gin.HandlerFunc {
 		if strings.HasPrefix(path, "/api/admin/") || path == "/api/login" {
 			// Admin API
 			if origin != "" {
-				if !app.AllowedAuthOrigin(origin) {
+				if !app.UranusInstance.AllowedAuthOrigin(origin) {
 					c.AbortWithStatus(http.StatusForbidden)
 					return
 				}

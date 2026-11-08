@@ -15,7 +15,10 @@ import (
 func (h *ApiHandler) Login(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "login")
 	// Browsers must originate from the same allowlist as credentialed CORS.
-	if (gc.GetHeader("Origin") != "" || gc.GetHeader("Referer") != "" || gc.GetHeader("Sec-Fetch-Site") != "") && !app.RequireAuthOrigin(gc) {
+	if (gc.GetHeader("Origin") != "" ||
+		gc.GetHeader("Referer") != "" ||
+		gc.GetHeader("Sec-Fetch-Site") != "") &&
+		!app.UranusInstance.RequireAuthOrigin(gc) {
 		return
 	}
 
