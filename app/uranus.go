@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -200,9 +201,9 @@ func (uranus *Uranus) CheckAllDatabaseConsistency(ctx context.Context) error {
 	return nil
 }
 
-func (app *Uranus) Log(msg string) {
+func (app *Uranus) Log(message string) {
 	if app.Config.Verbose {
-		fmt.Println("Uranus:", msg)
+		log.Println("Uranus:", message)
 	}
 }
 
