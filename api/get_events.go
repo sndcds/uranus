@@ -53,7 +53,7 @@ type EventFilterRequest struct {
 
 	Lang               string `json:"lang,omitempty"`
 	PortalUuid         string `json:"portal,omitempty"`
-	PortalGeometryUuid string `json:"portal_geometry_uuid,omitempty"`
+	PortalGeometryUuid string `json:"geometry,omitempty"`
 
 	OrgUuids   []string `json:"org_uuids,omitempty"`
 	VenueUuids []string `json:"venue_uuids,omitempty"`
@@ -547,7 +547,6 @@ func (h *ApiHandler) buildEventFilters(request EventFilterRequest, useTypeFilter
 		filters.ArgIndex += 3
 
 		filters.PortalConditions = "AND ST_Covers(glr.geometry, COALESCE(edp.venue_point, ep.venue_point))"
-		debugf("filters.PortalConditions: %s", filters.PortalConditions)
 	}
 
 	// Portal
@@ -616,12 +615,12 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	query = strings.Replace(query, "{{portal_join}}", filters.PortalJoin, 1)
 	query = strings.Replace(query, "{{portal_conditions}}", filters.PortalConditions, 1)
 
-	/**/
+	/*
 	debugf("query: %s", query)
 	for i, a := range filters.Args {
 		fmt.Printf("args[%d] = %#v\n", i, a)
 	}
-	/**/
+	*/
 
 	rows, err := h.DbPool.Query(ctx, query, filters.Args...)
 	if err != nil {
@@ -1294,6 +1293,9 @@ func getEventFilterRequestFromJSON(
 		return request, err
 	}
 
+	fmt.Printf("Raw geometry: %s\n", raw["geometry"])
+	fmt.Printf("Ignore set: %#v\n", ignoreSet)
+
 	for key := range ignoreSet {
 		delete(raw, key)
 	}
@@ -1306,6 +1308,12 @@ func getEventFilterRequestFromJSON(
 	if err := json.Unmarshal(data, &request); err != nil {
 		return request, err
 	}
+
+	fmt.Printf(
+		"Parsed request: PortalUuid=%q, PortalGeometryUuid=%q\n",
+		request.PortalUuid,
+		request.PortalGeometryUuid,
+	)
 
 	if request.Start == "" {
 		request.Start = time.Now().Format("2006-01-02")
