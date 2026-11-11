@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sndcds/grains/grains_api"
+	"github.com/sndcds/uranus/model"
 	"github.com/sndcds/uranus/sql_utils"
 )
 
@@ -54,12 +55,12 @@ func (h *ApiHandler) GetChoosableVenues(gc *gin.Context) {
 	defer rows.Close()
 
 	type Venue struct {
-		Uuid    string  `json:"uuid"`
-		Scope   string  `json:"scope"`
-		Name    *string `json:"name"`
-		City    *string `json:"city,omitempty"`
-		State   *string `json:"state,omitempty"`
-		Country *string `json:"country,omitempty"`
+		Uuid    string           `json:"uuid"`
+		Scope   model.VenueScope `json:"scope"`
+		Name    *string          `json:"name"`
+		City    *string          `json:"city,omitempty"`
+		State   *string          `json:"state,omitempty"`
+		Country *string          `json:"country,omitempty"`
 	}
 
 	var venues []Venue

@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
+	"github.com/sndcds/uranus/model"
 )
 
 // PermissionNote: User must be authenticated.
@@ -32,17 +33,17 @@ func (h *ApiHandler) AdminGetOrgVenues(gc *gin.Context) {
 	}
 
 	type VenueInfo struct {
-		VenueUuid          *string     `json:"venue_uuid"`
-		VenueName          *string     `json:"venue_name"`
-		Scope              *string     `json:"scope"`
-		EventCount         int         `json:"event_count"`
-		CanEditVenue       bool        `json:"can_edit_venue"`
-		CanDeleteVenue     bool        `json:"can_delete_venue"`
-		CanAddSpace        bool        `json:"can_add_space"`
-		MainLogoUuid       *string     `json:"main_logo_uuid"`
-		LightThemeLogoUuid *string     `json:"light_theme_logo_uuid"`
-		DarkThemeLogoUuid  *string     `json:"dark_theme_logo_uuid"`
-		Spaces             []SpaceInfo `json:"spaces"`
+		VenueUuid          *string           `json:"venue_uuid"`
+		VenueName          *string           `json:"venue_name"`
+		Scope              *model.VenueScope `json:"scope"`
+		EventCount         int               `json:"event_count"`
+		CanEditVenue       bool              `json:"can_edit_venue"`
+		CanDeleteVenue     bool              `json:"can_delete_venue"`
+		CanAddSpace        bool              `json:"can_add_space"`
+		MainLogoUuid       *string           `json:"main_logo_uuid"`
+		LightThemeLogoUuid *string           `json:"light_theme_logo_uuid"`
+		DarkThemeLogoUuid  *string           `json:"dark_theme_logo_uuid"`
+		Spaces             []SpaceInfo       `json:"spaces"`
 	}
 
 	orgUuid := gc.Param("orgUuid")

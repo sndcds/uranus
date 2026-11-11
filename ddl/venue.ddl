@@ -33,7 +33,7 @@ CREATE TABLE uranus.venue (
     accessibility_summary text,
     content_iso_639_1 character varying(2),
     slug text CHECK (slug IS NULL OR slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'::text),
-    scope text NOT NULL DEFAULT 'standard'::text CHECK (scope = ANY (ARRAY['organization'::text, 'shared'::text])),
+    scope text NOT NULL CONSTRAINT venue_scope_check CHECK (scope IN ('organization', 'shared')),
     osm_id bigint,
     building geometry(Geometry,4326),
     wikidata text,
@@ -51,4 +51,3 @@ CREATE TRIGGER set_modified_at
     BEFORE UPDATE ON uranus.venue
     FOR EACH ROW
     EXECUTE FUNCTION uranus.update_modified_at();
-
