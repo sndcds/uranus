@@ -17,12 +17,13 @@ import (
 )
 
 type EventFilterRequest struct {
-	Offset     *int64 `json:"offset,omitempty"`
-	Limit      *int64 `json:"limit,omitempty"`
-	Start      string `json:"start,omitempty"`
-	End        string `json:"end,omitempty"`
-	Time       string `json:"time,omitempty"`
-	Categories []int  `json:"categories,omitempty"`
+	Offset       *int64 `json:"offset,omitempty"`
+	Limit        *int64 `json:"limit,omitempty"`
+	ReverseOrder bool   `json:"reverse_order,omitempty"`
+	Start        string `json:"start,omitempty"`
+	End          string `json:"end,omitempty"`
+	Time         string `json:"time,omitempty"`
+	Categories   []int  `json:"categories,omitempty"`
 
 	Search string `json:"search,omitempty"`
 	Venue  string `json:"venue,omitempty"`
@@ -143,21 +144,32 @@ const (
 )
 
 type eventFilters struct {
-	DateConditions   string
-	ConditionsStr    string
-	LimitClause      string
-	SearchRankSelect string
-	PortalJoin       string
-	PortalConditions string
-	Args             []interface{}
-	ArgIndex         int
+	DateConditions    string
+	ConditionsStr     string
+	LimitClause       string
+	SearchRankSelect  string
+	PortalJoin        string
+	PortalConditions  string
+	OrderByConditions string
+	Args              []interface{}
+	ArgIndex          int
 }
 
-func (h *ApiHandler) buildEventFilters(request EventFilterRequest, useTypeFilter bool, mode EventFilterMode) (eventFilters, error) {
+func (h *ApiHandler) buildEventFilters(
+	request EventFilterRequest,
+	useTypeFilter bool,
+	mode EventFilterMode,
+) (eventFilters, error) {
 
 	filters := eventFilters{
 		Args:     []interface{}{},
 		ArgIndex: 1,
+	}
+
+	if request.ReverseOrder == true {
+		filters.OrderByConditions = "event_sort.pagination_sort_at DESC, edp.event_date_uuid DESC"
+	} else {
+		filters.OrderByConditions = "event_sort.pagination_sort_at ASC, edp.event_date_uuid ASC"
 	}
 
 	var conditions []string
@@ -231,8 +243,13 @@ func (h *ApiHandler) buildEventFilters(request EventFilterRequest, useTypeFilter
 			cursorStartColumn = "event_sort.pagination_sort_at"
 		}
 
+		cursorOperator := ">"
+		if request.ReverseOrder == true {
+			cursorOperator = "<"
+		}
+
 		filters.DateConditions +=
-			"(" + cursorStartColumn + ", edp.event_date_uuid) > ($" +
+			"(" + cursorStartColumn + ", edp.event_date_uuid) " + cursorOperator + " ($" +
 				strconv.Itoa(filters.ArgIndex) +
 				"::timestamp, $" +
 				strconv.Itoa(filters.ArgIndex+1) +
@@ -614,13 +631,12 @@ func (h *ApiHandler) GetEvents(gc *gin.Context) {
 	query = strings.Replace(query, "{{limit}}", filters.LimitClause, 1)
 	query = strings.Replace(query, "{{portal_join}}", filters.PortalJoin, 1)
 	query = strings.Replace(query, "{{portal_conditions}}", filters.PortalConditions, 1)
+	query = strings.Replace(query, "{{order_by_conditions}}", filters.OrderByConditions, 1)
 
-	/*
 	debugf("query: %s", query)
 	for i, a := range filters.Args {
 		fmt.Printf("args[%d] = %#v\n", i, a)
 	}
-	*/
 
 	rows, err := h.DbPool.Query(ctx, query, filters.Args...)
 	if err != nil {
@@ -1028,7 +1044,7 @@ func (h *ApiHandler) GetEventsGeoJSON(gc *gin.Context) {
 	query = strings.Replace(query, "{{portal_join}}", filters.PortalJoin, 1)
 	query = strings.Replace(query, "{{portal_conditions}}", filters.PortalConditions, 1)
 
-	// debugf(query)
+	debugf(query)
 	// debugf("ARGS (%d):\n", len(filters.Args))
 
 	for i, arg := range filters.Args {
@@ -1361,6 +1377,7 @@ func getEventFilterRequestFromQuery(
 		"geolist_region":       {},
 		"portal":               {},
 		"geometry":             {},
+		"reverse_order":        {},
 	}
 
 	if err := validateAllowedQueryParams(gc, allowed); err != nil {
@@ -1368,6 +1385,8 @@ func getEventFilterRequestFromQuery(
 	}
 
 	var request EventFilterRequest
+
+	_, request.ReverseOrder = gc.GetQuery("reverse_order")
 
 	request.Start, _ = GetContextParam(gc, "start")
 	if request.Start == "" {
