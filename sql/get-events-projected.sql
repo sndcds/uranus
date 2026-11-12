@@ -50,7 +50,7 @@ SELECT
     ST_Y(COALESCE(edp.venue_point, ep.venue_point)) AS venue_lat,
     ST_X(COALESCE(edp.venue_point, ep.venue_point)) AS venue_lon,
 
-    COALESCE(edp.venue_name, ep.venue_name) AS venue_name,
+    COALESCE(edp.space_name, ep.space_name) AS space_name,
 
     COALESCE(
         edp.space_accessibility_flags,
@@ -105,7 +105,6 @@ WHERE ep.release_status IN (
 {{portal_conditions}}
 
 ORDER BY
-    event_sort.pagination_sort_at ASC,
-    edp.event_date_uuid ASC
+{{order_by_conditions}}
 
 {{limit}}
