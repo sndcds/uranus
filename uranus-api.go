@@ -330,6 +330,10 @@ func main() {
 		"/accessibility/flags",
 		apiHandler.GetAccessibilityFlags)
 
+	publicRoute.GET(
+		"/visitor-info/flags",
+		apiHandler.GetVisitorInfoFlags)
+
 	// Inject app middleware into Pluto's image routes
 	pluto.PlutoInstance.RegisterRoutes(
 		publicRoute,
