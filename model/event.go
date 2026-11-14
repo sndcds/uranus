@@ -73,6 +73,7 @@ type EventDate struct {
 	EndTime              *string         `json:"end_time,omitempty"`
 	EntryTime            *string         `json:"entry_time,omitempty"`
 	Duration             *int            `json:"duration,omitempty"`
+	AllDay               *bool           `json:"all_day,omitempty"`
 	VenueUuid            *string         `json:"venue_uuid"`
 	VenueName            *string         `json:"venue_name,omitempty"`
 	VenueStreet          *string         `json:"venue_street,omitempty"`
