@@ -53,11 +53,6 @@ func (h *ApiHandler) GetChoosableLegalForms(gc *gin.Context) {
 		return
 	}
 
-	if len(legalForms) == 0 {
-		apiRequest.NotFound("No legal forms found")
-		return
-	}
-
 	apiRequest.SetMeta("legal_form_count", len(legalForms))
 	apiRequest.Success(http.StatusOK, legalForms)
 }

@@ -19,6 +19,7 @@ SELECT
     TO_CHAR(ed.end_time, 'HH24:MI') AS end_time,
     TO_CHAR(ed.entry_time, 'HH24:MI') AS entry_time,
     ed.duration,
+    ed.all_day,
 
     -- Venue logic: prefer event_date.venue_uuid, fallback to event.venue_uuid
     v.uuid AS venue_uuid,

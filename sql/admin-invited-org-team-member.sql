@@ -3,7 +3,8 @@ SELECT
     u.display_name,
     u.first_name,
     u.last_name,
-    o.name
+    o.name,
+    u.locale
 FROM {{schema}}.user u
 JOIN {{schema}}.organization o ON o.uuid = $1::uuid
 WHERE LOWER(u.email) = LOWER($2)

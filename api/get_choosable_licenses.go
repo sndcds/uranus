@@ -52,11 +52,6 @@ func (h *ApiHandler) GetChoosableLicenseTypes(gc *gin.Context) {
 		return
 	}
 
-	if len(licences) == 0 {
-		apiRequest.NotFound("No licenses found")
-		return
-	}
-
 	apiRequest.SetMeta("license_type_count", len(licences))
 	apiRequest.Success(http.StatusOK, licences)
 }

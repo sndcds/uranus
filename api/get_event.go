@@ -246,6 +246,7 @@ func (h *ApiHandler) LoadEventByDateIdentifier(
 			&edd.EndTime,
 			&edd.EntryTime,
 			&edd.Duration,
+			&edd.AllDay,
 			&edd.VenueUuid,
 			&edd.VenueName,
 			&edd.VenueStreet,
