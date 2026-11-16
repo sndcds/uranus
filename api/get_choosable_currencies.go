@@ -52,11 +52,6 @@ func (h *ApiHandler) GetChoosableCurrencies(gc *gin.Context) {
 		return
 	}
 
-	if len(options) == 0 {
-		apiRequest.Success(http.StatusOK, []OptionType{})
-		return
-	}
-
 	apiRequest.SetMeta("currency_count", len(options))
 	apiRequest.Success(http.StatusOK, options)
 }

@@ -80,11 +80,6 @@ func (h *ApiHandler) GetChoosableOrgs(gc *gin.Context) {
 		return
 	}
 
-	apiRequest.SetMeta("venue_count", len(orgs))
-	if len(orgs) == 0 {
-		apiRequest.Success(http.StatusOK, []Org{})
-		return
-	}
-
+	apiRequest.SetMeta("organization_count", len(orgs))
 	apiRequest.Success(http.StatusOK, orgs)
 }
