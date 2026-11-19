@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 
@@ -80,6 +81,11 @@ func GetRequestSource(gc *gin.Context) RequestSource {
 	ua := strings.ToLower(gc.GetHeader("User-Agent"))
 	fetchSite := gc.GetHeader("Sec-Fetch-Site")
 	fetchMode := gc.GetHeader("Sec-Fetch-Mode")
+
+	fmt.Println("origin:", origin)
+	fmt.Println("User-Agent:", ua)
+	fmt.Println("fetchSite:", fetchSite)
+	fmt.Println("fetchMode:", fetchMode)
 
 	// Known kulturbytes frontend.
 	if origin == "https://app.kulturbytes.de" ||
