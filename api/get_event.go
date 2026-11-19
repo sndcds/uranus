@@ -391,5 +391,12 @@ func (h *ApiHandler) RecordEventAccess(
 	if err != nil {
 		// TODO: Replace with application logger.
 		fmt.Printf("Failed to record event access: %v\n", err)
+	} else {
+		fmt.Printf(
+			"Recorded event access: event=%s date=%s lang=%s\n",
+			eventUuid,
+			subUuid,
+			lang,
+		)
 	}
 }
