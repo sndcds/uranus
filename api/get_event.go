@@ -380,12 +380,11 @@ func (h *ApiHandler) RecordEventAccess(
 	}
 
 	err := h.RecordEntryAccess(
-		gc.Request.Context(),
+		gc,
 		"event",
 		eventUuid,
 		subUuid,
 		lang,
-		GetReferrer(gc),
 	)
 
 	if err != nil {
