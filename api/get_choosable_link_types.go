@@ -52,11 +52,6 @@ func (h *ApiHandler) GetChoosableLinkTypes(gc *gin.Context) {
 		return
 	}
 
-	if len(linkTypes) == 0 {
-		apiRequest.NotFound("No link types found")
-		return
-	}
-
 	apiRequest.SetMeta("link_type_count", len(linkTypes))
 	apiRequest.Success(http.StatusOK, linkTypes, "Link types found")
 }

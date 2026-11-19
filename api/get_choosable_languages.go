@@ -59,11 +59,6 @@ func (h *ApiHandler) GetChoosableLanguages(gc *gin.Context) {
 		return
 	}
 
-	if len(languages) == 0 {
-		apiRequest.Success(http.StatusOK, []Language{})
-		return
-	}
-
 	apiRequest.SetMeta("language_count", len(languages))
 	apiRequest.Success(http.StatusOK, languages)
 }

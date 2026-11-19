@@ -61,12 +61,5 @@ func (h *ApiHandler) GetChoosableEventOccasions(gc *gin.Context) {
 	}
 
 	apiRequest.SetMeta("event_occasion_count", len(eventOccasions))
-
-	if len(eventOccasions) == 0 {
-		apiRequest.Success(http.StatusOK, []EventOccasionType{})
-		return
-	}
-
-	apiRequest.SetMeta("event_occasion_count", len(eventOccasions))
 	apiRequest.Success(http.StatusOK, eventOccasions)
 }

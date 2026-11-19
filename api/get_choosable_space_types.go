@@ -56,11 +56,6 @@ func (h *ApiHandler) GetChoosableSpaceTypes(gc *gin.Context) {
 		return
 	}
 
-	if len(spaceTypes) == 0 {
-		apiRequest.NotFound("No space types found")
-		return
-	}
-
 	apiRequest.SetMeta("space_type_count", len(spaceTypes))
 	apiRequest.Success(http.StatusOK, spaceTypes)
 }

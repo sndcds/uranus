@@ -66,6 +66,5 @@ func (h *ApiHandler) GetEventTypeGenreLookup(gc *gin.Context) {
 	}
 
 	apiRequest.SetMeta("event_type_count", typeCount)
-
 	apiRequest.Success(http.StatusOK, result)
 }

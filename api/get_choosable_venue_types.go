@@ -56,11 +56,6 @@ func (h *ApiHandler) GetChoosableVenueTypes(gc *gin.Context) {
 		return
 	}
 
-	if len(venueTypes) == 0 {
-		apiRequest.NotFound("No venue types found")
-		return
-	}
-
 	apiRequest.SetMeta("venue_type_count", len(venueTypes))
 	apiRequest.Success(http.StatusOK, venueTypes)
 }
