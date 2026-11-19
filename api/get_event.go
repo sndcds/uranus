@@ -23,6 +23,7 @@ var publicStatuses = []string{
 
 func (h *ApiHandler) GetEvent(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "get-event")
+	ctx := gc.Request.Context()
 
 	eventUuid := gc.Param("eventUuid")
 	userUuid := h.userUuid(gc)
@@ -30,7 +31,7 @@ func (h *ApiHandler) GetEvent(gc *gin.Context) {
 
 	dateUuid := ""
 	event, err := h.LoadEventByDateIdentifier(
-		gc.Request.Context(),
+		ctx,
 		eventUuid,
 		dateUuid,
 		userUuid,
@@ -39,6 +40,14 @@ func (h *ApiHandler) GetEvent(gc *gin.Context) {
 		apiRequest.InternalServerError()
 		return
 	}
+
+	h.RecordEventAccess(
+		gc,
+		event,
+		eventUuid,
+		dateUuid,
+		lang,
+	)
 
 	apiRequest.Success(http.StatusOK, event)
 }
@@ -74,6 +83,14 @@ func (h *ApiHandler) GetEventByDate(gc *gin.Context) {
 		apiRequest.InternalServerError()
 		return
 	}
+
+	h.RecordEventAccess(
+		gc,
+		event,
+		eventUuid,
+		dateUuid,
+		lang,
+	)
 
 	apiRequest.SetMeta("event_date_count", len(event.FurtherDates)+1)
 	apiRequest.Success(http.StatusOK, event)
@@ -346,4 +363,33 @@ func intFromAny(v interface{}) int {
 		return t
 	}
 	return 0
+}
+
+func (h *ApiHandler) RecordEventAccess(
+	gc *gin.Context,
+	event model.EventDetails,
+	eventUuid string,
+	dateUuid string,
+	lang string,
+) {
+	subUuid := dateUuid
+
+	// If no specific date was requested, use the selected date.
+	if subUuid == "" && event.Date != nil {
+		subUuid = event.Date.Uuid
+	}
+
+	err := h.RecordEntryAccess(
+		gc.Request.Context(),
+		"event",
+		eventUuid,
+		subUuid,
+		lang,
+		GetReferrer(gc),
+	)
+
+	if err != nil {
+		// TODO: Replace with application logger.
+		fmt.Printf("Failed to record event access: %v\n", err)
+	}
 }
