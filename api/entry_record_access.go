@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/url"
 	"strings"
 
@@ -82,15 +81,13 @@ func GetRequestSource(gc *gin.Context) RequestSource {
 	fetchSite := gc.GetHeader("Sec-Fetch-Site")
 	fetchMode := gc.GetHeader("Sec-Fetch-Mode")
 
-	fmt.Println("origin:", origin)
-	fmt.Println("User-Agent:", ua)
-	fmt.Println("fetchSite:", fetchSite)
-	fmt.Println("fetchMode:", fetchMode)
-
 	// Known kulturbytes frontend.
-	if origin == "https://app.kulturbytes.de" ||
-		origin == "https://kulturbytes.de" {
-		return RequestSourceFrontend
+	parsed, err := url.Parse(origin)
+	if err == nil && parsed.Scheme == "https" {
+		switch parsed.Hostname() {
+		case "app.kulturbytes.de", "kulturbytes.de":
+			return RequestSourceFrontend
+		}
 	}
 
 	// Search engine crawlers and other known bots.
