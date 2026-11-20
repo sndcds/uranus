@@ -78,10 +78,15 @@ func GetReferrer(gc *gin.Context) string {
 func GetRequestSource(gc *gin.Context) RequestSource {
 	origin := strings.ToLower(gc.GetHeader("Origin"))
 	ua := strings.ToLower(gc.GetHeader("User-Agent"))
-	fetchSite := gc.GetHeader("Sec-Fetch-Site")
-	fetchMode := gc.GetHeader("Sec-Fetch-Mode")
 
-	// Known kulturbytes frontend.
+	// Explicit Kulturbytes frontend identification
+	requestSource := gc.GetHeader("X-Kulturbytes-Request-Source")
+
+	if requestSource == "frontend-ssr" {
+		return RequestSourceFrontend
+	}
+
+	// Known Kulturbytes frontend
 	parsed, err := url.Parse(origin)
 	if err == nil && parsed.Scheme == "https" {
 		switch parsed.Hostname() {
@@ -90,7 +95,7 @@ func GetRequestSource(gc *gin.Context) RequestSource {
 		}
 	}
 
-	// Search engine crawlers and other known bots.
+	// Search engine crawlers and other known bots
 	bots := []string{
 		"googlebot",
 		"bingbot",
@@ -108,12 +113,15 @@ func GetRequestSource(gc *gin.Context) RequestSource {
 		}
 	}
 
-	// Browser navigation directly to the API.
+	fetchSite := gc.GetHeader("Sec-Fetch-Site")
+	fetchMode := gc.GetHeader("Sec-Fetch-Mode")
+
+	// Browser navigation directly to the API
 	if fetchSite == "none" && fetchMode == "navigate" {
 		return RequestSourceDirect
 	}
 
-	// Requests from other websites.
+	// Requests from other websites
 	if origin != "" {
 		return RequestSourceExternal
 	}
