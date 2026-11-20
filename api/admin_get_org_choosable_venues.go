@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/sndcds/grains/grains_api"
 	"github.com/sndcds/uranus/app"
+	"github.com/sndcds/uranus/model"
 )
 
 // AdminGetOrgChoosableVenues returns all venues that can be chosen for events of an organization.
@@ -15,16 +16,16 @@ func (h *ApiHandler) AdminGetOrgChoosableVenues(gc *gin.Context) {
 	ctx := gc.Request.Context()
 
 	type VenueSpaceRow struct {
-		OrgUuid     *string         `db:"org_uuid"`
-		OrgName     *string         `db:"org_name"`
-		VenueUuid   *string         `db:"venue_uuid"`
-		VenueName   *string         `db:"venue_name"`
-		SpaceUuid   *string         `db:"space_uuid"`
-		SpaceName   *string         `db:"space_name"`
-		City        *string         `db:"city"`
-		Country     *string         `db:"country"`
-		Scope       string          `db:"scope"`
-		Permissions app.Permissions `db:"permissions"`
+		OrgUuid     *string          `db:"org_uuid"`
+		OrgName     *string          `db:"org_name"`
+		VenueUuid   *string          `db:"venue_uuid"`
+		VenueName   *string          `db:"venue_name"`
+		SpaceUuid   *string          `db:"space_uuid"`
+		SpaceName   *string          `db:"space_name"`
+		City        *string          `db:"city"`
+		Country     *string          `db:"country"`
+		Scope       model.VenueScope `db:"scope"`
+		Permissions app.Permissions  `db:"permissions"`
 	}
 
 	type SpaceDTO struct {
@@ -33,13 +34,13 @@ func (h *ApiHandler) AdminGetOrgChoosableVenues(gc *gin.Context) {
 	}
 
 	type VenueDTO struct {
-		Uuid    string     `json:"uuid"`
-		Name    string     `json:"name"`
-		OrgUuid string     `json:"org_uuid"`
-		City    string     `json:"city"`
-		Country string     `json:"country"`
-		Scope   string     `json:"scope"`
-		Spaces  []SpaceDTO `json:"spaces"`
+		Uuid    string           `json:"uuid"`
+		Name    string           `json:"name"`
+		OrgUuid string           `json:"org_uuid"`
+		City    string           `json:"city"`
+		Country string           `json:"country"`
+		Scope   model.VenueScope `json:"scope"`
+		Spaces  []SpaceDTO       `json:"spaces"`
 	}
 
 	type Response struct {

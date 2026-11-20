@@ -29,6 +29,10 @@ type venueReq struct {
 	Latitude       *float64 `json:"latitude"`
 }
 
+// AdminUpsertVenue is historical and has no active route (see uranus-api.go).
+// Its insert branch predates UUIDs and mandatory venue.scope. It must not be
+// reactivated without an explicit validated scope; use AdminCreateVenue.
+// Neither this legacy update nor AdminUpdateVenueFields changes scope.
 func (h *ApiHandler) AdminUpsertVenue(gc *gin.Context) {
 	apiRequest := grains_api.NewRequest(gc, "admin-upsert-venue")
 	ctx := gc.Request.Context()
