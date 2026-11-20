@@ -37,26 +37,46 @@ func (h *ApiHandler) RecordEntryAccess(
 	source := GetRequestSource(gc)
 	requestMode := GetRequestMode(gc)
 
+	origin := GetRequestHeader(gc, "Origin")
+	userAgent := GetRequestHeader(gc, "User-Agent")
+	acceptLanguage := GetRequestHeader(gc, "Accept-Language")
+
+	secFetchSite := GetRequestHeader(gc, "Sec-Fetch-Site")
+	secFetchMode := GetRequestHeader(gc, "Sec-Fetch-Mode")
+	secFetchDest := GetRequestHeader(gc, "Sec-Fetch-Dest")
+
 	const query = `
-        INSERT INTO uranus.entry_access (
-            context,
-            entry_uuid,
-            sub_uuid,
-            lang,
-            referrer,
-            source,
-            request_mode
-        )
-        VALUES (
-            $1,
-            $2::uuid,
-            NULLIF($3, '')::uuid,
-            NULLIF($4, ''),
-            NULLIF($5, ''),
-            NULLIF($6, ''),
-            NULLIF($7, '')
-        )
-    `
+		INSERT INTO uranus.entry_access (
+			context,
+			entry_uuid,
+			sub_uuid,
+			lang,
+			referrer,
+			source,
+			request_mode,
+			origin,
+			user_agent,
+			accept_language,
+			sec_fetch_site,
+			sec_fetch_mode,
+			sec_fetch_dest
+		)
+		VALUES (
+			$1,
+			$2::uuid,
+			NULLIF($3, '')::uuid,
+			NULLIF($4, ''),
+			NULLIF($5, ''),
+			NULLIF($6, ''),
+			NULLIF($7, ''),
+			NULLIF($8, ''),
+			NULLIF($9, ''),
+			NULLIF($10, ''),
+			NULLIF($11, ''),
+			NULLIF($12, ''),
+			NULLIF($13, '')
+		)
+	`
 
 	_, err := h.DbPool.Exec(
 		gc.Request.Context(),
@@ -68,9 +88,19 @@ func (h *ApiHandler) RecordEntryAccess(
 		referrer,
 		source,
 		requestMode,
+		origin,
+		userAgent,
+		acceptLanguage,
+		secFetchSite,
+		secFetchMode,
+		secFetchDest,
 	)
 
 	return err
+}
+
+func GetRequestHeader(gc *gin.Context, name string) string {
+	return strings.TrimSpace(gc.GetHeader(name))
 }
 
 func GetReferrer(gc *gin.Context) string {
@@ -88,17 +118,15 @@ func GetReferrer(gc *gin.Context) string {
 }
 
 func GetRequestSource(gc *gin.Context) RequestSource {
-	origin := strings.ToLower(gc.GetHeader("Origin"))
-	ua := strings.ToLower(gc.GetHeader("User-Agent"))
+	origin := strings.ToLower(GetRequestHeader(gc, "Origin"))
+	ua := strings.ToLower(GetRequestHeader(gc, "User-Agent"))
 
-	// Explicit Kulturbytes frontend identification
-	requestSource := gc.GetHeader("X-Kulturbytes-Request-Source")
+	requestSource := GetRequestHeader(gc, "X-Kulturbytes-Request-Source")
 
 	if requestSource == "frontend-ssr" {
 		return RequestSourceFrontend
 	}
 
-	// Known Kulturbytes frontend
 	parsed, err := url.Parse(origin)
 	if err == nil && parsed.Scheme == "https" {
 		switch parsed.Hostname() {
@@ -107,7 +135,6 @@ func GetRequestSource(gc *gin.Context) RequestSource {
 		}
 	}
 
-	// Search engine crawlers and other known bots
 	bots := []string{
 		"googlebot",
 		"bingbot",
@@ -125,15 +152,13 @@ func GetRequestSource(gc *gin.Context) RequestSource {
 		}
 	}
 
-	fetchSite := gc.GetHeader("Sec-Fetch-Site")
-	fetchMode := gc.GetHeader("Sec-Fetch-Mode")
+	fetchSite := GetRequestHeader(gc, "Sec-Fetch-Site")
+	fetchMode := GetRequestHeader(gc, "Sec-Fetch-Mode")
 
-	// Browser navigation directly to the API
 	if fetchSite == "none" && fetchMode == "navigate" {
 		return RequestSourceDirect
 	}
 
-	// Requests from other websites
 	if origin != "" {
 		return RequestSourceExternal
 	}
