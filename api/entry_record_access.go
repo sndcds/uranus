@@ -17,6 +17,14 @@ const (
 	RequestSourceUnknown  RequestSource = "unknown"
 )
 
+type RequestMode string
+
+const (
+	RequestModeSSR     RequestMode = "ssr"
+	RequestModeClient  RequestMode = "client"
+	RequestModeUnknown RequestMode = "unknown"
+)
+
 func (h *ApiHandler) RecordEntryAccess(
 	gc *gin.Context,
 	contextType string,
@@ -27,6 +35,7 @@ func (h *ApiHandler) RecordEntryAccess(
 
 	referrer := GetReferrer(gc)
 	source := GetRequestSource(gc)
+	requestMode := GetRequestMode(gc)
 
 	const query = `
         INSERT INTO uranus.entry_access (
@@ -35,7 +44,8 @@ func (h *ApiHandler) RecordEntryAccess(
             sub_uuid,
             lang,
             referrer,
-			source
+            source,
+            request_mode
         )
         VALUES (
             $1,
@@ -43,7 +53,8 @@ func (h *ApiHandler) RecordEntryAccess(
             NULLIF($3, '')::uuid,
             NULLIF($4, ''),
             NULLIF($5, ''),
-            NULLIF($6, '')
+            NULLIF($6, ''),
+            NULLIF($7, '')
         )
     `
 
@@ -56,6 +67,7 @@ func (h *ApiHandler) RecordEntryAccess(
 		lang,
 		referrer,
 		source,
+		requestMode,
 	)
 
 	return err
@@ -127,4 +139,17 @@ func GetRequestSource(gc *gin.Context) RequestSource {
 	}
 
 	return RequestSourceUnknown
+}
+
+func GetRequestMode(gc *gin.Context) RequestMode {
+	switch gc.Query("request_mode") {
+	case string(RequestModeSSR):
+		return RequestModeSSR
+
+	case string(RequestModeClient):
+		return RequestModeClient
+
+	default:
+		return RequestModeUnknown
+	}
 }
