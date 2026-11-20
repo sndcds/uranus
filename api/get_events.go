@@ -1378,6 +1378,7 @@ func getEventFilterRequestFromQuery(
 		"portal":               {},
 		"geometry":             {},
 		"reverse_order":        {},
+		"request_mode":         {},
 	}
 
 	if err := validateAllowedQueryParams(gc, allowed); err != nil {
