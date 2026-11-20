@@ -17,6 +17,14 @@ const (
 	RequestSourceUnknown  RequestSource = "unknown"
 )
 
+type RequestMode string
+
+const (
+	RequestModeSSR     RequestMode = "ssr"
+	RequestModeClient  RequestMode = "client"
+	RequestModeUnknown RequestMode = "unknown"
+)
+
 func (h *ApiHandler) RecordEntryAccess(
 	gc *gin.Context,
 	contextType string,
@@ -27,6 +35,7 @@ func (h *ApiHandler) RecordEntryAccess(
 
 	referrer := GetReferrer(gc)
 	source := GetRequestSource(gc)
+	requestMode := GetRequestMode(gc)
 
 	const query = `
         INSERT INTO uranus.entry_access (
@@ -35,7 +44,8 @@ func (h *ApiHandler) RecordEntryAccess(
             sub_uuid,
             lang,
             referrer,
-			source
+            source,
+            request_mode
         )
         VALUES (
             $1,
@@ -43,7 +53,8 @@ func (h *ApiHandler) RecordEntryAccess(
             NULLIF($3, '')::uuid,
             NULLIF($4, ''),
             NULLIF($5, ''),
-            NULLIF($6, '')
+            NULLIF($6, ''),
+            NULLIF($7, '')
         )
     `
 
@@ -56,6 +67,7 @@ func (h *ApiHandler) RecordEntryAccess(
 		lang,
 		referrer,
 		source,
+		requestMode,
 	)
 
 	return err
@@ -78,10 +90,15 @@ func GetReferrer(gc *gin.Context) string {
 func GetRequestSource(gc *gin.Context) RequestSource {
 	origin := strings.ToLower(gc.GetHeader("Origin"))
 	ua := strings.ToLower(gc.GetHeader("User-Agent"))
-	fetchSite := gc.GetHeader("Sec-Fetch-Site")
-	fetchMode := gc.GetHeader("Sec-Fetch-Mode")
 
-	// Known kulturbytes frontend.
+	// Explicit Kulturbytes frontend identification
+	requestSource := gc.GetHeader("X-Kulturbytes-Request-Source")
+
+	if requestSource == "frontend-ssr" {
+		return RequestSourceFrontend
+	}
+
+	// Known Kulturbytes frontend
 	parsed, err := url.Parse(origin)
 	if err == nil && parsed.Scheme == "https" {
 		switch parsed.Hostname() {
@@ -90,7 +107,7 @@ func GetRequestSource(gc *gin.Context) RequestSource {
 		}
 	}
 
-	// Search engine crawlers and other known bots.
+	// Search engine crawlers and other known bots
 	bots := []string{
 		"googlebot",
 		"bingbot",
@@ -108,15 +125,31 @@ func GetRequestSource(gc *gin.Context) RequestSource {
 		}
 	}
 
-	// Browser navigation directly to the API.
+	fetchSite := gc.GetHeader("Sec-Fetch-Site")
+	fetchMode := gc.GetHeader("Sec-Fetch-Mode")
+
+	// Browser navigation directly to the API
 	if fetchSite == "none" && fetchMode == "navigate" {
 		return RequestSourceDirect
 	}
 
-	// Requests from other websites.
+	// Requests from other websites
 	if origin != "" {
 		return RequestSourceExternal
 	}
 
 	return RequestSourceUnknown
+}
+
+func GetRequestMode(gc *gin.Context) RequestMode {
+	switch gc.Query("request_mode") {
+	case string(RequestModeSSR):
+		return RequestModeSSR
+
+	case string(RequestModeClient):
+		return RequestModeClient
+
+	default:
+		return RequestModeUnknown
+	}
 }
