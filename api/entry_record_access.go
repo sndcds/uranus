@@ -118,22 +118,7 @@ func GetReferrer(gc *gin.Context) string {
 }
 
 func GetRequestSource(gc *gin.Context) RequestSource {
-	origin := strings.ToLower(GetRequestHeader(gc, "Origin"))
 	ua := strings.ToLower(GetRequestHeader(gc, "User-Agent"))
-
-	requestSource := GetRequestHeader(gc, "X-Kulturbytes-Request-Source")
-
-	if requestSource == "frontend-ssr" {
-		return RequestSourceFrontend
-	}
-
-	parsed, err := url.Parse(origin)
-	if err == nil && parsed.Scheme == "https" {
-		switch parsed.Hostname() {
-		case "app.kulturbytes.de", "kulturbytes.de":
-			return RequestSourceFrontend
-		}
-	}
 
 	bots := []string{
 		"googlebot",
@@ -144,11 +129,34 @@ func GetRequestSource(gc *gin.Context) RequestSource {
 		"facebookexternalhit",
 		"twitterbot",
 		"linkedinbot",
+		"slackbot",
+		"whatsapp",
+		"telegrambot",
+		"applebot",
+		"petalbot",
+		"semrushbot",
+		"ahrefsbot",
 	}
 
 	for _, bot := range bots {
 		if strings.Contains(ua, bot) {
 			return RequestSourceCrawler
+		}
+	}
+
+	requestSource := GetRequestHeader(gc, "X-Kulturbytes-Request-Source")
+
+	if requestSource == "frontend-ssr" {
+		return RequestSourceFrontend
+	}
+
+	origin := strings.ToLower(GetRequestHeader(gc, "Origin"))
+
+	parsed, err := url.Parse(origin)
+	if err == nil && parsed.Scheme == "https" {
+		switch parsed.Hostname() {
+		case "app.kulturbytes.de", "kulturbytes.de":
+			return RequestSourceFrontend
 		}
 	}
 
